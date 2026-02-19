@@ -1,39 +1,19 @@
-# Task Plan: ExploreSG MK-IV
+# Task Plan: TraceData.ai
 
 ## Project Overview
 
-AI-powered multi-tenant vehicle rental + tourism platform for Singapore.
+We are building TraceData.ai, a B2B middleware. Your role is my Senior Partner. We prioritize security (Module 2) and XAI (Module 1).
 
-## Phases
+## Current Sprints
 
-### Phase 1: Foundation (Weeks 1-2)
+### Sprint 1: Foundation (Security & Governance)
 
-- [ ] Project Structure Setup
-- [ ] Modular Monolith Foundation
-- [ ] Auth Service
-- [ ] Fleet Module
+- [ ] Initialize `conftest.py` for standard testing.
+- [ ] Setup `docker-compose.yml` for distributed system.
+- [ ] Implement secure connection pool logic.
+- [ ] Define XAI requirements for upcoming features.
 
-### Phase 2: Core Booking (Weeks 3-4)
+## Senior Partner Instructions
 
-- [ ] Booking Module
-- [ ] Domain Events Implementation
-- [ ] Saga Pattern for Reservation
-
-### Phase 3: Customer Agents (Weeks 5-6)
-
-- [ ] Concierge Agent
-- [ ] Vehicle Agent
-- [ ] Places Agent
-- [ ] Support Agent (RAG)
-
-### Phase 4: Telematics & Analytics (Weeks 7-8)
-
-- [ ] Car Simulator
-- [ ] Monitoring Agent
-- [ ] Analytics Agent
-
-## Architectural Decisions
-
-- **Architecture**: Modular Monolith with Domain Events.
-- **AI**: Multi-agent system using LangGraph.
-- **Database**: PostgreSQL with Schema-per-module.
+- Always verify new FastAPI routes against STRIDE threat model.
+- If an explainability (XAI) component is missing, warn me immediately.

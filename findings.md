@@ -1,8 +1,3 @@
-# Research & Findings
+# Research & Findings: TraceData.ai
 
-## Project: ExploreSG MK-IV
-
-### Date: 2026-02-19
-
-- Initial project structure defined.
-- Identifying core dependencies for Spring Boot 3.3 and LangGraph.
+Use this file to document any bugs found or architectural suggestions (e.g., "I noticed our FastAPI middleware isn't handling JWT expiration correctly").
