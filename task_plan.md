@@ -2,18 +2,25 @@
 
 ## Project Overview
 
-We are building TraceData.ai, a B2B middleware. Your role is my Senior Partner. We prioritize security (Module 2) and XAI (Module 1).
+We are building TraceData.ai, a B2B middleware for Intelligent Fleet Operations. Your role is my Senior Partner.
+We prioritize **Security (Module 2)** and **XAI (Module 1)**.
 
-## Current Sprints
+## Phase 1: Foundation (Weeks 1-2)
 
-### Sprint 1: Foundation (Security & Governance)
+**Goal:** Establish the Multi-Agent Core & Data Pipeline.
 
-- [ ] Initialize `conftest.py` for standard testing.
-- [ ] Setup `docker-compose.yml` for distributed system.
-- [ ] Implement secure connection pool logic.
-- [ ] Define XAI requirements for upcoming features.
+- [ ] **Infrastructure Setup**
+  - [ ] Finalize `docker-compose.yml` (FastAPI, Redis, Postgres/pgvector, MLflow).
+  - [ ] setup `.github/workflows` for CI/CD skeleton (lint, test, security).
+- [ ] **Core Platform (FastAPI)**
+  - [ ] Implement `AgentMessage` protocol (Pydantic models).
+  - [ ] Create LangGraph Orchestrator skeleton.
+- [ ] **Data Simulation**
+  - [ ] Build `telemetry-sim` to generate realistic fleet data (GPS, fuel, maintenance).
+  - [ ] Ensure simulated data has "injectable bias" for AIF360 testing later.
 
 ## Senior Partner Instructions
 
 - Always verify new FastAPI routes against STRIDE threat model.
 - If an explainability (XAI) component is missing, warn me immediately.
+- Enforce the "Module Coverage Matrix" from the Master Plan.
