@@ -1,489 +1,367 @@
-# 🚛 TraceData — Master Plan for A+
+# 🚛 TraceData — Master Plan
 
-## Intelligent Fleet Operations via Multi-Agent AI
+## AI Intelligence Middleware for Truck Fleet Management
 
-**Team Size:** 4 members  
-**Estimated Effort:** 15 days × 4 = 60 person-days  
-**Target Grade:** A+
+### Multi-Agent System via LangGraph + FastAPI + Kafka
 
----
-
-## 1. The Vision — Why Fleet Management?
-
-Fleet management is a **goldmine** for multi-agent AI because it naturally decomposes into specialized domains that require autonomous decision-making, real-time coordination, and explainability for safety-critical operations. Unlike brand analytics (EchoChamber), fleet management involves:
-
-- **Safety-critical decisions** — route choices, driver fatigue, vehicle health → explainability isn't optional, it's life-or-death
-- **Real protected attributes** — driver demographics (age, gender, ethnicity) in performance scoring → genuine fairness/bias concerns
-- **Rich adversarial surface** — GPS spoofing, telemetry tampering, prompt injection in chatbot → deep cybersecurity module coverage
-- **Clear MLOps pipeline** — anomaly detection models that degrade over time → real model monitoring and retraining needs
-- **Regulatory weight** — LTA (Singapore), PDPA for driver data, workplace safety regulations → governance frameworks apply naturally
-
-**The Pitch:** TraceData is an AI-powered fleet intelligence platform that uses a multi-agent system to continuously monitor vehicle health, optimize routes, detect driver risk patterns, predict maintenance needs, ensure regulatory compliance, and provide conversational analytics access — all while maintaining explainability, fairness, and security across every decision.
+**Team Size:** 4 members **Estimated Effort:** 15 days × 4 = 60 person-days **Target Grade:** A+ **Last Updated:** March 2026 — aligned to all confirmed architectural decisions
 
 ---
 
-## 2. The Agent Architecture — 8 Agents, 4 Owners
+## 1. The Vision — Brain for Hire
 
-Each team member owns **2 agents** and writes a deep individual report on their **primary agent**.
+TraceData is not a fleet management system. It is an **AI intelligence middleware** that attaches to existing truck fleet management infrastructure and adds the five capabilities no traditional Fleet Management System (FMS) or Transport Management System (TMS) provides: fairness-audited driver scoring, predictive maintenance, intelligent compliance reasoning, customer sentiment intelligence, and conversational fleet access.
+
+Fleet operators already have systems. They've spent years and significant capital on GPS tracking, trip logging, driver hours recording, and basic reporting. TraceData plugs in on top via a Kafka integration layer — the standard enterprise middleware pattern — without requiring operators to replace anything. In production, one Kafka configuration change connects TraceData to any TMS that can publish telemetry events.
+
+**Why this domain beats brand analytics (EchoChamber):**
+
+- **Safety-critical decisions** — driver fatigue, vehicle failure, compliance violations → explainability is operationally required, not academically contrived
+- **Real protected attributes** — driver age in safety scoring affects employment decisions → genuine demographic fairness problem, not a statistical consistency check across brand categories
+- **Rich adversarial surface** — GPS spoofing, telemetry tampering, prompt injection in fleet chatbot → deep Module 2 coverage that emerges naturally from the domain
+- **Cross-agent intelligence** — correlating vehicle health with driver behaviour with compliance status is something no single model or TMS can do → justifies multi-agent architecture organically
+- **Regulatory weight** — Singapore LTA regulations, PDPA for driver data, workplace safety requirements → IMDA MAIGF governance applies meaningfully
+
+**The one sentence that opens every presentation and the group report:**
+
+> _"TraceData is an AI intelligence middleware that attaches to existing fleet management infrastructure via a Kafka integration layer, adding predictive, explainable, and fair decision-making capabilities without requiring operators to replace their current systems."_
+
+---
+
+## 2. Agent Architecture — 4 Agents, 4 Owners
+
+Each team member owns one agent and writes their individual report on that agent. The Orchestrator is Sree's primary individual deliverable and also the system's central coordinator, giving him the richest design story.
 
 ### Agent Map & Ownership
 
-| #   | Agent                                      | Primary Owner | Secondary Owner | Individual Report          |
-| --- | ------------------------------------------ | ------------- | --------------- | -------------------------- |
-| 1   | **Orchestrator Agent**                     | Member A      | —               | Member A writes about this |
-| 2   | **Telemetry Ingestion Agent**              | Member A      | —               | —                          |
-| 3   | **Route Optimizer Agent**                  | Member B      | —               | Member B writes about this |
-| 4   | **Driver Behavior Agent**                  | Member B      | —               | —                          |
-| 5   | **Predictive Maintenance Agent**           | Member C      | —               | Member C writes about this |
-| 6   | **Compliance & Safety Agent**              | Member C      | —               | —                          |
-| 7   | **Fleet Chatbot Agent (RAG)**              | Member D      | —               | Member D writes about this |
-| 8   | **Sentinel Agent (Monitoring & Alerting)** | Member D      | —               | —                          |
+| #   | Agent                                    | Owner | Individual Report   | Primary Module                       |
+| --- | ---------------------------------------- | ----- | ------------------- | ------------------------------------ |
+| 1   | **Orchestrator + Driver Behavior Agent** | Sree  | ✅ Sree writes this | Module 3: Agentic AI                 |
+| 2   | **Predictive Maintenance Agent**         | P2    | ✅ P2 writes this   | Module 1: XRAI                       |
+| 3   | **Compliance & Safety Agent**            | P3    | ✅ P3 writes this   | Module 2: AI & Cybersecurity         |
+| 4   | **Customer Intelligence Agent**          | P4    | ✅ P4 writes this   | Module 4: Integrating & Deploying AI |
 
-### Why 8 Agents?
+### Shared Infrastructure (owned by team, documented in group report)
 
-The briefing example (CARE-AI) uses 5 agents for a 4-5 person team. By having **8 well-scoped agents**, we:
+| Component                       | Owner | Purpose                                                       |
+| ------------------------------- | ----- | ------------------------------------------------------------- |
+| Kafka consumer + PII middleware | Sree  | Telemetry ingestion, PII masking at middleware layer          |
+| LLMRouter                       | Sree  | Centralised OpenAI API caller, model selection, cost tracking |
+| AuditLogger                     | P4    | Shared logging class, writes to PostgreSQL audit_log          |
+| LangSmith tracing               | P4    | Distributed tracing across all LangGraph nodes                |
+| GitHub Actions CI/CD            | P4    | Automated test gates, DigitalOcean deployment                 |
+| FaaS truck simulator            | Sree  | Synthetic telemetry with injected age bias                    |
 
-- Give each member clear ownership of 2 agents
-- Demonstrate richer multi-agent coordination patterns
-- Show the lecturers we can handle complex orchestration
-- Create more inter-agent communication surfaces to document
+### Why 4 Agents (Not 8)
+
+The original plan had 8 agents. We reduced to 4 for three reasons. First, the briefing specifies 4–5 person teams — 4 agents maps one-to-one with team members, giving each person genuine ownership and a richer individual deliverable. Second, the Route Optimizer and Telemetry Ingestion agents from the original plan are more naturally implemented as infrastructure components (FastAPI Kafka consumer, LLMRouter) than as LangGraph agents — implementing them as agents would add complexity without demonstrating additional agentic capability. Third, the Sentinel monitoring agent is absorbed into P4's shared observability infrastructure — LangSmith + AuditLogger does everything Sentinel would have done without the overhead of a separate agent node.
+
+The result is four agents that are each genuinely rich, each with their own ML model, XAI approach, and security surface — rather than eight agents where some are thin wrappers.
 
 ---
 
 ## 3. Agent Deep-Dive Designs
 
-### Agent 1: Orchestrator Agent (Member A)
+### Agent 1: Orchestrator + Driver Behavior Agent (Sree)
 
-**Purpose:** Central coordinator that manages all workflow execution, routes incoming requests, handles agent failures, and maintains global state.
+**Purpose:** Dual-role agent. As Orchestrator: central coordinator routing all fleet manager requests via LangGraph StateGraph, managing shared FleetState, synthesising cross-agent intelligence, and providing conversational fleet access via an embedded 5-stage RAG pipeline. As Driver Behavior Agent: trains XGBoost on trip telemetry, detects age-based demographic bias with AIF360, corrects with Reweighing, and renders SHAP explanations in the dashboard.
 
-**Key Design Points:**
+**Why LLM for orchestration (justified):** Fleet manager queries are semantically ambiguous. "What happened with Driver 42?" could be a behaviour query, a maintenance query, or a compliance query. Deterministic decision trees cannot resolve this reliably. GPT-4o-mini classifies intent. GPT-4o handles complex multi-agent synthesis. Cost is controlled through the centralised LLMRouter.
 
-- Built with **LangGraph StateGraph** — directed acyclic graph with conditional edges
-- Implements **parallel fan-out** (Telemetry + Route + Driver agents can run concurrently) and **fan-in** (Maintenance agent waits for Telemetry output)
-- **Retry logic** with exponential backoff and circuit breaker pattern for agent failures
-- **State machine visualization** — renders the current workflow state as a live diagram in the UI (this is XAI in action — the user can see _why_ the system is doing what it's doing)
-- Maintains a **decision audit log** for every routing decision
+**Two operating modes:**
 
-**Reasoning Pattern:** Hierarchical planning — decomposes fleet manager requests into sub-tasks, assigns to agents, monitors completion, and aggregates results.
+- Analytical Mode — intent classification → route to agent → synthesise cross-agent response
+- Conversational Mode — 5-stage RAG pipeline grounded in live fleet data
 
-**Inter-Agent Protocol:** Defines a standard **AgentMessage** schema:
+**Tools:** `xgboost_scorer`, `aif360_detector`, `aif360_corrector`, `shap_explainer`, `lime_explainer`, `pgvector_retriever`, `query_rewriter`, `db_query_tool`, `alert_dispatcher`
 
-```
-{
-  "message_id": "uuid",
-  "from_agent": "orchestrator",
-  "to_agent": "route_optimizer",
-  "intent": "optimize_routes",
-  "payload": { ... },
-  "priority": "high",
-  "timestamp": "ISO8601",
-  "trace_id": "uuid"  // for distributed tracing
-}
-```
+**The XRAI centrepiece:** Disparate Impact Ratio before correction: **0.62** (young drivers scored 38% more harshly than older drivers for equivalent behaviour). After Reweighing: **0.92** (within FEAT fairness threshold of 0.8–1.2). SHAP global feature importance rendered in dashboard. LIME local explanations per driver alert. This is a genuine protected-group fairness problem — not a statistical consistency check across brand categories.
 
 ---
 
-### Agent 2: Telemetry Ingestion Agent (Member A)
+### Agent 2: Predictive Maintenance Agent (P2)
 
-**Purpose:** Collects, validates, and normalizes vehicle telemetry data (GPS, fuel, speed, engine diagnostics, tire pressure) from simulated IoT sources.
+**Purpose:** Proactive vehicle health intelligence. Predicts component failures before they cause unplanned downtime. Operates in two LangGraph modes: Reactive (anomaly-triggered) and Proactive (scheduled weekly fleet scan).
 
-**Key Design Points:**
+**Why agentic (not just an ML endpoint):** Two operating modes controlled by LangGraph conditional edges, autonomous severity decisions (monitor vs schedule vs urgent), memory of vehicle health history, cross-query capability to Driver Behavior Agent for driver-vehicle correlation. This is agent behaviour, not pipeline execution.
 
-- **PII detection pipeline** — strips driver names, license plates, phone numbers from raw telemetry before processing (PDPA compliance)
-- **Anomaly pre-screening** — flags impossible values (speed > 200km/h, negative fuel levels, GPS coordinates outside Singapore) using statistical bounds
-- **Data quality scoring** — each telemetry batch gets a quality score; low-quality data is flagged for human review (Human-in-the-Loop from IMDA)
-- Publishes clean data to shared state for downstream agents
+**Key design decision — no LLM for prediction:** XGBoost only for failure prediction — justified for auditability, cost efficiency, and SHAP/LIME compatibility. LLM is used only for generating plain-English summaries of LIME output for non-technical fleet managers.
 
-**Reasoning Pattern:** Rule-based filtering + LLM-powered anomaly narration (turns raw anomalies into human-readable descriptions).
+**Tools:** `telemetry_aggregator`, `xgboost_predictor`, `lime_explainer`, `shap_explainer`, `aif360_fleet_auditor`, `anomaly_detector`, `maintenance_scheduler`, `db_query_tool`
 
 ---
 
-### Agent 3: Route Optimizer Agent (Member B)
+### Agent 3: Compliance & Safety Agent (P3)
 
-**Purpose:** Generates optimal routes considering traffic, fuel efficiency, delivery windows, and driver constraints. Provides explainable route recommendations.
+**Purpose:** Intelligent compliance monitoring combining a deterministic rules engine for clear violations with GPT-4o-mini LLM reasoning for edge cases — explicitly distinguishing agentic AI from rules-based automation.
 
-**Key Design Points:**
+**The hybrid architecture (justified):** Simple checks (hours exceeded, licence expired) use deterministic rules — zero LLM cost, fully auditable. Edge cases ("driver was stationary 2 hours of a 14-hour shift — is this a violation?") require contextual reasoning. LLM is invoked only for ambiguous cases. This directly answers the rubric's hardest question: what does agentic AI provide beyond RPA?
 
-- Uses LLM to reason about multi-constraint optimization (time windows, driver hours, vehicle capacity, road restrictions)
-- **Explainable routing** — every route recommendation includes a breakdown: "This route saves 12% fuel but adds 8 min. Chosen because driver X is approaching max driving hours." (XAI as a USER FEATURE, not just a test)
-- **"Why not this route?"** — contrastive explanations. Users can ask why an alternative route was rejected
-- **Fairness check** — ensures route assignments don't systematically disadvantage certain drivers (e.g., always giving senior drivers the easy routes)
-- Integrates with external map APIs (simulated) for distance/time estimates
+**Security centrepiece (Module 2):** Full STRIDE threat model documented. OWASP LLM Top 10 mitigations. 60+ Promptfoo adversarial tests targeting the LLM reasoning endpoint — inputs attempting to manipulate the LLM into clearing genuine violations.
 
-**Reasoning Pattern:** Chain-of-Thought with tool use — the LLM reasons step-by-step through constraints, calls tools for distance calculations, and produces a ranked route list with justifications.
-
-**XAI Feature in UI:** A "Route Explanation" panel showing a SHAP-style breakdown of which factors influenced the route choice (distance weight: 30%, fuel weight: 25%, driver hours: 20%, delivery window: 25%).
+**Tools:** `rules_engine`, `xgboost_risk_scorer`, `shap_explainer`, `llm_edge_case_reasoner`, `audit_logger`, `compliance_report_generator`, `alert_dispatcher`
 
 ---
 
-### Agent 4: Driver Behavior Agent (Member B)
+### Agent 4: Customer Intelligence Agent (P4)
 
-**Purpose:** Analyzes driver performance patterns — harsh braking, speeding, idle time, fatigue risk — and generates fair, explainable driver risk scores.
+**Purpose:** Proactive RAG-based sentiment intelligence. Goes beyond reactive chatbot — continuously monitors rolling 7-day sentiment scores and autonomously alerts the Orchestrator when complaint thresholds are crossed, without being queried.
 
-**Key Design Points:**
+**Why proactive beats reactive:** Fleet managers don't have time to query the system — intelligence must come to them. The rolling sentiment monitor acts without being asked. This is genuine agentic behaviour beyond EchoChamber's passive RAG chatbot.
 
-- **This is the fairness-critical agent** — driver scores directly affect job outcomes
-- Implements **AIF360 fairness testing** on driver risk scores across protected attributes (age group, gender, experience level)
-- **LIME explanations** for each driver score — "Driver X scored 72/100. Key factors: harsh braking events (+15 risk), excellent fuel efficiency (-8 risk), high idle time (+5 risk)"
-- **Bias detection and correction** — if the model systematically scores younger drivers higher risk, apply reweighting or threshold adjustment (bias reduction from Module 1)
-- **Human-Over-the-Loop** — flagged scores (very high or very low) are queued for human review before affecting driver records
-- Fatigue detection using driving pattern analysis (time of day, continuous driving duration, deviation from normal patterns)
+**LLMSecOps centrepiece (Module 4):** LangSmith traces every RAG chain. GitHub Actions CI/CD with mandatory test gates. DigitalOcean App Platform deployment. Cost optimisation: GPT-4o-mini for response drafting, text-embedding-3-small for embeddings.
 
-**Reasoning Pattern:** Hybrid — structured scoring formula (transparent, decomposable) + LLM narrative generation for manager-facing reports.
-
-**XAI Feature in UI:** A "Driver Score Breakdown" dashboard with LIME waterfall charts showing positive/negative contributors. A "Fairness Dashboard" tab showing AIF360 metrics across demographic groups.
+**Tools:** `sentiment_classifier` (HuggingFace DistilBERT), `xgboost_complaint_categoriser`, `lime_explainer`, `aif360_language_auditor`, `pgvector_store`, `rag_retriever`, `sentiment_monitor`, `response_drafter`, `langsmith_tracer`
 
 ---
 
-### Agent 5: Predictive Maintenance Agent (Member C)
+## 4. The Cross-Agent Demo — The A+ Moment
 
-**Purpose:** Predicts vehicle component failures before they occur, schedules preventive maintenance, and explains predictions to fleet managers.
+This scenario is the system's single most important demonstration. It proves TraceData is a genuine multi-agent system, not a pipeline:
 
-**Key Design Points:**
+1. Maintenance Agent detects Vehicle 07 at high failure risk (brake wear + engine temp spike)
+2. Orchestrator cross-queries Driver Behavior Agent — who drove Vehicle 07 this week?
+3. Driver Behavior Agent returns — Driver 23, fatigue-flagged from last night's shift
+4. Orchestrator cross-queries Compliance Agent — is Driver 23 within legal hours?
+5. Compliance Agent returns — Driver 23 is 2 hours over the weekly legal limit
+6. Orchestrator synthesises a single unified alert: SHAP reasoning from each agent, plain English summary, two action buttons: **Approve / Escalate**
+7. Fleet manager's `human_decision` field (approve/dismiss/escalate) written to AuditLog
 
-- Uses a **classification model** (e.g., Random Forest or XGBoost) trained on simulated historical maintenance data — this gives us a proper ML model for SHAP/LIME, not just LLM wrapper
-- **SHAP feature importance** — shows which telemetry features (engine temp trend, mileage since last service, vibration patterns) drive each prediction
-- **Confidence intervals** — every prediction includes uncertainty: "78% probability of brake pad replacement needed within 2 weeks (±5 days)"
-- **Model versioning with MLflow** — tracks model versions, training data versions, and performance metrics over time (MLSecOps)
-- **Drift detection** — monitors if incoming telemetry distributions shift from training data, triggering retraining alerts
-- Generates maintenance priority queues with cost-impact analysis
-
-**Reasoning Pattern:** ML model for prediction + LLM for narrative explanation. The ML model produces the prediction; the LLM translates the SHAP values into natural language: "Engine overheating risk is high primarily because coolant temperature has trended upward 3°C over the past 2 weeks."
-
-**XAI Feature in UI:** Interactive SHAP force plots for each vehicle's maintenance prediction. Fleet managers click a vehicle, see the prediction, and understand _exactly why_.
+No single agent produces this. No traditional TMS produces this. No deterministic pipeline produces this. This is the moment that justifies the architecture.
 
 ---
 
-### Agent 6: Compliance & Safety Agent (Member C)
-
-**Purpose:** Monitors regulatory compliance (driving hours, vehicle inspection schedules, license renewals) and safety incidents.
-
-**Key Design Points:**
-
-- **Rules engine** mapping Singapore LTA regulations + workplace safety requirements
-- **Proactive alerting** — warns 7/14/30 days before compliance deadlines (license expiry, inspection due, COE renewal)
-- **Incident classification** — when incidents occur, classifies severity and generates structured reports
-- **Ethical decision log** — records every compliance decision with reasoning (aligned with IMDA MAIGF "Internal Governance Structures & Measures")
-- **Escalation protocol** — critical safety issues (driver fatigue detected, vehicle brake failure predicted) trigger immediate human notification, bypassing normal workflow
-
-**Reasoning Pattern:** Rule-based for regulatory checks + LLM for incident narrative generation and complex regulation interpretation.
-
----
-
-### Agent 7: Fleet Chatbot Agent — RAG (Member D)
-
-**Purpose:** Provides natural language query access to all fleet intelligence. Fleet managers ask questions like "Which vehicles are due for maintenance next week?" or "Show me Driver Lee's performance trend."
-
-**Key Design Points:**
-
-- **Hybrid RAG** — vector search (pgvector) + keyword search + structured SQL queries
-- **Intent classification** with safety detection — routes queries to appropriate data sources
-- **Multi-turn conversation** with anaphora resolution ("Show me his route history" → resolves "his" to previously discussed driver)
-- **Defense-in-depth security:**
-  - Layer 1: Regex pattern matching (prompt injection, SQL injection, XSS patterns)
-  - Layer 2: LLM-based intent classification with `is_safe` flag and 10 boundary categories
-  - Layer 3: OpenAI Moderation API for content safety
-- **Source attribution** — every response cites the data source (which telemetry record, which maintenance log, which compliance rule)
-- **"I don't know" honesty** — strict grounding prevents hallucination; if data doesn't exist, says so
-- **Crisis protocol** — if a user query suggests an emergency ("truck is on fire"), immediately provides emergency contacts (SCDF 995)
-
-**Reasoning Pattern:** Intent → Route → Retrieve → Ground → Respond → Cite. Each step logged for auditability.
-
-**XAI Feature in UI:** Every chatbot response shows a "Sources" section with clickable links to the underlying data, plus a confidence indicator.
-
----
-
-### Agent 8: Sentinel Agent — Monitoring & Alerting (Member D)
-
-**Purpose:** The meta-agent that watches all other agents. Monitors system health, LLM costs, response quality, and compliance tracking.
-
-**Key Design Points:**
-
-- **LLM cost tracking** — real-time token usage and cost per agent, per query, per day
-- **Performance metrics** — response latency P50/P95/P99, throughput, error rates
-- **Quality scoring** — samples chatbot responses and scores them for relevance, groundedness, and safety
-- **Compliance audit trail** — generates periodic compliance reports showing all agent decisions with timestamps, inputs, outputs, and reasoning
-- **Alerting rules** — cost budget exceeded, latency spike, error rate above threshold, model drift detected
-- **LangSmith integration** for distributed tracing across agent calls
-
-**Reasoning Pattern:** Threshold-based monitoring + LLM for anomaly narration and alert summarization.
-
----
-
-## 4. Module Coverage Matrix — Closing Every Gap
-
-This is the **secret weapon**. We explicitly map every deliverable to the 4 course modules so the lecturers can see we've covered everything.
+## 5. Module Coverage Matrix
 
 ### Module 1: Explainable & Responsible AI (XRAI)
 
-| Requirement                    | How We Cover It                                                          | Where (Agent/Section)                                     | EchoChamber Gap Closed?          |
-| ------------------------------ | ------------------------------------------------------------------------ | --------------------------------------------------------- | -------------------------------- |
-| **LIME explanations**          | Driver risk score keyword attribution                                    | Driver Behavior Agent — IN THE UI                         | ✅ XAI visible to users          |
-| **SHAP explanations**          | Maintenance prediction feature importance                                | Predictive Maintenance Agent — IN THE UI                  | ✅ XAI visible to users          |
-| **AIF360 fairness testing**    | Driver score fairness across age, gender, experience                     | Driver Behavior Agent — with before/after bias correction | ✅ Real bias found & fixed       |
-| **Bias reduction**             | Reweighting or threshold adjustment on driver scores                     | Driver Behavior Agent                                     | ✅ Goes beyond EchoChamber       |
-| **IMDA MAIGF alignment**       | Deep mapping across all 4 dimensions with evidence                       | Section 5 of report — detailed table                      | ✅ Deep, not surface-level       |
-| **GenAI Governance Framework** | Map to the 9 dimensions (Accountability, Data, Trusted Dev, etc.)        | Section 5 of report                                       | ✅ NEW — EchoChamber missed this |
-| **FEAT principles**            | Apply to driver scoring (Fairness, Ethics, Accountability, Transparency) | Driver Behavior Agent design                              | ✅ From reading list             |
-| **Human-in-the-loop**          | Flagged driver scores, maintenance decisions requiring human approval    | Multiple agents                                           | ✅                               |
-| **Contrastive explanations**   | "Why not Route B?" in Route Optimizer                                    | Route Optimizer Agent — IN THE UI                         | ✅ Advanced XAI technique        |
-| **Ethical decision log**       | All agent decisions logged with reasoning                                | Compliance Agent + audit trail                            | ✅                               |
+| Requirement             | How TraceData Covers It                                                                          | Agent/Location                                        |
+| ----------------------- | ------------------------------------------------------------------------------------------------ | ----------------------------------------------------- |
+| LIME explanations       | Driver risk score feature attribution + vehicle alert explanations                               | Driver Behavior + Maintenance — rendered in dashboard |
+| SHAP explanations       | XGBoost feature importance — driver scoring + maintenance prediction + compliance prioritisation | All three ML agents — in dashboard                    |
+| AIF360 fairness testing | Driver age bias in safety scoring — DIR 0.62 → 0.92 with before/after metrics                    | Driver Behavior Agent                                 |
+| Bias correction         | Reweighing pre-processing, re-tested with AIF360                                                 | Driver Behavior Agent                                 |
+| User-facing XAI         | SHAP charts, LIME waterfall, fairness dashboard all visible in Next.js UI                        | Dashboard                                             |
+| IMDA MAIGF alignment    | Deep mapping all 4 dimensions with evidence per decision type                                    | Section 5 of report                                   |
+| FEAT principles         | Applied to driver scoring — Fairness, Ethics, Accountability, Transparency                       | Driver Behavior Agent design                          |
+| Human-in-the-loop       | All consequential decisions require fleet manager approval                                       | All agents via alerts_pending table                   |
+| XAI Question Bank       | "Why was this driver flagged?" "Why is this vehicle at risk?" answered directly in UI            | Driver Behavior + Maintenance                         |
 
 ### Module 2: AI & Cybersecurity
 
-| Requirement                         | How We Cover It                                       | Where                               |
-| ----------------------------------- | ----------------------------------------------------- | ----------------------------------- |
-| **STRIDE threat model**             | Structured threat analysis of entire system           | Section 6 — Risk Register skeleton  |
-| **OWASP LLM Top 10**                | Map each risk to our agents with mitigations          | Section 6 — detailed table          |
-| **Prompt injection defense**        | 3-layer defense (regex → LLM → Moderation API)        | Fleet Chatbot Agent                 |
-| **Adversarial testing (Promptfoo)** | 400+ red-team tests                                   | Testing section                     |
-| **Agent-to-agent security**         | Message signing, input validation between agents      | Architecture section — NEW          |
-| **Data poisoning defense**          | Telemetry anomaly detection, training data validation | Telemetry Agent + Maintenance Agent |
-| **Supply chain security**           | Dependency scanning in CI/CD (Snyk/Dependabot)        | MLSecOps pipeline                   |
-| **PII protection**                  | Multi-layer PII detection in Telemetry Agent          | PDPA compliance                     |
+| Requirement              | How TraceData Covers It                                                                          | Location                                |
+| ------------------------ | ------------------------------------------------------------------------------------------------ | --------------------------------------- |
+| STRIDE threat model      | Full documented analysis per agent — Spoofing, Tampering, Repudiation, Info Disclosure, DoS, EoP | Section 6 + Compliance Agent design     |
+| OWASP LLM Top 10         | Prompt injection, hallucination guard, insecure output handling mapped with mitigations          | All LLM-facing agents                   |
+| Prompt injection defense | 3-layer defense: regex guardrails → LLM prompt boundaries → output validation                    | Orchestrator RAG + Compliance LLM       |
+| Adversarial testing      | Promptfoo 35+ plugins, 350+ tests, documented pass rate                                          | Testing section                         |
+| PII protection           | FastAPI middleware layer — masks before any LLM call                                             | Shared infrastructure                   |
+| Data poisoning defense   | Telemetry range validation before ML inference                                                   | Kafka consumer + agent input validation |
 
 ### Module 3: Architecting Agentic AI Solutions
 
-| Requirement                   | How We Cover It                                         | Where                      |
-| ----------------------------- | ------------------------------------------------------- | -------------------------- |
-| **Multi-agent architecture**  | 8 agents with clear roles                               | Agent Design section       |
-| **Agent orchestration**       | LangGraph StateGraph with parallel fan-out/fan-in       | Orchestrator Agent         |
-| **Agent autonomy**            | Each agent reasons, plans, and uses tools independently | Agent design docs          |
-| **Inter-agent communication** | Explicit AgentMessage protocol + shared state           | Architecture section       |
-| **Architecture patterns**     | Layered + Event-driven hybrid, justified                | System Architecture        |
-| **Framework selection**       | LangGraph + LangChain, justify vs CrewAI/AutoGen        | Architecture justification |
-| **Reference architecture**    | Logical + Physical architecture diagrams                | Section 3                  |
+| Requirement                         | How TraceData Covers It                                                                                  | Location                              |
+| ----------------------------------- | -------------------------------------------------------------------------------------------------------- | ------------------------------------- |
+| Multi-agent architecture            | 4 specialised agents + Orchestrator with LangGraph StateGraph                                            | Agent Design section                  |
+| Differentiating agentic AI from RPA | Compliance Agent explicitly designed around this distinction — hybrid rules + LLM                        | Compliance Agent design justification |
+| Agent autonomy                      | Each agent has reasoning, tools, memory, and planning loop                                               | All agents                            |
+| Inter-agent communication           | Shared FleetState via LangGraph, cross-agent queries via Orchestrator                                    | Architecture section                  |
+| Framework justification             | LangGraph over CrewAI/AutoGen — justified for StateGraph control and observability                       | Architecture justification            |
+| Logical architecture                | 6-layer diagram: Presentation → API Gateway → Orchestration → Business Logic → Data Access → Persistence | Section 3                             |
+| Cross-agent coordination            | Primary demo scenario showing 3-agent correlation                                                        | Section 2 + presentation demo         |
 
 ### Module 4: Integrating & Deploying AI Solutions
 
-| Requirement           | How We Cover It                                                         | Where                        |
-| --------------------- | ----------------------------------------------------------------------- | ---------------------------- |
-| **CI/CD pipeline**    | GitHub Actions: lint → test → security scan → build → deploy            | MLSecOps section             |
-| **MLSecOps**          | ML model versioning (MLflow), training data versioning, drift detection | Maintenance Agent + pipeline |
-| **LLMSecOps**         | Prompt registry, LLM cost monitoring, output quality scoring            | Sentinel Agent + pipeline    |
-| **Containerization**  | Docker + Docker Compose, deploy to AWS ECS or equivalent                | Deployment strategy          |
-| **Automated testing** | Unit + Integration + Security + Fairness + XAI + Adversarial            | Testing section              |
-| **Monitoring**        | LangSmith tracing + CloudWatch/Prometheus + custom dashboards           | Sentinel Agent               |
-| **Model retraining**  | Drift detection → retrain trigger → validation → deploy                 | Maintenance Agent pipeline   |
+| Requirement           | How TraceData Covers It                                                     | Location                |
+| --------------------- | --------------------------------------------------------------------------- | ----------------------- |
+| Kafka event streaming | FaaS simulator → Kafka → FastAPI consumer → PostgreSQL                      | Architecture section    |
+| CI/CD pipeline        | GitHub Actions: test gate → build → push → deploy to DigitalOcean           | MLSecOps section        |
+| LLMSecOps             | LangSmith tracing, prompt hash versioning, cost tracking per agent          | Sentinel infrastructure |
+| Containerisation      | Docker modular monolith, three process types from one image                 | Deployment strategy     |
+| Automated testing     | Unit + integration + security + XAI + adversarial                           | Testing section         |
+| Monitoring            | LangSmith distributed tracing + PostgreSQL AuditLog                         | Shared infrastructure   |
+| Async architecture    | Celery + Redis job queue, FastAPI never blocks on LLM                       | Architecture section    |
+| Cost optimisation     | LLMRouter with model selection per task type, documented cost per operation | Section 7               |
 
 ---
 
-## 5. Tech Stack
+## 6. Tech Stack — Final Confirmed Decisions
 
-| Layer                | Technology                                                                              | Justification                                                 |
-| -------------------- | --------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
-| **Agent Framework**  | LangGraph + LangChain                                                                   | StateGraph for complex workflow orchestration; widely adopted |
-| **LLM**              | OpenAI GPT-4o (analysis) + GPT-4o-mini (classification) + o3-mini (strategic reasoning) | Cost-optimized model routing                                  |
-| **ML Model**         | XGBoost (maintenance prediction)                                                        | Interpretable, fast, works with SHAP natively                 |
-| **Backend**          | FastAPI (Python)                                                                        | Async support, auto-generated API docs, lightweight           |
-| **Frontend**         | Next.js + React                                                                         | Modern, SSR support, good charting ecosystem                  |
-| **Database**         | PostgreSQL + pgvector                                                                   | Unified relational + vector search                            |
-| **Task Queue**       | Celery + Redis                                                                          | Async agent execution, scheduled tasks                        |
-| **ML Tracking**      | MLflow                                                                                  | Model versioning, experiment tracking, model registry         |
-| **Monitoring**       | LangSmith + Prometheus + Grafana                                                        | LLM tracing + system metrics + dashboards                     |
-| **CI/CD**            | GitHub Actions                                                                          | Integrated, free for open-source, good ecosystem              |
-| **Deployment**       | Docker + AWS ECS Fargate                                                                | Serverless containers, no cluster management                  |
-| **Security Testing** | Promptfoo + Bandit + Safety + Snyk                                                      | Adversarial + SAST + dependency scanning                      |
-| **XAI**              | SHAP + LIME + AIF360                                                                    | Course-aligned, well-documented                               |
+| Layer            | Technology                                                  | Justification                                                     |
+| ---------------- | ----------------------------------------------------------- | ----------------------------------------------------------------- |
+| Agent Framework  | LangGraph + LangChain                                       | StateGraph for complex workflow orchestration                     |
+| LLM              | GPT-4o-mini (classification/reasoning) + GPT-4o (synthesis) | Cost-optimised model routing via LLMRouter                        |
+| Embeddings       | text-embedding-3-small                                      | 90% cheaper than ada-002, sufficient quality for fleet data       |
+| ML Models        | XGBoost                                                     | Interpretable, fast, SHAP/LIME compatible                         |
+| Backend          | FastAPI (Python)                                            | Async support, Kafka consumer thread, Celery integration          |
+| Frontend         | Next.js 14 + React + Tailwind                               | Dashboard, SHAP charts, RAG chat interface                        |
+| Database         | PostgreSQL 17 + pgvector                                    | Unified relational + vector search, audit log, compliance records |
+| Task Queue       | Celery + Redis                                              | Async agent execution, decoupled from web server                  |
+| Event Streaming  | Kafka                                                       | TMS integration contract, telemetry ingestion                     |
+| Observability    | LangSmith + PostgreSQL AuditLog                             | LLM tracing + structured decision logging                         |
+| CI/CD            | GitHub Actions                                              | Automated test gates, SHA-based container versioning              |
+| Deployment       | DigitalOcean App Platform                                   | Simpler than AWS ECS, production-credible for this scope          |
+| Security Testing | Promptfoo                                                   | Adversarial red-team testing, 35+ plugins                         |
+| XAI              | SHAP + LIME + AIF360                                        | Course-aligned, well-documented, user-facing                      |
 
----
+**Explicitly dropped and why:**
 
-## 6. Work Breakdown & Timeline
-
-Based on 15 days per person, ~60 person-days total. Briefing schedule: proposal by 18 Aug, project conduct 26 Aug–24 Oct, presentation 25 Oct/1 Nov, report by 17 Nov.
-
-### Phase 1: Foundation (Week 1-2, ~16 person-days)
-
-| Task                                               | Owner    | Days       |
-| -------------------------------------------------- | -------- | ---------- |
-| Set up repo, Docker, CI/CD skeleton, DB schema     | All      | 2 each = 8 |
-| Design agent communication protocol & shared state | Member A | 2          |
-| Set up LangGraph orchestration skeleton            | Member A | 2          |
-| Simulated telemetry data generator                 | Member A | 2          |
-| Frontend scaffold (Next.js + dashboard layout)     | Member D | 2          |
-
-### Phase 2: Agent Implementation (Week 3-5, ~28 person-days)
-
-| Task                                                                     | Owner    | Days |
-| ------------------------------------------------------------------------ | -------- | ---- |
-| Orchestrator Agent (workflow engine, state machine, retry logic)         | Member A | 4    |
-| Telemetry Ingestion Agent (PII detection, validation, anomaly screening) | Member A | 3    |
-| Route Optimizer Agent (LLM reasoning, constraint handling, explanations) | Member B | 4    |
-| Driver Behavior Agent (scoring, LIME integration, fairness testing)      | Member B | 4    |
-| Predictive Maintenance Agent (ML model, SHAP, MLflow integration)        | Member C | 4    |
-| Compliance & Safety Agent (rules engine, incident classification)        | Member C | 3    |
-| Fleet Chatbot Agent (RAG pipeline, 3-layer security, source attribution) | Member D | 4    |
-| Sentinel Agent (monitoring, cost tracking, alerting)                     | Member D | 2    |
-
-### Phase 3: Integration, Testing & Polish (Week 6-8, ~16 person-days)
-
-| Task                                                  | Owner        | Days       |
-| ----------------------------------------------------- | ------------ | ---------- |
-| End-to-end integration testing                        | All          | 1 each = 4 |
-| Promptfoo adversarial testing (400+ tests)            | Member D     | 2          |
-| AIF360 fairness testing + bias correction             | Member B     | 2          |
-| SHAP/LIME integration into UI                         | Member B + C | 2          |
-| Security testing (STRIDE-based, OWASP LLM Top 10)     | Member C     | 2          |
-| UI polish — XAI panels, dashboards, chatbot interface | Member D     | 2          |
-| AWS deployment + CloudWatch setup                     | Member A     | 2          |
-
-### Phase 4: Documentation & Presentation (Week 8-9)
-
-| Task                                                            | Owner | Days |
-| --------------------------------------------------------------- | ----- | ---- |
-| Group report sections (each member writes their agent sections) | All   | —    |
-| Individual reports (each member deep-dives their primary agent) | All   | —    |
-| Presentation deck + demo rehearsal                              | All   | —    |
+| Dropped               | Reason                                                            |
+| --------------------- | ----------------------------------------------------------------- |
+| RabbitMQ              | Overlaps with Redis/Celery — no clear differentiation             |
+| MLflow                | Adds operational complexity, out of scope for 15-day budget       |
+| Prometheus + Grafana  | LangSmith + AuditLog covers observability requirements            |
+| AWS ECS Fargate       | DigitalOcean App Platform is simpler, equally credible            |
+| Local Llama           | Adds 2–3 days of setup complexity, quality worse than GPT-4o-mini |
+| Route Optimizer Agent | More infrastructure than agent — better as future enhancement     |
+| Sentinel Agent        | Absorbed into shared AuditLogger + LangSmith infrastructure       |
 
 ---
 
-## 7. Deliverables Checklist (Aligned to Briefing Template)
+## 7. Work Breakdown & 6-Week Timeline
+
+**Total effort: 15 days × 4 members = 60 person-days**
+
+### Phase 1 — Foundation (Week 1)
+
+_Sree leads. Others onboard and prepare._
+
+| Task                                                           | Owner | Days |
+| -------------------------------------------------------------- | ----- | ---- |
+| Monorepo scaffold, Docker Compose (Kafka + PostgreSQL + Redis) | Sree  | 1    |
+| FaaS truck simulator with age bias injection                   | Sree  | 1    |
+| FastAPI Kafka consumer + PII middleware                        | Sree  | 1    |
+| Celery task queue + bare LangGraph skeleton                    | Sree  | 1    |
+| Next.js dashboard showing live telemetry                       | Sree  | 1    |
+| XGBoost study + synthetic maintenance data prep                | P2    | 1    |
+| Compliance rules engine design + Promptfoo setup               | P3    | 1    |
+| GitHub Actions skeleton + DigitalOcean account                 | P4    | 1    |
+| Synthetic complaint data generation                            | P4    | 1    |
+
+**Phase 1 exit criteria:** Truck pings flowing through Kafka → PostgreSQL → dashboard. Everyone can run `docker-compose up` and see live data.
+
+### Phase 2 — Agent Intelligence (Weeks 2–3)
+
+_All parallel. One agent per person._
+
+| Task                                                                      | Owner | Days |
+| ------------------------------------------------------------------------- | ----- | ---- |
+| XGBoost training on trip data, AIF360 bias detection, DIR 0.62 confirmed  | Sree  | 3    |
+| Reweighing correction, DIR 0.92 confirmed, SHAP rendering in dashboard    | Sree  | 2    |
+| XGBoost failure predictor, LIME per vehicle alert, AIF360 fleet-age check | P2    | 4    |
+| Maintenance proactive scheduler, anomaly detector                         | P2    | 2    |
+| Rules engine all checks passing, GPT-4o-mini LLM edge case reasoner       | P3    | 3    |
+| XGBoost risk scorer + SHAP on violations                                  | P3    | 2    |
+| DistilBERT sentiment + XGBoost complaint categoriser + LIME               | P4    | 3    |
+| 5-stage RAG pipeline with pgvector, rolling sentiment monitor             | P4    | 2    |
+
+### Phase 3 — Integration + Cross-Agent (Week 4)
+
+_Wire everything through the Orchestrator._
+
+| Task                                                                     | Owner | Days   |
+| ------------------------------------------------------------------------ | ----- | ------ |
+| LangGraph Orchestrator routing to all 4 agents via intent classification | Sree  | 2      |
+| RAG chatbot node added to Orchestrator                                   | Sree  | 1      |
+| **Cross-agent demo scenario end-to-end**                                 | All   | 1 each |
+| LangSmith tracing confirmed across all agents                            | P4    | 1      |
+
+### Phase 4 — Security + Observability (Week 5)
+
+_Test coverage. Audit trail. Red team._
+
+| Task                                                                  | Owner | Days   |
+| --------------------------------------------------------------------- | ----- | ------ |
+| Promptfoo config — 35 plugins targeting Orchestrator + Compliance LLM | P3    | 2      |
+| Unit + integration tests per agent (target 350+ total)                | All   | 1 each |
+| PII middleware tests, AuditLog verified, prompt_hash in all LLM calls | Sree  | 1      |
+| GitHub Actions CI/CD with mandatory test gates                        | P4    | 1      |
+| DigitalOcean deployment, health checks, rolling deployment            | P4    | 1      |
+| STRIDE threat models documented per agent                             | P3    | 1      |
+
+### Phase 5 — Report + Polish (Week 6)
+
+_Write, rehearse, submit._
+
+| Task                                                                                      | Owner | Days     |
+| ----------------------------------------------------------------------------------------- | ----- | -------- |
+| Group report Sections 1–4 (Executive Summary, System Overview, Architecture, Agent Roles) | All   | 1 each   |
+| Group report Sections 5–7 (XRAI, Security, MLSecOps)                                      | All   | 1 each   |
+| Individual reports — each member writes 7-section template for their agent                | All   | 2 each   |
+| Testing summary — verify test counts, document pass rates                                 | All   | 0.5 each |
+| Presentation deck + demo rehearsal (minimum 2 run-throughs)                               | All   | 1 each   |
+| Reflection sections, final proof-read, submission                                         | All   | 0.5 each |
+
+---
+
+## 8. Deliverables Checklist
 
 ### Group Report Structure
 
-1. **Executive Summary** — project objective, solution highlights, constraints
-2. **System Overview** — high-level workflow diagram showing all 8 agents
-3. **System Architecture**
-   - Logical architecture diagram (layered: Presentation → API Gateway → Orchestration → Business Logic → Data Access → Persistence)
-   - Physical architecture diagram (AWS: VPC, ECS, RDS, ElastiCache, ALB, ECR, CloudWatch)
-   - Deployment strategy (Docker, ECS Fargate, rolling deployments)
-   - Data flow diagrams (telemetry pipeline flow, chatbot query flow, maintenance prediction flow)
-   - Architecture justification (why LangGraph over CrewAI, why PostgreSQL+pgvector over Pinecone, etc.)
-4. **Agent Roles and Design** — for each of the 8 agents:
-   - Purpose & responsibilities
-   - Reasoning patterns (CoT, ReAct, rule-based, hybrid)
-   - Planning & memory mechanisms
-   - Tools used
-   - Communication protocols
-   - Prompt engineering patterns
-   - Fallback strategies
-5. **Explainable & Responsible AI Practices** ⭐ THE DIFFERENTIATOR
-   - Lifecycle alignment (data collection → processing → generation → monitoring)
-   - **IMDA MAIGF v2** — deep mapping with evidence per dimension
-   - **GenAI Governance Framework** — 9 dimensions mapped (Accountability, Data, Trusted Dev, Incident Reporting, Testing & Assurance, Security, Content Provenance, Safety & Alignment, AI for Public Good)
-   - **FEAT principles** — applied to driver scoring
-   - AIF360 fairness results with before/after bias correction narrative
-   - LIME driver score explanations (with UI screenshots)
-   - SHAP maintenance prediction explanations (with UI screenshots)
-   - Contrastive route explanations
-   - Ethical decision log
-6. **AI Security Risk Register** ⭐ FRAMEWORK-DRIVEN
-   - **STRIDE** threat model for the system
-   - **OWASP LLM Top 10** mapping with mitigations
-   - Comprehensive risk table (risk → severity → mitigation → control → test status)
-   - Agent-to-agent security analysis
-7. **MLSecOps / LLMSecOps Pipeline**
-   - CI/CD architecture diagram
-   - Automated testing framework (unit, integration, security, fairness, XAI, adversarial)
-   - MLflow model versioning
-   - Prompt registry and versioning
-   - Deployment strategy with health checks
-   - Monitoring & alerting (LangSmith + Prometheus + Grafana)
-   - Logging & audit trail
-8. **Testing Summary** — comprehensive table with test counts, pass rates, locations
-9. **Reflection** — team-level learnings
+1. **Executive Summary** — project objective, brain-for-hire framing, key highlights, constraints and trade-offs
+2. **System Overview** — architecture description, event-driven + interactive query workflows, high-level workflow diagram
+3. **System Architecture** — 6-layer logical architecture, DigitalOcean physical deployment, deployment strategy, data flow diagrams, justified architectural choices
+4. **Agent Roles and Design** — for each of 4 agents: purpose, reasoning patterns, planning loop, memory, tools, communication, prompt engineering, fallback strategies
+5. **Explainable & Responsible AI Practices** — lifecycle alignment, IMDA MAIGF deep mapping, FEAT principles, AIF360 before/after results, SHAP/LIME in UI with screenshots, ethical boundaries as technical constraints
+6. **AI Security Risk Register** — STRIDE per agent, OWASP LLM Top 10 mapping, comprehensive risk table, Promptfoo results
+7. **MLSecOps / LLMSecOps Pipeline** — CI/CD architecture, test framework, container versioning, deployment strategy, LangSmith + AuditLog monitoring
+8. **Testing Summary** — test count table by category and agent, pass rates
+9. **Reflection** — team learnings, what we'd do differently
 
 ### Individual Report Structure (per member)
 
-1. Introduction — agent purpose
-2. Agent Design — deep technical dive
-3. Implementation Details — code structure, tech stack
-4. Testing & Validation — with results
-5. **Explainable & Responsible AI Considerations** — specific to this agent, citing course concepts by name
-6. Security Practices — agent-specific risks and mitigations
-7. **Reflection** — personal learning journey, honest about failures, explicit course concept connections ("In XRAI Day 2, we learned about LIME. I applied this when...")
+1. Introduction — agent purpose in context of the system
+2. Agent Design — reasoning pattern, planning loop, memory, tools, communication, prompt engineering, fallback strategies
+3. Implementation Details — code structure, tech stack, LLM model choice and justification
+4. Testing and Validation — unit, integration, security tests with results
+5. Explainable and Responsible AI — which XAI method, which stage, bias check, governance alignment with named frameworks
+6. Security Practices — agent-specific STRIDE, mitigations at code level, OWASP LLM mapping
+7. Reflection — personal learning journey, honest about challenges, explicit connections to named course concepts ("In XRAI Day 2, we learned about LIME. I applied this when...")
+
+## 9. Risk Mitigation
+
+| Risk                                          | Impact | Mitigation                                                                                                     |
+| --------------------------------------------- | ------ | -------------------------------------------------------------------------------------------------------------- |
+| Scope creep                                   | HIGH   | Each agent has a defined MVP. Fancy features are documented as future improvements, not built                  |
+| LLM API costs exceed budget                   | MEDIUM | LLMRouter enforces model selection, per-session cost caps, GPT-4o-mini for most calls                          |
+| Kafka setup complexity on local machines      | MEDIUM | Docker Compose handles it — `docker-compose up` is the only command needed. Tested on Day 1                    |
+| AIF360 installation issues (C++ dependencies) | MEDIUM | Test install before Day 1. Google Colab as fallback for AIF360 experimentation                                 |
+| ML model performs poorly on synthetic data    | LOW    | Focus is on XAI demonstration, not model accuracy. SHAP/LIME work regardless of accuracy                       |
+| Team member falls behind                      | HIGH   | Agents are loosely coupled — each agent is a standalone Python module. One person's delay doesn't block others |
+| DigitalOcean deployment issues                | MEDIUM | Docker Compose local fallback for demo day. Deploy to DigitalOcean in Week 5, not Week 6                       |
+| Test count falls short                        | MEDIUM | Promptfoo generates 350+ tests automatically from one config file. Write it in Week 5                          |
+| Presentation runs over 20 minutes             | LOW    | Rehearse twice minimum. Cross-agent demo is the centrepiece — everything else supports it                      |
 
 ---
 
-## 8. The A+ Differentiators — What Sets Us Apart
+## 11. Simulated Data Strategy
 
-These are the specific things we do that go beyond what EchoChamber did:
+**Fleet:** 50 vehicles (V001–V050), varied ages (2015–2023 manufacture year) **Drivers:** 200 drivers (D001–D200), diverse age distribution:
 
-### 8.1 XAI as a User Feature (Not Just Tests)
+- Young (age 22–30): 40% of drivers — bias injected here
+- Mid (age 31–44): 35% of drivers
+- Senior (age 45–60): 25% of drivers
 
-- LIME waterfall charts in the Driver Performance dashboard
-- SHAP force plots in the Vehicle Health dashboard
-- "Why this route?" / "Why not Route B?" contrastive explanations
-- Workflow state visualization in the Orchestrator
-- Every chatbot response shows source citations with confidence
+**Bias injection (documented in simulator code comments):** Young drivers draw `harsh_braking_count` from a distribution with mean 35% higher than senior drivers at equivalent speeds. This produces DIR ≈ 0.62 before correction — the seed of the entire AIF360 fairness demonstration. The bias is intentional and documented, not a data quality problem.
 
-### 8.2 Real Bias Detection → Correction → Validation Cycle
+**Telemetry features per ping:** vehicle_id, driver_id, driver_age, timestamp, speed, engine_temp, oil_pressure, brake_wear_index, harsh_braking_count, rapid_acceleration_count, cornering_force, shift_type (day/night), GPS coordinates (Singapore bounding box)
 
-- AIF360 testing finds that younger drivers are systematically scored higher risk
-- Apply reweighting bias reduction technique
-- Re-test with AIF360 to show improvement
-- Document the entire journey with before/after metrics
+**Synthetic complaint data (P4):** 200 complaints across 5 categories — driver conduct (35%), punctuality (25%), vehicle condition (20%), billing (12%), safety (8%). Language pattern variation to enable AIF360 language bias check.
 
-### 8.3 Multi-Framework Governance (3 Frameworks, Not 1)
-
-- IMDA MAIGF v2 (4 dimensions)
-- GenAI Governance Framework (9 dimensions)
-- FEAT principles (for driver scoring fairness)
-
-### 8.4 STRIDE + OWASP LLM Top 10 Security Structure
-
-- Not just Promptfoo categories, but mapped to established security frameworks
-- Agent-to-agent security analysis (novel — not in EchoChamber)
-
-### 8.5 Real ML Model with Full MLOps
-
-- XGBoost for maintenance prediction — a proper ML model, not just LLM wrappers
-- MLflow tracking, model versioning, drift detection
-- This naturally demonstrates MLSecOps (Module 4) better than pure LLM systems
-
-### 8.6 Personal, Course-Connected Reflections
-
-- Each reflection names specific lectures and concepts
-- Honest about what went wrong and how we pivoted
-- Shows growth in thinking, not just technical output
-
-### 8.7 Explicit Inter-Agent Communication Protocol
-
-- Defined AgentMessage schema
-- Sequence diagrams showing multi-agent coordination
-- Communication pattern analysis (pub-sub, request-response, event-driven)
+**Synthetic maintenance history (P2):** 50 vehicles × 18 months of sensor readings, with labelled failure events. Known patterns: brake pads at 30K km, engine service at 10K km, tyre replacement at 50K km. Failure rate approximately 15% of records — class imbalance documented and addressed in model training.
 
 ---
 
-## 9. Risk Mitigation — What Could Go Wrong
+## 12. Assessment Weight — Every Mark Accounted For
 
-| Risk                                            | Impact | Mitigation                                                                                         |
-| ----------------------------------------------- | ------ | -------------------------------------------------------------------------------------------------- |
-| Scope creep — 8 agents too ambitious            | HIGH   | Each agent has a MVP scope. Cut fancy features, keep core logic                                    |
-| LLM API costs blow budget                       | MEDIUM | Aggressive mocking in tests, cost caps per agent, use GPT-4o-mini where possible                   |
-| ML model doesn't perform well on simulated data | MEDIUM | Focus on XAI demonstration, not model accuracy. The point is showing SHAP/LIME, not winning Kaggle |
-| Team member falls behind                        | HIGH   | Bi-weekly progress reports (required by briefing), clear ownership, agents are loosely coupled     |
-| AWS deployment issues                           | MEDIUM | Have a Docker Compose local fallback for demo. Deploy early, not in the last week                  |
-| Presentation runs over time                     | LOW    | Rehearse 3 times minimum. Each member presents their agents                                        |
+| Component                           | Weight   | Our Strategy                                                                       |
+| ----------------------------------- | -------- | ---------------------------------------------------------------------------------- |
+| Project Presentation                | 20%      | Open with cross-agent demo, show SHAP/LIME live in dashboard, 20 minutes rehearsed |
+| Group Project Report                | 30%      | ~80 pages, all 9 sections, IMDA MAIGF + FEAT governance, before/after bias metrics |
+| Individual Agent Design             | 13%      | 7-section template per member, deep technical design, justified decisions          |
+| Individual Implementation & Testing | 13%      | Code walkthrough, test results with numbers, coverage by category                  |
+| Individual Reflection               | 14%      | Personal, honest, names specific course lectures and concepts                      |
+| Peer Assessment                     | 10%      | Clear ownership matrix, balanced contributions, everyone presents                  |
+| **Total**                           | **100%** | Every percent mapped to a concrete deliverable                                     |
 
----
-
-## 10. Simulated Data Strategy
-
-Since the project uses simulated data (explicitly allowed per the briefing), we need a realistic data generator:
-
-- **Vehicle fleet:** 20-30 vehicles with different types (trucks, vans, sedans), ages, and maintenance histories
-- **Driver pool:** 15-20 drivers with diverse demographics (age groups 25-60, mixed gender, varied experience levels) — essential for fairness testing
-- **Telemetry streams:** GPS coordinates within Singapore, fuel levels, speed, engine temperature, brake events, idle time — generated at 1-minute intervals for 3 months
-- **Maintenance records:** Historical maintenance events with component, cost, mileage — some with clear patterns (brake pads every 30K km) for the ML model to learn
-- **Compliance records:** License expiry dates, vehicle inspection dates, driving hour logs
-- **Inject some bias:** Deliberately make the simulated data slightly biased (younger drivers assigned to night shifts more often → more fatigue incidents) so we can detect and correct it with AIF360
-
----
-
-## Quick Reference: Assessment Weight Mapping
-
-| Assessment Component                    | Weight | Our Strategy                                                       |
-| --------------------------------------- | ------ | ------------------------------------------------------------------ |
-| **Project Presentation**                | 20%    | Clear slides, live demo of all 8 agents, XAI panels shown live     |
-| **Group Project Report**                | 30%    | ~80-90 pages, every section from template, 3 governance frameworks |
-| **Individual Agent Design**             | 10-13% | Deep dive per member's primary agent                               |
-| **Individual Implementation & Testing** | 10-13% | Code walkthrough, test results, coverage                           |
-| **Individual Reflection**               | 10-14% | Personal, honest, course-connected                                 |
-| **Peer Assessment**                     | 10%    | Clear ownership, balanced contributions                            |
-
-**Total: 100% — every percent accounted for.**
-
----
-
-_"The best way to predict the future is to build it." — Let's build an A+._
+_"The best way to predict the future is to build it."_ _TraceData — AI intelligence that fleet operators already have the infrastructure for, and finally have the intelligence layer to use._
