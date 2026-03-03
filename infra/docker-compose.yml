@@ -1,0 +1,131 @@
+# ─────────────────────────────────────────────────────────────────────────────
+#  TraceData.ai — Infrastructure Services
+#
+#  Agreed ports (do NOT change without team sign-off):
+#    Zookeeper  : 2181
+#    Kafka      : 9092
+#    PostgreSQL : 5432
+#    Redis      : 6379
+#
+#  Start:   docker compose up -d --wait
+#  Stop:    docker compose down
+#  Reset:   docker compose down -v   ← destroys all data
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+
+  # ── Zookeeper ────────────────────────────────────────────────────────────────
+  # Required broker metadata store for Confluent Kafka 7.5.
+  # (Kafka 3.x+ can run KRaft without Zookeeper, but cp-kafka 7.5 still uses it)
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    container_name: tracedata-zookeeper
+    hostname: zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+      # Whitelist four-letter commands — disabled by default in newer images
+      KAFKA_OPTS: "-Dzookeeper.4lw.commands.whitelist=ruok,srvr,mntr"
+    ports:
+      - "2181:2181"
+    healthcheck:
+      # ruok → "imok" means Zookeeper is up and accepting connections
+      test: ["CMD-SHELL", "echo ruok | nc -w 2 localhost 2181 | grep imok"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 20s
+    restart: unless-stopped
+
+  # ── Kafka ─────────────────────────────────────────────────────────────────────
+  # Single broker — fine for dev. In prod, run 3 brokers with replication factor 3.
+  #
+  # WHY TWO LISTENERS?
+  #   PLAINTEXT_INTERNAL://kafka:29092  → used by other Docker containers (backend, simulator)
+  #   PLAINTEXT://localhost:9092        → used by tools on the host (kafka-ui, kafkacat)
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: tracedata-kafka
+    hostname: kafka
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENERS: PLAINTEXT_INTERNAL://0.0.0.0:29092,PLAINTEXT://0.0.0.0:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT_INTERNAL://kafka:29092,PLAINTEXT://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT_INTERNAL
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"   # handy in dev; disable in prod
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_LOG_RETENTION_HOURS: 24
+    healthcheck:
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s          # Kafka is slow to start; give it breathing room
+    restart: unless-stopped
+
+  # ── PostgreSQL 16 + pgvector ──────────────────────────────────────────────────
+  # pgvector/pgvector:pg16 ships with the vector extension pre-compiled.
+  # NOTE: pg17-latest does not exist on Docker Hub yet — pgvector publishes
+  # one tag per major PG version without "-latest" suffix (pg16, pg15, pg14).
+  # pg16 is the current stable release. Upgrade to pg17 when the tag is available.
+  #
+  # WHY DO EXTENSIONS IN INIT, NOT IN CODE?
+  #   CREATE EXTENSION requires superuser. Doing it in docker-entrypoint-initdb.d
+  #   guarantees it runs as the postgres superuser on first container start,
+  #   before Alembic migrations or any app connection attempt.
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: tracedata-postgres
+    hostname: postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: tracedata
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-db:/docker-entrypoint-initdb.d:ro   # scripts run alphabetically on first boot
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d tracedata"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ── Redis 7 ───────────────────────────────────────────────────────────────────
+  # Three uses in TraceData:
+  #   1. Celery broker    — async agent task queue (decouples FastAPI from LLM calls)
+  #   2. Agent memory     — conversation state for Orchestrator's RAG pipeline
+  #   3. Rate limiter     — LLMRouter request throttling
+  redis:
+    image: redis:7-alpine
+    container_name: tracedata-redis
+    hostname: redis
+    ports:
+      - "6379:6379"
+    command: redis-server --save 60 1 --loglevel warning
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+# ── Persistent Volumes ────────────────────────────────────────────────────────
+volumes:
+  postgres_data:
+    name: tracedata_postgres_data
+  redis_data:
+    name: tracedata_redis_data
