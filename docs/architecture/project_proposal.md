@@ -12,7 +12,7 @@ TraceData is fundamentally designed around the Singapore IMDA Model AI Governanc
 
 ## 2. Agent Analysis
 
-## 2. Final ASR Prioritization (EchoChamber-Aligned)
+### 2.1 Final ASR Prioritization (EchoChamber-Aligned)
 
 To build a successful system efficiently, requirements are prioritized based on their architectural significance. An agent is evaluated against the following drivers:
 
@@ -23,7 +23,7 @@ To build a successful system efficiently, requirements are prioritized based on 
 
 _(🔴 High Impact | 🟠 Medium Impact | 🟡 Low Impact)_
 
-### 2.1 Tier 1: MUST (Operational Credibility Backbone)
+### 2.1.1 Tier 1: MUST (Operational Credibility Backbone)
 
 _These five agents establish the core pipeline, satisfy baseline rubric requirements, and prove the system is buildable, observable, and governable. Non-negotiable._
 
@@ -35,7 +35,7 @@ _These five agents establish the core pipeline, satisfy baseline rubric requirem
 | **PII Cleaner**       | In-stream data privacy        | **Real-Time**   | 🔴  | 🔴  | 🔴  | 🟡  | **High (Mod 2):** Security/Privacy (IMDA)    | **3.0/10**      | Regex masking + spatial jittering. Zero LLM usage. Mandatory checkpoint before any ML.                        |
 | **Cost & Monitoring** | MLSecOps observability        | **Real-Time**   | 🔴  | 🔴  | 🔴  | 🟡  | **High (Mod 4):** Observability & IMDA audit | **4.5/10**      | Instruments agent calls (tokens/latency). Generates Ethical AI Decision Log. Promoted to Tier 1 per critique. |
 
-### 2.2 Tier 2: GOOD TO HAVE (Excellence & Governance Depth)
+### 2.1.2 Tier 2: GOOD TO HAVE (Excellence & Governance Depth)
 
 _These agents prove advanced mastery: fairness recourse, stakeholder communication, hybrid reasoning, and governance procedures. A+ differentiators._
 
@@ -46,7 +46,7 @@ _These agents prove advanced mastery: fairness recourse, stakeholder communicati
 | **Appeals Adjudicator** | HITL governance workflow          | **Triggered** | 🟠  | 🔴  | 🔴  | 🟡  | **High (Mod 1):** IMDA HITL                 | **4.0/10**      | Human reviews disputed scores with AI context. Demonstrates procedural fairness & accountability.           |
 | **RAG Assistant**       | Conversational Q&A interface      | **On-Demand** | 🟠  | 🟡  | 🔴  | 🟠  | **High (Mod 2/3):** Stakeholder Interaction | **5.5/10**      | Answers "Why did Driver X get a low score?". Essential for user-facing responsible AI (IMDA Pillar 4).      |
 
-### 2.3 Tier 3: NICE TO HAVE (Secondary Features & Depth)
+### 2.1.3 Tier 3: NICE TO HAVE (Secondary Features & Depth)
 
 _These agents provide secondary observability and visualization. Can be deferred without losing rubric competency._
 
@@ -57,11 +57,11 @@ _These agents provide secondary observability and visualization. Can be deferred
 | **Anomaly Guard**     | Poisoning/outlier detection       | **Real-Time** | 🟡  | 🟠  | 🟡  | 🟠  | **Medium (Mod 2):** Adversarial defense | **7.0/10**      | Secondary defense; PII Cleaner + CI/CD Red-Team handle primary security.            |
 | **Geo-Spatial Intel** | Heatmaps + privacy-GPS            | **Real-Time** | 🟡  | 🟡  | 🟡  | 🟠  | **Low (Mod 1/2/4):** Spatial XAI        | **7.5/10**      | UI polish. Non-essential to rubric. Pick for portfolio appeal.                      |
 
-## 2. System Architecture & Finalized Agent Scope
+## 3. System Architecture & Finalized Agent Scope
 
 The architecture utilizes a LangGraph-based state machine, treating agents not as autonomous black boxes, but as deterministic nodes operating on a shared FleetState. The system is prioritized using the Architecturally Significant Requirements (ASR) framework.
 
-### 2.1 Tier 1: The Operational Credibility Backbone (MUST)
+### 3.1 Tier 1: The Operational Credibility Backbone (MUST)
 
 These five agents form the end-to-end data pipeline, satisfying the baseline criteria for all four SWE5008 modules.
 
@@ -71,7 +71,7 @@ These five agents form the end-to-end data pipeline, satisfying the baseline cri
 - **Driver Behaviour Agent**: The core XRAI engine. Uses XGBoost for risk scoring, actively detects demographic bias, corrects it via AIF360, and explains decisions via SHAP.
 - **Cost & Monitoring Sentinel**: The MLSecOps observability layer. Instruments all agent calls to track token usage/latency and generates the "Ethical AI Decision Log" required for IMDA accountability.
 
-### 2.2 Tier 2: Governance & Excellence Differentiators (GOOD TO HAVE)
+### 3.2 Tier 2: Governance & Excellence Differentiators (GOOD TO HAVE)
 
 These agents elevate the project from a functional pipeline to an "A-grade" human-centric AI system.
 
@@ -86,7 +86,7 @@ These agents elevate the project from a functional pipeline to an "A-grade" huma
 
 - **RAG Assistant**: A conversational interface providing non-technical explanations to stakeholders, fulfilling the IMDA Pillar of "Stakeholder Interaction."
 
-### 2.3 Tier 3: Secondary Features (Optional Stretch)
+### 3.3 Tier 3: Secondary Features (Optional Stretch)
 
 If team energy permits (Week 3), the following optional agents may be developed to provide UI polish and secondary depth:
 
@@ -95,7 +95,7 @@ If team energy permits (Week 3), the following optional agents may be developed 
 - **Anomaly Guard**: Secondary adversarial defense via Isolation Forests.
 - **Geo-Spatial Intel**: Visualization polish for heatmaps.
 
-## 3. SWE5008 Rubric & IMDA Alignment
+## 4. SWE5008 Rubric & IMDA Alignment
 
 The TraceData architecture is explicitly mapped to the four modules of the Graduate Certificate and the IMDA MAIGF.
 
@@ -107,11 +107,15 @@ The TraceData architecture is explicitly mapped to the four modules of the Gradu
 | **Mod 4: MLSecOps**                     | Streaming: Kafka Ingestion Engine.<br/>Observability: Cost & Monitoring Sentinel tracking latency, tokens, and generating immutable audit logs.                                               |
 | **IMDA Model AI Governance**            | Human-in-the-Loop: Appeals Adjudicator ensuring procedural fairness.<br/>Stakeholder Comm: RAG Assistant translating decisions into natural language.                                         |
 
-## 5. Conclusion
+## 5. Implementation Strategy & Effort Allocation
+
+_To be completed based on the detailed planning from the original proposal._
+
+## 6. Conclusion
 
 TraceData is architected to be a production-grade, highly observable, and rigorously fair fleet management layer. By tightly scoping the core functional requirements (Tier 1) and strategically implementing advanced AI governance features (Tier 2), the system explicitly satisfies all academic and regulatory constraints required for the SWE5008 capstone.
 
-## 6. References
+## 7. References
 
 - **[1]** IMDA Model AI Governance Framework (2nd Edition)  
   https://www.pdpc.gov.sg/Help-and-Resources/2020/01/Model-AI-Governance-Framework
@@ -128,7 +132,7 @@ TraceData is architected to be a production-grade, highly observable, and rigoro
 - **[5]** SWE5008: Graduate Certificate in Architecting AI Systems  
   National University of Singapore, Institute of Systems Science (NUS-ISS)
 
-## 7. System Architecture Diagram
+## 8. System Architecture Diagram
 
 ```mermaid
 graph TD
