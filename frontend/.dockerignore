@@ -1,0 +1,18 @@
+# Git
+.git
+.gitignore
+
+# Dependencies (will be installed fresh inside the container)
+node_modules
+
+# Next.js build output (rebuilt inside container)
+.next
+
+# Local env files – never bake secrets into the image
+.env
+.env.*
+!.env.example
+
+# Editor & OS noise
+.DS_Store
+*.log
