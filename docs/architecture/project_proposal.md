@@ -12,7 +12,7 @@ TraceData is fundamentally designed around the Singapore IMDA Model AI Governanc
 
 ## 2. Agent Analysis
 
-### 2.1 Final ASR Prioritization (EchoChamber-Aligned)
+### 2.1 Final ASR Prioritization
 
 To build a successful system efficiently, requirements are prioritized based on their architectural significance. An agent is evaluated against the following drivers:
 
@@ -120,16 +120,13 @@ TraceData is architected to be a production-grade, highly observable, and rigoro
 - **[1]** IMDA Model AI Governance Framework (2nd Edition)  
   https://www.pdpc.gov.sg/Help-and-Resources/2020/01/Model-AI-Governance-Framework
 
-- **[2]** EchoChamber Analyst (Reference A+ Project)  
-  Internal SWE5008 reference materials (Team 3)
-
-- **[3]** Molnar, C. (2022). Interpretable Machine Learning: A Guide for Making Black Box Models Explainable.  
+- **[2]** Molnar, C. (2022). Interpretable Machine Learning: A Guide for Making Black Box Models Explainable.  
   https://christophm.github.io/interpretable-ml-book/
 
-- **[4]** Barocas, S., Hardt, M., Narayanan, A. (2023). Fairness and Machine Learning: Limitations and Opportunities.  
+- **[3]** Barocas, S., Hardt, M., Narayanan, A. (2023). Fairness and Machine Learning: Limitations and Opportunities.  
   https://fairmlbook.org/
 
-- **[5]** SWE5008: Graduate Certificate in Architecting AI Systems  
+- **[4]** SWE5008: Graduate Certificate in Architecting AI Systems  
   National University of Singapore, Institute of Systems Science (NUS-ISS)
 
 ## 8. System Architecture Diagram
