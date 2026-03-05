@@ -400,76 +400,348 @@ graph TB
 
 ## Deployment Architecture
 
+### Quick Comparison: Cloud Platform Options
+
+| Aspect             | DigitalOcean (Preferred) | AWS              | Azure               | GCS            |
+| ------------------ | ------------------------ | ---------------- | ------------------- | -------------- |
+| **Compute**        | App Platform             | ECS Fargate      | Container Instances | Cloud Run      |
+| **Database**       | Managed PostgreSQL       | RDS PostgreSQL   | Azure Database      | Cloud SQL      |
+| **Messaging**      | Droplet + Kafka          | MSK              | Event Hubs          | Pub/Sub        |
+| **Caching**        | Managed Redis            | ElastiCache      | Azure Cache         | Memorystore    |
+| **Cost**           | $40-60/mo                | $60-120/mo       | $50-100/mo          | $20-60/mo      |
+| **Learning Curve** | Very Low                 | Medium           | Medium              | Low            |
+| **Best For**       | MVP Launch               | Enterprise Scale | Compliance-Heavy    | Cost-Conscious |
+
+### Option 1: DigitalOcean (🌟 Recommended for MVP)
+
+**Why DigitalOcean?** Simplest architecture, transparent pricing, perfect for 4-person startup team, minimal DevOps overhead.
+
 ```mermaid
 graph TB
-    subgraph AWS["AWS Account"]
-        subgraph VPC["VPC Private Network"]
-            subgraph PUBLIC["Public Subnet"]
-                ALB["ALB: Application Load Balancer<br/>Routes NextJS, FastAPI, WebSockets"]
-            end
+    subgraph DO["DigitalOcean Account"]
+        subgraph APP["App Platform"]
+            WEB["Web Service: Next.js<br/>2-3 instances<br/>$12-30/mo"]
+            API["Web Service: FastAPI<br/>2-4 instances<br/>$12-30/mo"]
+            WORKER["Worker: Scheduler<br/>Background jobs<br/>$6-12/mo"]
+        end
 
-            subgraph PRIVATE["Private Subnet"]
-                FASTAPI["ECS Fargate<br/>FastAPI + Agents<br/>2 replicas auto-scale to 4"]
-                NEXTJS["ECS Fargate<br/>Next.js Frontend<br/>2 replicas auto-scale to 3"]
-                SCHEDULER["ECS Fargate<br/>Scheduler Batch Jobs<br/>1 replica"]
-            end
-
-            subgraph DATABASE["Database Subnet"]
-                RDS["RDS PostgreSQL<br/>Multi-AZ<br/>Trips, Scores, Audit Logs"]
-                CACHE["ElastiCache Redis<br/>Session Cache"]
-            end
-
-            subgraph MANAGED["Managed Services"]
-                MSK["MSK Kafka Multi-AZ<br/>Fleet Telemetry Streams"]
-                CLOUDWATCH["CloudWatch<br/>Logs & Metrics"]
-            end
+        subgraph MANAGED["Managed Services"]
+            PG["Managed PostgreSQL<br/>Single/High-Availability<br/>$15-25/mo"]
+            REDIS["Managed Redis<br/>Session cache<br/>$7-15/mo"]
+            KAFKA["Droplet + Strimzi<br/>Kafka broker<br/>$12-18/mo"]
         end
     end
 
-    ALB --> FASTAPI
-    ALB --> NEXTJS
-    MSK --> FASTAPI
-    FASTAPI --> RDS
-    FASTAPI --> CACHE
-    FASTAPI --> CLOUDWATCH
-    NEXTJS --> RDS
-    NEXTJS --> CLOUDWATCH
-    SCHEDULER --> RDS
-    SCHEDULER --> CLOUDWATCH
-    RDS --> CLOUDWATCH
+    APP --> MANAGED
+    WEB -.->|HTTP| API
+    API --> KAFKA
+    API --> REDIS
+    API --> PG
+    WORKER --> PG
 
-    classDef alb fill:#e3f2fd
-    classDef compute fill:#ffebee
-    classDef ui fill:#f3e5f5
-    classDef batch fill:#fff3e0
-    classDef db fill:#c8e6c9
-    classDef cache fill:#c8e6c9
-    classDef kafka fill:#ffe0b2
-    classDef monitoring fill:#b0bec5
-
-    class ALB alb
-    class FASTAPI compute
-    class NEXTJS ui
-    class SCHEDULER batch
-    class RDS db
-    class CACHE cache
-    class MSK kafka
-    class CLOUDWATCH monitoring
+    style DO fill:#0080ff,color:#fff
+    style APP fill:#0099cc,color:#fff
+    style WEB fill:#00ccff,color:#000
+    style API fill:#00ccff,color:#000
+    style WORKER fill:#00ccff,color:#000
+    style MANAGED fill:#004d80,color:#fff
+    style PG fill:#1fa67a,color:#fff
+    style REDIS fill:#1fa67a,color:#fff
+    style KAFKA fill:#666,color:#fff
 ```
 
-### Local Development
+**Setup (5 minutes):**
 
 ```bash
+# 1. Create PostgreSQL database via Dashboard
+doctl databases create tracedata -e postgres
+
+# 2. Create Redis cache
+doctl databases create cache -e redis
+
+# 3. Deploy via GitHub integration (push code → auto-deploy)
+doctl apps create
+# Provides: app.yaml for git-based deployments
+
+# 4. Point domain to App Platform load balancer
+# Cost: $0/domain + $40-60/mo for services
+```
+
+**Estimated Monthly Cost:** $40-60/mo all-inclusive
+
+---
+
+### Option 2: AWS (ECS Fargate - Enterprise Scale)
+
+**Why AWS?** Multi-AZ reliability, advanced monitoring, auto-scaling at massive scale, 100K+ concurrent users.
+
+```mermaid
+graph TB
+    subgraph AWS["AWS Region"]
+        subgraph VPC["VPC Private Network"]
+            subgraph PUBLIC["Public Subnet"]
+                ALB["ALB Load Balancer<br/>Routes HTTP/HTTPS"]
+            end
+
+            subgraph PRIVATE["Private Subnet AZ-1,2"]
+                API1["ECS Fargate<br/>FastAPI<br/>2+ replicas"]
+                WEB1["ECS Fargate<br/>Next.js<br/>2+ replicas"]
+            end
+
+            subgraph DB_SUBNET["Database Subnet"]
+                RDS["RDS PostgreSQL<br/>Multi-AZ + Read Replicas<br/>Auto-backup"]
+                CACHE["ElastiCache Redis<br/>Multi-AZ<br/>Session cache"]
+            end
+
+            subgraph KAFKA_SUBNET["Streaming Layer"]
+                MSK["MSK Kafka Cluster<br/>3 brokers Multi-AZ<br/>Auto-scaling"]
+            end
+        end
+
+        subgraph MONITORING["Observability"]
+            CW["CloudWatch<br/>Logs, Metrics, Alarms"]
+            XRay["X-Ray<br/>Distributed tracing"]
+        end
+    end
+
+    ALB --> API1
+    ALB --> WEB1
+    MSK --> API1
+    API1 --> RDS
+    API1 --> CACHE
+    API1 --> CW
+    WEB1 --> RDS
+    WEB1 --> CW
+    RDS --> CW
+
+    style AWS fill:#ff9900,color:#000
+    style ALB fill:#e3f2fd,color:#000
+    style API1,WEB1 fill:#ffebee,color:#000
+    style RDS,CACHE fill:#c8e6c9,color:#000
+    style MSK fill:#ffe0b2,color:#000
+    style CW,XRay fill:#b0bec5,color:#000
+```
+
+**Setup (CloudFormation):**
+
+```bash
+# 1. Create VPC, subnets, security groups (via CloudFormation)
+aws cloudformation create-stack --stack-name tracedata-vpc \
+  --template-body file://vpc-template.yaml
+
+# 2. Deploy RDS PostgreSQL
+aws rds create-db-instance \
+  --db-instance-identifier tracedata-db \
+  --db-instance-class db.t3.micro \
+  --engine postgres \
+  --master-username admin
+
+# 3. Push Docker images to ECR
+aws ecr create-repository --repository-name tracedata-api
+docker build -t api backend/
+docker tag api:latest ACCOUNT.dkr.ecr.REGION.amazonaws.com/tracedata-api:latest
+aws ecr get-login-password | docker login --username AWS --password-stdin ACCOUNT.dkr.ecr.REGION.amazonaws.com
+docker push ACCOUNT.dkr.ecr.REGION.amazonaws.com/tracedata-api:latest
+
+# 4. Create ECS task definitions and services
+aws ecs register-task-definition --cli-input-json file://task-def.json
+aws ecs create-service --cluster tracedata --service-name api --task-definition tracedata-api:1
+
+# Cost: $60-120/mo for development; $200+/mo for production multi-AZ
+```
+
+**Estimated Monthly Cost:** $60-120/mo (development) → $200+/mo (production)
+
+---
+
+### Option 3: Azure (Container Instances + App Service)
+
+**Why Azure?** Enterprise compliance, Active Directory integration, on-premises hybrid options, cost optimizations via reserved instances.
+
+```mermaid
+graph TB
+    subgraph AZURE["Azure Subscription"]
+        subgraph CONTAINERS["Container Workloads"]
+            API["Container Instances<br/>FastAPI<br/>1-2 instances<br/>$15-30/mo"]
+            WEB["App Service<br/>Next.js<br/>Auto-scale<br/>$10-25/mo"]
+            JOB["Container Instances<br/>Scheduler<br/>On-demand<br/>$3-8/mo"]
+        end
+
+        subgraph STORAGE["Data Services"]
+            DB["Azure Database<br/>PostgreSQL Flexible<br/>Burstable B1s tier<br/>$12-30/mo"]
+            CACHE["Azure Cache<br/>for Redis<br/>Basic C0<br/>$18/mo"]
+            EVENTS["Event Hubs<br/>Standard tier<br/>Kafka alternative<br/>$100/month"]
+        end
+
+        subgraph MONITORING["Observability"]
+            INSIGHTS["Application Insights<br/>Logs & metrics"]
+            MONITOR["Azure Monitor<br/>Alerts & dashboards"]
+        end
+    end
+
+    CONTAINERS --> STORAGE
+    API --> CACHE
+    API --> EVENTS
+    WEB --> DB
+    JOB --> DB
+    CONTAINERS --> MONITORING
+
+    style AZURE fill:#0078d4,color:#fff
+    style CONTAINERS fill:#50e6ff,color:#000
+    style API,WEB,JOB fill:#107c10,color:#fff
+    style STORAGE fill:#00bcf2,color:#000
+    style DB,CACHE fill:#7fba00,color:#fff
+    style EVENTS fill:#ffc900,color:#000
+    style MONITORING fill:#4a4a4a,color:#fff
+```
+
+**Setup (Azure CLI):**
+
+```bash
+# 1. Create resource group
+az group create --name tracedata-rg --location eastus
+
+# 2. Deploy PostgreSQL
+az postgres flexible-server create \
+  --resource-group tracedata-rg \
+  --name tracedata-db \
+  --sku-name Standard_B1s \
+  --storage-size 32
+
+# 3. Deploy container instances
+az container create \
+  --resource-group tracedata-rg \
+  --name tracedata-api \
+  --image YOUR_REGISTRY.azurecr.io/tracedata-api:latest \
+  --cpu 1 --memory 1
+
+# 4. Deploy via App Service
+az appservice plan create --name tracedata-plan \
+  --resource-group tracedata-rg --sku B1 --is-linux
+
+az webapp create --resource-group tracedata-rg \
+  --plan tracedata-plan --name tracedata-web \
+  --deployment-container-image-name YOUR_IMAGE
+
+# Cost: $50-100/mo
+```
+
+**Estimated Monthly Cost:** $50-100/mo
+
+---
+
+### Option 4: Google Cloud Run (Serverless - Best for Startups)
+
+**Why GCS?** Generous free tier ($300/month), pay-per-request billing, ultra-fast deployment, excellent data analytics.
+
+```mermaid
+graph TB
+    subgraph GCP["Google Cloud Project"]
+        subgraph COMPUTE["Serverless Compute"]
+            API["Cloud Run<br/>FastAPI<br/>0-100 instances<br/>$0.00002/request"]
+            WEB["Cloud Run<br/>Next.js<br/>0-50 instances<br/>$0.00001/request"]
+        end
+
+        subgraph BATCH["Background Jobs"]
+            SCHED["Cloud Scheduler<br/>Trigger Pub/Sub<br/>$0.10/job/month"]
+            PUBSUB["Pub/Sub<br/>Event streaming<br/>$0.05/GB"]
+        end
+
+        subgraph DATA["Data Services"]
+            DB["Cloud SQL<br/>PostgreSQL<br/>Shared tier: $8/mo<br/>or Serverless: $1/mo"]
+            CACHE["Memorystore<br/>Redis<br/>$0.006/GB/hour<br/>mins: ~$50/mo"]
+        end
+
+        subgraph OBSERVABILITY["Observability"]
+            LOGGING["Cloud Logging<br/>Free: 50GB/month"]
+            TRACE["Cloud Trace<br/>Distributed tracing"]
+        end
+    end
+
+    COMPUTE --> DATA
+    BATCH --> CACHE
+    API --> DB
+    API --> CACHE
+    API --> PUBSUB
+    WEB --> DB
+    COMPUTE --> OBSERVABILITY
+
+    style GCP fill:#4285f4,color:#fff
+    style COMPUTE fill:#5f9ea0,color:#fff
+    style API,WEB fill:#00bcd4,color:#000
+    style BATCH fill:#ff6f00,color:#fff
+    style SCHED,PUBSUB fill:#fb8500,color:#fff
+    style DATA fill:#34a853,color:#fff
+    style DB,CACHE fill:#fbbc04,color:#000
+    style OBSERVABILITY fill:#9c27b0,color:#fff
+```
+
+**Setup (gcloud CLI - 3 minutes):**
+
+```bash
+# 1. Deploy FastAPI to Cloud Run
+gcloud run deploy tracedata-api \
+  --source ./backend \
+  --platform managed \
+  --region us-central1 \
+  --allow-unauthenticated \
+  --set-env-vars DATABASE_URL=$DB_URL
+
+# 2. Deploy Next.js frontend
+gcloud run deploy tracedata-web \
+  --source ./frontend \
+  --platform managed \
+  --region us-central1 \
+  --allow-unauthenticated
+
+# 3. Create Cloud SQL PostgreSQL
+gcloud sql instances create tracedata-db \
+  --database-version POSTGRES_15 \
+  --tier db-f1-micro \
+  --region us-central1
+
+# 4. Create Memorystore Redis
+gcloud redis instances create tracedata-redis \
+  --size 1 \
+  --region us-central1
+
+# Free tier covers: $300/month = entire setup for months 1-3!
+# After free credits: ~$20-60/mo
+```
+
+**Estimated Monthly Cost:** $20-60/mo (after free tier, much cheaper with Serverless SQL)
+
+---
+
+### Local Development (Identical Across All Platforms)
+
+```bash
+# Same environment works for DigitalOcean, AWS, Azure, GCS deploys
 docker-compose up
 
-# Brings up:
+# Services:
 # - PostgreSQL (localhost:5432)
 # - Redis (localhost:6379)
 # - Kafka (localhost:9092)
 # - FastAPI (localhost:8000)
 # - Next.js (localhost:3000)
-# - Minio (localhost:9000, S3-compatible storage)
+# - Minio S3 (localhost:9000)
 ```
+
+### Migration Path
+
+**Recommended progression:**
+
+1. **Weeks 1-2:** Start with DigitalOcean App Platform ($40/mo, instant deployment)
+2. **Week 3:** Add AWS redundancy if scaling needed (multi-region)
+3. **Week 4+:** Migrate to preferred long-term platform based on usage patterns
+
+| Stage                     | Platform             | Rationale                |
+| ------------------------- | -------------------- | ------------------------ |
+| **MVP (0-100 users)**     | DigitalOcean         | Fastest Time-to-Market   |
+| **Growth (100-1K users)** | AWS ECS Fargate      | Auto-scaling reliability |
+| **Scale (1K+ users)**     | AWS ECS + CloudFront | Multi-region global      |
+| **Enterprise**            | Azure                | Compliance + governance  |
 
 ## Security & Observability
 
