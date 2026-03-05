@@ -1,489 +1,576 @@
-# 🚛 TraceData — Master Plan for A+
+# 🚛 TraceData — Master Plan v2
 
-## Intelligent Fleet Operations via Multi-Agent AI
+**AI Intelligence Middleware for Fleet Management**
+
+**SWE5008 Capstone Project | NUS-ISS Graduate Certificate in Architecting AI Systems**
 
 **Team Size:** 4 members  
-**Estimated Effort:** 15 days × 4 = 60 person-days  
+**Duration:** 4 weeks (26 Aug – 24 Oct)  
+**Total Effort:** 50-55 person-days (~12-14 days per person)  
 **Target Grade:** A+
 
 ---
 
-## 1. The Vision — Why Fleet Management?
+## 1. Executive Summary
 
-Fleet management is a **goldmine** for multi-agent AI because it naturally decomposes into specialized domains that require autonomous decision-making, real-time coordination, and explainability for safety-critical operations. Unlike brand analytics (EchoChamber), fleet management involves:
+TraceData is an AI intelligence middleware system that attaches to existing fleet management infrastructure (TMS/FMS/ELD) to deliver **predictive, explainable, and fair decision-making capabilities** without requiring a rip-and-replace migration.
 
-- **Safety-critical decisions** — route choices, driver fatigue, vehicle health → explainability isn't optional, it's life-or-death
-- **Real protected attributes** — driver demographics (age, gender, ethnicity) in performance scoring → genuine fairness/bias concerns
-- **Rich adversarial surface** — GPS spoofing, telemetry tampering, prompt injection in chatbot → deep cybersecurity module coverage
-- **Clear MLOps pipeline** — anomaly detection models that degrade over time → real model monitoring and retraining needs
-- **Regulatory weight** — LTA (Singapore), PDPA for driver data, workplace safety regulations → governance frameworks apply naturally
+**The Problem:** Fleet systems handle operational logging (GPS, hours, fuel) but lack semantic reasoning, actionable explainability, and governance mechanisms.
 
-**The Pitch:** TraceData is an AI-powered fleet intelligence platform that uses a multi-agent system to continuously monitor vehicle health, optimize routes, detect driver risk patterns, predict maintenance needs, ensure regulatory compliance, and provide conversational analytics access — all while maintaining explainability, fairness, and security across every decision.
+**The Solution:** A multi-agent LangGraph system ingesting Kafka telemetry, detecting driver bias, predicting vehicle failures, ensuring regulatory compliance, and providing stakeholder-facing explanations—all with strict MLSecOps observability and IMDA MAIGF alignment.
 
----
+**Key Differentiators Over EchoChamber:**
 
-## 2. The Agent Architecture — 8 Agents, 4 Owners
-
-Each team member owns **2 agents** and writes a deep individual report on their **primary agent**.
-
-### Agent Map & Ownership
-
-| #   | Agent                                      | Primary Owner | Secondary Owner | Individual Report          |
-| --- | ------------------------------------------ | ------------- | --------------- | -------------------------- |
-| 1   | **Orchestrator Agent**                     | Member A      | —               | Member A writes about this |
-| 2   | **Telemetry Ingestion Agent**              | Member A      | —               | —                          |
-| 3   | **Route Optimizer Agent**                  | Member B      | —               | Member B writes about this |
-| 4   | **Driver Behavior Agent**                  | Member B      | —               | —                          |
-| 5   | **Predictive Maintenance Agent**           | Member C      | —               | Member C writes about this |
-| 6   | **Compliance & Safety Agent**              | Member C      | —               | —                          |
-| 7   | **Fleet Chatbot Agent (RAG)**              | Member D      | —               | Member D writes about this |
-| 8   | **Sentinel Agent (Monitoring & Alerting)** | Member D      | —               | —                          |
-
-### Why 8 Agents?
-
-The briefing example (CARE-AI) uses 5 agents for a 4-5 person team. By having **8 well-scoped agents**, we:
-
-- Give each member clear ownership of 2 agents
-- Demonstrate richer multi-agent coordination patterns
-- Show the lecturers we can handle complex orchestration
-- Create more inter-agent communication surfaces to document
+- ✅ **Actionable fairness recourse** (counterfactual coaching, not just detection)
+- ✅ **Explicit HITL appeals process** (procedural fairness governance)
+- ✅ **User-facing XAI** (LIME/SHAP in dashboards, not just tests)
+- ✅ **3-framework governance** (IMDA MAIGF + GenAI Framework + FEAT)
+- ✅ **Real ML model + MLOps** (XGBoost + MLflow, not pure LLM wrappers)
 
 ---
 
-## 3. Agent Deep-Dive Designs
+## 2. Agent Architecture — Tiered Prioritization
 
-### Agent 1: Orchestrator Agent (Member A)
+Based on the Architecturally Significant Requirements (ASR) framework, agents are prioritized by **operational credibility** (Tier 1), **excellence depth** (Tier 2), and **optional features** (Tier 3).
 
-**Purpose:** Central coordinator that manages all workflow execution, routes incoming requests, handles agent failures, and maintains global state.
+```mermaid
+graph TB
+    subgraph T1["TIER 1: MUST (Operational Credibility)"]
+        O["🎯 Orchestrator<br/>Central Router<br/>7.5/10 complexity"]
+        I["📥 Ingestion Engine<br/>Kafka Pipeline<br/>6.0/10 complexity"]
+        D["⚖️ Driver Behaviour<br/>XRAI Core<br/>6.5/10 complexity"]
+        P["🔒 PII Cleaner<br/>Privacy Checkpoint<br/>3.0/10 complexity"]
+        C["💰 Cost & Monitoring<br/>MLSecOps Sentinel<br/>4.5/10 complexity"]
+    end
 
-**Key Design Points:**
+    subgraph T2["TIER 2: GOOD (Excellence & Governance)"]
+        A["💡 Actionable Recourse<br/>Counterfactual Coaching<br/>9.5/10 complexity - HIGH RISK"]
+        CO["📋 Compliance & Safety<br/>Regulatory Engine<br/>6.5/10 complexity"]
+        AP["✅ Appeals Adjudicator<br/>HITL Governance<br/>4.0/10 complexity"]
+        R["🤖 RAG Assistant<br/>Stakeholder Chatbot<br/>5.5/10 complexity"]
+    end
 
-- Built with **LangGraph StateGraph** — directed acyclic graph with conditional edges
-- Implements **parallel fan-out** (Telemetry + Route + Driver agents can run concurrently) and **fan-in** (Maintenance agent waits for Telemetry output)
-- **Retry logic** with exponential backoff and circuit breaker pattern for agent failures
-- **State machine visualization** — renders the current workflow state as a live diagram in the UI (this is XAI in action — the user can see _why_ the system is doing what it's doing)
-- Maintains a **decision audit log** for every routing decision
+    subgraph T3["TIER 3: NICE (Stretch Goals)"]
+        PM["🔧 Predictive Maint<br/>Secondary XAI<br/>7.0/10 complexity"]
+        DR["📉 Concept Drift<br/>Model Monitoring<br/>7.0/10 complexity"]
+        AN["🚨 Anomaly Guard<br/>Outlier Detection<br/>7.0/10 complexity"]
+        GS["🗺️ Geo-Spatial Intel<br/>Visualization<br/>7.5/10 complexity"]
+    end
 
-**Reasoning Pattern:** Hierarchical planning — decomposes fleet manager requests into sub-tasks, assigns to agents, monitors completion, and aggregates results.
-
-**Inter-Agent Protocol:** Defines a standard **AgentMessage** schema:
-
-```
-{
-  "message_id": "uuid",
-  "from_agent": "orchestrator",
-  "to_agent": "route_optimizer",
-  "intent": "optimize_routes",
-  "payload": { ... },
-  "priority": "high",
-  "timestamp": "ISO8601",
-  "trace_id": "uuid"  // for distributed tracing
-}
+    style T1 fill:#ff6b6b,stroke:#c92a2a,stroke-width:3px,color:#fff
+    style T2 fill:#ffd93d,stroke:#f39c12,stroke-width:2px,color:#000
+    style T3 fill:#a8d8ff,stroke:#3498db,stroke-width:2px,color:#000
 ```
 
----
+### 2.1 Tier 1: MUST (5 Agents)
 
-### Agent 2: Telemetry Ingestion Agent (Member A)
+**Non-negotiable operational backbone. Satisfies baseline SWE5008 rubric.**
 
-**Purpose:** Collects, validates, and normalizes vehicle telemetry data (GPS, fuel, speed, engine diagnostics, tire pressure) from simulated IoT sources.
+| Agent                 | Owner | Function                                                | ASR Impact      | Tech Diff | Notes                                                 |
+| --------------------- | ----- | ------------------------------------------------------- | --------------- | --------- | ----------------------------------------------------- |
+| **Orchestrator**      | Sree  | Multi-agent coordination via LangGraph StateGraph       | F🔴 Q🔴 C🔴 R🔴 | 7.5/10    | Central hub. Deterministic routing (no LLM overhead). |
+| **Ingestion Engine**  | P2    | Kafka consumer + trip segment batching                  | F🔴 Q🔴 C🔴 R🟠 | 6.0/10    | Real-time streaming (Module 4 baseline).              |
+| **Driver Behaviour**  | Sree  | XGBoost scoring + AIF360 fairness + SHAP explainability | F🔴 Q🔴 C🔴 R🔴 | 6.5/10    | Core XRAI engine (Module 1 proof point).              |
+| **PII Cleaner**       | P3    | Deterministic regex masking + GPS jittering             | F🔴 Q🔴 C🔴 R🟡 | 3.0/10    | Privacy-first checkpoint (IMDA mandate).              |
+| **Cost & Monitoring** | P4    | LangSmith tracing + audit logging + token cost tracking | F🔴 Q🔴 C🔴 R🟡 | 4.5/10    | MLSecOps observability (Module 4 core).               |
 
-**Key Design Points:**
-
-- **PII detection pipeline** — strips driver names, license plates, phone numbers from raw telemetry before processing (PDPA compliance)
-- **Anomaly pre-screening** — flags impossible values (speed > 200km/h, negative fuel levels, GPS coordinates outside Singapore) using statistical bounds
-- **Data quality scoring** — each telemetry batch gets a quality score; low-quality data is flagged for human review (Human-in-the-Loop from IMDA)
-- Publishes clean data to shared state for downstream agents
-
-**Reasoning Pattern:** Rule-based filtering + LLM-powered anomaly narration (turns raw anomalies into human-readable descriptions).
-
----
-
-### Agent 3: Route Optimizer Agent (Member B)
-
-**Purpose:** Generates optimal routes considering traffic, fuel efficiency, delivery windows, and driver constraints. Provides explainable route recommendations.
-
-**Key Design Points:**
-
-- Uses LLM to reason about multi-constraint optimization (time windows, driver hours, vehicle capacity, road restrictions)
-- **Explainable routing** — every route recommendation includes a breakdown: "This route saves 12% fuel but adds 8 min. Chosen because driver X is approaching max driving hours." (XAI as a USER FEATURE, not just a test)
-- **"Why not this route?"** — contrastive explanations. Users can ask why an alternative route was rejected
-- **Fairness check** — ensures route assignments don't systematically disadvantage certain drivers (e.g., always giving senior drivers the easy routes)
-- Integrates with external map APIs (simulated) for distance/time estimates
-
-**Reasoning Pattern:** Chain-of-Thought with tool use — the LLM reasons step-by-step through constraints, calls tools for distance calculations, and produces a ranked route list with justifications.
-
-**XAI Feature in UI:** A "Route Explanation" panel showing a SHAP-style breakdown of which factors influenced the route choice (distance weight: 30%, fuel weight: 25%, driver hours: 20%, delivery window: 25%).
+**Effort:** ~23 days (~6 days per person)  
+**Critical Path:** Ingestion → PII → Orchestrator (5-6 days blocking)
 
 ---
 
-### Agent 4: Driver Behavior Agent (Member B)
+### 2.2 Tier 2: GOOD (4 Agents)
 
-**Purpose:** Analyzes driver performance patterns — harsh braking, speeding, idle time, fatigue risk — and generates fair, explainable driver risk scores.
+**Excellence proof points. A+ differentiators. Safe to pick (depend on Tier 1).**
 
-**Key Design Points:**
+| Agent                   | Owner | Function                                                      | ASR Impact      | Tech Diff | Notes                                                                                      |
+| ----------------------- | ----- | ------------------------------------------------------------- | --------------- | --------- | ------------------------------------------------------------------------------------------ |
+| **Actionable Recourse** | Sree  | Counterfactual "what-if" coaching via Alibi/DiCE              | F🟠 Q🔴 C🟠 R🔴 | 9.5/10    | **HIGH RISK.** Week 1-2 prototype, go/no-go call. Fallback: deeper Driver Behaviour + RAG. |
+| **Compliance & Safety** | P3    | Hybrid rules + LLM reasoning + STRIDE threat model            | F🟠 Q🔴 C🔴 R🟠 | 6.5/10    | Module 2 (cybersecurity) + Module 3 (hybrid agentic).                                      |
+| **Appeals Adjudicator** | P4    | HITL workflow for disputed scores. Audit trail.               | F🟠 Q🔴 C🔴 R🟡 | 4.0/10    | IMDA procedural fairness pillar. Module 1 governance.                                      |
+| **RAG Assistant**       | P4    | Conversational Q&A with source attribution + 3-layer security | F🟠 Q🟡 C🔴 R🟠 | 5.5/10    | IMDA Stakeholder Interaction pillar. User-facing XAI.                                      |
 
-- **This is the fairness-critical agent** — driver scores directly affect job outcomes
-- Implements **AIF360 fairness testing** on driver risk scores across protected attributes (age group, gender, experience level)
-- **LIME explanations** for each driver score — "Driver X scored 72/100. Key factors: harsh braking events (+15 risk), excellent fuel efficiency (-8 risk), high idle time (+5 risk)"
-- **Bias detection and correction** — if the model systematically scores younger drivers higher risk, apply reweighting or threshold adjustment (bias reduction from Module 1)
-- **Human-Over-the-Loop** — flagged scores (very high or very low) are queued for human review before affecting driver records
-- Fatigue detection using driving pattern analysis (time of day, continuous driving duration, deviation from normal patterns)
-
-**Reasoning Pattern:** Hybrid — structured scoring formula (transparent, decomposable) + LLM narrative generation for manager-facing reports.
-
-**XAI Feature in UI:** A "Driver Score Breakdown" dashboard with LIME waterfall charts showing positive/negative contributors. A "Fairness Dashboard" tab showing AIF360 metrics across demographic groups.
+**Effort:** ~24 days (~6-7 additional days per person)  
+**Dependency:** All safe to pick (depend only on Tier 1, which is guaranteed)
 
 ---
 
-### Agent 5: Predictive Maintenance Agent (Member C)
+### 2.3 Tier 3: NICE (4 Agents)
 
-**Purpose:** Predicts vehicle component failures before they occur, schedules preventive maintenance, and explains predictions to fleet managers.
+**Secondary features. Stretch goals. Deferred without penalty.**
 
-**Key Design Points:**
+| Agent                 | Owner | Function                                          | Complexity | Notes                                                                |
+| --------------------- | ----- | ------------------------------------------------- | ---------- | -------------------------------------------------------------------- |
+| **Predictive Maint**  | P2    | ML failure prediction + SHAP explanations         | 7.0/10     | Redundant for rubric (XAI already in Driver Behaviour). Week 3 only. |
+| **Concept Drift**     | P3    | Distribution shift monitoring + retraining alerts | 7.0/10     | Complementary to Cost & Monitoring. Optional.                        |
+| **Anomaly Guard**     | P2    | Isolation Forest outlier detection                | 7.0/10     | Secondary defense. Optional.                                         |
+| **Geo-Spatial Intel** | P4    | Heatmaps + privacy-preserving GPS aggregation     | 7.5/10     | Visualization polish. Optional.                                      |
 
-- Uses a **classification model** (e.g., Random Forest or XGBoost) trained on simulated historical maintenance data — this gives us a proper ML model for SHAP/LIME, not just LLM wrapper
-- **SHAP feature importance** — shows which telemetry features (engine temp trend, mileage since last service, vibration patterns) drive each prediction
-- **Confidence intervals** — every prediction includes uncertainty: "78% probability of brake pad replacement needed within 2 weeks (±5 days)"
-- **Model versioning with MLflow** — tracks model versions, training data versions, and performance metrics over time (MLSecOps)
-- **Drift detection** — monitors if incoming telemetry distributions shift from training data, triggering retraining alerts
-- Generates maintenance priority queues with cost-impact analysis
-
-**Reasoning Pattern:** ML model for prediction + LLM for narrative explanation. The ML model produces the prediction; the LLM translates the SHAP values into natural language: "Engine overheating risk is high primarily because coolant temperature has trended upward 3°C over the past 2 weeks."
-
-**XAI Feature in UI:** Interactive SHAP force plots for each vehicle's maintenance prediction. Fleet managers click a vehicle, see the prediction, and understand _exactly why_.
+**Effort:** ~28 days if all built (pick 0-1 max)
 
 ---
 
-### Agent 6: Compliance & Safety Agent (Member C)
+## 3. Agent Dependency Graph
 
-**Purpose:** Monitors regulatory compliance (driving hours, vehicle inspection schedules, license renewals) and safety incidents.
+```mermaid
+graph TD
+    A["📥 Ingestion Engine<br/>(TIER 1)"] -->|raw_telemetry| B["🔒 PII Cleaner<br/>(TIER 1)"]
+    B -->|cleaned_data| C["🎯 Orchestrator<br/>(TIER 1)"]
+    C -->|dispatch| D["⚖️ Driver Behaviour<br/>(TIER 1)"]
+    C -->|dispatch| CO["📋 Compliance<br/>(TIER 2)"]
+    C -->|all_calls| CM["💰 Cost & Monitoring<br/>(TIER 1)"]
 
-**Key Design Points:**
+    D -->|scores| AR["💡 Actionable Recourse<br/>(TIER 2)"]
+    D -->|audit| AP["✅ Appeals<br/>(TIER 2)"]
+    D -->|history| R["🤖 RAG<br/>(TIER 2)"]
+    AR -->|recourse_history| R
+    AP -->|appeal_context| R
 
-- **Rules engine** mapping Singapore LTA regulations + workplace safety requirements
-- **Proactive alerting** — warns 7/14/30 days before compliance deadlines (license expiry, inspection due, COE renewal)
-- **Incident classification** — when incidents occur, classifies severity and generates structured reports
-- **Ethical decision log** — records every compliance decision with reasoning (aligned with IMDA MAIGF "Internal Governance Structures & Measures")
-- **Escalation protocol** — critical safety issues (driver fatigue detected, vehicle brake failure predicted) trigger immediate human notification, bypassing normal workflow
+    D -->|drift_metrics| DR["📉 Concept Drift<br/>(TIER 3)"]
+    A -->|sensor_data| PM["🔧 Pred Maint<br/>(TIER 3)"]
+    A -->|location| GS["🗺️ Geo-Spatial<br/>(TIER 3)"]
+    B -->|quality| AN["🚨 Anomaly<br/>(TIER 3)"]
 
-**Reasoning Pattern:** Rule-based for regulatory checks + LLM for incident narrative generation and complex regulation interpretation.
+    style A fill:#ff6b6b,color:#fff
+    style B fill:#ff6b6b,color:#fff
+    style C fill:#ff6b6b,color:#fff
+    style D fill:#ff6b6b,color:#fff
+    style CM fill:#ff6b6b,color:#fff
 
----
+    style AR fill:#ffd93d,color:#000
+    style CO fill:#ffd93d,color:#000
+    style AP fill:#ffd93d,color:#000
+    style R fill:#ffd93d,color:#000
 
-### Agent 7: Fleet Chatbot Agent — RAG (Member D)
+    style PM fill:#a8d8ff,color:#000
+    style DR fill:#a8d8ff,color:#000
+    style AN fill:#a8d8ff,color:#000
+    style GS fill:#a8d8ff,color:#000
+```
 
-**Purpose:** Provides natural language query access to all fleet intelligence. Fleet managers ask questions like "Which vehicles are due for maintenance next week?" or "Show me Driver Lee's performance trend."
+### Key Insights
 
-**Key Design Points:**
-
-- **Hybrid RAG** — vector search (pgvector) + keyword search + structured SQL queries
-- **Intent classification** with safety detection — routes queries to appropriate data sources
-- **Multi-turn conversation** with anaphora resolution ("Show me his route history" → resolves "his" to previously discussed driver)
-- **Defense-in-depth security:**
-  - Layer 1: Regex pattern matching (prompt injection, SQL injection, XSS patterns)
-  - Layer 2: LLM-based intent classification with `is_safe` flag and 10 boundary categories
-  - Layer 3: OpenAI Moderation API for content safety
-- **Source attribution** — every response cites the data source (which telemetry record, which maintenance log, which compliance rule)
-- **"I don't know" honesty** — strict grounding prevents hallucination; if data doesn't exist, says so
-- **Crisis protocol** — if a user query suggests an emergency ("truck is on fire"), immediately provides emergency contacts (SCDF 995)
-
-**Reasoning Pattern:** Intent → Route → Retrieve → Ground → Respond → Cite. Each step logged for auditability.
-
-**XAI Feature in UI:** Every chatbot response shows a "Sources" section with clickable links to the underlying data, plus a confidence indicator.
-
----
-
-### Agent 8: Sentinel Agent — Monitoring & Alerting (Member D)
-
-**Purpose:** The meta-agent that watches all other agents. Monitors system health, LLM costs, response quality, and compliance tracking.
-
-**Key Design Points:**
-
-- **LLM cost tracking** — real-time token usage and cost per agent, per query, per day
-- **Performance metrics** — response latency P50/P95/P99, throughput, error rates
-- **Quality scoring** — samples chatbot responses and scores them for relevance, groundedness, and safety
-- **Compliance audit trail** — generates periodic compliance reports showing all agent decisions with timestamps, inputs, outputs, and reasoning
-- **Alerting rules** — cost budget exceeded, latency spike, error rate above threshold, model drift detected
-- **LangSmith integration** for distributed tracing across agent calls
-
-**Reasoning Pattern:** Threshold-based monitoring + LLM for anomaly narration and alert summarization.
+- **Hard dependencies:** Ingestion → PII → Orchestrator only
+- **All other agents** depend on Tier 1 (safe to parallelize Week 2)
+- **Tier 3 agents** have zero downstream dependencies (can be deferred)
+- **Driver Behaviour** is the bottleneck (5 agents depend on it, but it only depends on Orchestrator)
 
 ---
 
-## 4. Module Coverage Matrix — Closing Every Gap
+## 4. Implementation Timeline
 
-This is the **secret weapon**. We explicitly map every deliverable to the 4 course modules so the lecturers can see we've covered everything.
+```mermaid
+gantt
+    title TraceData 4-Week Sprint
+    dateFormat YYYY-MM-DD
 
-### Module 1: Explainable & Responsible AI (XRAI)
+    section Week 1: Infra
+    Ingestion Engine           :ing, 2024-08-26, 4d
+    PII Cleaner                :pii, after ing, 3d
+    Orchestrator Skeleton      :orch, after pii, 5d
+    Cost & Monitoring Setup    :mon, after orch, 4d
 
-| Requirement                    | How We Cover It                                                          | Where (Agent/Section)                                     | EchoChamber Gap Closed?          |
-| ------------------------------ | ------------------------------------------------------------------------ | --------------------------------------------------------- | -------------------------------- |
-| **LIME explanations**          | Driver risk score keyword attribution                                    | Driver Behavior Agent — IN THE UI                         | ✅ XAI visible to users          |
-| **SHAP explanations**          | Maintenance prediction feature importance                                | Predictive Maintenance Agent — IN THE UI                  | ✅ XAI visible to users          |
-| **AIF360 fairness testing**    | Driver score fairness across age, gender, experience                     | Driver Behavior Agent — with before/after bias correction | ✅ Real bias found & fixed       |
-| **Bias reduction**             | Reweighting or threshold adjustment on driver scores                     | Driver Behavior Agent                                     | ✅ Goes beyond EchoChamber       |
-| **IMDA MAIGF alignment**       | Deep mapping across all 4 dimensions with evidence                       | Section 5 of report — detailed table                      | ✅ Deep, not surface-level       |
-| **GenAI Governance Framework** | Map to the 9 dimensions (Accountability, Data, Trusted Dev, etc.)        | Section 5 of report                                       | ✅ NEW — EchoChamber missed this |
-| **FEAT principles**            | Apply to driver scoring (Fairness, Ethics, Accountability, Transparency) | Driver Behavior Agent design                              | ✅ From reading list             |
-| **Human-in-the-loop**          | Flagged driver scores, maintenance decisions requiring human approval    | Multiple agents                                           | ✅                               |
-| **Contrastive explanations**   | "Why not Route B?" in Route Optimizer                                    | Route Optimizer Agent — IN THE UI                         | ✅ Advanced XAI technique        |
-| **Ethical decision log**       | All agent decisions logged with reasoning                                | Compliance Agent + audit trail                            | ✅                               |
+    section Week 2: Intelligence
+    Driver Behaviour           :db, 2024-09-02, 8d
+    Compliance & Safety        :comp, after orch, 6d
+    RAG Assistant              :rag, after db, 5d
+    Appeals Adjudicator        :app, after db, 4d
+    Actionable Recourse Prototype :ar_proto, after db, 5d
 
-### Module 2: AI & Cybersecurity
+    section Week 3: Polish
+    Actionable Recourse Full   :ar_full, after ar_proto, 3d
+    Integration Testing        :test, after ar_full, 2d
+    UI Polish & XAI Panels     :ui, after test, 2d
+    Red-Team CI/CD Tests       :red, after ui, 2d
 
-| Requirement                         | How We Cover It                                       | Where                               |
-| ----------------------------------- | ----------------------------------------------------- | ----------------------------------- |
-| **STRIDE threat model**             | Structured threat analysis of entire system           | Section 6 — Risk Register skeleton  |
-| **OWASP LLM Top 10**                | Map each risk to our agents with mitigations          | Section 6 — detailed table          |
-| **Prompt injection defense**        | 3-layer defense (regex → LLM → Moderation API)        | Fleet Chatbot Agent                 |
-| **Adversarial testing (Promptfoo)** | 400+ red-team tests                                   | Testing section                     |
-| **Agent-to-agent security**         | Message signing, input validation between agents      | Architecture section — NEW          |
-| **Data poisoning defense**          | Telemetry anomaly detection, training data validation | Telemetry Agent + Maintenance Agent |
-| **Supply chain security**           | Dependency scanning in CI/CD (Snyk/Dependabot)        | MLSecOps pipeline                   |
-| **PII protection**                  | Multi-layer PII detection in Telemetry Agent          | PDPA compliance                     |
+    section Week 4: Reporting
+    Individual Reports         :ind, 2024-09-23, 4d
+    Group Report               :grp, after ind, 3d
+    Demo Rehearsal             :demo, after grp, 2d
+```
 
-### Module 3: Architecting Agentic AI Solutions
+### Phase Breakdown
 
-| Requirement                   | How We Cover It                                         | Where                      |
-| ----------------------------- | ------------------------------------------------------- | -------------------------- |
-| **Multi-agent architecture**  | 8 agents with clear roles                               | Agent Design section       |
-| **Agent orchestration**       | LangGraph StateGraph with parallel fan-out/fan-in       | Orchestrator Agent         |
-| **Agent autonomy**            | Each agent reasons, plans, and uses tools independently | Agent design docs          |
-| **Inter-agent communication** | Explicit AgentMessage protocol + shared state           | Architecture section       |
-| **Architecture patterns**     | Layered + Event-driven hybrid, justified                | System Architecture        |
-| **Framework selection**       | LangGraph + LangChain, justify vs CrewAI/AutoGen        | Architecture justification |
-| **Reference architecture**    | Logical + Physical architecture diagrams                | Section 3                  |
+```mermaid
+graph LR
+    P1["PHASE 1<br/>Week 1<br/>Infrastructure<br/>~16 days<br/>~4/person"] -->|Tier 1 Ready| P2["PHASE 2<br/>Weeks 2-3<br/>Intelligence<br/>~33 days<br/>~8-9/person"]
+    P2 -->|Core Complete| P3["PHASE 3<br/>Week 4<br/>Validation<br/>~8 days<br/>Shared"]
 
-### Module 4: Integrating & Deploying AI Solutions
-
-| Requirement           | How We Cover It                                                         | Where                        |
-| --------------------- | ----------------------------------------------------------------------- | ---------------------------- |
-| **CI/CD pipeline**    | GitHub Actions: lint → test → security scan → build → deploy            | MLSecOps section             |
-| **MLSecOps**          | ML model versioning (MLflow), training data versioning, drift detection | Maintenance Agent + pipeline |
-| **LLMSecOps**         | Prompt registry, LLM cost monitoring, output quality scoring            | Sentinel Agent + pipeline    |
-| **Containerization**  | Docker + Docker Compose, deploy to AWS ECS or equivalent                | Deployment strategy          |
-| **Automated testing** | Unit + Integration + Security + Fairness + XAI + Adversarial            | Testing section              |
-| **Monitoring**        | LangSmith tracing + CloudWatch/Prometheus + custom dashboards           | Sentinel Agent               |
-| **Model retraining**  | Drift detection → retrain trigger → validation → deploy                 | Maintenance Agent pipeline   |
+    style P1 fill:#ff6b6b,color:#fff
+    style P2 fill:#ffd93d,color:#000
+    style P3 fill:#a8d8ff,color:#000
+```
 
 ---
 
-## 5. Tech Stack
+## 5. Team Ownership & Individual Reports
 
-| Layer                | Technology                                                                              | Justification                                                 |
-| -------------------- | --------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
-| **Agent Framework**  | LangGraph + LangChain                                                                   | StateGraph for complex workflow orchestration; widely adopted |
-| **LLM**              | OpenAI GPT-4o (analysis) + GPT-4o-mini (classification) + o3-mini (strategic reasoning) | Cost-optimized model routing                                  |
-| **ML Model**         | XGBoost (maintenance prediction)                                                        | Interpretable, fast, works with SHAP natively                 |
-| **Backend**          | FastAPI (Python)                                                                        | Async support, auto-generated API docs, lightweight           |
-| **Frontend**         | Next.js + React                                                                         | Modern, SSR support, good charting ecosystem                  |
-| **Database**         | PostgreSQL + pgvector                                                                   | Unified relational + vector search                            |
-| **Task Queue**       | Celery + Redis                                                                          | Async agent execution, scheduled tasks                        |
-| **ML Tracking**      | MLflow                                                                                  | Model versioning, experiment tracking, model registry         |
-| **Monitoring**       | LangSmith + Prometheus + Grafana                                                        | LLM tracing + system metrics + dashboards                     |
-| **CI/CD**            | GitHub Actions                                                                          | Integrated, free for open-source, good ecosystem              |
-| **Deployment**       | Docker + AWS ECS Fargate                                                                | Serverless containers, no cluster management                  |
-| **Security Testing** | Promptfoo + Bandit + Safety + Snyk                                                      | Adversarial + SAST + dependency scanning                      |
-| **XAI**              | SHAP + LIME + AIF360                                                                    | Course-aligned, well-documented                               |
+```mermaid
+graph TB
+    subgraph Sree["Sree (Behavior & Orchestration Lead)"]
+        SO["Owns: Orchestrator"]
+        SD["Owns: Driver Behaviour"]
+        SA["Owns: Actionable Recourse"]
+        SR["Individual Report:<br/>Driver Behaviour Design<br/>(fairness spec + XRAI proof)"]
+    end
 
----
+    subgraph P2["P2 (Data & Streaming Lead)"]
+        SI["Owns: Ingestion Engine"]
+        SPM["Owns: Predictive Maint (stretch)"]
+        SR2["Individual Report:<br/>Ingestion Architecture<br/>(data pipeline design)"]
+    end
 
-## 6. Work Breakdown & Timeline
+    subgraph P3["P3 (Security & Privacy Lead)"]
+        SP["Owns: PII Cleaner"]
+        SC["Owns: Compliance & Safety"]
+        SR3["Individual Report:<br/>Security/Privacy Checkpoint<br/>(STRIDE + threat model)"]
+    end
 
-Based on 15 days per person, ~60 person-days total. Briefing schedule: proposal by 18 Aug, project conduct 26 Aug–24 Oct, presentation 25 Oct/1 Nov, report by 17 Nov.
+    subgraph P4["P4 (MLSecOps & Governance Lead)"]
+        SM["Owns: Cost & Monitoring"]
+        SRA["Owns: RAG Assistant"]
+        SAP["Owns: Appeals Adjudicator"]
+        SR4["Individual Report:<br/>Observability & HITL Governance<br/>(MLSecOps + audit trail)"]
+    end
 
-### Phase 1: Foundation (Week 1-2, ~16 person-days)
+    style Sree fill:#ff6b6b,color:#fff
+    style P2 fill:#a8d8ff,color:#000
+    style P3 fill:#a8d8ff,color:#000
+    style P4 fill:#a8d8ff,color:#000
+```
 
-| Task                                               | Owner    | Days       |
-| -------------------------------------------------- | -------- | ---------- |
-| Set up repo, Docker, CI/CD skeleton, DB schema     | All      | 2 each = 8 |
-| Design agent communication protocol & shared state | Member A | 2          |
-| Set up LangGraph orchestration skeleton            | Member A | 2          |
-| Simulated telemetry data generator                 | Member A | 2          |
-| Frontend scaffold (Next.js + dashboard layout)     | Member D | 2          |
-
-### Phase 2: Agent Implementation (Week 3-5, ~28 person-days)
-
-| Task                                                                     | Owner    | Days |
-| ------------------------------------------------------------------------ | -------- | ---- |
-| Orchestrator Agent (workflow engine, state machine, retry logic)         | Member A | 4    |
-| Telemetry Ingestion Agent (PII detection, validation, anomaly screening) | Member A | 3    |
-| Route Optimizer Agent (LLM reasoning, constraint handling, explanations) | Member B | 4    |
-| Driver Behavior Agent (scoring, LIME integration, fairness testing)      | Member B | 4    |
-| Predictive Maintenance Agent (ML model, SHAP, MLflow integration)        | Member C | 4    |
-| Compliance & Safety Agent (rules engine, incident classification)        | Member C | 3    |
-| Fleet Chatbot Agent (RAG pipeline, 3-layer security, source attribution) | Member D | 4    |
-| Sentinel Agent (monitoring, cost tracking, alerting)                     | Member D | 2    |
-
-### Phase 3: Integration, Testing & Polish (Week 6-8, ~16 person-days)
-
-| Task                                                  | Owner        | Days       |
-| ----------------------------------------------------- | ------------ | ---------- |
-| End-to-end integration testing                        | All          | 1 each = 4 |
-| Promptfoo adversarial testing (400+ tests)            | Member D     | 2          |
-| AIF360 fairness testing + bias correction             | Member B     | 2          |
-| SHAP/LIME integration into UI                         | Member B + C | 2          |
-| Security testing (STRIDE-based, OWASP LLM Top 10)     | Member C     | 2          |
-| UI polish — XAI panels, dashboards, chatbot interface | Member D     | 2          |
-| AWS deployment + CloudWatch setup                     | Member A     | 2          |
-
-### Phase 4: Documentation & Presentation (Week 8-9)
-
-| Task                                                            | Owner | Days |
-| --------------------------------------------------------------- | ----- | ---- |
-| Group report sections (each member writes their agent sections) | All   | —    |
-| Individual reports (each member deep-dives their primary agent) | All   | —    |
-| Presentation deck + demo rehearsal                              | All   | —    |
+| Owner    | Primary Agent     | Secondary Agents                  | Effort   | Individual Report Focus                                 |
+| -------- | ----------------- | --------------------------------- | -------- | ------------------------------------------------------- |
+| **Sree** | Driver Behaviour  | Orchestrator, Actionable Recourse | ~18 days | Fairness specification (AIF360 + SHAP + Module 1 proof) |
+| **P2**   | Ingestion Engine  | Predictive Maint (stretch)        | ~9 days  | Data pipeline architecture (streaming + schema)         |
+| **P3**   | PII Cleaner       | Compliance & Safety               | ~9 days  | Security checkpoint design (STRIDE threat model)        |
+| **P4**   | Cost & Monitoring | RAG, Appeals                      | ~13 days | Observability & governance (audit logging + HITL)       |
 
 ---
 
-## 7. Deliverables Checklist (Aligned to Briefing Template)
+## 6. SWE5008 Rubric Coverage (Per Module)
 
-### Group Report Structure
+```mermaid
+graph TB
+    subgraph Mod1["Module 1: XRAI"]
+        M1A["✅ Bias Detection (AIF360)"]
+        M1B["✅ Explainability (SHAP/LIME)"]
+        M1C["✅ Fairness Recourse (Actionable)"]
+        M1D["✅ Human Oversight (Appeals)"]
+    end
 
-1. **Executive Summary** — project objective, solution highlights, constraints
-2. **System Overview** — high-level workflow diagram showing all 8 agents
-3. **System Architecture**
-   - Logical architecture diagram (layered: Presentation → API Gateway → Orchestration → Business Logic → Data Access → Persistence)
-   - Physical architecture diagram (AWS: VPC, ECS, RDS, ElastiCache, ALB, ECR, CloudWatch)
-   - Deployment strategy (Docker, ECS Fargate, rolling deployments)
-   - Data flow diagrams (telemetry pipeline flow, chatbot query flow, maintenance prediction flow)
-   - Architecture justification (why LangGraph over CrewAI, why PostgreSQL+pgvector over Pinecone, etc.)
-4. **Agent Roles and Design** — for each of the 8 agents:
-   - Purpose & responsibilities
-   - Reasoning patterns (CoT, ReAct, rule-based, hybrid)
-   - Planning & memory mechanisms
-   - Tools used
-   - Communication protocols
-   - Prompt engineering patterns
-   - Fallback strategies
-5. **Explainable & Responsible AI Practices** ⭐ THE DIFFERENTIATOR
-   - Lifecycle alignment (data collection → processing → generation → monitoring)
-   - **IMDA MAIGF v2** — deep mapping with evidence per dimension
-   - **GenAI Governance Framework** — 9 dimensions mapped (Accountability, Data, Trusted Dev, Incident Reporting, Testing & Assurance, Security, Content Provenance, Safety & Alignment, AI for Public Good)
-   - **FEAT principles** — applied to driver scoring
-   - AIF360 fairness results with before/after bias correction narrative
-   - LIME driver score explanations (with UI screenshots)
-   - SHAP maintenance prediction explanations (with UI screenshots)
-   - Contrastive route explanations
-   - Ethical decision log
-6. **AI Security Risk Register** ⭐ FRAMEWORK-DRIVEN
-   - **STRIDE** threat model for the system
-   - **OWASP LLM Top 10** mapping with mitigations
-   - Comprehensive risk table (risk → severity → mitigation → control → test status)
-   - Agent-to-agent security analysis
-7. **MLSecOps / LLMSecOps Pipeline**
-   - CI/CD architecture diagram
-   - Automated testing framework (unit, integration, security, fairness, XAI, adversarial)
-   - MLflow model versioning
-   - Prompt registry and versioning
-   - Deployment strategy with health checks
-   - Monitoring & alerting (LangSmith + Prometheus + Grafana)
-   - Logging & audit trail
-8. **Testing Summary** — comprehensive table with test counts, pass rates, locations
-9. **Reflection** — team-level learnings
+    subgraph Mod2["Module 2: Cybersecurity"]
+        M2A["✅ Data Privacy (PII Cleaner)"]
+        M2B["✅ Threat Modeling (STRIDE)"]
+        M2C["✅ Adversarial Testing (Promptfoo CI/CD)"]
+        M2D["✅ Prompt Injection Defense (RAG)"]
+    end
 
-### Individual Report Structure (per member)
+    subgraph Mod3["Module 3: Agentic AI"]
+        M3A["✅ Multi-Agent Orchestration (LangGraph)"]
+        M3B["✅ Tool Use & Planning (Compliance hybrid)"]
+        M3C["✅ State Management (FleetState)"]
+        M3D["✅ Proactive Agency (RAG, Recourse)"]
+    end
 
-1. Introduction — agent purpose
-2. Agent Design — deep technical dive
-3. Implementation Details — code structure, tech stack
-4. Testing & Validation — with results
-5. **Explainable & Responsible AI Considerations** — specific to this agent, citing course concepts by name
-6. Security Practices — agent-specific risks and mitigations
-7. **Reflection** — personal learning journey, honest about failures, explicit course concept connections ("In XRAI Day 2, we learned about LIME. I applied this when...")
+    subgraph Mod4["Module 4: MLSecOps"]
+        M4A["✅ Streaming (Ingestion Engine)"]
+        M4B["✅ Observability (Cost & Monitoring)"]
+        M4C["✅ Audit Logging (Decision Log)"]
+        M4D["✅ Model Monitoring (Concept Drift)"]
+    end
+
+    IMDA["IMDA MAIGF<br/>4 Pillars"]
+    M1D --> IMDA
+    M1C --> IMDA
+    M2A --> IMDA
+    M4C --> IMDA
+
+    style Mod1 fill:#ff6b6b,color:#fff
+    style Mod2 fill:#ff6b6b,color:#fff
+    style Mod3 fill:#ff6b6b,color:#fff
+    style Mod4 fill:#ff6b6b,color:#fff
+    style IMDA fill:#ffd93d,color:#000
+```
+
+**Coverage:** All 4 modules fully satisfied by Tier 1 + Tier 2 agents. Tier 3 adds optional depth.
 
 ---
 
-## 8. The A+ Differentiators — What Sets Us Apart
+## 7. Risk Mitigation
 
-These are the specific things we do that go beyond what EchoChamber did:
+### Actionable Recourse (The Wild Card)
 
-### 8.1 XAI as a User Feature (Not Just Tests)
+```mermaid
+graph TD
+    START["Week 1-2<br/>Prototype Alibi/DiCE<br/>on toy data"] --> DECISION{Works<br/>cleanly?}
 
-- LIME waterfall charts in the Driver Performance dashboard
-- SHAP force plots in the Vehicle Health dashboard
-- "Why this route?" / "Why not Route B?" contrastive explanations
-- Workflow state visualization in the Orchestrator
-- Every chatbot response shows source citations with confidence
+    DECISION -->|YES| COMMIT["Commit to full implementation<br/>Week 2-3"]
+    DECISION -->|NO| PIVOT["Pivot: Deeper Driver Behaviour<br/>+ RAG explainability<br/>(Still A-grade)"]
 
-### 8.2 Real Bias Detection → Correction → Validation Cycle
+    COMMIT --> DEMO1["Live demo:<br/>Counterfactual coaching"]
+    PIVOT --> DEMO2["Live demo:<br/>SHAP/LIME explanations<br/>+ Appeals workflow"]
 
-- AIF360 testing finds that younger drivers are systematically scored higher risk
-- Apply reweighting bias reduction technique
-- Re-test with AIF360 to show improvement
-- Document the entire journey with before/after metrics
+    DEMO1 --> RESULT["A+ Proof:<br/>Fairness is actionable"]
+    DEMO2 --> RESULT["A Proof:<br/>Fairness is explainable<br/>+ governable"]
 
-### 8.3 Multi-Framework Governance (3 Frameworks, Not 1)
+    style START fill:#ffd93d,color:#000
+    style DECISION fill:#ff6b6b,color:#fff
+    style COMMIT fill:#90EE90,color:#000
+    style PIVOT fill:#90EE90,color:#000
+    style RESULT fill:#90EE90,color:#000
+```
 
-- IMDA MAIGF v2 (4 dimensions)
-- GenAI Governance Framework (9 dimensions)
-- FEAT principles (for driver scoring fairness)
+**Execution Strategy:**
 
-### 8.4 STRIDE + OWASP LLM Top 10 Security Structure
+1. **Week 1 Day 4-5:** Sree prototypes Alibi/DiCE with 3-5 toy drivers
+2. **Week 2 Day 1:** Go/no-go decision call (team sync)
+3. **If GO:** Full implementation Week 2-3
+4. **If NO-GO:** Sree pivots to deepening Driver Behaviour + RAG (test contrastive explanations, fairness sandboxes)
 
-- Not just Promptfoo categories, but mapped to established security frameworks
-- Agent-to-agent security analysis (novel — not in EchoChamber)
-
-### 8.5 Real ML Model with Full MLOps
-
-- XGBoost for maintenance prediction — a proper ML model, not just LLM wrappers
-- MLflow tracking, model versioning, drift detection
-- This naturally demonstrates MLSecOps (Module 4) better than pure LLM systems
-
-### 8.6 Personal, Course-Connected Reflections
-
-- Each reflection names specific lectures and concepts
-- Honest about what went wrong and how we pivoted
-- Shows growth in thinking, not just technical output
-
-### 8.7 Explicit Inter-Agent Communication Protocol
-
-- Defined AgentMessage schema
-- Sequence diagrams showing multi-agent coordination
-- Communication pattern analysis (pub-sub, request-response, event-driven)
+**Outcome:** Either way, A-grade minimum guaranteed.
 
 ---
 
-## 9. Risk Mitigation — What Could Go Wrong
+### Other Risks
 
-| Risk                                            | Impact | Mitigation                                                                                         |
-| ----------------------------------------------- | ------ | -------------------------------------------------------------------------------------------------- |
-| Scope creep — 8 agents too ambitious            | HIGH   | Each agent has a MVP scope. Cut fancy features, keep core logic                                    |
-| LLM API costs blow budget                       | MEDIUM | Aggressive mocking in tests, cost caps per agent, use GPT-4o-mini where possible                   |
-| ML model doesn't perform well on simulated data | MEDIUM | Focus on XAI demonstration, not model accuracy. The point is showing SHAP/LIME, not winning Kaggle |
-| Team member falls behind                        | HIGH   | Bi-weekly progress reports (required by briefing), clear ownership, agents are loosely coupled     |
-| AWS deployment issues                           | MEDIUM | Have a Docker Compose local fallback for demo. Deploy early, not in the last week                  |
-| Presentation runs over time                     | LOW    | Rehearse 3 times minimum. Each member presents their agents                                        |
-
----
-
-## 10. Simulated Data Strategy
-
-Since the project uses simulated data (explicitly allowed per the briefing), we need a realistic data generator:
-
-- **Vehicle fleet:** 20-30 vehicles with different types (trucks, vans, sedans), ages, and maintenance histories
-- **Driver pool:** 15-20 drivers with diverse demographics (age groups 25-60, mixed gender, varied experience levels) — essential for fairness testing
-- **Telemetry streams:** GPS coordinates within Singapore, fuel levels, speed, engine temperature, brake events, idle time — generated at 1-minute intervals for 3 months
-- **Maintenance records:** Historical maintenance events with component, cost, mileage — some with clear patterns (brake pads every 30K km) for the ML model to learn
-- **Compliance records:** License expiry dates, vehicle inspection dates, driving hour logs
-- **Inject some bias:** Deliberately make the simulated data slightly biased (younger drivers assigned to night shifts more often → more fatigue incidents) so we can detect and correct it with AIF360
+| Risk                                | Severity | Mitigation                                                                                                   |
+| ----------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------ |
+| Scope creep (8→13 agents feels big) | HIGH     | Each agent has MVP scope. Cut fancy features, keep core logic. Tier 1 is non-negotiable; Tier 2/3 are picks. |
+| LLM API costs                       | MEDIUM   | Aggressive mocking in tests. Cost caps per agent. Use GPT-4o-mini where possible.                            |
+| Team member falls behind            | HIGH     | Bi-weekly progress reports. Clear ownership. Agents are loosely coupled (can be built independently).        |
+| AWS deployment issues               | MEDIUM   | Docker Compose local fallback for demo. Deploy early (Week 3), not last minute.                              |
+| ML model doesn't perform well       | MEDIUM   | Focus on XAI (SHAP/LIME), not accuracy. The proof point is interpretability, not Kaggle medals.              |
 
 ---
 
-## Quick Reference: Assessment Weight Mapping
+## 8. Pre-Deployment Adversarial Testing (CI/CD)
 
-| Assessment Component                    | Weight | Our Strategy                                                       |
-| --------------------------------------- | ------ | ------------------------------------------------------------------ |
-| **Project Presentation**                | 20%    | Clear slides, live demo of all 8 agents, XAI panels shown live     |
-| **Group Project Report**                | 30%    | ~80-90 pages, every section from template, 3 governance frameworks |
-| **Individual Agent Design**             | 10-13% | Deep dive per member's primary agent                               |
-| **Individual Implementation & Testing** | 10-13% | Code walkthrough, test results, coverage                           |
-| **Individual Reflection**               | 10-14% | Personal, honest, course-connected                                 |
-| **Peer Assessment**                     | 10%    | Clear ownership, balanced contributions                            |
+Adversarial testing is handled in GitHub Actions, **not as a runtime agent**, to reduce architectural complexity while proving Module 2 competency.
 
-**Total: 100% — every percent accounted for.**
+```mermaid
+graph LR
+    subgraph CI/CD["GitHub Actions Workflow"]
+        T1["Test 1<br/>Prompt Injection<br/>on RAG"]
+        T2["Test 2<br/>Bias Amplification<br/>alter age"]
+        T3["Test 3<br/>Privacy Leakage<br/>PII masks"]
+        T4["Test 4<br/>Fairness Jailbreak<br/>force unfair"]
+    end
+
+    CI/CD --> GATE{"Pass Rate<br/>>95%?"}
+    GATE -->|YES| DEPLOY["✅ Deploy to AWS"]
+    GATE -->|NO| BLOCK["❌ Block Deployment<br/>Fix & Retry"]
+
+    style CI/CD fill:#a8d8ff,color:#000
+    style GATE fill:#ffd93d,color:#000
+    style DEPLOY fill:#90EE90,color:#000
+    style BLOCK fill:#ff6b6b,color:#fff
+```
+
+**Acceptance Criteria:** >95% pass rate (matches EchoChamber baseline)
 
 ---
 
-_"The best way to predict the future is to build it." — Let's build an A+._
+## 9. Live Demo Scenario (Week 4, ~5 Minutes)
+
+```mermaid
+sequenceDiagram
+    participant Sree
+    participant Driver Behaviour
+    participant AIF360
+    participant SHAP
+    participant P4
+    participant RAG
+    participant Appeals
+
+    Sree->>Driver Behaviour: "Score Driver X (age 25)"
+    Driver Behaviour->>AIF360: Check fairness (SPD metric)
+    AIF360-->>Driver Behaviour: SPD=0.38 (unfair - younger penalized)
+    Driver Behaviour->>AIF360: Apply reweighting mitigation
+    AIF360-->>Driver Behaviour: Retrain, SPD=0.04 (fair)
+
+    Sree->>SHAP: Show feature importance before/after
+    SHAP-->>Sree: Age importance: 45% → 12% (proved correction worked)
+
+    Sree->>Driver Behaviour: Generate score narrative
+    Driver Behaviour-->>Sree: "Driver X scored 68 due to speed variance, not age"
+
+    P4->>RAG: Fleet manager asks "Why Driver X low score?"
+    RAG->>Driver Behaviour: Retrieve historical scores + explanations
+    RAG-->>P4: "Speed variance detected 3× in past month"
+
+    P4->>Appeals: Driver disputes. Log for human review
+    Appeals-->>P4: Decision audit trail recorded
+
+    Sree->>Sree: Graders see: Architecture works, fairness is detectable/correctable/explainable, governance is auditable
+```
+
+**Talking Points:**
+
+- Statistical Parity Difference metric (Module 1)
+- AIF360 reweighting (fairness correction, not just detection)
+- SHAP validation (explainability proves correction worked)
+- User-facing RAG explanation (IMDA Stakeholder Interaction)
+- Appeals audit trail (procedural fairness governance)
+
+---
+
+## 10. Deliverables Checklist
+
+```mermaid
+graph TB
+    subgraph GRP["Group Report<br/>~80-90 pages"]
+        G1["Executive Summary<br/>+ System Overview"]
+        G2["System Architecture<br/>(logical + physical)"]
+        G3["Agent Roles & Design<br/>(all 8 agents)"]
+        G4["XRAI Deep-Dive<br/>(AIF360 + SHAP + LIME)"]
+        G5["Security Register<br/>(STRIDE + OWASP LLM)"]
+        G6["MLSecOps Pipeline<br/>(CI/CD + monitoring)"]
+        G7["Testing Summary<br/>(with pass rates)"]
+        G8["Reflection"]
+    end
+
+    subgraph IND["Individual Reports<br/>Per person"]
+        I1["Agent Design<br/>(technical deep-dive)"]
+        I2["Implementation<br/>(code structure)"]
+        I3["Testing & Validation"]
+        I4["XRAI Considerations<br/>(course-specific)"]
+        I5["Security Practices"]
+        I6["Personal Reflection<br/>(honest, course-connected)"]
+    end
+
+    subgraph PRES["Presentation<br/>Week 4"]
+        P1["Slides<br/>(clear, structured)"]
+        P2["Live Demo<br/>(5-7 min walkthrough)"]
+        P3["Q&A Ready<br/>(hard questions prep)"]
+    end
+
+    style GRP fill:#ff6b6b,color:#fff
+    style IND fill:#ffd93d,color:#000
+    style PRES fill:#a8d8ff,color:#000
+```
+
+---
+
+## 11. Assessment Weight & Grade Mapping
+
+```mermaid
+graph TB
+    subgraph Grading["SWE5008 Assessment"]
+        PRE["Project Presentation<br/>20%"]
+        GRP["Group Report<br/>30%"]
+        AGN["Agent Design<br/>10-13%"]
+        IMP["Implementation<br/>10-13%"]
+        REF["Individual Reflection<br/>10-14%"]
+        PEA["Peer Assessment<br/>10%"]
+    end
+
+    STRATEGY["Our Strategy"]
+
+    PRE --> STRAT1["Live demo shows all tiers<br/>XAI panels visible"]
+    GRP --> STRAT2["3 governance frameworks<br/>80-90 pages comprehensive"]
+    AGN --> STRAT3["Deep fairness spec<br/>per Sree's report"]
+    IMP --> STRAT4["Code walkthrough<br/>test coverage"]
+    REF --> STRAT5["Personal, honest<br/>course-connected"]
+    PEA --> STRAT6["Clear ownership<br/>balanced work"]
+
+    style PRE fill:#ff6b6b,color:#fff
+    style GRP fill:#ff6b6b,color:#fff
+    style AGN fill:#ffd93d,color:#000
+    style IMP fill:#ffd93d,color:#000
+    style REF fill:#a8d8ff,color:#000
+    style PEA fill:#a8d8ff,color:#000
+```
+
+**Mapping:** Every assessment component has a clear TraceData proof point.
+
+---
+
+## 12. The EchoChamber Comparison
+
+```mermaid
+graph LR
+    subgraph EC["EchoChamber Analyst<br/>(Reference A+)"]
+        ECF["Fairness detection<br/>(AIF360)"]
+        ECX["Explainability<br/>(LIME/SHAP)"]
+        ECC["Compliance logging<br/>(audit trail)"]
+        ECS["System design<br/>(clean, modular)"]
+    end
+
+    subgraph TR["TraceData<br/>(Our Goal)"]
+        TRF["+ Fairness RECOURSE<br/>(counterfactual coaching)"]
+        TRH["+ HITL Appeals<br/>(procedural fairness)"]
+        TRU["+ User-facing XAI<br/>(RAG explanations)"]
+        TRG["+ 3 Governance Frameworks<br/>(IMDA + GenAI + FEAT)"]
+    end
+
+    ECF -.-> TRF
+    ECX -.-> TRU
+    ECC -.-> TRH
+    ECS -.-> TRG
+
+    style EC fill:#a8d8ff,color:#000
+    style TR fill:#90EE90,color:#000
+```
+
+**Key Improvement:** We don't just detect bias; we help drivers improve.
+
+---
+
+## 13. Key Dates & Milestones
+
+```mermaid
+timeline
+    title Project Timeline
+
+    2024-08-18 : Proposal Submission
+    2024-08-26 : Week 1 Kickoff - Tier 1 infra starts
+    2024-09-02 : Week 2 - Driver Behaviour ready, Tier 2 starts
+    2024-09-09 : Week 3 - Polish & integration testing
+    2024-09-16 : Week 4 - Red-team tests, reports
+    2024-09-23 : Individual reports due
+    2024-09-30 : Group report due
+    2024-10-01 : Presentation & Live Demo
+    2024-10-17 : Final report deadline
+```
+
+---
+
+## 14. Success Criteria (A+ Outcome)
+
+| Dimension               | A+ Proof                                    | Our Strategy                                                 |
+| ----------------------- | ------------------------------------------- | ------------------------------------------------------------ |
+| **Rubric Mastery**      | All 4 modules + IMDA covered                | Explicit mapping table. Every agent touches 1-2 modules.     |
+| **System Quality**      | Working end-to-end pipeline                 | Tier 1 guaranteed; Tier 2 optional but likely.               |
+| **XRAI Excellence**     | Fairness is actionable, not just detectable | Actionable Recourse (if viable) or Appeals + RAG (fallback). |
+| **Security Rigor**      | STRIDE + OWASP systematically addressed     | Risk register. CI/CD red-team tests >95% pass.               |
+| **Governance Maturity** | Audit trail, HITL, source attribution       | Appeals + Cost & Monitoring + RAG source links.              |
+| **XAI in Practice**     | Users see explanations in real time         | LIME/SHAP panels in dashboards. RAG cites sources.           |
+| **Honest Reflection**   | Learning, not just technical output         | Individual reports name specific lectures + concepts.        |
+
+---
+
+## 15. Quick Start (Week 1 Day 1)
+
+1. **GitHub repo setup** (fork template, folder structure)
+2. **Dev environment** (Python 3.11, PostgreSQL 15, Redis, Docker Compose)
+3. **Kafka simulator** (Python producer, toy telemetry generator)
+4. **LangGraph skeleton** (StateGraph with 3 nodes: dispatch, orchestrate, aggregate)
+5. **Shared state schema** (FleetState, AgentMessage protocol)
+6. **First commit:** "Infrastructure ready. All agents can start building."
+
+---
+
+## 16. The Pitch to Your Team
+
+> "We're building 9-11 agents across 3 tiers. Tier 1 (5 agents) is infrastructure—we all own it together. Tier 2 (4 agents) is excellence—you pick your specialty (fairness, security, governance, or UI). Tier 3 (4 agents) is bonus if we have energy.
+>
+> Each person has 1 primary agent for the individual report. Clear ownership. Parallel execution. No bottlenecks.
+>
+> The difference between A and A+? We don't just detect fairness; we help drivers improve. We don't just log decisions; we explain them to stakeholders. We don't just follow frameworks; we map all 3 (IMDA + GenAI + FEAT).
+>
+> Let's build an A+."
+
+---
+
+**This is your master plan. Everything is decided. You're ready to execute.**
