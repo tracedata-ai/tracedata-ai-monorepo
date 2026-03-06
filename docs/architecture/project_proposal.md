@@ -98,6 +98,26 @@ _(🔴 High | 🟠 Medium | 🟡 Low)_
 
 ---
 
+### 3.2 Agent → Tool Mapping
+
+| Agent                                 | ⚙️ Conventional ML / Infra Tools                                                  | 🔬 XAI / Fairness Tools                                                                                   | 🧠 LLM Tools                                 |
+| ------------------------------------- | --------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
+| **Orchestrator**                      | LangGraph StateGraph, LangSmith Tracer, AuditLogger                               | —                                                                                                         | GPT-4o-mini _(intent)_, GPT-4o _(synthesis)_ |
+| **Ingestion Agent**                   | Kafka Consumer, Schema Validator, Data Quality Gate                               | —                                                                                                         | —                                            |
+| **Safety Event Detector**             | Sliding Window Processor, Threshold Rules Engine                                  | —                                                                                                         | —                                            |
+| **Privacy Guard Agent**               | PII Regex Masker, GPS Spatial Jitterer, Privacy Audit Logger                      | —                                                                                                         | —                                            |
+| **Driver Risk Agent**                 | XGBoost Risk Scorer                                                               | AIF360 _(fairness audit + Reweighing)_, SHAP _(global — Why overall?)_, LIME _(local — Why this driver?)_ | —                                            |
+| **Observability Sentinel**            | LangSmith Tracer, Prometheus, Token Cost Calculator, Circuit Breaker, AuditLogger | —                                                                                                         | —                                            |
+| **Actionable Recourse Agent**         | —                                                                                 | DiCE / Alibi _(counterfactual — How to be that?)_                                                         | —                                            |
+| **Compliance & Safety Agent**         | Rules Engine _(HOS checker)_                                                      | SHAP _(Why this severity?)_                                                                               | GPT-4o-mini _(edge-case reasoning)_          |
+| **Appeals Adjudicator**               | SQLAlchemy, PostgreSQL                                                            | SHAP Retriever _(Why was I scored this way?)_                                                             | —                                            |
+| **RAG Assistant**                     | pgvector Retriever, Keyword Filter, Source Attribution Logger                     | —                                                                                                         | GPT-4o-mini _(grounded generation)_          |
+| **Predictive Maintenance** _(Tier 3)_ | XGBoost Failure Predictor                                                         | LIME _(Why this vehicle?)_                                                                                | —                                            |
+| **Concept Drift Agent** _(Tier 3)_    | —                                                                                 | EvidentlyAI _(fairness + accuracy drift)_                                                                 | —                                            |
+| **Anomaly Guard** _(Tier 3)_          | Isolation Forest                                                                  | —                                                                                                         | —                                            |
+
+---
+
 ## 4. System Architecture & Agent Scope
 
 ### 4.1 Capability Stack
@@ -128,7 +148,119 @@ graph TD
     end
 ```
 
-### 4.2 Master Architecture Diagram
+### 4.2 Agent → Tool Decomposition Diagram
+
+```mermaid
+flowchart LR
+
+    subgraph ORC ["🎯 Orchestrator"]
+        O["Orchestrator\nLLM + Deterministic\n⏱️ Real-Time + 🔁 On-Demand"]
+        O --> O1["🧠 GPT-4o-mini\nIntent Classification"]
+        O --> O2["🧠 GPT-4o\nCross-Agent Synthesis"]
+        O --> O3["⚙️ LangGraph StateGraph\nWorkflow Orchestration"]
+        O --> O4["⚙️ LangSmith Tracer\nDistributed Tracing"]
+        O --> O5["⚙️ AuditLogger\nDecision Records"]
+    end
+
+    subgraph ING ["📥 Ingestion Agent"]
+        I["Ingestion Agent\nDeterministic\n⏱️ Real-Time"]
+        I --> I1["⚙️ Kafka Consumer\nTopic Subscription"]
+        I --> I2["⚙️ Schema Validator\nPydantic Enforcement"]
+        I --> I3["⚙️ Data Quality Gate\nImpossible Value Detection"]
+    end
+
+    subgraph SED ["🚨 Safety Event Detector"]
+        SE["Safety Event Detector\nDeterministic\n⏱️ Real-Time"]
+        SE --> SE1["⚙️ Sliding Window Processor\nRolling Telemetry Buffer"]
+        SE --> SE2["⚙️ Threshold Rules Engine\nHarsh Brake / Crash / Speed"]
+    end
+
+    subgraph PRI ["🔒 Privacy Guard Agent"]
+        P["Privacy Guard Agent\nDeterministic\n⏱️ Real-Time"]
+        P --> P1["⚙️ PII Regex Masker\n5 PII Categories"]
+        P --> P2["⚙️ GPS Spatial Jitterer\nCoordinate Noise"]
+        P --> P3["⚙️ Privacy Audit Logger\nPDPA Trail"]
+    end
+
+    subgraph DRA ["⚖️ Driver Risk Agent"]
+        D["Driver Risk Agent\nDeterministic ML\n🕐 End-of-Trip"]
+        D --> D1["⚙️ XGBoost Risk Scorer\nTrip Feature Inference"]
+        D --> D2["🔬 AIF360 Bias Auditor\nDIR + SPD + Reweighing"]
+        D --> D3["🔬 SHAP Global Explainer\nWhy overall?"]
+        D --> D4["🔬 LIME Local Explainer\nWhy this driver?"]
+    end
+
+    subgraph OBS ["💰 Observability Sentinel"]
+        OS["Observability Sentinel\nDeterministic\n⏱️ Real-Time"]
+        OS --> OS1["⚙️ LangSmith Tracer\nNode Execution Tracing"]
+        OS --> OS2["⚙️ Prometheus\nMetrics Collection"]
+        OS --> OS3["⚙️ Token Cost Calculator\nBudget Monitoring"]
+        OS --> OS4["⚙️ Circuit Breaker\nFeature Degradation"]
+        OS --> OS5["⚙️ AuditLogger\nEthical AI Decision Log"]
+    end
+
+    subgraph CSA ["📋 Compliance & Safety Agent"]
+        CS["Compliance & Safety Agent\nRules + LLM Hybrid\n⚡ Triggered"]
+        CS --> CS1["⚙️ Rules Engine\nHOS Deterministic Checker"]
+        CS --> CS2["🧠 GPT-4o-mini\nEdge-Case Chain-of-Thought"]
+        CS --> CS3["🔬 SHAP\nWhy this severity?"]
+    end
+
+    subgraph ARA ["💡 Actionable Recourse Agent"]
+        AR["Actionable Recourse Agent\nCounterfactual\n🔁 On-Demand"]
+        AR --> AR1["🔬 DiCE / Alibi\nHow to be that?"]
+    end
+
+    subgraph APA ["✅ Appeals Adjudicator"]
+        AP["Appeals Adjudicator\nDeterministic HITL\n⚡ Triggered"]
+        AP --> AP1["⚙️ SQLAlchemy + PostgreSQL\nCase Lifecycle"]
+        AP --> AP2["🔬 SHAP Retriever\nWhy was I scored this way?"]
+    end
+
+    subgraph RAG ["🤖 RAG Assistant"]
+        R["RAG Assistant\nLLM + Retrieval\n🔁 On-Demand"]
+        R --> R1["🧠 GPT-4o-mini\nGrounded Generation"]
+        R --> R2["⚙️ pgvector Retriever\nSemantic Search"]
+        R --> R3["⚙️ Keyword Filter\nExact ID Matching"]
+        R --> R4["⚙️ Source Attribution Logger\nGrounding Trail"]
+    end
+
+    subgraph T3 ["Tier 3 — Stretch Goals"]
+        PM["📈 Predictive Maintenance\n🕐 Batch + ⚡ Triggered"]
+        PM --> PM1["⚙️ XGBoost\nFailure Prediction"]
+        PM --> PM2["🔬 LIME\nWhy this vehicle?"]
+
+        CD["🎲 Concept Drift Agent\n🕐 Batch Daily"]
+        CD --> CD1["🔬 EvidentlyAI\nFairness + Accuracy Drift"]
+
+        AG["🚨 Anomaly Guard\n⏱️ Real-Time"]
+        AG --> AG1["⚙️ Isolation Forest\nOutlier Detection"]
+    end
+
+    subgraph Legend ["Legend"]
+        LA["🔬 XAI / Fairness Tool"]
+        LB["🧠 LLM Tool"]
+        LC["⚙️ Conventional ML / Infra Tool"]
+    end
+
+    style D2 fill:#e8f4f8,color:#000,stroke:#0077b6,stroke-width:2px
+    style D3 fill:#e8f4f8,color:#000,stroke:#0077b6,stroke-width:2px
+    style D4 fill:#e8f4f8,color:#000,stroke:#0077b6,stroke-width:2px
+    style CS3 fill:#e8f4f8,color:#000,stroke:#0077b6,stroke-width:2px
+    style AR1 fill:#e8f4f8,color:#000,stroke:#0077b6,stroke-width:2px
+    style AP2 fill:#e8f4f8,color:#000,stroke:#0077b6,stroke-width:2px
+    style PM2 fill:#e8f4f8,color:#000,stroke:#0077b6,stroke-width:2px
+    style CD1 fill:#e8f4f8,color:#000,stroke:#0077b6,stroke-width:2px
+    style O1 fill:#fff3e0,color:#000,stroke:#f57c00,stroke-width:2px
+    style O2 fill:#fff3e0,color:#000,stroke:#f57c00,stroke-width:2px
+    style CS2 fill:#fff3e0,color:#000,stroke:#f57c00,stroke-width:2px
+    style R1 fill:#fff3e0,color:#000,stroke:#f57c00,stroke-width:2px
+    style LA fill:#e8f4f8,color:#000,stroke:#0077b6,stroke-width:2px
+    style LB fill:#fff3e0,color:#000,stroke:#f57c00,stroke-width:2px
+    style LC fill:#f5f5f5,color:#000,stroke:#888,stroke-width:2px
+```
+
+### 4.3 Master Agent Flow Diagram
 
 ```mermaid
 flowchart TD
@@ -141,34 +273,24 @@ flowchart TD
         direction TB
 
         subgraph T1 ["Tier 1 — Deterministic Autonomy"]
-            A["📥 Ingestion Agent\n⏱️ Real-Time\nDecides: quarantine / drop / adjust batch\n⚙️ kafka-python · Pydantic · Schema Validator"]
-
-            S["🚨 Safety Event Detector\n⏱️ Real-Time · Sliding Window\nDecides: harsh braking / crash / speeding → emit safety_event\n⚙️ Sliding Window Processor · Threshold Rules Engine"]
-
-            B["🔒 Privacy Guard Agent\n⏱️ Real-Time\nDecides: mask / quarantine / emit privacy_incident\n⚙️ Python re · GeoPy · Privacy Audit Logger"]
-
-            C["🎯 Orchestrator\n⏱️ Real-Time + 🔁 On-Demand\nDecides: route · retry · dead-letter · synthesise\n🧠 GPT-4o-mini (intent classification)\n🧠 GPT-4o (cross-agent synthesis)\n⚙️ LangGraph · LangSmith · AuditLogger"]
-
-            D["⚖️ Driver Risk Agent\n🕐 End-of-Trip Batch\nDecides: actionable · defer · appeal · coaching\n⚙️ XGBoost (risk scoring)\n🔬 AIF360 (fairness audit + Reweighing)\n🔬 SHAP (global XAI — Why overall?)\n🔬 LIME (local XAI — Why this driver?)"]
-
-            J["💰 Observability Sentinel\n⏱️ Real-Time\nDecides: degrade · circuit-break · block publish\n⚙️ LangSmith · Prometheus · Circuit Breaker\n⚙️ Token Cost Calculator · AuditLogger"]
+            A["📥 Ingestion Agent\n⏱️ Real-Time\nDecides: quarantine / drop / adjust batch\n⚙️ Kafka · Pydantic · Data Quality Gate"]
+            S["🚨 Safety Event Detector\n⏱️ Real-Time · Sliding Window\nDecides: harsh braking / crash / speeding → emit safety_event\n⚙️ Sliding Window · Threshold Rules Engine"]
+            B["🔒 Privacy Guard Agent\n⏱️ Real-Time\nDecides: mask / quarantine / emit privacy_incident\n⚙️ PII Masker · GPS Jitterer · Privacy Audit Logger"]
+            C["🎯 Orchestrator\n⏱️ Real-Time + 🔁 On-Demand\nDecides: route · retry · dead-letter · synthesise\n🧠 GPT-4o-mini · GPT-4o\n⚙️ LangGraph · LangSmith · AuditLogger"]
+            D["⚖️ Driver Risk Agent\n🕐 End-of-Trip Batch\nDecides: actionable · defer · appeal · coaching\n⚙️ XGBoost\n🔬 AIF360 · SHAP (Why overall?) · LIME (Why this driver?)"]
+            J["💰 Observability Sentinel\n⏱️ Real-Time\nDecides: degrade · circuit-break · block publish\n⚙️ LangSmith · Prometheus · Circuit Breaker · AuditLogger"]
         end
 
         subgraph T2 ["Tier 2 — Hybrid Reasoning & Governance"]
-            F["📋 Compliance & Safety Agent\n⚡ Triggered (driver hours update)\nDecides: violation severity · escalate · dismiss\n⚙️ Rules Engine (HOS checker)\n🧠 GPT-4o-mini (edge-case reasoning)\n🔬 SHAP (risk score — Why this severity?)"]
-
-            G["💡 Actionable Recourse Agent\n🔁 On-Demand\nDecides: minimal change to flip unfair decision\n🔬 DiCE / Alibi (counterfactual — How to be that?)"]
-
-            H["✅ Appeals Adjudicator\n⚡ Triggered (appeal_required_event)\nDecides: open case · surface context · record outcome\n⚙️ SQLAlchemy · PostgreSQL\n🔬 SHAP Retriever (Why was I scored this way?)"]
-
-            K["🤖 RAG Assistant\n🔁 On-Demand\nDecides: retrieve · ground · refuse out-of-scope\n🧠 GPT-4o-mini (grounded generation)\n⚙️ pgvector · LangChain · Keyword Filter"]
+            F["📋 Compliance & Safety Agent\n⚡ Triggered\nDecides: violation severity · escalate · dismiss\n⚙️ Rules Engine\n🧠 GPT-4o-mini\n🔬 SHAP (Why this severity?)"]
+            G["💡 Actionable Recourse Agent\n🔁 On-Demand\nDecides: minimal change to flip unfair decision\n🔬 DiCE / Alibi (How to be that?)"]
+            H["✅ Appeals Adjudicator\n⚡ Triggered\nDecides: open case · surface context · record outcome\n⚙️ SQLAlchemy\n🔬 SHAP Retriever (Why was I scored this way?)"]
+            K["🤖 RAG Assistant\n🔁 On-Demand\nDecides: retrieve · ground · refuse out-of-scope\n🧠 GPT-4o-mini\n⚙️ pgvector · Keyword Filter · Source Logger"]
         end
 
         subgraph T3 ["Tier 3 — Stretch Goals"]
-            E["📈 Predictive Maintenance\n🕐 Batch (weekly) + ⚡ Triggered\n⚙️ XGBoost (failure prediction)\n🔬 LIME (local XAI — Why this vehicle?)"]
-
-            I["🎲 Concept Drift Agent\n🕐 Batch (daily)\n🔬 EvidentlyAI (fairness + accuracy drift)"]
-
+            E["📈 Predictive Maintenance\n🕐 Batch + ⚡ Triggered\n⚙️ XGBoost · 🔬 LIME (Why this vehicle?)"]
+            I["🎲 Concept Drift Agent\n🕐 Batch Daily\n🔬 EvidentlyAI"]
             M["🚨 Anomaly Guard\n⏱️ Real-Time\n⚙️ Isolation Forest"]
         end
     end
@@ -424,7 +546,6 @@ Tools:
 
 - ⚙️ Workflow State Manager (SQLAlchemy + PostgreSQL) — appeal case lifecycle
 - 🔬 SHAP Explanation Retriever — answers: _"Why was I scored this way?"_
-  (surfaces historical SHAP output for disputed trip)
 
 ---
 
@@ -441,53 +562,50 @@ Tools:
 
 - 🧠 GPT-4o-mini — grounded response generation
 - ⚙️ pgvector Semantic Retriever — cosine similarity search over fleet embeddings
-- ⚙️ Keyword Filter — exact vehicle/driver ID matching (prevents wrong-vehicle context)
+- ⚙️ Keyword Filter — exact vehicle/driver ID matching
 - ⚙️ Source Attribution Logger — records which documents grounded each response
 
 ---
 
 ### 5.3 Tier 3 — Stretch Goals (NICE TO HAVE)
 
-| Agent                      | Mode                    | Autonomous Decision                                 | Tools                                     |
-| -------------------------- | ----------------------- | --------------------------------------------------- | ----------------------------------------- |
-| **Predictive Maintenance** | 🕐 Batch + ⚡ Triggered | Failure urgent / schedule / monitor                 | ⚙️ XGBoost, 🔬 LIME (_Why this vehicle?_) |
-| **Concept Drift Agent**    | 🕐 Batch daily          | Fairness/accuracy drift > threshold → retrain alert | 🔬 EvidentlyAI                            |
-| **Anomaly Guard**          | ⏱️ Real-Time            | Outlier score > threshold → quarantine + flag       | ⚙️ Isolation Forest                       |
+| Agent                      | Mode                    | Autonomous Decision                 | Tools                                     |
+| -------------------------- | ----------------------- | ----------------------------------- | ----------------------------------------- |
+| **Predictive Maintenance** | 🕐 Batch + ⚡ Triggered | Failure urgent / schedule / monitor | ⚙️ XGBoost, 🔬 LIME _(Why this vehicle?)_ |
+| **Concept Drift Agent**    | 🕐 Batch daily          | Drift > threshold → retrain alert   | 🔬 EvidentlyAI                            |
+| **Anomaly Guard**          | ⏱️ Real-Time            | Outlier → quarantine + flag         | ⚙️ Isolation Forest                       |
 
 ---
 
 ## 6. Team Roles & Deliverables
 
-| Member        | Primary Agent (Individual Report)       | Secondary Scope                                      | Module Coverage                     |
-| ------------- | --------------------------------------- | ---------------------------------------------------- | ----------------------------------- |
-| **Sree (P1)** | Orchestrator                            | Driver Risk Agent, Actionable Recourse (contingency) | Mod 1 (XRAI), Mod 3 (Agentic)       |
-| **P2**        | Ingestion Agent + Safety Event Detector | Predictive Maintenance (stretch)                     | Mod 4 (MLSecOps, streaming)         |
-| **P3**        | Privacy Guard Agent                     | Compliance & Safety Agent                            | Mod 2 (Security, STRIDE)            |
-| **P4**        | Observability Sentinel                  | RAG Assistant, Appeals Adjudicator                   | Mod 4 (Observability), Mod 1 (HITL) |
+| Member        | Primary Agent (Individual Report)       | Secondary Scope                                        | Module Coverage                     |
+| ------------- | --------------------------------------- | ------------------------------------------------------ | ----------------------------------- |
+| **Sree (P1)** | Orchestrator                            | Driver Risk Agent, Actionable Recourse _(contingency)_ | Mod 1 (XRAI), Mod 3 (Agentic)       |
+| **P2**        | Ingestion Agent + Safety Event Detector | Predictive Maintenance _(stretch)_                     | Mod 4 (MLSecOps, streaming)         |
+| **P3**        | Privacy Guard Agent                     | Compliance & Safety Agent                              | Mod 2 (Security, STRIDE)            |
+| **P4**        | Observability Sentinel                  | RAG Assistant, Appeals Adjudicator                     | Mod 4 (Observability), Mod 1 (HITL) |
 
-> **Note on P4 scope:** Observability Sentinel is P4's individual report anchor.
-> RAG Assistant and Appeals Adjudicator are secondary group report contributions.
+> **P4 note:** Observability Sentinel is the individual report anchor. RAG and
+> Appeals are secondary group report contributions.
 >
-> **Note on P2 scope:** Safety Event Detector is co-owned with Ingestion Agent
-> as they share the same real-time telemetry pipeline. P2 picks one as their
-> individual report anchor.
+> **P2 note:** Safety Event Detector is co-owned with Ingestion Agent — P2
+> picks one as the individual report anchor.
 
 ---
 
 ## 7. Demo Scenario — Cross-Agent Intelligence
 
-The primary demo proves TraceData is a genuine multi-agent system:
+1. **Ingestion Agent** — Vehicle 07 brake wear + engine temp spike received
+2. **Safety Event Detector** — harsh braking burst detected → emits safety_event
+3. **Driver Risk Agent** — Driver 23 flagged: fatigue score 0.78, night shift, 3 harsh braking events
+4. **Orchestrator** — detects Vehicle 07 + Driver 23 correlation → cross-queries Compliance Agent
+5. **Compliance & Safety Agent** — Driver 23 is 2 hours over weekly HOS limit
+6. **Orchestrator** — synthesises unified alert with SHAP traces from each agent → surfaces approval card
+7. **Fleet manager** — selects Approve → outcome recorded via human_decision field in AuditLog
 
-1. **Ingestion Agent** receives telemetry — Vehicle 07 brake wear + engine temp spike
-2. **Safety Event Detector** fires — harsh braking burst detected, emits safety_event
-3. **Driver Risk Agent** flags Driver 23 — fatigue score 0.78, night shift, 3 harsh braking events
-4. **Orchestrator** detects Vehicle 07 + Driver 23 correlation — cross-queries Compliance Agent
-5. **Compliance & Safety Agent** returns — Driver 23 is 2 hours over weekly HOS limit
-6. **Orchestrator** synthesises unified alert with SHAP traces from each agent → surfaces approval card
-7. **Fleet manager** selects Approve — outcome recorded to AuditLog via human_decision field
-
-No single agent produces this. No deterministic pipeline produces this.
-No traditional TMS produces this.
+_No single agent produces this. No deterministic pipeline produces this.
+No traditional TMS produces this._
 
 ---
 
@@ -502,26 +620,25 @@ No traditional TMS produces this.
 
 ## 9. SWE5008 Rubric & IMDA Alignment
 
-| Module / Standard                       | Agent Responsible                                    | XAI / Fairness Tools                                                                             | Other Tools                                                            |
-| --------------------------------------- | ---------------------------------------------------- | ------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------- |
-| **Mod 1: Explainable & Responsible AI** | Driver Risk Agent, Actionable Recourse               | 🔬 AIF360 (bias + Reweighing), 🔬 SHAP (global), 🔬 LIME (local), 🔬 DiCE/Alibi (counterfactual) | ⚙️ XGBoost                                                             |
-| **Mod 2: AI & Cybersecurity**           | Privacy Guard, Compliance & Safety, Sentinel         | 🔬 SHAP (compliance severity XAI)                                                                | ⚙️ PII Masker, GPS Jitterer, STRIDE Model, Promptfoo, Circuit Breaker  |
-| **Mod 3: Architecting Agentic AI**      | Orchestrator, Compliance & Safety, RAG Assistant     | —                                                                                                | 🧠 GPT-4o-mini, GPT-4o, ⚙️ LangGraph, pgvector, LangChain              |
-| **Mod 4: Integrating & Deploying AI**   | Ingestion Agent, Safety Event Detector, Sentinel     | 🔬 EvidentlyAI (drift — stretch)                                                                 | ⚙️ Kafka, LangSmith, AuditLogger, GitHub Actions, Docker, DigitalOcean |
-| **IMDA MAIGF**                          | Appeals Adjudicator, RAG Assistant, All via AuditLog | 🔬 SHAP Retriever (appeals XAI)                                                                  | ⚙️ AuditLogger (human_decision field), Source Attribution Logger       |
+| Module / Standard                       | Agent Responsible                                    | 🔬 XAI / Fairness Tools                                                                      | ⚙️ 🧠 Other Tools                                                   |
+| --------------------------------------- | ---------------------------------------------------- | -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| **Mod 1: Explainable & Responsible AI** | Driver Risk Agent, Actionable Recourse               | AIF360 _(bias + Reweighing)_, SHAP _(global)_, LIME _(local)_, DiCE/Alibi _(counterfactual)_ | XGBoost                                                             |
+| **Mod 2: AI & Cybersecurity**           | Privacy Guard, Compliance & Safety, Sentinel         | SHAP _(compliance severity)_                                                                 | PII Masker, GPS Jitterer, STRIDE Model, Promptfoo, Circuit Breaker  |
+| **Mod 3: Architecting Agentic AI**      | Orchestrator, Compliance & Safety, RAG Assistant     | —                                                                                            | GPT-4o-mini, GPT-4o, LangGraph, pgvector, LangChain                 |
+| **Mod 4: Integrating & Deploying AI**   | Ingestion Agent, Safety Event Detector, Sentinel     | EvidentlyAI _(drift — stretch)_                                                              | Kafka, LangSmith, AuditLogger, GitHub Actions, Docker, DigitalOcean |
+| **IMDA MAIGF**                          | Appeals Adjudicator, RAG Assistant, All via AuditLog | SHAP Retriever _(appeals XAI)_                                                               | AuditLogger _(human_decision)_, Source Attribution Logger           |
 
 ---
 
 ## 10. References
 
-- **[1]** IMDA Model AI Governance Framework (2nd Edition).
-  https://www.pdpc.gov.sg/Help-and-Resources/2020/01/Model-AI-Governance-Framework
-- **[2]** Molnar, C. (2022). Interpretable Machine Learning.
-  https://christophm.github.io/interpretable-ml-book/
-- **[3]** Barocas, S., Hardt, M., Narayanan, A. (2023). Fairness and Machine
-  Learning. https://fairmlbook.org/
+- **[1]** IMDA Model AI Governance Framework (2nd Edition). https://www.pdpc.gov.sg/Help-and-Resources/2020/01/Model-AI-Governance-Framework
+- **[2]** Molnar, C. (2022). Interpretable Machine Learning. https://christophm.github.io/interpretable-ml-book/
+- **[3]** Barocas, S., Hardt, M., Narayanan, A. (2023). Fairness and Machine Learning. https://fairmlbook.org/
 - **[4]** SWE5008: Graduate Certificate in Architecting AI Systems. NUS-ISS.
-- **[5]** OWASP LLM Top 10 2025.
-  https://owasp.org/www-project-top-10-for-large-language-model-applications/
-- **[6]** LangGraph Documentation.
-  https://langchain-ai.github.io/langgraph/
+- **[5]** OWASP LLM Top 10 2025. https://owasp.org/www-project-top-10-for-large-language-model-applications/
+- **[6]** LangGraph Documentation. https://langchain-ai.github.io/langgraph/
+
+```
+
+```
