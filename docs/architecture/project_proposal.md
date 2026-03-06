@@ -2,8 +2,6 @@
 
 Project Proposal | NUS-ISS Graduate Certificate in Architecting AI Systems (SWE5008)
 
----
-
 ## 1. Executive Summary
 
 TraceData is an AI intelligence middleware system designed to attach to existing
@@ -21,8 +19,6 @@ maintains strict MLSecOps observability.
 TraceData is fundamentally designed around the Singapore IMDA Model AI
 Governance Framework (MAIGF) and the SWE5008 rubric, prioritising operational
 credibility, fairness-by-design, and adversarial robustness.
-
----
 
 ## 2. Agent & Tool Taxonomy
 
@@ -65,8 +61,6 @@ credibility, fairness-by-design, and adversarial robustness.
 - 🧠 LLM Tool
 - ⚙️ Conventional ML / Infra Tool
 
----
-
 ## 3. Architecturally Significant Requirements (ASR) Prioritisation
 
 Requirements are prioritised based on four drivers:
@@ -96,8 +90,6 @@ _(🔴 High | 🟠 Medium | 🟡 Low)_
 | **Concept Drift Agent**       | 🕐 Batch (daily)            | 🟡  | 🔴  | 🟠  | 🟠  | Tier 3 NICE | Statistical         | 7.0/10     |
 | **Anomaly Guard**             | ⏱️ Real-Time                | 🟡  | 🟠  | 🟡  | 🟠  | Tier 3 NICE | Deterministic       | 7.0/10     |
 
----
-
 ### 3.2 Agent → Tool Mapping
 
 | Agent                                 | ⚙️ Conventional ML / Infra Tools                                                  | 🔬 XAI / Fairness Tools                                                                                   | 🧠 LLM Tools                                 |
@@ -115,8 +107,6 @@ _(🔴 High | 🟠 Medium | 🟡 Low)_
 | **Predictive Maintenance** _(Tier 3)_ | XGBoost Failure Predictor                                                         | LIME _(Why this vehicle?)_                                                                                | —                                            |
 | **Concept Drift Agent** _(Tier 3)_    | —                                                                                 | EvidentlyAI _(fairness + accuracy drift)_                                                                 | —                                            |
 | **Anomaly Guard** _(Tier 3)_          | Isolation Forest                                                                  | —                                                                                                         | —                                            |
-
----
 
 ## 4. System Architecture & Agent Scope
 
@@ -372,13 +362,9 @@ flowchart TD
     style LL3 fill:#f5f5f5,color:#000,stroke:#888,stroke-width:1px
 ```
 
----
-
 ## 5. Agent Detail Specifications
 
 ### 5.1 Tier 1 — Deterministic Autonomy Backbone (MUST)
-
----
 
 **Orchestrator** | ⏱️ Real-Time + 🔁 On-Demand | Reasoning: LLM + Deterministic
 
@@ -398,8 +384,6 @@ Tools:
 - ⚙️ LangSmith Tracer — distributed tracing of all node executions
 - ⚙️ AuditLogger — structured decision records to PostgreSQL
 
----
-
 **Ingestion Agent** | ⏱️ Real-Time | Reasoning: Deterministic policy rules
 
 Autonomous decisions:
@@ -415,8 +399,6 @@ Tools:
 - ⚙️ Schema Validator (Pydantic) — field type and range enforcement
 - ⚙️ Data Quality Gate — impossible value detection and tagging
 
----
-
 **Safety Event Detector** | ⏱️ Real-Time · Sliding Window | Reasoning: Deterministic
 
 Autonomous decisions:
@@ -430,8 +412,6 @@ Tools:
 
 - ⚙️ Sliding Window Processor — maintains rolling telemetry buffer per vehicle
 - ⚙️ Threshold Rules Engine — configurable per-event detection thresholds
-
----
 
 **Privacy Guard Agent** | ⏱️ Real-Time | Reasoning: Deterministic enforcement
 
@@ -447,8 +427,6 @@ Tools:
 - ⚙️ PII Regex Masker — 5 PII categories (name, vehicle reg, licence, phone, email)
 - ⚙️ GPS Spatial Jitterer — adds calibrated noise to exact coordinates
 - ⚙️ Privacy Audit Logger — immutable PDPA accountability trail
-
----
 
 **Driver Risk Agent** | 🕐 End-of-Trip Batch | Reasoning: Deterministic ML
 
@@ -471,8 +449,6 @@ Tools:
 - 🔬 LIME Local Explainer — answers: _"Why was this specific driver flagged?"_
   (per-driver explanation, rendered in alert card)
 
----
-
 **Observability Sentinel** | ⏱️ Real-Time | Reasoning: Deterministic SLO enforcement
 
 Autonomous decisions:
@@ -490,11 +466,7 @@ Tools:
 - ⚙️ Circuit Breaker — automatic feature degradation under SLO breach
 - ⚙️ AuditLogger — Ethical AI Decision Log (immutable, required for IMDA audit)
 
----
-
 ### 5.2 Tier 2 — Hybrid Reasoning & Governance (GOOD TO HAVE)
-
----
 
 **Actionable Recourse Agent** | 🔁 On-Demand | Reasoning: Counterfactual optimisation
 
@@ -511,8 +483,6 @@ Tools:
 
 Technical Risk: 9.5/10. **Contingency:** if counterfactual optimisation proves
 too complex by Week 2, pivot to deeper SHAP/LIME narrative in Driver Risk Agent.
-
----
 
 **Compliance & Safety Agent** | ⚡ Triggered | Reasoning: Rules + LLM Hybrid
 
@@ -531,8 +501,6 @@ Tools:
 
 Security: Full STRIDE threat model documented as design artefact.
 
----
-
 **Appeals Adjudicator** | ⚡ Triggered (appeal_required_event) | Reasoning: Deterministic HITL
 
 Autonomous decisions:
@@ -546,8 +514,6 @@ Tools:
 
 - ⚙️ Workflow State Manager (SQLAlchemy + PostgreSQL) — appeal case lifecycle
 - 🔬 SHAP Explanation Retriever — answers: _"Why was I scored this way?"_
-
----
 
 **RAG Assistant** | 🔁 On-Demand | Reasoning: LLM grounded in retrieved fleet data
 
@@ -565,8 +531,6 @@ Tools:
 - ⚙️ Keyword Filter — exact vehicle/driver ID matching
 - ⚙️ Source Attribution Logger — records which documents grounded each response
 
----
-
 ### 5.3 Tier 3 — Stretch Goals (NICE TO HAVE)
 
 | Agent                      | Mode                    | Autonomous Decision                 | Tools                                     |
@@ -574,8 +538,6 @@ Tools:
 | **Predictive Maintenance** | 🕐 Batch + ⚡ Triggered | Failure urgent / schedule / monitor | ⚙️ XGBoost, 🔬 LIME _(Why this vehicle?)_ |
 | **Concept Drift Agent**    | 🕐 Batch daily          | Drift > threshold → retrain alert   | 🔬 EvidentlyAI                            |
 | **Anomaly Guard**          | ⏱️ Real-Time            | Outlier → quarantine + flag         | ⚙️ Isolation Forest                       |
-
----
 
 ## 6. Team Roles & Deliverables
 
@@ -592,8 +554,6 @@ Tools:
 > **P2 note:** Safety Event Detector is co-owned with Ingestion Agent — P2
 > picks one as the individual report anchor.
 
----
-
 ## 7. Demo Scenario — Cross-Agent Intelligence
 
 1. **Ingestion Agent** — Vehicle 07 brake wear + engine temp spike received
@@ -607,16 +567,12 @@ Tools:
 _No single agent produces this. No deterministic pipeline produces this.
 No traditional TMS produces this._
 
----
-
 ## 8. Adversarial Testing
 
 - **Promptfoo** red-team testing automated in GitHub Actions CI/CD pipeline
 - 350+ adversarial test cases across 35 security plugin categories
 - Targets: Orchestrator RAG endpoint, Compliance Agent LLM reasoning endpoint
 - OWASP LLM Top 10 2025 full mapping documented in Group Report Section 6
-
----
 
 ## 9. SWE5008 Rubric & IMDA Alignment
 
@@ -627,8 +583,6 @@ No traditional TMS produces this._
 | **Mod 3: Architecting Agentic AI**      | Orchestrator, Compliance & Safety, RAG Assistant     | —                                                                                            | GPT-4o-mini, GPT-4o, LangGraph, pgvector, LangChain                 |
 | **Mod 4: Integrating & Deploying AI**   | Ingestion Agent, Safety Event Detector, Sentinel     | EvidentlyAI _(drift — stretch)_                                                              | Kafka, LangSmith, AuditLogger, GitHub Actions, Docker, DigitalOcean |
 | **IMDA MAIGF**                          | Appeals Adjudicator, RAG Assistant, All via AuditLog | SHAP Retriever _(appeals XAI)_                                                               | AuditLogger _(human_decision)_, Source Attribution Logger           |
-
----
 
 ## 10. References
 
