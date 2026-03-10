@@ -1,0 +1,46 @@
+# ─────────────────────────────────────────────────────────────────────────────
+#  TraceData.ai — Backend Dependencies (Python 3.11)
+#  Install: pip install -r requirements.txt
+#  All versions pinned — agree on team before upgrading any package.
+# ─────────────────────────────────────────────────────────────────────────────
+
+# ── Web Framework ─────────────────────────────────────────────────────────────
+fastapi==0.111.0
+uvicorn[standard]==0.29.0
+
+# ── Database ──────────────────────────────────────────────────────────────────
+sqlalchemy==2.0.30
+alembic==1.13.1
+asyncpg==0.29.0          # async driver — used by FastAPI/SQLAlchemy at runtime
+psycopg2-binary==2.9.9   # sync driver — used by Alembic CLI ONLY
+pgvector==0.2.5          # VECTOR column type for SQLAlchemy
+
+# ── Messaging / Task Queue ────────────────────────────────────────────────────
+confluent-kafka==2.4.0
+celery==5.4.0
+redis==5.0.4             # Celery broker + agent conversation memory
+
+# ── AI / LLM ──────────────────────────────────────────────────────────────────
+langchain==0.2.5
+langgraph==0.1.1
+langchain-openai==0.1.8
+openai==1.30.1
+
+# ── ML / XAI / Fairness ───────────────────────────────────────────────────────
+xgboost==2.0.3
+scikit-learn==1.4.2
+shap==0.45.0
+lime==0.2.0.1
+aif360==0.6.1            # ⚠ requires C++ build tools — test install BEFORE Day 1
+                         #   Windows: install "Microsoft C++ Build Tools" from VS installer
+                         #   Fallback: use Google Colab for AIF360 experimentation
+
+# ── NLP (P4 — Customer Intelligence Agent) ────────────────────────────────────
+transformers==4.41.0     # HuggingFace DistilBERT for sentiment classification
+torch==2.3.0             # Required by transformers inference
+
+# ── Config / Utils ────────────────────────────────────────────────────────────
+pydantic==2.7.1
+pydantic-settings==2.2.1
+python-dotenv==1.0.1
+httpx==0.27.0            # async HTTP client (for inter-service calls)
