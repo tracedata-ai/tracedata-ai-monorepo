@@ -1,0 +1,15 @@
+
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: tracedata-frontend
+    ports:
+      - "3000:3000"
+    restart: always
+    environment:
+      - NODE_ENV=production
+    # If you later add a backend (like ai-service), you'll link it here.
+    # depends_on:
+    #   - ai-service
