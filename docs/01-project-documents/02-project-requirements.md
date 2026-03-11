@@ -13,9 +13,13 @@
 **Specifications:**
 
 - **Payload Format:** JSON (JSONB in PostgreSQL)
-- **Required Fields:** trip_id, vehicle_id, timestamp
+- **Ping Types:**
+  - **Start-of-Trip Ping:** Trip boundary (start), driver confirmation, vehicle readiness.
+  - **4-Minute Batch Ping:** Regular heartbeat with events and safe operation checkpoints.
+  - **End-of-Trip Ping:** Trip boundary (end), full summary, triggers ML scoring.
+  - **Emergency Ping:** Out-of-band critical events, immediate response.
+- **Required Fields:** trip_id, vehicle_id, timestamp, ping_type
 - **Optional Fields (Sparse):** speed, cabin_temp, atmosphere_temp, acceleration, harsh_brake, rpm, fuel_consumption, tire_pressure, steering_angle, throttle_position
-- **Frequency:** 1 ping per minute per vehicle (10,000 trucks × 60 pings/hour)
 - **Protocol:** HTTPS to Kafka or direct MQTT
 - **Data Validation:**
   - Speed: 0-150 km/h
@@ -411,7 +415,7 @@
 
 - No full payloads (only non-null values)
 - Compression via JSONB (PostgreSQL handles)
-- Storage: 7.2 GB/month (for 10,000 trucks at 1 ping/min)
+- Storage estimation to be updated (based on 4-minute batch frequency vs continuous 1/min)
 
 **Data Retention:**
 
