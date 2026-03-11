@@ -90,15 +90,9 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md#scope-table) for complete scope table.
 
 **Quick Reference:**
 
-- `user` - Customer booking app
-- `fleet-ui` - Fleet management UI
-- `admin` - Admin dashboard
-- `auth` - Auth microservice
-- `fleet` - Fleet microservice
-- `booking` - Booking microservice
-- `ui` - Shared UI components
-- `utils` - Shared utilities
-- `common` - Shared Java code
+- `frontend` - React 18 UI application
+- `agents` - FastAPI backend running LangGraph AI agents
+- `docs` - Project documentation
 - `infra` - Infrastructure, CI/CD, Docker
 
 ### Single Scope
@@ -117,13 +111,10 @@ Use comma-separated scopes when change **spans multiple areas equally**:
 
 ```bash
 # Backend API + Frontend integration
-TDATA-42-FEAT(auth,user): Add Google OAuth Login Flow
+TDATA-42-FEAT(agents,frontend): Add Agent Feedback Loop
 
-# Shared component + consumer app
-TDATA-50-REFACTOR(ui,fleet-ui): Update DatePicker Component
-
-# Cross-service change
-TDATA-60-FEAT(fleet,booking): Add Vehicle Availability Check
+# Infrastructure + Backend
+TDATA-50-REFACTOR(infra,agents): Update PostgreSQL Connection
 ```
 
 **Rule:** If unsure, use the **primary** scope (the area with most changes).
@@ -143,18 +134,18 @@ TDATA-60-FEAT(fleet,booking): Add Vehicle Availability Check
 ### Good Examples
 
 ```bash
-TDATA-42-FEAT(user): Add Google OAuth Login Button
-TDATA-08-FIX(auth): Handle Null JWT Claims Gracefully
-TDATA-33-REFACTOR(ui): Extract Button Styles to Tailwind
-TDATA-99-CHORE(infra): Upgrade Node.js to v20
+TDATA-42-FEAT(frontend): Add Google OAuth Login Button
+TDATA-08-FIX(agents): Handle Null Context Gracefully
+TDATA-33-REFACTOR(frontend): Extract Button Styles to Tailwind
+TDATA-99-CHORE(infra): Upgrade Next.js to v15
 ```
 
 ### Bad Examples
 
 ```bash
-TDATA-42-FEAT(user): login          # Too vague
-TDATA-08-FIX(auth): fixed the bug   # Not imperative, lowercase
-TDATA-33-REFACTOR(ui): Updated button component styles and colors  # Too long
+TDATA-42-FEAT(frontend): login          # Too vague
+TDATA-08-FIX(agents): fixed the bug   # Not imperative, lowercase
+TDATA-33-REFACTOR(frontend): Updated button component styles and colors  # Too long
 TDATA-99-CHORE(infra): stuff        # Meaningless
 ```
 
@@ -181,12 +172,12 @@ Use the body to explain **what** and **why**, not **how** (code shows how).
 ### Example
 
 ```bash
-TDATA-42-FEAT(fleet): Add Vehicle Inspection Form
+TDATA-42-FEAT(frontend): Add Vehicle Inspection Form
 
 - Added InspectionForm component with React Hook Form
-- Integrated with fleet-service POST /inspections endpoint
-- Added Zod schema validation (mirrors backend validation)
-- Updated FleetVehicle model to include lastInspectionDate
+- Integrated with FastAPI /api/v1/inspections endpoint
+- Added Zod schema validation
+- Updated Telemetry context to include inspection status
 
 This form is required for regulatory compliance in Singapore.
 Operators must complete inspections every 6 months.
@@ -210,16 +201,15 @@ A change that **requires other code to be updated** to continue working:
 Add `BREAKING CHANGE:` in commit **footer**:
 
 ```bash
-TDATA-50-FEAT(auth): Change JWT Structure
+TDATA-50-FEAT(agents): Change Telemetry Data Shape
 
-Migrate JWT from 'sub' claim to 'userId' claim for consistency
-across all services. This improves clarity and follows our
-internal API standards.
+Migrate Telemetry from unstructured JSON to typed Pydantic
+schema for consistency across all agents.
 
-BREAKING CHANGE: JWT token structure changed. All services
-consuming auth-service tokens must update JWT validation to
-use 'userId' claim instead of 'sub' claim. Migration guide
-available at docs/migrations/jwt-structure-v2.md
+BREAKING CHANGE: Telemetry data shape changed. All services
+consuming telemetry-agent data must update parsing to
+use typed scheme. Migration guide
+available at docs/migrations/telemetry-schema-v2.md
 ```
 
 ### Branch Naming for Breaking Changes (Optional)
@@ -269,19 +259,19 @@ Related to TDATA-50, TDATA-52
 ### Example 1: Simple Feature
 
 ```bash
-TDATA-42-FEAT(user): Add Google Login Button
+TDATA-42-FEAT(frontend): Add Google Login Button
 ```
 
 ### Example 2: Bug Fix with Body
 
 ```bash
-TDATA-08-FIX(auth): Handle Null JWT Claims
+TDATA-08-FIX(agents): Handle Missing Telemetry Data
 
-JWT validation was failing when 'roles' claim was missing,
-causing 500 errors for users with incomplete profiles.
+Agent validation was failing when 'fuel_level' field was missing,
+causing 500 errors for offline vehicles.
 
-Added null check and default to empty array if roles claim
-is missing. This matches behavior of other services.
+Added null check and default to -1 if claim
+is missing. This matches behavior of other modules.
 
 Closes TDATA-08
 ```
@@ -289,7 +279,7 @@ Closes TDATA-08
 ### Example 3: Refactoring with Explanation
 
 ```bash
-TDATA-33-REFACTOR(ui): Extract Button Styles to Tailwind Classes
+TDATA-33-REFACTOR(frontend): Extract Button Styles to Tailwind Classes
 
 Moved inline Tailwind classes to component variants using
 class-variance-authority. This improves:
@@ -303,33 +293,30 @@ No behavior changes. All existing button props still work.
 ### Example 4: Breaking Change
 
 ```bash
-TDATA-50-FEAT(auth): Migrate JWT to UUID-Based Claims
+TDATA-50-FEAT(agents): Change Telemetry Data Shape
 
-Changed JWT structure to use UUID-based 'userId' claim instead
-of email-based 'sub' claim. This provides:
-- Better privacy (email not exposed in tokens)
-- Immutability (userId never changes, email can)
-- Consistency (all services use UUID references)
+Migrate Telemetry from unstructured JSON to typed Pydantic
+schema for consistency across all agents.
 
-BREAKING CHANGE: JWT structure changed. Services must update:
-1. Change jwt.getClaim('sub') to jwt.getClaim('userId')
-2. Update @PreAuthorize expressions if using 'sub'
-3. Clear existing JWT cookies (force re-login)
+BREAKING CHANGE: Telemetry data shape changed. All services
+consuming telemetry-agent data must update parsing to
+use typed scheme.
+1. Change parse_obj() to TelemetrySchema.model_validate()
+2. Update unit tests checking for raw dicts
 
-Migration guide: docs/migrations/jwt-uuid-migration.md
+Migration guide: docs/migrations/telemetry-schema-v2.md
 Closes TDATA-50
 ```
 
 ### Example 5: Multi-Scope Change
 
 ```bash
-TDATA-60-FEAT(fleet,booking): Add Real-Time Availability Check
+TDATA-60-FEAT(agents,frontend): Add Real-Time Anomaly Dashboard
 
-- Added fleet-service endpoint: GET /vehicles/{id}/availability
-- Booking-service now calls fleet before creating booking
-- Prevents double-booking race condition
+- Added agents endpoint: GET /api/v1/anomalies/stream
+- Frontend now connects via WebSocket to display real-time points
 
-Updated API contract documented in docs/api/fleet-booking-integration.md
+Updated API contract documented in docs/api/agent-integration.md
 
 Closes TDATA-60
 ```
@@ -337,16 +324,7 @@ Closes TDATA-60
 ### Example 6: Chore
 
 ```bash
-TDATA-99-CHORE(infra): Upgrade Turborepo to v2.0
-
-Upgraded from Turborepo v1.13 to v2.0 for improved caching.
-
-Changes:
-- Updated turbo.json to v2 config format
-- Migrated pipeline to tasks
-- Enabled remote caching in CI
-
-Build times reduced by ~30% in CI.
+TDATA-99-CHORE(infra): Upgrade FastAPI to v0.110
 ```
 
 ---
@@ -357,10 +335,10 @@ Build times reduced by ~30% in CI.
 
 ```bash
 # Bad
-TDATA-42-FIX(user): Fix issue
+TDATA-42-FIX(frontend): Fix issue
 
 # Good
-TDATA-42-FIX(user): Fix Login Button Not Responding on Mobile
+TDATA-42-FIX(frontend): Fix Login Button Not Responding on Mobile
 ```
 
 ### Mistake 2: Missing Scope
@@ -370,37 +348,37 @@ TDATA-42-FIX(user): Fix Login Button Not Responding on Mobile
 TDATA-42-FEAT: Add login
 
 # Good
-TDATA-42-FEAT(user): Add Google Login Button
+TDATA-42-FEAT(frontend): Add Google Login Button
 ```
 
 ### Mistake 3: Wrong Type
 
 ```bash
 # Bad (Should be FEAT)
-TDATA-42-FIX(ui): Add new button component
+TDATA-42-FIX(frontend): Add new button component
 
 # Good
-TDATA-42-FEAT(ui): Add Primary Button Component
+TDATA-42-FEAT(frontend): Add Primary Button Component
 ```
 
 ### Mistake 4: Past Tense
 
 ```bash
 # Bad
-TDATA-42-FEAT(user): Added login page
+TDATA-42-FEAT(frontend): Added login page
 
 # Good
-TDATA-42-FEAT(user): Add Login Page
+TDATA-42-FEAT(frontend): Add Login Page
 ```
 
 ### Mistake 5: Too Long
 
 ```bash
 # Bad
-TDATA-42-FEAT(user): Add google oauth login button with loading state and error handling
+TDATA-42-FEAT(frontend): Add google oauth login button with loading state and error handling
 
 # Good
-TDATA-42-FEAT(user): Add Google OAuth Login Button
+TDATA-42-FEAT(frontend): Add Google OAuth Login Button
 # Details in commit body if needed
 ```
 
@@ -467,16 +445,10 @@ module.exports = {
       2,
       "always",
       [
-        "user",
-        "fleet-ui",
-        "admin",
-        "ui",
-        "utils",
-        "auth",
-        "fleet",
-        "booking",
-        "common",
+        "frontend",
+        "agents",
         "infra",
+        "docs"
       ],
     ],
     "subject-case": [2, "always", "sentence-case"],
