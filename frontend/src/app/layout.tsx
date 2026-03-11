@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Roboto, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { AuthProvider } from "@/context/AuthContext";
 
 const roboto = Roboto({
   variable: "--font-roboto",
@@ -28,7 +29,9 @@ export default function RootLayout({
       <body
         className={`${roboto.variable} ${geistMono.variable} antialiased font-sans`}
       >
-        {children}
+        <AuthProvider>
+          {children}
+        </AuthProvider>
       </body>
     </html>
   );

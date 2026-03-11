@@ -28,9 +28,9 @@ export function Navbar() {
           ))}
         </div>
         
-        <button className="px-6 py-2 bg-[image:var(--background-image-gradient-brand)] rounded-full font-bold text-sm uppercase text-white tracking-wider hover:opacity-90 transition-opacity flex items-center gap-2">
+        <Link href="/login" className="px-6 py-2 bg-[image:var(--background-image-gradient-brand)] rounded-full font-bold text-sm uppercase text-white tracking-wider hover:opacity-90 transition-opacity flex items-center gap-2">
           {navbar.cta}
-        </button>
+        </Link>
       </div>
     </nav>
   );

@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Rocket, LayoutDashboard, Bot, Truck, AlertTriangle, BarChart3, Settings, Users, Route } from "lucide-react";
+import { Rocket, LayoutDashboard, Bot, Truck, AlertTriangle, BarChart3, Settings, Users, Route, Building2 } from "lucide-react";
 import { dashboardConfig } from "@/config/dashboard";
+import { useAuth } from "@/context/AuthContext";
 
 const getIcon = (iconName: string) => {
   switch (iconName) {
@@ -22,6 +23,13 @@ const getIcon = (iconName: string) => {
 export function Sidebar() {
   const { navigation } = dashboardConfig;
   const pathname = usePathname();
+  const { role, tenantId, logout } = useAuth();
+
+  // Filter links based on current user role
+  const filteredLinks = navigation.links.filter(link => {
+    if (!role) return false;
+    return link.roles ? link.roles.includes(role) : true;
+  });
 
   return (
     <aside className="w-64 flex-shrink-0 border-r border-border bg-background flex flex-col" data-purpose="dashboard-sidebar">
@@ -36,7 +44,7 @@ export function Sidebar() {
       </div>
       
       <nav className="flex-1 overflow-y-auto p-4 space-y-1">
-        {navigation.links.map((link, i) => {
+        {filteredLinks.map((link, i) => {
           const isActive = pathname === link.href || (pathname.startsWith(link.href) && link.href !== '/dashboard');
           
           return (
@@ -63,16 +71,17 @@ export function Sidebar() {
       </nav>
       
       <div className="p-4 border-t border-border mt-auto">
-        <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted cursor-pointer transition-colors">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img 
-            src={navigation.user.avatarUrl} 
-            alt="User profile" 
-            className="w-8 h-8 rounded-full border border-border" 
-          />
+        <div 
+          className="flex items-center gap-3 p-2 rounded-lg hover:bg-red-500/10 hover:text-red-500 cursor-pointer transition-colors group"
+          onClick={logout}
+          title="Click to logout"
+        >
+          <div className="w-8 h-8 rounded-full bg-brand-blue/10 text-brand-blue flex items-center justify-center border border-brand-blue/20 group-hover:bg-red-500/20 group-hover:text-red-500 group-hover:border-red-500/30 transition-colors">
+            <Building2 className="w-4 h-4" />
+          </div>
           <div className="flex flex-col">
-            <span className="text-xs font-semibold text-foreground">{navigation.user.name}</span>
-            <span className="text-[10px] text-muted-foreground">{navigation.user.role}</span>
+            <span className="text-xs font-semibold text-foreground uppercase tracking-wider">{tenantId?.replace('_', ' ') || "Guest"}</span>
+            <span className="text-[10px] text-muted-foreground">{role || "Unauthenticated"}</span>
           </div>
         </div>
       </div>

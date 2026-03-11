@@ -94,15 +94,15 @@ export const dashboardConfig = {
     title: "TraceData",
     subtitle: "Command Center",
     links: [
-      { label: "Dashboard", href: "/dashboard", icon: "LayoutDashboard" },
-      { label: "Agents", href: "/dashboard/agents", icon: "Bot" },
-      { label: "Drivers", href: "/dashboard/drivers", icon: "Users" },
-      { label: "Routes", href: "/dashboard/routes", icon: "Map" },
-      { label: "Trips", href: "/dashboard/trips", icon: "Route" },
-      { label: "Fleet", href: "/dashboard/fleet", icon: "Truck" },
-      { label: "Issues", href: "/dashboard/issues", icon: "AlertTriangle", badge: 4 },
-      { label: "Reports", href: "/dashboard/reports", icon: "BarChart3" },
-      { label: "Settings", href: "/dashboard/settings", icon: "Settings" }
+      { label: "Dashboard", href: "/dashboard", icon: "LayoutDashboard", roles: ["Manager"] },
+      { label: "Agents", href: "/dashboard/agents", icon: "Bot", roles: ["Manager"] },
+      { label: "Drivers", href: "/dashboard/drivers", icon: "Users", roles: ["Manager"] },
+      { label: "Routes", href: "/dashboard/routes", icon: "Map", roles: ["Manager", "Driver"] },
+      { label: "Trips", href: "/dashboard/trips", icon: "Route", roles: ["Manager", "Driver"] },
+      { label: "Fleet", href: "/dashboard/fleet", icon: "Truck", roles: ["Manager"] },
+      { label: "Issues", href: "/dashboard/issues", icon: "AlertTriangle", badge: 4, roles: ["Manager", "Driver"] },
+      { label: "Reports", href: "/dashboard/reports", icon: "BarChart3", roles: ["Manager"] },
+      { label: "Settings", href: "/dashboard/settings", icon: "Settings", roles: ["Manager", "Driver"] }
     ],
     user: {
       name: "Fleet Adm.",
