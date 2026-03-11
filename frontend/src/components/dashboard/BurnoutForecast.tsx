@@ -6,12 +6,12 @@ export function BurnoutForecast() {
 
   useEffect(() => {
     // Generate seeded random pattern that looks like a realistic heatmap
-    const mockGrid = Array.from({ length: 4 }, (_, row) => 
-      Array.from({ length: 12 }, (_, col) => {
+    const mockGrid = Array.from({ length: 7 }, (_, row) => 
+      Array.from({ length: 14 }, (_, col) => {
         // Create clustering of "high risk" around certain times/sectors
         const baseRisk = Math.random() * 4;
-        const timeRisk = col > 5 && col < 9 ? 3 : 0; // Peak risk around middle hours
-        const sectorRisk = row === 1 ? 2 : 0; // Sector 1 is higher risk
+        const timeRisk = col > 6 && col < 11 ? 3 : 0; // Peak risk around middle hours
+        const sectorRisk = row === 3 || row === 4 ? 2 : 0; // Sectors 3-4 are higher risk
         
         let risk = baseRisk + timeRisk + sectorRisk;
         // Cap at 9 (for our color scales 0-9)
@@ -45,14 +45,14 @@ export function BurnoutForecast() {
         </select>
       </div>
 
-      <div className="flex flex-col gap-1 h-32">
+      <div className="flex flex-col gap-[3px] flex-1 min-h-[140px] w-full mt-2">
         {grid.map((row, rowIndex) => (
-          <div key={rowIndex} className="flex gap-1 h-full">
+          <div key={rowIndex} className="flex gap-[3px] flex-1">
             {row.map((risk, colIndex) => (
               <div 
                 key={`${rowIndex}-${colIndex}`} 
-                className={`flex-1 rounded-sm transition-colors hover:outline hover:outline-2 hover:outline-foreground/20 cursor-crosshair ${getHeatmapColor(risk)}`}
-                title={`Sector ${rowIndex + 1}, Hour +${colIndex * 2} | Risk: ${risk}/9`}
+                className={`flex-1 rounded-[2px] transition-colors hover:ring-1 hover:ring-foreground/50 cursor-crosshair ${getHeatmapColor(risk)}`}
+                title={`Sector ${rowIndex + 1}, Block ${colIndex + 1} | Risk: ${risk}/9`}
               ></div>
             ))}
           </div>

@@ -25,10 +25,10 @@ export default function DashboardOverview() {
       
       {/* 3rd Row: Predictive & Human Intervention */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 pb-12">
-        <div className="lg:col-span-8 h-full">
+        <div className="lg:col-span-4 h-full">
           <BurnoutForecast />
         </div>
-        <div className="lg:col-span-4 h-full">
+        <div className="lg:col-span-8 h-full">
           <AdvocacyAppeals />
         </div>
       </div>
