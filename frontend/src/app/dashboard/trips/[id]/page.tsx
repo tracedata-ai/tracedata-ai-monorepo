@@ -14,8 +14,75 @@ import {
   Car,
   Scale,
   BrainCircuit,
-  ShieldAlert
+  ShieldAlert,
+  Activity,
+  Zap,
+  CheckCircle2,
+  TrendingDown,
+  TrendingUp
 } from "lucide-react";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  ReferenceLine,
+  Scatter,
+  ScatterChart,
+  ComposedChart,
+  ZAxis
+} from "recharts";
+
+const CustomTelemetryTooltip = ({ active, payload }: any) => {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    return (
+      <div className="bg-white/90 border border-slate-200 p-4 rounded-xl shadow-xl backdrop-blur-md">
+        <p className="text-[10px] text-slate-400 uppercase font-bold tracking-widest mb-2 font-mono">{data.timestamp}</p>
+        <div className="space-y-1.5">
+           <div className="flex justify-between items-center gap-6">
+              <span className="text-[10px] font-bold text-slate-500 uppercase">Speed</span>
+              <span className="text-sm font-black text-brand-blue font-mono">{data.speed} km/h</span>
+           </div>
+           <div className="flex justify-between items-center gap-6">
+              <span className="text-[10px] font-bold text-slate-500 uppercase">Dynamics</span>
+              <div className="flex items-center gap-1.5">
+                 {data.dynamics > 0 ? <TrendingUp className="w-3 h-3 text-emerald-500" /> : data.dynamics < 0 ? <TrendingDown className="w-3 h-3 text-rose-500" /> : null}
+                 <span className={`text-sm font-black font-mono ${data.dynamics > 0 ? 'text-emerald-500' : data.dynamics < 0 ? 'text-rose-500' : 'text-slate-400'}`}>
+                    {data.dynamics.toFixed(0)}%
+                 </span>
+              </div>
+           </div>
+        </div>
+        {data.rewardType && (
+          <div className="mt-3 pt-3 border-t border-slate-100 flex items-center gap-2 text-brand-teal">
+             <div className="p-1 bg-brand-teal/10 rounded-full">
+                <Zap className="w-3 h-3 fill-brand-teal" />
+             </div>
+             <span className="text-[10px] font-black uppercase tracking-tighter">Reward: {data.rewardType}</span>
+          </div>
+        )}
+      </div>
+    );
+  }
+  return null;
+};
+
+const RewardPoint = (props: any) => {
+  const { cx, cy, payload } = props;
+  if (payload.rewardType) {
+    return (
+      <svg x={cx - 10} y={cy - 10} width={20} height={20} viewBox="0 0 24 24" className="filter drop-shadow-sm">
+        <circle cx="12" cy="12" r="8" fill="#14b8a6" fillOpacity="0.2" />
+        <circle cx="12" cy="12" r="4" fill="#14b8a6" />
+      </svg>
+    );
+  }
+  return null;
+};
 
 export default function TripDetailsPage({
   params,
@@ -31,6 +98,12 @@ export default function TripDetailsPage({
     notFound();
   }
 
+  // Pre-calculate dynamics line data: Accel - Brake
+  const telemetryData = trip.telemetrySegments?.map(seg => ({
+    ...seg,
+    dynamics: seg.throttlePos - (seg.brakePressure * 1.5) // Weighted brake for clarity
+  }));
+
   const formatMinsToHours = (mins: number) => {
     const hours = Math.floor(mins / 60);
     const remainingMins = mins % 60;
@@ -41,235 +114,299 @@ export default function TripDetailsPage({
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "In Progress": return "bg-brand-blue/10 text-brand-blue border border-brand-blue/20";
-      case "Completed": return "bg-brand-teal/10 text-brand-teal border border-brand-teal/20";
-      case "Scheduled": return "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700";
-      case "Cancelled": return "bg-red-50 text-red-600 border border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800";
+      case "In Progress": return "bg-brand-blue/5 text-brand-blue border border-brand-blue/10";
+      case "Completed": return "bg-emerald-50 text-emerald-600 border border-emerald-100";
+      case "Scheduled": return "bg-slate-50 text-slate-500 border border-slate-200";
+      case "Cancelled": return "bg-rose-50 text-rose-600 border border-rose-100";
       default: return "";
     }
   };
 
   return (
-    <div className="flex-1 flex flex-col min-w-0 bg-background h-full overflow-hidden">
-      {/* Breadcrumb Header */}
-      <header className="bg-white dark:bg-slate-900 border-b border-border px-8 py-5 flex-shrink-0">
-        <nav className="flex items-center text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-          <Link href="/dashboard/trips" className="hover:text-brand-blue hover:bg-brand-blue/5 px-2 py-1 rounded transition-colors flex items-center gap-1.5 -ml-2">
-            <ArrowLeft className="w-4 h-4" />
-            Trip Manifest
+    <div className="flex-1 flex flex-col min-w-0 bg-white h-full overflow-hidden text-slate-900">
+      {/* Breadcrumb Header - Clean Light */}
+      <header className="bg-white border-b border-slate-100 px-8 py-5 flex-shrink-0">
+        <nav className="flex items-center text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+          <Link href="/dashboard/trips" className="hover:text-brand-blue transition-colors flex items-center gap-1.5 -ml-2 px-2 py-1 rounded-full hover:bg-slate-50">
+            <ArrowLeft className="w-3.5 h-3.5" />
+            Manifest
           </Link>
-          <ChevronRight className="w-4 h-4 mx-3" />
-          <span className="text-foreground">{trip.id}</span>
+          <ChevronRight className="w-3.5 h-3.5 mx-3 opacity-30" />
+          <span className="text-slate-900">{trip.id}</span>
         </nav>
       </header>
 
       {/* Main Content */}
-      <div className="flex-1 overflow-auto p-4 sm:p-8 bg-slate-50/50 dark:bg-slate-900/50">
+      <div className="flex-1 overflow-auto p-4 sm:p-8 bg-slate-50/30">
         <div className="max-w-6xl mx-auto space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 border-b border-border pb-6">
-            <div className="flex items-center gap-5">
-              <div className="w-16 h-16 rounded-xl bg-brand-blue/10 flex items-center justify-center text-brand-blue shadow-sm border border-brand-blue/20">
-                <Route className="w-8 h-8" />
+          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 pb-8">
+            <div className="flex items-center gap-6">
+              <div className="w-14 h-14 rounded-2xl bg-brand-blue/5 flex items-center justify-center text-brand-blue border border-brand-blue/10">
+                <Route className="w-6 h-6" />
               </div>
               <div>
-                <h1 className="text-3xl font-black text-foreground tracking-tight font-mono">{trip.id}</h1>
-                <p className="text-muted-foreground font-medium mt-1">
-                  Started: {new Date(trip.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                <h1 className="text-4xl font-black text-slate-900 tracking-tighter font-mono">{trip.id}</h1>
+                <p className="text-slate-500 font-bold text-xs uppercase tracking-widest mt-1">
+                  Ingested: {new Date(trip.startTime).toLocaleDateString()} at {new Date(trip.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                 </p>
               </div>
             </div>
             
-            <div className={`px-4 py-2 flex items-center gap-2 rounded-lg text-sm font-bold uppercase border shadow-sm ${getStatusColor(trip.status)}`}>
+            <div className={`px-4 py-2 flex items-center gap-2 rounded-full text-[10px] font-black uppercase tracking-widest shadow-sm ${getStatusColor(trip.status)}`}>
               {trip.status === "In Progress" && <div className="w-2 h-2 rounded-full bg-brand-blue animate-pulse"></div>}
               {trip.status}
             </div>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mt-8">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
              <div className="md:col-span-3 space-y-6">
-                <div className="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-xl border border-border shadow-sm">
-                   <h3 className="text-sm font-bold text-foreground mb-6 uppercase tracking-widest flex items-center gap-2">
-                     <Car className="w-4 h-4 text-brand-blue" />
-                     Assignment Details
-                   </h3>
-                   
-                   <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-                      <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-border">
-                         <p className="text-[10px] text-slate-500 uppercase font-bold tracking-widest mb-1">Driver</p>
-                         <Link href={`/dashboard/drivers/${trip.driverId}`} className="text-lg font-bold text-brand-blue hover:underline">
-                           {trip.driverId}
-                         </Link>
-                      </div>
-                      
-                      <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-border">
-                         <p className="text-[10px] text-slate-500 uppercase font-bold tracking-widest mb-1">Vehicle</p>
-                         <p className="text-lg font-bold text-foreground font-mono">{trip.vehicleId}</p>
-                      </div>
-
-                      <div className="col-span-2 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-border">
-                         <p className="text-[10px] text-slate-500 uppercase font-bold tracking-widest mb-1">Route Template</p>
-                         <Link href={`/dashboard/routes/${trip.routeId}`} className="text-lg font-bold text-brand-teal hover:underline flex items-center gap-2">
-                           <MapPin className="w-4 h-4" /> {trip.routeId}
-                         </Link>
-                      </div>
+                <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.02)] relative overflow-hidden">
+                   <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
+                      <Activity className="w-24 h-24 text-slate-200" />
                    </div>
+                   
+                   <div className="flex justify-between items-center mb-10 relative z-10">
+                     <div>
+                        <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                          Telemetric Dynamics
+                        </h3>
+                        <p className="text-sm font-bold text-slate-600 mt-1">Overlay: Speed vs. Pedal Pressure</p>
+                     </div>
+                     <div className="flex gap-6">
+                        <div className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-tighter">
+                           <div className="w-3 h-1 rounded-full bg-brand-blue"></div> Speed (km/h)
+                        </div>
+                        <div className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-tighter">
+                           <div className="w-3 h-1 rounded-full bg-rose-400"></div> Dynamics (±%)
+                        </div>
+                        <div className="flex items-center gap-2 text-[10px] font-black text-slate-300 uppercase tracking-tighter">
+                           <div className="w-3 h-[1px] border-t border-dashed border-slate-400"></div> Speed Limit
+                        </div>
+                     </div>
+                   </div>
+
+                   {telemetryData ? (
+                     <div className="h-[350px] w-full relative">
+                       <ResponsiveContainer width="100%" height="100%">
+                         <ComposedChart data={telemetryData} margin={{ top: 20, right: 10, left: -20, bottom: 0 }}>
+                           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(203, 213, 225, 0.3)" />
+                           <XAxis 
+                              dataKey="timestamp" 
+                              axisLine={false} 
+                              tickLine={false} 
+                              tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 800 }} 
+                              dy={15}
+                           />
+                           <YAxis 
+                              domain={[0, 100]} 
+                              axisLine={false} 
+                              tickLine={false} 
+                              tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 800 }}
+                           />
+                           <Tooltip content={<CustomTelemetryTooltip />} cursor={{ stroke: '#f1f5f9', strokeWidth: 2 }} />
+                           
+                           {/* National Speed Limit Reference */}
+                           {trip.nationalSpeedLimit && (
+                             <ReferenceLine 
+                                y={trip.nationalSpeedLimit} 
+                                stroke="#94a3b8" 
+                                strokeDasharray="5 5"
+                                strokeWidth={1}
+                                label={{ value: `Limit: ${trip.nationalSpeedLimit}`, position: 'right', fill: '#94a3b8', fontSize: 9, fontWeight: 800, dy: -10 }} 
+                             />
+                           )}
+
+                           {/* Dynamics Line - Accel - Brake */}
+                           <Line 
+                              type="monotone" 
+                              dataKey="dynamics" 
+                              stroke="#fb7185" 
+                              strokeWidth={1.5} 
+                              strokeOpacity={0.4}
+                              dot={false}
+                              activeDot={false}
+                           />
+
+                           {/* Primary Speed Line */}
+                           <Line 
+                              type="monotone" 
+                              dataKey="speed" 
+                              stroke="#3b82f6" 
+                              strokeWidth={4} 
+                              dot={false}
+                              activeDot={{ r: 6, fill: '#3b82f6', stroke: '#fff', strokeWidth: 3 }}
+                              animationDuration={1500}
+                           />
+
+                           {/* Reward Attention Points */}
+                           <Scatter 
+                              dataKey="speed" 
+                              shape={<RewardPoint />}
+                              animationDuration={2000}
+                           />
+                         </ComposedChart>
+                       </ResponsiveContainer>
+                     </div>
+                   ) : (
+                     <div className="h-[350px] flex items-center justify-center border-2 border-dashed border-slate-100 rounded-3xl">
+                        <p className="text-sm text-slate-400 font-bold uppercase tracking-widest italic">Awaiting high-res telemetry packet...</p>
+                     </div>
+                   )}
                 </div>
 
-                <div className="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-xl border border-border shadow-sm">
-                   <h3 className="text-sm font-bold text-foreground mb-6 uppercase tracking-widest flex items-center gap-2">
-                     <Clock className="w-4 h-4 text-brand-blue" />
-                     Time & Distance Telemetry
-                   </h3>
-                   
-                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                      <div>
-                        <div className="flex justify-between items-center mb-4">
-                           <div>
-                              <p className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Actual Time</p>
-                              <p className="text-3xl font-black text-foreground mt-1">
-                                 {trip.actualDurationMins ? formatMinsToHours(trip.actualDurationMins) : '--'}
-                              </p>
-                           </div>
-                           <div className="text-right">
-                              <p className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Hist. Avg Baseline</p>
-                              <p className="text-xl font-bold text-foreground mt-1 text-slate-400">
-                                 {formatMinsToHours(trip.historicalAvgMins)}
-                              </p>
-                           </div>
-                        </div>
-                        {trip.actualDurationMins && (
-                           <div className={`text-sm font-bold p-3 text-center rounded-lg border ${
-                              trip.actualDurationMins > trip.historicalAvgMins ? 'bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800' :
-                              trip.actualDurationMins < trip.historicalAvgMins ? 'bg-brand-teal/10 text-brand-teal border-brand-teal/20' :
-                              'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-400'
-                           }`}>
-                              {trip.actualDurationMins > trip.historicalAvgMins 
-                                 ? `+${Math.round(((trip.actualDurationMins - trip.historicalAvgMins) / trip.historicalAvgMins) * 100)}% slower than average`
-                                 : trip.actualDurationMins < trip.historicalAvgMins 
-                                 ? `${Math.round(((trip.historicalAvgMins - trip.actualDurationMins) / trip.historicalAvgMins) * 100)}% faster than average`
-                                 : 'Right on schedule'}
-                           </div>
-                        )}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                   <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
+                      <h3 className="text-[10px] font-black text-slate-400 mb-6 uppercase tracking-widest flex items-center gap-2">
+                        <Car className="w-4 h-4 text-brand-blue" />
+                        Asset Links
+                      </h3>
+                      <div className="space-y-4">
+                         <Link href={`/dashboard/drivers/${trip.driverId}`} className="group flex items-center justify-between p-4 bg-slate-50 rounded-2xl hover:bg-brand-blue/5 transition-colors">
+                            <span className="text-[10px] font-black text-slate-400 uppercase">Driver</span>
+                            <span className="font-bold text-slate-900 group-hover:text-brand-blue">{trip.driverId}</span>
+                         </Link>
+                         <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl">
+                            <span className="text-[10px] font-black text-slate-400 uppercase">Vehicle</span>
+                            <span className="font-bold text-slate-900 font-mono">{trip.vehicleId}</span>
+                         </div>
                       </div>
+                   </div>
 
-                      <div className="bg-slate-50 dark:bg-slate-800/50 p-6 rounded-xl border border-border flex flex-col justify-center">
-                         <div className="flex justify-between items-end mb-3">
-                           <div>
-                              <p className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Distance Covered</p>
-                              <p className="text-2xl font-bold text-foreground font-mono mt-1">{trip.currentDistanceKm?.toFixed(1) || 0} <span className="text-sm text-muted-foreground">km</span></p>
-                           </div>
-                           <div className="text-right">
-                              <p className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Total Route</p>
-                              <p className="text-xl font-bold text-muted-foreground font-mono mt-1">{trip.distanceKm.toFixed(1)} <span className="text-sm">km</span></p>
-                           </div>
-                         </div>
-                         <div className="w-full h-3 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
-                           <div 
-                              className={`h-full rounded-full transition-all ${trip.status === 'Completed' ? 'bg-brand-teal' : 'bg-brand-blue'}`} 
-                              style={{ width: `${Math.min(100, ((trip.currentDistanceKm || 0) / trip.distanceKm) * 100)}%` }}
-                           />
-                         </div>
+                   <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
+                      <h3 className="text-[10px] font-black text-slate-400 mb-6 uppercase tracking-widest flex items-center gap-2">
+                        <Clock className="w-4 h-4 text-brand-blue" />
+                        Temporal Metrics
+                      </h3>
+                      <div className="flex justify-between items-end h-[88px] pb-2">
+                        <div>
+                           <p className="text-[10px] text-slate-500 uppercase font-black tracking-widest mb-1">Duration</p>
+                           <p className="text-3xl font-black text-slate-900 leading-none">
+                              {trip.actualDurationMins ? formatMinsToHours(trip.actualDurationMins) : '--'}
+                           </p>
+                        </div>
+                        <div className="text-right">
+                           <p className="text-[10px] text-slate-400 uppercase font-black tracking-widest mb-1">Baseline</p>
+                           <p className="text-lg font-bold text-slate-400 leading-none">
+                              {formatMinsToHours(trip.historicalAvgMins)}
+                           </p>
+                        </div>
                       </div>
                    </div>
                 </div>
              </div>
 
              <div className="md:col-span-1 space-y-6">
-                <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-border shadow-sm flex flex-col h-full bg-gradient-to-b from-brand-teal/5 to-white dark:from-brand-teal/10 dark:to-slate-900">
-                   <h3 className="text-sm font-bold text-foreground mb-6 uppercase tracking-widest flex items-center gap-2">
-                      <ShieldCheck className="w-4 h-4 text-brand-teal" /> Safety & Performance
-                   </h3>
+                <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm flex flex-col items-center">
+                   <div className="w-full flex justify-between items-center mb-8">
+                      <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                         <ShieldCheck className="w-4 h-4 text-emerald-500" /> Validation
+                      </h3>
+                   </div>
                    
                    {trip.status === "Completed" && trip.score !== undefined ? (
-                      <div className="flex flex-col items-center justify-center flex-1 py-10 text-center">
-                         <p className="text-[10px] text-slate-500 uppercase font-bold tracking-widest mb-6 border-b border-brand-teal/30 pb-1">Final Trip Score</p>
-                         <div className={`w-40 h-40 rounded-full flex items-center justify-center border-8 shadow-inner ring-4 ring-brand-teal/10 ${
-                            trip.score >= 90 ? 'border-brand-teal text-brand-teal bg-brand-teal/5' : 
-                            trip.score >= 70 ? 'border-amber-500 text-amber-500 bg-amber-500/5' : 
-                            'border-red-500 text-red-500 bg-red-500/5'
-                         }`}>
-                           <span className="text-6xl font-black">{trip.score}</span>
+                      <div className="flex flex-col items-center justify-center flex-1 py-4 text-center">
+                         <div className="relative mb-10">
+                            <svg className="w-32 h-32 transform -rotate-90">
+                               <circle cx="64" cy="64" r="58" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-slate-50" />
+                               <circle cx="64" cy="64" r="58" stroke="currentColor" strokeWidth="8" fill="transparent" strokeDasharray={364.4} strokeDashoffset={364.4 - (364.4 * trip.score) / 100} className="text-emerald-500 transition-all duration-1000 ease-out" />
+                            </svg>
+                            <div className="absolute inset-0 flex items-center justify-center">
+                               <span className="text-4xl font-black text-slate-900 font-mono">{trip.score}</span>
+                            </div>
                          </div>
-                         <p className="text-[10px] text-muted-foreground mt-10 leading-relaxed px-6 font-medium italic text-balance">
-                           Score is computed by AI agents analyzing telemetry, route adherence, and context.
+                         <div className="bg-emerald-50 text-emerald-600 px-4 py-2 rounded-full flex items-center gap-2 mb-4">
+                            <Zap className="w-3.5 h-3.5 fill-emerald-600" />
+                            <span className="text-[10px] font-black uppercase tracking-wider">Reward Earned</span>
+                         </div>
+                         <p className="text-[10px] text-slate-500 font-bold leading-relaxed px-4">
+                           Behavior Agent verified optimal pedal modulation.
                          </p>
                       </div>
                    ) : (
-                      <div className="flex flex-col items-center justify-center flex-1 py-8 text-center opacity-60">
-                         <div className="w-24 h-24 rounded-full border-4 border-dashed border-slate-300 dark:border-slate-700 flex items-center justify-center mb-4">
+                      <div className="flex flex-col items-center justify-center flex-1 py-12 text-center grayscale opacity-30">
+                         <div className="w-20 h-20 rounded-full border-2 border-dashed border-slate-400 flex items-center justify-center mb-4">
                            <ShieldCheck className="w-8 h-8 text-slate-400" />
                          </div>
-                         <p className="text-sm font-bold text-muted-foreground">Score pending</p>
-                         <p className="text-xs text-muted-foreground mt-2">Available upon trip completion.</p>
+                         <p className="text-[10px] font-black uppercase text-slate-500">Awaiting Signal</p>
                       </div>
                    )}
+                </div>
+
+                <div className="bg-brand-blue/[0.02] p-8 rounded-3xl border border-brand-blue/5 flex flex-col gap-4">
+                   <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                      <MapPin className="w-4 h-4 text-brand-blue" /> Route Status
+                   </h3>
+                   <div className="space-y-4">
+                      <div className="flex justify-between text-[10px] font-black uppercase">
+                         <span className="text-slate-400">Progress</span>
+                         <span className="text-slate-900">{Math.round(((trip.currentDistanceKm || 0) / trip.distanceKm) * 100)}%</span>
+                      </div>
+                      <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                         <div className="h-full bg-brand-blue rounded-full" style={{ width: `${((trip.currentDistanceKm || 0) / trip.distanceKm) * 100}%` }}></div>
+                      </div>
+                      <p className="text-[10px] font-bold text-slate-400 text-center uppercase tracking-tighter">
+                         {trip.currentDistanceKm?.toFixed(1)} / {trip.distanceKm.toFixed(1)} km
+                      </p>
+                   </div>
                 </div>
              </div>
 
              {trip.explanation && (
-                <div className="md:col-span-4 glass-card p-6 sm:p-10 rounded-2xl relative overflow-hidden group">
-                  <div className="absolute top-0 right-0 p-10 opacity-[0.03] rotate-12 group-hover:scale-110 transition-transform duration-700">
-                    <Scale className="w-64 h-64" />
-                  </div>
-
-                  <div className="flex flex-col lg:flex-row gap-12 relative z-10">
-                    <div className="lg:w-1/3 space-y-8">
+                <div className="md:col-span-4 bg-white p-8 sm:p-12 rounded-[2.5rem] border border-slate-100 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.05)]">
+                  <div className="flex flex-col lg:flex-row gap-16">
+                    <div className="lg:w-1/3 space-y-10">
                        <div>
-                         <h3 className="text-sm font-bold text-foreground mb-6 uppercase tracking-widest flex items-center gap-2">
-                           <div className="p-1.5 bg-brand-blue/10 rounded-lg text-brand-blue">
+                         <h3 className="text-[10px] font-black text-slate-400 mb-8 uppercase tracking-[0.2em] flex items-center gap-3">
+                           <div className="p-2 bg-slate-50 rounded-xl text-slate-900 border border-slate-100">
                              <BrainCircuit className="w-4 h-4" />
                            </div>
-                           Decision Forensic (XAI)
+                           Decision Forensic
                          </h3>
-                         <div className="bg-brand-blue/5 border border-brand-blue/10 p-6 rounded-xl">
-                            <p className="text-[10px] text-brand-blue uppercase font-bold tracking-widest mb-3">AI Decision Reasoning</p>
-                            <p className="text-lg font-bold text-foreground leading-snug text-balance italic">
+                         <div className="bg-slate-50 border border-slate-100 p-8 rounded-3xl">
+                            <p className="text-[10px] text-slate-400 uppercase font-black tracking-widest mb-4">AI Narrative</p>
+                            <p className="text-xl font-bold text-slate-900 leading-tight italic">
                               "{trip.explanation.humanSummary}"
                             </p>
                          </div>
                        </div>
 
-                       <div className="bg-slate-900 text-white p-6 rounded-xl space-y-4 shadow-xl">
-                         <div className="flex items-center gap-2 text-brand-teal">
-                           <ShieldAlert className="w-5 h-5 animate-pulse" />
-                           <p className="text-xs font-bold uppercase tracking-widest">AIF360 Fairness Loop</p>
+                       <div className="bg-slate-900 text-white p-8 rounded-3xl space-y-6">
+                         <div className="flex items-center gap-3 text-emerald-400">
+                           <ShieldAlert className="w-5 h-5" />
+                           <p className="text-[10px] font-black uppercase tracking-[0.2em]">Fairness Audit</p>
                          </div>
                          <div className="flex justify-between items-end">
-                            <p className="text-xs text-slate-400">Statistical Parity Difference</p>
-                            <p className="text-2xl font-mono font-black text-brand-teal">{trip.explanation.fairnessAuditScore.toFixed(3)}</p>
+                            <p className="text-[10px] text-slate-500 uppercase font-black">Statistical Parity</p>
+                            <p className="text-3xl font-mono font-black text-emerald-400 leading-none">{trip.explanation.fairnessAuditScore.toFixed(3)}</p>
                          </div>
-                         <div className="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
-                            <div className="bg-brand-teal h-full" style={{ width: '4%' }}></div>
+                         <div className="w-full bg-slate-800 rounded-full h-1 overflow-hidden">
+                            <div className="bg-emerald-400 h-full" style={{ width: '4%' }}></div>
                          </div>
-                         <p className="text-[10px] text-slate-500 font-medium italic leading-relaxed">Bias detected within acceptable IMDA governance thresholds (&lt;0.05).</p>
                        </div>
                     </div>
 
-                    <div className="lg:w-2/3 space-y-6">
-                       <p className="text-xs text-muted-foreground uppercase font-bold tracking-widest border-b border-border pb-4">
-                         Telemetry Attribute Weights (SHAP Analysis)
+                    <div className="lg:w-2/3 space-y-10">
+                       <p className="text-[10px] text-slate-400 uppercase font-black tracking-[0.2em] border-b border-slate-50 pb-6">
+                         SHAP Influence Vector
                        </p>
-                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-12 gap-y-10">
+                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-16 gap-y-12">
                           {Object.entries(trip.explanation.featureImportance).map(([feature, value], idx) => (
-                            <div key={feature} className="space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-500" style={{ animationDelay: `${idx * 150}ms` }}>
+                            <div key={feature} className="space-y-4">
                                <div className="flex justify-between items-center">
-                                 <span className="text-[10px] font-bold text-foreground uppercase tracking-wider bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-md border border-border/50">
+                                 <span className="text-[10px] font-black text-slate-900 uppercase tracking-widest">
                                    {feature.replace('_', ' ')}
                                  </span>
-                                 <span className={`text-[10px] font-black font-mono ${value >= 0 ? 'text-brand-teal' : 'text-rose-500'}`}>
-                                   {value >= 0 ? 'POSITIVE' : 'PENALTY'}
+                                 <span className={`text-[10px] font-black font-mono ${value >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                                   {value >= 0 ? '+' : ''}{ (value * 100).toFixed(1) }%
                                  </span>
                                </div>
                                <div className="flex items-center gap-4">
-                                  <div className="flex-1 h-3 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden flex shadow-inner">
+                                  <div className="flex-1 h-1 bg-slate-50 rounded-full overflow-hidden flex">
                                     <div 
-                                      className={`h-full rounded-full transition-all duration-1000 delay-300 shadow-sm ${value >= 0 ? 'bg-gradient-to-r from-brand-teal to-brand-blue' : 'bg-gradient-to-r from-rose-500 to-orange-400'}`}
+                                      className={`h-full rounded-full transition-all duration-1000 ${value >= 0 ? 'bg-emerald-500' : 'bg-rose-500'}`}
                                       style={{ width: `${Math.abs(value) * 100}%`, marginLeft: value >= 0 ? '0' : 'auto' }}
                                     ></div>
                                   </div>
-                                  <p className="text-xs font-bold font-mono text-foreground w-12 text-right">
-                                    { (value * 100).toFixed(1) }%
-                                  </p>
                                </div>
                             </div>
                           ))}
