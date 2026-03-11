@@ -4,50 +4,58 @@ export function ResultsSection() {
   const { stats } = landingConfig;
   
   return (
-    <section className="section-padding bg-brand-surface dark:bg-brand-deep-navy text-foreground dark:text-white relative overflow-hidden" id="results">
+    <section className="section-padding bg-brand-surface dark:bg-[#0b1222] text-foreground dark:text-white relative overflow-hidden" id="results">
       {/* Grid Overlay */}
-      <div className="absolute inset-0 grid-overlay opacity-5 dark:opacity-20 pointer-events-none"></div>
+      <div className="absolute inset-0 grid-overlay opacity-5 dark:opacity-10 pointer-events-none"></div>
       
       <div className="container mx-auto px-6 relative z-10">
-        <div className="text-center mb-20">
-          <h2 className="text-4xl md:text-6xl font-black tracking-tighter mb-4 text-balance">
+        <div className="max-w-4xl mb-24">
+          <h2 className="text-5xl md:text-8xl font-black tracking-[-0.04em] mb-6 text-balance leading-[0.9]">
             {stats.title}
           </h2>
-          <p className="text-muted-foreground dark:text-gray-400 font-medium text-lg">Measurable impact across the global logistics chain.</p>
+          <p className="text-xl md:text-2xl text-muted-foreground dark:text-white/40 font-medium tracking-tight">
+            Measurable impact across the global logistics chain.
+          </p>
         </div>
         
-        <div className="grid md:grid-cols-3 gap-12">
+        <div className="grid md:grid-cols-3 gap-16 lg:gap-24">
           {stats.items.map((stat, i) => (
-            <div key={i} className="text-center relative group">
-              <div className="absolute inset-0 bg-brand-teal/5 dark:bg-brand-teal/10 blur-3xl opacity-0 group-hover:opacity-100 transition-opacity rounded-full"></div>
+            <div key={i} className="relative group">
               <div className="relative">
-                <div className={`text-6xl md:text-8xl font-black mb-4 font-mono text-brand-teal`}>
+                <div className="text-8xl lg:text-[10rem] font-black mb-4 font-mono text-foreground dark:text-white tracking-tighter leading-none group-hover:text-brand-teal transition-colors duration-500">
                   {stat.value}
                 </div>
-                <div className="text-muted-foreground dark:text-gray-300 font-bold uppercase tracking-widest text-sm">
+                <div className="text-[10px] text-muted-foreground dark:text-white/30 font-black uppercase tracking-[0.3em]">
                   {stat.label}
                 </div>
+              </div>
+              
+              {/* Animated Progress Bar */}
+              <div className="mt-8 h-1 w-full bg-black/5 dark:bg-white/5 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-gradient-to-r from-brand-teal to-brand-blue transition-all duration-1000 w-[60%] group-hover:w-full"
+                ></div>
               </div>
             </div>
           ))}
         </div>
         
-        <div className="mt-24 pt-16 border-t border-black/5 dark:border-white/10 flex flex-col md:flex-row items-center justify-between gap-8">
-          <div className="flex items-center gap-4">
-             <div className="flex -space-x-3">
+        <div className="mt-32 pt-20 border-t border-black/[0.03] dark:border-white/[0.03] flex flex-col lg:flex-row items-center justify-between gap-12">
+          <div className="flex items-center gap-8">
+             <div className="flex -space-x-5">
                 {[1,2,3,4,5].map(i => (
-                  <div key={i} className="w-12 h-12 rounded-full border-4 border-brand-surface dark:border-brand-deep-navy bg-muted dark:bg-brand-slate flex items-center justify-center text-sm font-bold shadow-sm">
+                  <div key={i} className="w-16 h-16 rounded-full border-[4px] border-brand-surface dark:border-[#0b1222] bg-muted dark:bg-[#1e293b] flex items-center justify-center text-xs font-black text-brand-teal shadow-2xl transition-transform hover:-translate-y-2 hover:z-20">
                     {String.fromCharCode(64 + i)}
                   </div>
                 ))}
               </div>
-              <div>
-                <p className="font-bold text-foreground dark:text-white">Join the Network</p>
-                <p className="text-xs text-muted-foreground dark:text-gray-500">Over 12,000 operators connected daily.</p>
+              <div className="max-w-[200px]">
+                <p className="text-lg font-black text-foreground dark:text-white tracking-tight leading-tight">Join the Network</p>
+                <p className="text-xs text-muted-foreground dark:text-white/30 font-bold mt-1">Over 12,000 operators connected daily.</p>
               </div>
           </div>
-          <button className="px-8 py-4 glass-card hover:bg-black/5 dark:hover:bg-white/10 transition-all font-bold rounded-xl border border-black/10 dark:border-white/20 shadow-sm">
-            Read Success Stories
+          <button className="h-20 px-12 glass-card hover:bg-black/5 dark:hover:bg-white/5 transition-all font-black rounded-3xl border border-black/5 dark:border-white/10 text-xs uppercase tracking-[0.2em] shadow-premium group">
+            <span className="group-hover:tracking-[0.3em] transition-all">Read Success Stories</span>
           </button>
         </div>
       </div>

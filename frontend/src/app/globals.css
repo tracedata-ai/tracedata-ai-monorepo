@@ -9,8 +9,8 @@
   --color-foreground: var(--foreground);
   --font-sans:
     "SF Pro Display", "SF Pro Text", -apple-system, BlinkMacSystemFont,
-    var(--font-roboto), sans-serif;
-  --font-mono: var(--font-geist-mono);
+    "Inter", var(--font-roboto), sans-serif;
+  --font-mono: "SF Mono", var(--font-geist-mono), monospace;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -55,12 +55,16 @@
 
   /* Brand Gradients & Surfaces */
   --background-image-gradient-brand: linear-gradient(
-    135deg,
+    165deg,
     #3b82f6 0%,
     #14b8a6 100%
   );
   --background-image-glass: var(--glass-bg);
   --color-brand-surface: var(--brand-surface);
+  
+  /* High-Fidelity Shadows */
+  --shadow-premium: 0 20px 50px -12px rgba(0, 0, 0, 0.25);
+  --shadow-inner-glow: inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
 
   /* Animations */
   --animate-marquee: marquee 30s linear infinite;
@@ -157,8 +161,12 @@
 
 @utility glass-card {
   background: var(--background-image-glass);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 
+    var(--shadow-premium),
+    var(--shadow-inner-glow);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
 }
 
 @utility text-balance {

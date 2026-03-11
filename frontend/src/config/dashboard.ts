@@ -42,6 +42,12 @@ export interface AppealContest {
   status: "Pending Review" | "Resolved";
 }
 
+export interface TripHistoryEntry {
+  tripId: string;
+  score: number;
+  date: string; // ISO
+}
+
 export interface DriverProfile {
   id: string;
   name: string;
@@ -52,6 +58,7 @@ export interface DriverProfile {
   licenseStatus: "Valid" | "Expiring Soon" | "Expired";
   recentIncidents: number;
   explanation?: XaiExplanation; // Aggregated SHAP/LIME for driver behavior over time
+  tripHistory: TripHistoryEntry[]; // Historical performance data
 }
 
 export interface RouteRecord {
@@ -217,7 +224,15 @@ export const dashboardConfig = {
           "Signal Compliance": 0.05 
         }, 
         fairnessAuditScore: 0.12 
-      } 
+      },
+      tripHistory: [
+        { tripId: "TRP-10020", score: 88, date: "2026-03-01T08:00:00Z" },
+        { tripId: "TRP-10025", score: 92, date: "2026-03-03T10:00:00Z" },
+        { tripId: "TRP-10030", score: 90, date: "2026-03-05T09:00:00Z" },
+        { tripId: "TRP-10035", score: 85, date: "2026-03-07T14:30:00Z" },
+        { tripId: "TRP-10040", score: 94, date: "2026-03-09T11:00:00Z" },
+        { tripId: "TRP-10042", score: 92, date: "2026-03-11T08:30:00Z" },
+      ]
     },
     { 
       id: "TR-4512", 
@@ -243,7 +258,14 @@ export const dashboardConfig = {
           "Fatigue Indicators": 0.02 
         }, 
         fairnessAuditScore: 0.08 
-      } 
+      },
+      tripHistory: [
+        { tripId: "TRP-09010", score: 95, date: "2026-02-15T07:00:00Z" },
+        { tripId: "TRP-09015", score: 97, date: "2026-02-20T12:00:00Z" },
+        { tripId: "TRP-09020", score: 94, date: "2026-02-25T08:00:00Z" },
+        { tripId: "TRP-09025", score: 96, date: "2026-03-02T16:00:00Z" },
+        { tripId: "TRP-10043", score: 98, date: "2026-03-11T10:15:00Z" },
+      ]
     },
     { 
       id: "TR-0114", 
@@ -269,7 +291,14 @@ export const dashboardConfig = {
           "Eco-Driving Score": 0.07 
         }, 
         fairnessAuditScore: 0.15 
-      } 
+      },
+      tripHistory: [
+        { tripId: "TRP-12001", score: 92, date: "2026-03-01T22:00:00Z" },
+        { tripId: "TRP-12005", score: 85, date: "2026-03-03T23:30:00Z" },
+        { tripId: "TRP-12010", score: 82, date: "2026-03-05T01:00:00Z" },
+        { tripId: "TRP-12015", score: 88, date: "2026-03-07T21:00:00Z" },
+        { tripId: "TRP-12020", score: 90, date: "2026-03-10T19:00:00Z" },
+      ]
     },
     { 
       id: "TR-9922", 
@@ -295,7 +324,11 @@ export const dashboardConfig = {
           "Fatigue Indicators": 0.05 
         }, 
         fairnessAuditScore: 0.05 
-      } 
+      },
+      tripHistory: [
+        { tripId: "TRP-10041", score: 98, date: "2026-03-10T09:00:00Z" },
+        { tripId: "TRP-10044", score: 94, date: "2026-03-11T05:00:00Z" },
+      ]
     },
     { 
       id: "TR-3310", 
@@ -321,7 +354,14 @@ export const dashboardConfig = {
           "Fatigue Indicators": 0.07 
         }, 
         fairnessAuditScore: 0.18 
-      } 
+      },
+      tripHistory: [
+        { tripId: "TRP-10010", score: 85, date: "2026-03-01T12:00:00Z" },
+        { tripId: "TRP-10015", score: 82, date: "2026-03-03T13:00:00Z" },
+        { tripId: "TRP-10020", score: 88, date: "2026-03-05T14:00:00Z" },
+        { tripId: "TRP-10025", score: 84, date: "2026-03-07T15:00:00Z" },
+        { tripId: "TRP-10030", score: 86, date: "2026-03-09T16:00:00Z" },
+      ]
     },
   ] as DriverProfile[],
 

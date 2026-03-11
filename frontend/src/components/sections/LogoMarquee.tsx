@@ -9,9 +9,9 @@ export function LogoMarquee() {
   const logos = [...trustedBy, ...trustedBy];
 
   return (
-    <section className="py-24 lg:py-32 bg-background border-y border-border/50 overflow-hidden relative">
-      <div className="container mx-auto px-6 mb-12 text-center">
-        <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.4em] opacity-80">
+    <section className="py-32 lg:py-48 bg-background border-y border-black/[0.03] dark:border-white/[0.03] overflow-hidden relative">
+      <div className="container mx-auto px-6 mb-20 text-center">
+        <p className="text-[10px] font-black text-muted-foreground/40 dark:text-white/20 uppercase tracking-[0.5em]">
           Empowering Leading Global Fleets
         </p>
       </div>

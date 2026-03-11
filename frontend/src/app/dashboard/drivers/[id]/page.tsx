@@ -3,7 +3,7 @@
 import { use } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { dashboardConfig } from "@/config/dashboard";
+import { dashboardConfig, TripHistoryEntry } from "@/config/dashboard";
 import {
   ChevronRight,
   ArrowLeft,
@@ -13,8 +13,36 @@ import {
   Activity,
   FileCheck2,
   AlertTriangle,
-  BrainCircuit
+  BrainCircuit,
+  TrendingUp,
+  History
 } from "lucide-react";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  AreaChart,
+  Area
+} from "recharts";
+
+const CustomTooltip = ({ active, payload, label }: any) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl shadow-2xl backdrop-blur-xl">
+        <p className="text-[10px] text-slate-400 uppercase font-black tracking-widest mb-1">{label}</p>
+        <p className="text-xl font-black text-brand-teal font-mono">
+          Score: {payload[0].value}
+        </p>
+        <p className="text-[10px] text-slate-500 font-bold mt-2 uppercase">Trip ID: {payload[0].payload.tripId}</p>
+      </div>
+    );
+  }
+  return null;
+};
 
 export default function DriverDetailsPage({
   params,
@@ -29,6 +57,14 @@ export default function DriverDetailsPage({
   if (!driver) {
     notFound();
   }
+
+  // Format data for Recharts
+  const chartData = driver.tripHistory.map((entry: TripHistoryEntry) => ({
+    date: new Date(entry.date).toLocaleDateString([], { month: 'short', day: 'numeric' }),
+    score: entry.score,
+    tripId: entry.tripId,
+    fullDate: entry.date
+  }));
 
   return (
     <div className="flex-1 flex flex-col min-w-0 bg-background h-full overflow-hidden">
@@ -74,9 +110,60 @@ export default function DriverDetailsPage({
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8">
              <div className="col-span-1 lg:col-span-2 space-y-6">
                 <div className="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-xl border border-border shadow-sm">
+                   <div className="flex justify-between items-center mb-8">
+                     <h3 className="text-sm font-bold text-foreground uppercase tracking-widest flex items-center gap-2">
+                       <TrendingUp className="w-4 h-4 text-brand-blue" />
+                       Performance Trajectory
+                     </h3>
+                     <div className="flex gap-2">
+                        <span className="flex items-center gap-1.5 text-[10px] font-bold text-muted-foreground uppercase">
+                          <div className="w-2 h-2 rounded-full bg-brand-teal"></div> Trip Scores
+                        </span>
+                     </div>
+                   </div>
+
+                   <div className="h-[300px] w-full">
+                     <ResponsiveContainer width="100%" height="100%">
+                       <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                         <defs>
+                           <linearGradient id="colorScore" x1="0" y1="0" x2="0" y2="1">
+                             <stop offset="5%" stopColor="#14b8a6" stopOpacity={0.3}/>
+                             <stop offset="95%" stopColor="#14b8a6" stopOpacity={0}/>
+                           </linearGradient>
+                         </defs>
+                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(203, 213, 225, 0.2)" />
+                         <XAxis 
+                            dataKey="date" 
+                            axisLine={false} 
+                            tickLine={false} 
+                            tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 700 }} 
+                            dy={10}
+                         />
+                         <YAxis 
+                            domain={[0, 100]} 
+                            axisLine={false} 
+                            tickLine={false} 
+                            tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 700 }}
+                         />
+                         <Tooltip content={<CustomTooltip />} />
+                         <Area 
+                            type="monotone" 
+                            dataKey="score" 
+                            stroke="#14b8a6" 
+                            strokeWidth={3}
+                            fillOpacity={1} 
+                            fill="url(#colorScore)" 
+                            animationDuration={1500}
+                         />
+                       </AreaChart>
+                     </ResponsiveContainer>
+                   </div>
+                </div>
+
+                <div className="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-xl border border-border shadow-sm">
                    <h3 className="text-sm font-bold text-foreground mb-6 uppercase tracking-widest flex items-center gap-2">
                      <Activity className="w-4 h-4 text-brand-blue" />
-                     Performance Analytics
+                     Aggregate Performance metrics
                    </h3>
                    
                    <div className="grid grid-cols-2 gap-6">
@@ -149,7 +236,7 @@ export default function DriverDetailsPage({
                         <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">Feature Contribution Profile</p>
                         <div className="space-y-4">
                           {Object.entries(driver.explanation.featureImportance).map(([feature, value], idx) => (
-                            <div key={feature} className="space-y-2 animate-in fade-in slide-in-from-left duration-500" style={{ animationDelay: `${idx * 100}ms` }}>
+                            <div key={feature} className="space-y-2 animate-in fade-in slide-in-from-left duration-500" style={{ animationDelay: `${idx * 80}ms` }}>
                               <div className="flex justify-between items-end">
                                 <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wide font-mono px-2 py-0.5 bg-slate-100 dark:bg-slate-800 rounded">
                                   {feature.replace('_', ' ')}
@@ -158,7 +245,7 @@ export default function DriverDetailsPage({
                                   {value >= 0 ? 'SIGNIFICANT' : 'OPTIMIZABLE'} ({ (value * 100).toFixed(1)}%)
                                 </span>
                               </div>
-                              <div className="h-3 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden flex shadow-inner">
+                              <div className="h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden flex shadow-inner">
                                 <div 
                                   className={`h-full rounded-full transition-all duration-1000 ease-out shadow-sm ${value >= 0 ? 'bg-gradient-to-r from-brand-teal to-brand-blue' : 'bg-gradient-to-r from-rose-500 to-orange-400'}`}
                                   style={{ width: `${Math.abs(value) * 100}%`, marginLeft: value >= 0 ? '0' : 'auto' }}
@@ -179,6 +266,35 @@ export default function DriverDetailsPage({
              </div>
 
              <div className="col-span-1 space-y-6">
+                <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-border shadow-sm">
+                   <h3 className="text-sm font-bold text-foreground mb-6 uppercase tracking-widest flex items-center gap-2">
+                     <History className="w-4 h-4 text-brand-blue" />
+                     Recent Journey Log
+                   </h3>
+                   <div className="space-y-4">
+                      {driver.tripHistory.slice(-5).reverse().map((trip) => (
+                        <div key={trip.tripId} className="flex justify-between items-center p-3 rounded-lg border border-border bg-slate-50/50 dark:bg-slate-800/30">
+                           <div className="space-y-1">
+                              <p className="text-xs font-bold text-foreground font-mono">{trip.tripId}</p>
+                              <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-tighter">
+                                {new Date(trip.date).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
+                              </p>
+                           </div>
+                           <div className={`px-2 py-1 rounded text-xs font-black font-mono ${
+                              trip.score >= 90 ? 'text-brand-teal bg-brand-teal/10' :
+                              trip.score >= 80 ? 'text-brand-blue bg-brand-blue/10' :
+                              'text-rose-500 bg-rose-500/10'
+                           }`}>
+                              {trip.score}
+                           </div>
+                        </div>
+                      ))}
+                   </div>
+                   <button className="w-full mt-4 py-2 text-[10px] font-bold text-muted-foreground uppercase tracking-widest border border-dashed border-border rounded hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                      View All 14 Trips
+                   </button>
+                </div>
+
                 <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-border shadow-sm">
                    <h3 className="text-sm font-bold text-foreground mb-6 uppercase tracking-widest flex items-center gap-2">
                      <ShieldAlert className="w-4 h-4 text-amber-500" />
