@@ -1,6 +1,9 @@
 import Link from "next/link";
+import { landingConfig } from "@/config/landing";
 
 export function Navbar() {
+  const { navbar } = landingConfig;
+  
   return (
     <nav
       className="fixed top-0 w-full z-50 bg-background/80 backdrop-blur-md border-b border-border"
@@ -13,27 +16,20 @@ export function Navbar() {
             <div className="w-4 h-4 bg-background rounded-sm"></div>
           </div>
           <span className="text-2xl font-bold tracking-tight text-foreground">
-            Trace<span className="text-brand-blue">Data</span>
+            {navbar.logo.prefix}<span className="text-brand-blue">{navbar.logo.highlight}</span>
           </span>
         </div>
         
         <div className="hidden md:flex items-center gap-8 text-sm font-semibold uppercase tracking-widest text-muted-foreground">
-          <Link href="#" className="hover:text-brand-teal transition-colors">
-            Ecosystem
-          </Link>
-          <Link href="#" className="hover:text-brand-teal transition-colors">
-            Mission Control
-          </Link>
-          <Link href="#" className="hover:text-brand-teal transition-colors">
-            Human-XAI
-          </Link>
-          <Link href="#" className="hover:text-brand-teal transition-colors">
-            Solutions
-          </Link>
+          {navbar.links.map((link, i) => (
+            <Link key={i} href={link.href} className="hover:text-brand-teal transition-colors">
+              {link.label}
+            </Link>
+          ))}
         </div>
         
         <button className="px-6 py-2 bg-[image:var(--background-image-gradient-brand)] rounded-full font-bold text-sm uppercase text-white tracking-wider hover:opacity-90 transition-opacity flex items-center gap-2">
-          Get Started
+          {navbar.cta}
         </button>
       </div>
     </nav>
