@@ -45,6 +45,17 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+
+  /* Brand Colors */
+  --color-brand-deep-navy: #0c1428;
+  --color-brand-magenta: #d62d85;
+  --color-brand-blue: #2575fc;
+  --color-brand-light-gray: #e5e7eb;
+  --color-brand-slate: #1e293b;
+
+  /* Brand Gradients */
+  --background-image-gradient-brand: linear-gradient(135deg, #d62d85 0%, #2575fc 100%);
+  --background-image-mission-control: radial-gradient(circle at center, #1e293b 0%, #0c1428 100%);
 }
 
 :root {
@@ -126,4 +137,23 @@
   html {
     @apply font-sans;
   }
+}
+
+@utility fragmented-header {
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+  font-weight: 800;
+}
+
+@utility glow-border {
+  box-shadow: 0 0 15px rgba(214, 45, 133, 0.3);
+}
+
+@utility motif-fragment {
+  clip-path: polygon(20% 0%, 100% 0%, 100% 80%, 80% 100%, 0% 100%, 0% 20%);
+}
+
+@utility grid-overlay {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 30px 30px;
 }
