@@ -46,19 +46,37 @@ export interface DriverProfile {
   id: string;
   name: string;
   status: "Active" | "On Break" | "Off Duty";
-  shiftHours: number;
-  rating: number;
+  tripsCompleted: number;
+  rating: number; // 1-5 consumer rating
+  avgTripScore: number; // 0-100 internal score
+}
+
+export interface RouteRecord {
+  id: string; // e.g. RT-001
+  name: string;
+  origin: string;
+  destination: string;
+  historicalAvgMins: number;
+  standardDistanceKm: number;
+  totalTripsCompleted: number;
+}
+
+export interface VehicleProfile {
+  id: string; // e.g. V-991
+  plateNumber: string; // e.g. SGB-1234
+  model: string;
+  status: "Active" | "Maintenance" | "Out Of Service";
+  operatingHours: number;
 }
 
 export interface TripRecord {
   id: string;
   vehicleId: string;
   driverId: string;
+  routeId: string; // Link to RouteRecord
   status: "In Progress" | "Completed" | "Scheduled" | "Cancelled";
-  origin: string;
-  destination: string;
   startTime: string; // ISO
-  estimatedDurationMins: number; // Initially estimated minutes
+  historicalAvgMins: number; // Snapshot from route
   actualDurationMins?: number; // Actual/current minutes spent
   distanceKm: number;
   currentDistanceKm?: number; // Added for in-progress tracking
@@ -76,6 +94,7 @@ export const dashboardConfig = {
       { label: "Dashboard", href: "/dashboard", icon: "LayoutDashboard" },
       { label: "Agents", href: "/dashboard/agents", icon: "Bot" },
       { label: "Drivers", href: "/dashboard/drivers", icon: "Users" },
+      { label: "Routes", href: "/dashboard/routes", icon: "Map" },
       { label: "Trips", href: "/dashboard/trips", icon: "Route" },
       { label: "Fleet", href: "/dashboard/fleet", icon: "Truck" },
       { label: "Issues", href: "/dashboard/issues", icon: "AlertTriangle", badge: 4 },
@@ -129,17 +148,31 @@ export const dashboardConfig = {
   ] as AppealContest[],
 
   drivers: [
-    { id: "TR-8291", name: "Marcus Wright", status: "Active", shiftHours: 4.5, rating: 4.8 },
-    { id: "TR-4512", name: "Elena Petrov", status: "On Break", shiftHours: 6.2, rating: 4.9 },
-    { id: "TR-0114", name: "Jordan Smith", status: "Off Duty", shiftHours: 0, rating: 4.5 },
-    { id: "TR-9922", name: "Sarah Connor", status: "Active", shiftHours: 2.1, rating: 5.0 },
-    { id: "TR-3310", name: "John Doe", status: "Active", shiftHours: 7.8, rating: 4.7 },
+    { id: "TR-8291", name: "Marcus Wright", status: "Active", tripsCompleted: 14, rating: 4.8, avgTripScore: 92 },
+    { id: "TR-4512", name: "Elena Petrov", status: "On Break", tripsCompleted: 22, rating: 4.9, avgTripScore: 96 },
+    { id: "TR-0114", name: "Jordan Smith", status: "Off Duty", tripsCompleted: 0, rating: 4.5, avgTripScore: 88 },
+    { id: "TR-9922", name: "Sarah Connor", status: "Active", tripsCompleted: 8, rating: 5.0, avgTripScore: 98 },
+    { id: "TR-3310", name: "John Doe", status: "Active", tripsCompleted: 26, rating: 4.7, avgTripScore: 85 },
   ] as DriverProfile[],
 
+  routes: [
+    { id: "RT-001", name: "North Hub Supply Run", origin: "Hub-7A North", destination: "Sector 4 Depot", historicalAvgMins: 270, standardDistanceKm: 142.5, totalTripsCompleted: 1042 },
+    { id: "RT-002", name: "Airport Express Loop", origin: "Downtown Core", destination: "Airport Terminal 3", historicalAvgMins: 90, standardDistanceKm: 34.0, totalTripsCompleted: 8550 },
+    { id: "RT-003", name: "East Coast Logistics", origin: "Westside Logistics", destination: "East Coast Park Hub", historicalAvgMins: 195, standardDistanceKm: 68.2, totalTripsCompleted: 430 },
+    { id: "RT-004", name: "Jurong Island Delivery", origin: "Sector 2 Base", destination: "Jurong Island", historicalAvgMins: 150, standardDistanceKm: 45.8, totalTripsCompleted: 210 },
+  ] as RouteRecord[],
+
   trips: [
-    { id: "TRP-10042", vehicleId: "V-991", driverId: "TR-8291", status: "In Progress", origin: "Hub-7A North", destination: "Sector 4 Depot", startTime: "2026-03-11T08:30:00Z", estimatedDurationMins: 270, actualDurationMins: 185, distanceKm: 142.5, currentDistanceKm: 84.0 },
-    { id: "TRP-10043", vehicleId: "V-228", driverId: "TR-4512", status: "In Progress", origin: "Downtown Core", destination: "Airport Terminal 3", startTime: "2026-03-11T10:15:00Z", estimatedDurationMins: 90, actualDurationMins: 98, distanceKm: 34.0, currentDistanceKm: 12.5 },
-    { id: "TRP-10044", vehicleId: "V-045", driverId: "TR-9922", status: "Completed", origin: "Westside Logistics", destination: "East Coast Park Hub", startTime: "2026-03-11T05:00:00Z", estimatedDurationMins: 195, actualDurationMins: 180, distanceKm: 68.2, currentDistanceKm: 68.2, score: 94 },
-    { id: "TRP-10045", vehicleId: "V-712", driverId: "TR-3310", status: "Scheduled", origin: "Sector 2 Base", destination: "Jurong Island", startTime: "2026-03-11T14:00:00Z", estimatedDurationMins: 150, distanceKm: 45.8, currentDistanceKm: 0 },
-  ] as TripRecord[]
+    { id: "TRP-10042", vehicleId: "V-991", driverId: "TR-8291", routeId: "RT-001", status: "In Progress", startTime: "2026-03-11T08:30:00Z", historicalAvgMins: 270, actualDurationMins: 185, distanceKm: 142.5, currentDistanceKm: 84.0 },
+    { id: "TRP-10043", vehicleId: "V-228", driverId: "TR-4512", routeId: "RT-002", status: "In Progress", startTime: "2026-03-11T10:15:00Z", historicalAvgMins: 90, actualDurationMins: 98, distanceKm: 34.0, currentDistanceKm: 12.5 },
+    { id: "TRP-10044", vehicleId: "V-045", driverId: "TR-9922", routeId: "RT-003", status: "Completed", startTime: "2026-03-11T05:00:00Z", historicalAvgMins: 195, actualDurationMins: 180, distanceKm: 68.2, currentDistanceKm: 68.2, score: 94 },
+    { id: "TRP-10045", vehicleId: "V-712", driverId: "TR-3310", routeId: "RT-004", status: "Scheduled", startTime: "2026-03-11T14:00:00Z", historicalAvgMins: 150, distanceKm: 45.8, currentDistanceKm: 0 },
+  ] as TripRecord[],
+
+  vehicles: [
+    { id: "V-991", plateNumber: "SGB-1234M", model: "EV-Transit Pro", status: "Active", operatingHours: 1250 },
+    { id: "V-228", plateNumber: "SGB-5678X", model: "EV-Transit Pro", status: "Active", operatingHours: 840 },
+    { id: "V-045", plateNumber: "SGC-9012K", model: "Heavy Hauler 500", status: "Maintenance", operatingHours: 3420 },
+    { id: "V-712", plateNumber: "SGB-3456P", model: "EV-Transit Pro", status: "Active", operatingHours: 150 },
+  ] as VehicleProfile[]
 };

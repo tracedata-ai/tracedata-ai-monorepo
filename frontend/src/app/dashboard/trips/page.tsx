@@ -73,7 +73,7 @@ export default function TripsPage() {
                 <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">Status</th>
                 <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">Route</th>
                 <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">Assignment</th>
-                <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">Time (Est vs Act)</th>
+                <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">Time (Act vs Hist Avg)</th>
                 <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider w-48">Distance</th>
                 <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">Score</th>
                 <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">Actions</th>
@@ -92,13 +92,9 @@ export default function TripsPage() {
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex flex-col gap-1">
-                      <div className="flex items-center gap-2 text-sm">
-                        <MapPin className="w-3 h-3 text-brand-blue" />
-                        <span className="text-foreground">{trip.origin}</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm">
-                        <MapPin className="w-3 h-3 text-brand-teal" />
-                        <span className="text-muted-foreground">{trip.destination}</span>
+                      <div className="flex items-center gap-2 text-sm font-bold text-brand-blue/80">
+                        <Route className="w-3 h-3" />
+                        <span>{trip.routeId}</span>
                       </div>
                     </div>
                   </td>
@@ -111,19 +107,19 @@ export default function TripsPage() {
                   <td className="px-6 py-4">
                     <div className="flex flex-col gap-1">
                       <span className="text-sm font-medium text-foreground">
-                        {trip.actualDurationMins ? formatMinsToHours(trip.actualDurationMins) : '--'} / {formatMinsToHours(trip.estimatedDurationMins)}
+                        {trip.actualDurationMins ? formatMinsToHours(trip.actualDurationMins) : '--'} / {formatMinsToHours(trip.historicalAvgMins)}
                       </span>
                       {trip.actualDurationMins && (
                         <span className={`text-xs font-bold ${
-                          trip.actualDurationMins > trip.estimatedDurationMins ? 'text-amber-500' :
-                          trip.actualDurationMins < trip.estimatedDurationMins ? 'text-brand-teal' :
+                          trip.actualDurationMins > trip.historicalAvgMins ? 'text-amber-500' :
+                          trip.actualDurationMins < trip.historicalAvgMins ? 'text-brand-teal' :
                           'text-muted-foreground'
                         }`}>
-                          {trip.actualDurationMins > trip.estimatedDurationMins 
-                            ? `+${Math.round(((trip.actualDurationMins - trip.estimatedDurationMins) / trip.estimatedDurationMins) * 100)}% (Over)`
-                            : trip.actualDurationMins < trip.estimatedDurationMins 
-                            ? `-${Math.round(((trip.estimatedDurationMins - trip.actualDurationMins) / trip.estimatedDurationMins) * 100)}% (Under)`
-                            : 'On Time'}
+                          {trip.actualDurationMins > trip.historicalAvgMins 
+                            ? `+${Math.round(((trip.actualDurationMins - trip.historicalAvgMins) / trip.historicalAvgMins) * 100)}% (Over Avg)`
+                            : trip.actualDurationMins < trip.historicalAvgMins 
+                            ? `-${Math.round(((trip.historicalAvgMins - trip.actualDurationMins) / trip.historicalAvgMins) * 100)}% (Under Avg)`
+                            : 'Fleet Average'}
                         </span>
                       )}
                     </div>

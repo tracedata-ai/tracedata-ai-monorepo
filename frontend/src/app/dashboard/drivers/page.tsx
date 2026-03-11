@@ -53,7 +53,8 @@ export default function DriversPage() {
               <tr>
                 <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">Driver Profile</th>
                 <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">Status</th>
-                <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">Shift Hours</th>
+                <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">Trips</th>
+                <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">Trip Score</th>
                 <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">Rating</th>
                 <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">Actions</th>
               </tr>
@@ -82,17 +83,16 @@ export default function DriversPage() {
                     </span>
                   </td>
                   <td className="px-6 py-4">
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono font-medium text-foreground">{driver.shiftHours.toFixed(1)}h</span>
-                      {driver.shiftHours > 7 && (
-                        <span title="Approaching shift limit">
-                          <ShieldAlert className="w-4 h-4 text-amber-500" />
-                        </span>
-                      )}
-                    </div>
+                    <span className="font-mono font-medium text-foreground">{driver.tripsCompleted}</span>
                   </td>
                   <td className="px-6 py-4">
-                    <div className="flex items-center gap-1.5">
+                    <span title="Average Trip Score (0-100)" className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-brand-teal/10 text-brand-teal border border-brand-teal/20">
+                      <Award className="w-3 h-3 mr-1" />
+                      {driver.avgTripScore}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-1.5" title="Customer Rating (1-5)">
                       <Award className="w-4 h-4 text-brand-blue" />
                       <span className="text-sm font-medium text-foreground">{driver.rating.toFixed(1)}</span>
                     </div>
