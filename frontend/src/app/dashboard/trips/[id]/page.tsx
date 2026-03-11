@@ -11,7 +11,10 @@ import {
   Clock,
   ShieldCheck,
   MapPin,
-  Car
+  Car,
+  Scale,
+  BrainCircuit,
+  ShieldAlert
 } from "lucide-react";
 
 export default function TripDetailsPage({
@@ -174,20 +177,20 @@ export default function TripDetailsPage({
              <div className="md:col-span-1 space-y-6">
                 <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-border shadow-sm flex flex-col h-full bg-gradient-to-b from-brand-teal/5 to-white dark:from-brand-teal/10 dark:to-slate-900">
                    <h3 className="text-sm font-bold text-foreground mb-6 uppercase tracking-widest flex items-center gap-2">
-                     <ShieldCheck className="w-4 h-4 text-brand-teal" /> Safety & Performance
+                      <ShieldCheck className="w-4 h-4 text-brand-teal" /> Safety & Performance
                    </h3>
                    
                    {trip.status === "Completed" && trip.score !== undefined ? (
-                      <div className="flex flex-col items-center justify-center flex-1 py-8 text-center">
-                         <p className="text-[10px] text-slate-500 uppercase font-bold tracking-widest mb-4">Final Trip Score</p>
-                         <div className={`w-36 h-36 rounded-full flex items-center justify-center border-8 shadow-inner ${
-                            trip.score >= 90 ? 'border-brand-teal/20 text-brand-teal bg-brand-teal/5' : 
-                            trip.score >= 70 ? 'border-amber-500/20 text-amber-500 bg-amber-500/5' : 
-                            'border-red-500/20 text-red-500 bg-red-500/5'
+                      <div className="flex flex-col items-center justify-center flex-1 py-10 text-center">
+                         <p className="text-[10px] text-slate-500 uppercase font-bold tracking-widest mb-6 border-b border-brand-teal/30 pb-1">Final Trip Score</p>
+                         <div className={`w-40 h-40 rounded-full flex items-center justify-center border-8 shadow-inner ring-4 ring-brand-teal/10 ${
+                            trip.score >= 90 ? 'border-brand-teal text-brand-teal bg-brand-teal/5' : 
+                            trip.score >= 70 ? 'border-amber-500 text-amber-500 bg-amber-500/5' : 
+                            'border-red-500 text-red-500 bg-red-500/5'
                          }`}>
                            <span className="text-6xl font-black">{trip.score}</span>
                          </div>
-                         <p className="text-xs text-muted-foreground mt-8 leading-relaxed px-4">
+                         <p className="text-[10px] text-muted-foreground mt-10 leading-relaxed px-6 font-medium italic text-balance">
                            Score is computed by AI agents analyzing telemetry, route adherence, and context.
                          </p>
                       </div>
@@ -202,6 +205,79 @@ export default function TripDetailsPage({
                    )}
                 </div>
              </div>
+
+             {trip.explanation && (
+                <div className="md:col-span-4 glass-card p-6 sm:p-10 rounded-2xl relative overflow-hidden group">
+                  <div className="absolute top-0 right-0 p-10 opacity-[0.03] rotate-12 group-hover:scale-110 transition-transform duration-700">
+                    <Scale className="w-64 h-64" />
+                  </div>
+
+                  <div className="flex flex-col lg:flex-row gap-12 relative z-10">
+                    <div className="lg:w-1/3 space-y-8">
+                       <div>
+                         <h3 className="text-sm font-bold text-foreground mb-6 uppercase tracking-widest flex items-center gap-2">
+                           <div className="p-1.5 bg-brand-blue/10 rounded-lg text-brand-blue">
+                             <BrainCircuit className="w-4 h-4" />
+                           </div>
+                           Decision Forensic (XAI)
+                         </h3>
+                         <div className="bg-brand-blue/5 border border-brand-blue/10 p-6 rounded-xl">
+                            <p className="text-[10px] text-brand-blue uppercase font-bold tracking-widest mb-3">AI Decision Reasoning</p>
+                            <p className="text-lg font-bold text-foreground leading-snug text-balance italic">
+                              "{trip.explanation.humanSummary}"
+                            </p>
+                         </div>
+                       </div>
+
+                       <div className="bg-slate-900 text-white p-6 rounded-xl space-y-4 shadow-xl">
+                         <div className="flex items-center gap-2 text-brand-teal">
+                           <ShieldAlert className="w-5 h-5 animate-pulse" />
+                           <p className="text-xs font-bold uppercase tracking-widest">AIF360 Fairness Loop</p>
+                         </div>
+                         <div className="flex justify-between items-end">
+                            <p className="text-xs text-slate-400">Statistical Parity Difference</p>
+                            <p className="text-2xl font-mono font-black text-brand-teal">{trip.explanation.fairnessAuditScore.toFixed(3)}</p>
+                         </div>
+                         <div className="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                            <div className="bg-brand-teal h-full" style={{ width: '4%' }}></div>
+                         </div>
+                         <p className="text-[10px] text-slate-500 font-medium italic leading-relaxed">Bias detected within acceptable IMDA governance thresholds (&lt;0.05).</p>
+                       </div>
+                    </div>
+
+                    <div className="lg:w-2/3 space-y-6">
+                       <p className="text-xs text-muted-foreground uppercase font-bold tracking-widest border-b border-border pb-4">
+                         Telemetry Attribute Weights (SHAP Analysis)
+                       </p>
+                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-12 gap-y-10">
+                          {Object.entries(trip.explanation.featureImportance).map(([feature, value], idx) => (
+                            <div key={feature} className="space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-500" style={{ animationDelay: `${idx * 150}ms` }}>
+                               <div className="flex justify-between items-center">
+                                 <span className="text-[10px] font-bold text-foreground uppercase tracking-wider bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-md border border-border/50">
+                                   {feature.replace('_', ' ')}
+                                 </span>
+                                 <span className={`text-[10px] font-black font-mono ${value >= 0 ? 'text-brand-teal' : 'text-rose-500'}`}>
+                                   {value >= 0 ? 'POSITIVE' : 'PENALTY'}
+                                 </span>
+                               </div>
+                               <div className="flex items-center gap-4">
+                                  <div className="flex-1 h-3 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden flex shadow-inner">
+                                    <div 
+                                      className={`h-full rounded-full transition-all duration-1000 delay-300 shadow-sm ${value >= 0 ? 'bg-gradient-to-r from-brand-teal to-brand-blue' : 'bg-gradient-to-r from-rose-500 to-orange-400'}`}
+                                      style={{ width: `${Math.abs(value) * 100}%`, marginLeft: value >= 0 ? '0' : 'auto' }}
+                                    ></div>
+                                  </div>
+                                  <p className="text-xs font-bold font-mono text-foreground w-12 text-right">
+                                    { (value * 100).toFixed(1) }%
+                                  </p>
+                               </div>
+                            </div>
+                          ))}
+                       </div>
+                    </div>
+                  </div>
+                </div>
+              )}
           </div>
         </div>
       </div>

@@ -12,7 +12,8 @@ import {
   Award,
   Activity,
   FileCheck2,
-  AlertTriangle
+  AlertTriangle,
+  BrainCircuit
 } from "lucide-react";
 
 export default function DriverDetailsPage({
@@ -109,6 +110,72 @@ export default function DriverDetailsPage({
                       </div>
                    </div>
                 </div>
+
+                {driver.explanation && (
+                  <div className="glass-card p-6 sm:p-8 rounded-2xl relative overflow-hidden group">
+                    {/* Decorative Motif */}
+                    <div className="absolute right-0 top-0 w-32 h-32 text-brand-blue/10 transform translate-x-10 -translate-y-10 group-hover:scale-110 transition-transform">
+                      <BrainCircuit className="w-full h-full" />
+                    </div>
+
+                    <h3 className="text-sm font-bold text-foreground mb-8 uppercase tracking-widest flex items-center gap-2 relative z-10">
+                      <div className="p-1.5 bg-purple-500/10 rounded-lg">
+                        <BrainCircuit className="w-4 h-4 text-purple-500" />
+                      </div>
+                      Behavioral DNA (Enhanced XAI)
+                    </h3>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-10 relative z-10">
+                      <div className="space-y-6">
+                        <div>
+                          <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest mb-4">AI Personality Narrative</p>
+                          <blockquote className="text-lg font-medium text-foreground text-balance leading-relaxed border-l-4 border-purple-500/30 pl-6 py-1 italic">
+                            "{driver.explanation.humanSummary}"
+                          </blockquote>
+                        </div>
+                        <div className="flex gap-4">
+                          <div className="px-3 py-1.5 bg-brand-teal/10 rounded-lg border border-brand-teal/20">
+                            <p className="text-[8px] text-brand-teal uppercase font-bold tracking-tighter">Fairness Score</p>
+                            <p className="text-sm font-bold font-mono text-brand-teal">{driver.explanation.fairnessAuditScore.toFixed(3)}</p>
+                          </div>
+                          <div className="px-3 py-1.5 bg-purple-500/10 rounded-lg border border-purple-500/20">
+                            <p className="text-[8px] text-purple-500 uppercase font-bold tracking-tighter">Confidence</p>
+                            <p className="text-sm font-bold font-mono text-purple-500">High</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="space-y-5">
+                        <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">Feature Contribution Profile</p>
+                        <div className="space-y-4">
+                          {Object.entries(driver.explanation.featureImportance).map(([feature, value], idx) => (
+                            <div key={feature} className="space-y-2 animate-in fade-in slide-in-from-left duration-500" style={{ animationDelay: `${idx * 100}ms` }}>
+                              <div className="flex justify-between items-end">
+                                <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wide font-mono px-2 py-0.5 bg-slate-100 dark:bg-slate-800 rounded">
+                                  {feature.replace('_', ' ')}
+                                </span>
+                                <span className={`text-[10px] font-black font-mono ${value >= 0 ? 'text-brand-teal' : 'text-rose-500'}`}>
+                                  {value >= 0 ? 'SIGNIFICANT' : 'OPTIMIZABLE'} ({ (value * 100).toFixed(1)}%)
+                                </span>
+                              </div>
+                              <div className="h-3 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden flex shadow-inner">
+                                <div 
+                                  className={`h-full rounded-full transition-all duration-1000 ease-out shadow-sm ${value >= 0 ? 'bg-gradient-to-r from-brand-teal to-brand-blue' : 'bg-gradient-to-r from-rose-500 to-orange-400'}`}
+                                  style={{ width: `${Math.abs(value) * 100}%`, marginLeft: value >= 0 ? '0' : 'auto' }}
+                                ></div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="mt-8 pt-6 border-t border-border flex justify-between items-center text-[10px] text-muted-foreground font-bold uppercase tracking-widest">
+                      <span>Last Analysis: 5 mins ago</span>
+                      <button className="text-brand-blue hover:underline">Download Detailed SHAP Report</button>
+                    </div>
+                  </div>
+                )}
              </div>
 
              <div className="col-span-1 space-y-6">
@@ -124,7 +191,7 @@ export default function DriverDetailsPage({
                            <FileCheck2 className="w-3 h-3" /> License Status
                          </p>
                          <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-bold border ${
-                            driver.licenseStatus === "Valid" ? "bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:border-green-800 dark:text-green-400" :
+                            driver.licenseStatus === "Valid" ? "bg-green-5 text-green-700 border-green-200 dark:bg-green-900/20 dark:border-green-800 dark:text-green-400" :
                             driver.licenseStatus === "Expiring Soon" ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:border-amber-800 dark:text-amber-400" :
                             "bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:border-red-800 dark:text-red-400"
                          }`}>
