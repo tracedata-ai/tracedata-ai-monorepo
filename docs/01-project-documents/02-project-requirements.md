@@ -40,6 +40,8 @@ TraceData is an academic capstone project focusing primarily on advanced AI orch
     *   **End-of-Trip Ping:** Marks trip completion, encapsulates the full summary, and triggers backend ML scoring.
     *   **Emergency Ping:** Out-of-band transmission for critical events (e.g., collisions, panic button) requiring immediate response.
 *   **Data Integrity:** The system SHALL ingest telemetry via **Apache Kafka** streams, organized by ping type, to ensure durability, high-throughput handling, and full event replayability. All payloads SHALL be persisted using Time-Series optimized storage, handling out-of-order or duplicate messages idempotently.
+*   **Ingestion Processing:** An **Ingestion Quality Agent** SHALL selectively handle incoming data based on its payload type. Standard telemetry (e.g., GPS, speed) is scrubbed deterministically. User-generated content (e.g., driver text, appeals) is handed over to a dedicated **PII Scrubber Agent** for complex cleaning.
+*   **Orchestrator Handoff:** After PII cleaning and deterministic scrubbing, the data is written to the database and then passed to the Orchestrator. The Orchestrator evaluates `4-Minute Batch Pings` for immediate actions; if none are found, the execution terminates (discarded from active processing).
 *   **State Management:** The system SHALL actively track "Active Trips" and handle "Zombie Trips" (missing End-of-Trip pings). Internal asynchronous task queuing and state management SHALL be orchestrated using **Redis** and **Celery**.
 
 ### **3.2 Trip Scoring & Fairness Audit (FR-2)**
@@ -81,7 +83,8 @@ TraceData is an academic capstone project focusing primarily on advanced AI orch
 ### **3.8 Context Enrichment (FR-8)**
 **Requirement:** The system SHALL enrich raw telemetry with geospatial and environmental context (road type, speed limits, weather risk).
 
-*   **Performance:** Context lookups SHALL return within 100ms. If external APIs time out, the system SHALL seamlessly fallback to cached or default values without blocking downstream processing.
+*   **Mechanism:** Context Enrichment SHALL be implemented as a dedicated **Context Enrichment Agent** that leverages the **Model Context Protocol (MCP)** to retrieve information from external services (e.g., mapping servers, weather APIs).
+*   **Performance:** Context lookups SHALL return within realistic boundaries for an MCP agent (< 2 seconds). If external APIs time out, the system SHALL gracefully fallback to cached or default values without blocking downstream processing.
 
 ---
 
@@ -89,7 +92,7 @@ TraceData is an academic capstone project focusing primarily on advanced AI orch
 
 ### **4.1 Performance & Scalability (NFR-1)**
 *   **Throughput:** The system SHALL comfortably ingest batches from 10,000 concurrent vehicles without backpressure exhaustion.
-*   **Latency:** Critical ML scoring (FR-2) SHALL complete in < 3 seconds; standard API responses SHALL be < 500ms.
+*   **Latency:** Critical ML scoring (FR-2) SHALL complete in < 3 seconds; standard API responses SHALL be < 500ms. Context Enrichment (via MCP) SHALL complete in < 2 seconds.
 *   **Scalability:** The architecture SHALL scale horizontally (compute, Kafka brokers, Redis clusters, and read-replicas) to accommodate 50,000 vehicles.
 
 ### **4.2 Reliability & Availability (NFR-2)**
@@ -109,7 +112,7 @@ TraceData is an academic capstone project focusing primarily on advanced AI orch
 *   **Stream Ingestion:** Apache Kafka SHALL be used for all external telemetry ingestion to mirror industry standards and provide event replayability across different topic pipes.
 *   **Internal Queueing & State:** Redis and Celery SHALL be used for all asynchronous task queueing, state management (e.g., tracking active vs. zombie trips), and background processing within the AI middleware.
 *   **Data Storage:** A single organizational PostgreSQL database SHALL be used. While schemas for fleet data (e.g., vehicles, drivers) will exist, they are nominal and designed strictly to provide the necessary state and context for the AI agents.
-*   **AI Agents:** LangGraph SHALL be used for orchestrating cyclical agent workflows (e.g., Context loops, Refinement).
+*   **AI Agents:** LangGraph SHALL be used for orchestrating cyclical agent workflows (e.g., Context loops, Refinement). Refer to [03-tracedata-agents.md](./03-tracedata-agents.md) for detailed agent topologies and responsibilities.
 
 ---
 
