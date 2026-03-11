@@ -49,6 +49,8 @@ export interface DriverProfile {
   tripsCompleted: number;
   rating: number; // 1-5 consumer rating
   avgTripScore: number; // 0-100 internal score
+  licenseStatus: "Valid" | "Expiring Soon" | "Expired";
+  recentIncidents: number;
 }
 
 export interface RouteRecord {
@@ -175,11 +177,11 @@ export const dashboardConfig = {
   ] as AppealContest[],
 
   drivers: [
-    { id: "TR-8291", name: "Lim Wei Jie", status: "Active", tripsCompleted: 14, rating: 4.8, avgTripScore: 92 },
-    { id: "TR-4512", name: "Siti Aisyah", status: "On Break", tripsCompleted: 22, rating: 4.9, avgTripScore: 96 },
-    { id: "TR-0114", name: "Muthu Kumar", status: "Off Duty", tripsCompleted: 0, rating: 4.5, avgTripScore: 88 },
-    { id: "TR-9922", name: "Nurul Huda", status: "Active", tripsCompleted: 8, rating: 5.0, avgTripScore: 98 },
-    { id: "TR-3310", name: "Chen Wei Ming", status: "Active", tripsCompleted: 26, rating: 4.7, avgTripScore: 85 },
+    { id: "TR-8291", name: "Lim Wei Jie", status: "Active", tripsCompleted: 14, rating: 4.8, avgTripScore: 92, licenseStatus: "Valid", recentIncidents: 0 },
+    { id: "TR-4512", name: "Siti Aisyah", status: "On Break", tripsCompleted: 22, rating: 4.9, avgTripScore: 96, licenseStatus: "Valid", recentIncidents: 0 },
+    { id: "TR-0114", name: "Muthu Kumar", status: "Off Duty", tripsCompleted: 0, rating: 4.5, avgTripScore: 88, licenseStatus: "Expiring Soon", recentIncidents: 1 },
+    { id: "TR-9922", name: "Nurul Huda", status: "Active", tripsCompleted: 8, rating: 5.0, avgTripScore: 98, licenseStatus: "Valid", recentIncidents: 0 },
+    { id: "TR-3310", name: "Chen Wei Ming", status: "Active", tripsCompleted: 26, rating: 4.7, avgTripScore: 85, licenseStatus: "Expired", recentIncidents: 2 },
   ] as DriverProfile[],
 
   routes: [

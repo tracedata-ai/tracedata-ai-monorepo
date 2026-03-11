@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { dashboardConfig, IssueRecord } from "@/config/dashboard";
+import Link from "next/link";
 import {
   Download,
   Plus,
@@ -11,6 +12,7 @@ import {
   Minus,
   Truck,
   Brain,
+  ExternalLink,
 } from "lucide-react";
 
 import {
@@ -225,6 +227,12 @@ export default function IssuesPage() {
                   <h3 className="text-lg font-bold text-foreground tracking-tight">
                     Issue Details
                   </h3>
+                  <Link 
+                    href={`/dashboard/issues/${selectedIssue.id}`}
+                    className="flex items-center gap-1.5 text-xs font-bold text-brand-blue bg-brand-blue/10 hover:bg-brand-blue/20 px-3 py-1.5 rounded-md transition-colors"
+                  >
+                    Open Page <ExternalLink className="w-3.5 h-3.5" />
+                  </Link>
                 </div>
 
                 <div className="flex items-center gap-4 mb-6">
