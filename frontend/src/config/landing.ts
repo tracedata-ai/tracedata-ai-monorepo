@@ -7,161 +7,97 @@ export const landingConfig = {
       highlight: "Data",
     },
     links: [
-      { label: "Ecosystem", href: "#" },
-      { label: "Mission Control", href: "#" },
-      { label: "Human-XAI", href: "#" },
-      { label: "Solutions", href: "#" },
+      { label: "Transparency", href: "#transparency" },
+      { label: "Driver Advocacy", href: "#advocacy" },
+      { label: "Solutions", href: "#solutions" },
+      { label: "Resources", href: "#resources" },
     ],
-    cta: "Get Started",
+    cta: "Launch Dashboard",
   },
   hero: {
     title: {
-      prefix: "INTELLIGENT ",
-      highlight: "FLEET",
-      suffix: " ORCHESTRATION",
+      prefix: "TRANSPARENCY ",
+      highlight: "ON THE ROAD",
+      suffix: "",
     },
-    description: "Fragmented data points coalescing into a coherent structure. TraceData leverages XAI metrics to harmonize global logistics in real-time.",
-    primaryCta: "Launch Dashboard",
-    secondaryCta: "Watch Identity Film",
+    description: "Demystifying data to empower every driver and optimize every fleet. TraceData turns complex telemetry into clear, actionable insights.",
+    primaryCta: "Get Started",
+    secondaryCta: "Watch How It Works",
     metrics: {
-      activeOrchestration: {
-        label: "Active Orchestration",
-        value: "99.98",
+      driverSatisfaction: {
+        label: "Driver Satisfaction",
+        value: "94",
         unit: "%"
       },
-      latency: {
-        label: "Latency",
-        value: "12",
-        unit: "ms"
+      dataClarity: {
+        label: "Data Clarity Index",
+        value: "0.98",
+        unit: ""
       }
     },
-    visualAlt: "High-tech XAI metrics visualization",
-    visualSrc: "https://lh3.googleusercontent.com/aida-public/AB6AXuDDGW_Ial_icBZQUtxVNE5rxHPcUVm1r6XR2lpzlzksi2bub6VthpXrFSpKYMj7LP7C7TDP-LJJaKEvBATgJKTDecPz666JgtV8hUYNTI3qAhoObk57E3nxtK_UrYh_QZQ0cOl6isBTWkyg8lELV029x1SM_I1I8g2dFiQj_W4DpvAh5BI1HvtPPVi1IPVTT_jvbIcZFztInCI5qbWhVVa0AyocH3-3pXp30t8AxhWlpLmYPPvhDrmsGk23XYenX10BaVhll1U5616L"
+    visualAlt: "Premium logistics hub at sunset",
+    visualSrc: "/images/hero-bg.webp"
   },
-  ecosystem: {
-    badge: "The Digital Ecosystem",
-    title: "8-Agent Intelligent Network",
-    agents: [
+  trustedBy: [
+    { name: "DHL", logo: "/logos/dhl.svg" },
+    { name: "FedEx", logo: "/logos/fedex.svg" },
+    { name: "Amazon", logo: "/logos/amazon.svg" },
+    { name: "Maersk", logo: "/logos/maersk.svg" },
+  ],
+  solutions: {
+    badge: "The Future of Fleet",
+    title: "Intelligence that works for you",
+    items: [
       {
-        name: "Safety Agent",
-        description: "Enforces operational guardrails and risk mitigation protocols.",
-        icon: ShieldAlert,
-        color: "brand-teal"
-      },
-      {
-        name: "Fairness Agent",
-        description: "Audits algorithmic bias in routing and load distribution.",
-        icon: Scale,
-        color: "brand-blue"
-      },
-      {
-        name: "Context Agent",
-        description: "Synthesizes environmental and historical data streams.",
-        icon: Network,
-        color: "brand-teal"
-      },
-      {
-        name: "Behavior Agent",
-        description: "Analyzes operator performance and cognitive load patterns.",
+        title: "Driver Empowerment",
+        description: "Giving drivers full visibility into their performance data and the 'why' behind system decisions.",
         icon: BrainCircuit,
-        color: "brand-blue"
-      },
-      {
-        name: "Advocacy Agent",
-        description: "Represents human operator interests in the AI decision loop.",
-        icon: HeartHandshake,
         color: "brand-teal"
       },
       {
-        name: "Sentiment Agent",
-        description: "Real-time morale tracking and wellness signaling.",
-        icon: Smile,
+        title: "Operational Clarity",
+        description: "Breaking down silos between management and the field with unified, transparent data streams.",
+        icon: Network,
         color: "brand-blue"
       },
       {
-        name: "Coaching Agent",
-        description: "Delivers interventions and performance-enhancing insights.",
-        icon: GraduationCap,
+        title: "Ethical Logistics",
+        description: "AI that prioritizes fairness, safety, and human-centric orchestration.",
+        icon: Scale,
         color: "brand-teal"
-      },
-      {
-        name: "Orchestrator",
-        description: "Synchronizes multi-agent workflows via LangGraph protocols.",
-        icon: Activity,
-        color: "brand-blue"
       }
-    ],
-    langGraph: {
-      badge: "Real-Time Engine",
-      subheading: "LangGraph & Kafka",
-      title: "Unified Event Orchestration",
-      description: "Every data point is a message in a high-throughput Kafka stream, processed through dynamic LangGraph workflows. Decisions are not static; they are conversational, evolving paths between 8 specialized agents.",
-      features: [
-        {
-          title: "Sub-100ms Latency",
-          description: "Stream processing at the edge for immediate recalibration.",
-          color: "brand-teal"
-        },
-        {
-          title: "Stateful Persistence",
-          description: "Every agent decision is logged and traceable through our event ledger.",
-          color: "brand-blue"
-        }
-      ],
-      visualAlt: "LangGraph Data Flow",
-      visualSrc: "https://lh3.googleusercontent.com/aida-public/AB6AXuDj8k8oBK_V3cKPuQDAArogNGh65bncmkSRi9KiUmJteASqPSaGNsf7fkElyp0GfhPogrjn6Y4_8eJSPcjpZ_Q5-WB7DHnicPdsVzPAiLjJpSXD6TIAx5RaRwFh1e_gp9xJs-tq_0Bdx4Jy5mVkGXv2z8UsBLPHx9IUyM1zy5uIx5hC-6NeJONz_eq0bczQNku9FzAQ6IpvDc86-Z887xbhW4ca6tSixBhOrj_yfO7UCO83OFtER0N75TPD-MUDtvqrT7_iJxgrYQUG"
-    }
-  },
-  dashboardPreview: {
-    subheading: "Intervention Hub",
-    title: "Human-In-The-Loop Center",
-    description: "Empowering operators with the ability to override AI logic. Our Mission Control features a dedicated Appeals workflow and Coaching intervention system for high-stakes decision auditing.",
-    features: [
-      { text: "One-click Appeals for AI Routing Decisions", color: "brand-teal" },
-      { text: "Real-time Coaching Intervention Popups", color: "brand-blue" },
-      { text: "Transparency Logs for Ethical Compliance", color: "foreground" }
-    ],
-    visualAlt: "Mission Control Dashboard Preview",
-    visualSrc: "https://lh3.googleusercontent.com/aida-public/AB6AXuAr3RmLOAdG-PuFQCmbApOcasUYfhSRZ3o7DWqb5d4IJzB97gWL0ES7yHyy32F4K4-ytadITRVBb5GYm29HEYBN4tr-8PiC6Ij27tWIiylFxPN06eTBH0KOos2cAIu6B15jjAFsdBY-2buzS0uPZ_8hONmYg4_NCDbgErQ74A5h_uLHqqaLcqA6bHuGf8V7Wl48K3JXMun1Oqj_Z2_gFjZwLpOWzElorsivU3ZWywbYUmKacwGwveUNc5M6DtPVe6ZTJjG-JeKVFh2U"
-  },
-  humanInTheLoop: {
-    subheading: "Human & AI Harmony",
-    title: "Human-In-The-Loop Governance",
-    description: "Technology doesn't replace intuition; it amplifies it. Our XAI system provides 'explainable' insights, allowing human operators to override and fine-tune complex decisions with complete context.",
-    metrics: [
-      { value: "SHAP", label: "Feature Attribution", color: "brand-blue" },
-      { value: "0.88", label: "Fleet Equilibrium Score", color: "brand-teal" },
-      { value: "XAI", label: "Explainability Depth", color: "foreground" }
     ]
   },
-  burnoutHeatmap: {
-    subheading: "Predictive Wellness",
-    title: "Operational Burnout Heatmap",
-    interventions: [
-      {
-        title: "Wellness Interventions",
-        description: "AI-triggered rest periods and task reallocation based on cognitive load metrics.",
-        color: "brand-teal"
-      },
-      {
-        title: "Retention Modeling",
-        description: "Predicting turnover risk 30 days in advance using behavior agent sentiment analysis.",
-        color: "brand-blue"
-      }
+  transparency: {
+    subheading: "Explainable AI",
+    title: "Demystifying the Black Box",
+    description: "Technology shouldn't be a mystery. Our XAI system provides drivers with clear explanations for route changes, safety alerts, and performance scores, ensuring trust through transparency.",
+    features: [
+      { text: "Real-time Explanation for AI Routing", color: "brand-teal" },
+      { text: "Fair Performance Scoring with Feedback Loops", color: "brand-blue" },
+      { text: "Open Ledger for Driver Decision Auditing", color: "foreground" }
     ],
-    visualAlt: "Burnout Heatmap",
-    visualSrc: "https://lh3.googleusercontent.com/aida-public/AB6AXuDgHewQRcjfFoOJRPcpOU2flMlbQ7ot34CCyMOZBWf_Sp4nzYKKxKROvqs-QwyfyrmLFk_naWyAw_whvaFDRiJOgXG0QvrbWu2W8R9TV3cw2LQ-GroMcszXK6GQeM2VU2MFeQ9cDOyQxZ9YMgqZ0TYlRnnq6mpVmhDdpsi1MZ5GbUl1KvmTU_g15R7TTm8bYmbujcvPljlHXjYpt9GG_FClqwWz5pUuznUA4EWuuwMIKWcfpOr6ka0GnbF6_9J-_E-gbCzILNIFsYrR"
+    visualAlt: "XAI Transparency Dashboard",
+    visualSrc: "https://lh3.googleusercontent.com/aida-public/AB6AXuAr3RmLOAdG-PuFQCmbApOcasUYfhSRZ3o7DWqb5d4IJzB97gWL0ES7yHyy32F4K4-ytadITRVBb5GYm29HEYBN4tr-8PiC6Ij27tWIiylFxPN06eTBH0KOos2cAIu6B15jjAFsdBY-2buzS0uPZ_8hONmYg4_NCDbgErQ74A5h_uLHqqaLcqA6bHuGf8V7Wl48K3JXMun1Oqj_Z2_gFjZwLpOWzElorsivU3ZWywbYUmKacwGwveUNc5M6DtPVe6ZTJjG-JeKVFh2U"
+  },
+  stats: {
+    title: "Proven Results. Real Trust.",
+    items: [
+      { value: "40%", label: "Reduction in Driver Turnover", color: "brand-teal" },
+      { value: "50%", label: "Faster Incident Resolution", color: "brand-blue" },
+      { value: "94%", label: "Driver Sentiment Score", color: "brand-teal" }
+    ]
   },
   footer: {
-    description: "Fragmenting the future of data orchestration to create a more coherent, efficient, and intelligent world.",
+    description: "Building a more transparent, efficient, and human-centric world through intelligent data orchestration.",
     links: [
       {
-        title: "Company",
+        title: "Platform",
         items: [
-          { label: "About Us", href: "#" },
-          { label: "Careers", href: "#" },
-          { label: "Brand Identity", href: "#" },
-          { label: "Contact", href: "#" }
+          { label: "Transparency", href: "#" },
+          { label: "Governance", href: "#" },
+          { label: "Case Studies", href: "#" },
+          { label: "API Docs", href: "#" }
         ]
       }
     ],
@@ -169,10 +105,52 @@ export const landingConfig = {
       { platform: "LinkedIn", href: "#", color: "brand-teal" },
       { platform: "Twitter", href: "#", color: "brand-blue" }
     ],
-    copyright: "© 2024 TraceData Systems. All Rights Reserved.",
+    copyright: "© 2026 TraceData AI. All Rights Reserved.",
     legalLinks: [
       { label: "Privacy Policy", href: "#" },
-      { label: "Security Protocols", href: "#" }
+      { label: "Terms of Service", href: "#" }
+    ]
+  },
+  testimonials: {
+    title: "Some kind words from early customers...",
+    description: "We work closely with fleet managers and drivers to ensure TraceData provides the transparency and clarity they need. Here's what they say about the impact on their daily operations.",
+    items: [
+      {
+        quote: "TraceData's transparency is second to none. Decisions that used to feel random are now easy to understand for every driver on my team.",
+        author: "Antonio Littel",
+        role: "Fleet Operations Lead",
+        avatar: "AL"
+      },
+      {
+        quote: "I run a medium-sized logistics firm in Singapore and could never find a reliable way to explain performance scores. Now I can justify every metric in minutes.",
+        author: "Cameron Considine",
+        role: "Logistics Entrepreneur",
+        avatar: "CC"
+      },
+      {
+        quote: "I couldn't believe how fast TraceData moved us from reactive to proactive management. We're optimizing routes more accurately in half the time.",
+        author: "Steven Hackett",
+        role: "Safety Compliance Officer",
+        avatar: "SH"
+      },
+      {
+        quote: "Even though I was excited to start, I was pessimistic that AI wouldn't actually be fair to my drivers. I was wrong—this transparency is all they needed.",
+        author: "Lynn Nolan",
+        role: "Driver Dispatch Manager",
+        avatar: "LN"
+      },
+      {
+        quote: "The complete package is worth it for the real-time telemetry alerts alone. I've learned so much about fleet health watching the system in action.",
+        author: "Regina Wisoky",
+        role: "Operations Analyst",
+        avatar: "RW"
+      },
+      {
+        quote: "I never thought I would enjoy deep data diving but using the XAI insights in TraceData, it's become a great way for me to stay ahead of the curve.",
+        author: "Carla Schoen",
+        role: "Fleet Director",
+        avatar: "CS"
+      }
     ]
   }
 };

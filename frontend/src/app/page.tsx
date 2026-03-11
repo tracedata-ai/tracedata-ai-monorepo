@@ -1,10 +1,11 @@
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { HeroSection } from "@/components/sections/HeroSection";
-import { EcosystemSection } from "@/components/sections/EcosystemSection";
+import { LogoMarquee } from "@/components/sections/LogoMarquee";
+import { SolutionGrid } from "@/components/sections/SolutionGrid";
 import { DashboardPreview } from "@/components/sections/DashboardPreview";
-import { HumanInTheLoop } from "@/components/sections/HumanInTheLoop";
-import { BurnoutHeatmap } from "@/components/sections/BurnoutHeatmap";
+import { ResultsSection } from "@/components/sections/ResultsSection";
+import { Testimonials } from "@/components/sections/Testimonials";
 
 export default function Home() {
   return (
@@ -13,10 +14,11 @@ export default function Home() {
       
       <main>
         <HeroSection />
-        <EcosystemSection />
+        <LogoMarquee />
+        <SolutionGrid />
         <DashboardPreview />
-        <HumanInTheLoop />
-        <BurnoutHeatmap />
+        <ResultsSection />
+        <Testimonials />
       </main>
       
       <Footer />

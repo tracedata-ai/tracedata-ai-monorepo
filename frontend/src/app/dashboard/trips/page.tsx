@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { dashboardConfig, TripRecord } from "@/config/dashboard";
-import { Route, Clock, CheckCircle2, Search, ShieldCheck } from "lucide-react";
+import { Route, Clock, CheckCircle2, Search, ShieldCheck, BrainCircuit } from "lucide-react";
 import { DataTable } from "@/components/shared/data-table";
 import { DetailSheet } from "@/components/shared/detail-sheet";
 import { tripColumns, formatTripMins } from "./trip-columns";
@@ -86,6 +86,44 @@ function TripDetailContent({ trip }: { trip: TripRecord }) {
             </p>
           </div>
         </div>
+
+        {trip.explanation && (
+          <div>
+            <h5 className="text-xs font-bold text-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
+              <BrainCircuit className="w-4 h-4 text-purple-500" /> Behavior Analysis (XAI)
+            </h5>
+            <div className="bg-purple-500/5 p-4 rounded-xl border border-purple-500/20 space-y-4">
+              <p className="text-xs text-muted-foreground italic leading-relaxed">
+                "{trip.explanation.humanSummary}"
+              </p>
+              
+              <div className="space-y-3">
+                <p className="text-[10px] text-purple-500 uppercase font-bold tracking-wider">Feature Importance (SHAP/LIME)</p>
+                {Object.entries(trip.explanation.featureImportance).map(([feature, value]) => (
+                  <div key={feature} className="space-y-1">
+                    <div className="flex justify-between text-[10px] items-center">
+                      <span className="text-muted-foreground font-mono uppercase">{feature.replace('_', ' ')}</span>
+                      <span className={`font-bold ${value >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                        {value >= 0 ? '+' : ''}{(value * 100).toFixed(1)}%
+                      </span>
+                    </div>
+                    <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden flex">
+                      <div 
+                        className={`h-full rounded-full transition-all ${value >= 0 ? 'bg-green-500' : 'bg-red-500'}`}
+                        style={{ width: `${Math.abs(value) * 100}%`, marginLeft: value >= 0 ? '0' : 'auto' }}
+                      ></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="pt-2 border-t border-purple-500/10 flex justify-between items-center">
+                <p className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Fairness Audit Score (SPD)</p>
+                <p className="text-xs font-bold text-foreground font-mono">{trip.explanation.fairnessAuditScore.toFixed(3)}</p>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </>
   );
