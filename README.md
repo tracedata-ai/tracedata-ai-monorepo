@@ -17,7 +17,6 @@ tracedata-ai-monorepo/
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) (Engine ≥ 24)
 - Docker Compose v2 (`docker compose` — note: no hyphen)
 
----
 
 ## Running with Docker Compose
 
@@ -38,7 +37,6 @@ Open → [http://localhost:3000](http://localhost:3000)
 > NEXT_PUBLIC_API_URL=http://my-backend docker compose up frontend --build
 > ```
 
----
 
 ### Full stack (frontend + backend + database)
 
@@ -54,7 +52,6 @@ docker compose --profile full up --build
 | Backend  | http://localhost:8000       |
 | Postgres | `localhost:5432` (internal) |
 
----
 
 ### Useful commands
 
@@ -72,7 +69,6 @@ docker compose logs -f frontend
 docker compose build --no-cache frontend
 ```
 
----
 
 ## Local Development (without Docker)
 
@@ -88,7 +84,6 @@ pip install -r requirements.txt
 uvicorn main:app --reload   # http://localhost:8000
 ```
 
----
 
 ## Environment Variables
 

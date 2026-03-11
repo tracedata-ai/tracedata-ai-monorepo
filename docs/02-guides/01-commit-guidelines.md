@@ -35,7 +35,6 @@ This document defines the commit message standards for Tracedata V1 monorepo.
     - [Commitlint Configuration](#commitlint-configuration)
 12. [Related Documentation](#12-related-documentation)
 
----
 
 ## 1. Commit Message Format
 
@@ -60,7 +59,6 @@ Optional footer with breaking changes or issue references
 | **Body**     | Optional | Detailed explanation                     | See body section   |
 | **Footer**   | Optional | Breaking changes, issue references       | See footer section |
 
----
 
 ## 2. Commit Types
 
@@ -78,7 +76,6 @@ Optional footer with breaking changes or issue references
 | `BUILD`    | Build system or dependencies                     | Configure Turborepo cache           |
 | `REVERT`   | Reverting a previous commit                      | Revert "Add feature X"              |
 
----
 
 ## 3. Scope Guidelines
 
@@ -119,7 +116,6 @@ TDATA-50-REFACTOR(infra,agents): Update PostgreSQL Connection
 
 **Rule:** If unsure, use the **primary** scope (the area with most changes).
 
----
 
 ## 4. Writing the Title
 
@@ -149,7 +145,6 @@ TDATA-33-REFACTOR(frontend): Updated button component styles and colors  # Too l
 TDATA-99-CHORE(infra): stuff        # Meaningless
 ```
 
----
 
 ## 5. Commit Body (Optional)
 
@@ -183,7 +178,6 @@ This form is required for regulatory compliance in Singapore.
 Operators must complete inspections every 6 months.
 ```
 
----
 
 ## 6. Breaking Changes
 
@@ -220,7 +214,6 @@ Add `!` to indicate breaking change:
 feat/TDATA-50-Setup-Example  # Breaking change
 ```
 
----
 
 ## 7. Footer References
 
@@ -252,7 +245,6 @@ TDATA-55-FIX(booking): Fix Date Validation Logic
 Related to TDATA-50, TDATA-52
 ```
 
----
 
 ## 8. Complete Examples
 
@@ -327,7 +319,6 @@ Closes TDATA-60
 TDATA-99-CHORE(infra): Upgrade FastAPI to v0.110
 ```
 
----
 
 ## 9. Common Mistakes
 
@@ -382,7 +373,6 @@ TDATA-42-FEAT(frontend): Add Google OAuth Login Button
 # Details in commit body if needed
 ```
 
----
 
 ## 10. Verification Checklist
 
@@ -398,7 +388,6 @@ Before committing, verify:
 - [ ] Breaking changes documented in footer (if applicable)
 - [ ] Jira ticket closed in footer (if applicable)
 
----
 
 ## 11. Tools & Automation
 
@@ -457,7 +446,6 @@ module.exports = {
 };
 ```
 
----
 
 ## 12. Related Documentation
 
@@ -465,6 +453,5 @@ module.exports = {
 - [GIT_WORKFLOW.md](./GIT_WORKFLOW.md) - Branching strategy and workflow
 - [CODE_STANDARDS.md](./CODE_STANDARDS.md) - Code quality standards
 
----
 
 **Remember:** Good commit messages help future developers (including future you) understand **why** changes were made. Take the extra 30 seconds to write clear, descriptive commits.
