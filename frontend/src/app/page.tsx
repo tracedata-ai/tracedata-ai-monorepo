@@ -8,7 +8,7 @@ import { BurnoutHeatmap } from "@/components/sections/BurnoutHeatmap";
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-brand-deep-navy font-sans antialiased overflow-x-hidden">
+    <div className="min-h-screen bg-background text-foreground font-sans antialiased overflow-x-hidden">
       <Navbar />
       
       <main>
