@@ -65,8 +65,11 @@ export interface VehicleProfile {
   id: string; // e.g. V-991
   plateNumber: string; // e.g. SGB-1234
   model: string;
-  status: "Active" | "Maintenance" | "Out Of Service";
+  status: "In Transit" | "Charging" | "Maintenance" | "Idle";
   operatingHours: number;
+  driver?: string;
+  location?: string;
+  signal?: "Strong" | "Medium" | "Weak";
 }
 
 export interface TripRecord {
@@ -135,44 +138,52 @@ export const dashboardConfig = {
   },
 
   orchestrationFeed: [
-    { id: "evt-1", agentId: "AG-01", agentName: "Safety", message: "finalized delivery route for Hub-7A.", timestamp: "Just Now", severity: "info" },
-    { id: "evt-2", agentId: "AG-05", agentName: "Advocacy", message: "re-assigned Zone 4 shifts based on weather.", timestamp: "4 mins ago", severity: "info" },
-    { id: "evt-3", agentId: "AG-02", agentName: "Fairness", message: "detected route anomaly in Pacific North.", timestamp: "12 mins ago", severity: "warning" },
+    { id: "evt-1", agentId: "AG-01", agentName: "Safety", message: "finalized delivery route for Changi T1.", timestamp: "Just Now", severity: "info" },
+    { id: "evt-2", agentId: "AG-05", agentName: "Advocacy", message: "re-assigned CBD shifts based on weather.", timestamp: "4 mins ago", severity: "info" },
+    { id: "evt-3", agentId: "AG-02", agentName: "Fairness", message: "detected route anomaly in Jurong West.", timestamp: "12 mins ago", severity: "warning" },
     { id: "evt-4", agentId: "AG-04", agentName: "Behavior", message: "flagged potential driver fatigue risk ID: 882.", timestamp: "15 mins ago", severity: "error" },
   ] as OrchestrationEvent[],
 
   appeals: [
-    { id: "app-1", driverName: "Marcus Wright", driverId: "TR-8291", driverAvatarUrl: "https://ui-avatars.com/api/?name=Marcus+Wright&background=f87171&color=fff", reason: "Route Efficiency Penalty", priority: "Urgent", status: "Pending Review" },
-    { id: "app-2", driverName: "Elena Petrov", driverId: "TR-4512", driverAvatarUrl: "https://ui-avatars.com/api/?name=Elena+Petrov&background=fcd34d&color=000", reason: "Break Schedule Alert", priority: "Medium", status: "Pending Review" },
-    { id: "app-3", driverName: "Jordan Smith", driverId: "TR-0114", driverAvatarUrl: "https://ui-avatars.com/api/?name=Jordan+Smith&background=94a3b8&color=fff", reason: "Inactivity Flag Dispute", priority: "Low", status: "Pending Review" },
+    { id: "app-1", driverName: "Lim Wei Jie", driverId: "TR-8291", driverAvatarUrl: "https://ui-avatars.com/api/?name=Lim+Wei+Jie&background=f87171&color=fff", reason: "Route Efficiency Penalty", priority: "Urgent", status: "Pending Review" },
+    { id: "app-2", driverName: "Siti Aisyah", driverId: "TR-4512", driverAvatarUrl: "https://ui-avatars.com/api/?name=Siti+Aisyah&background=fcd34d&color=000", reason: "Break Schedule Alert", priority: "Medium", status: "Pending Review" },
+    { id: "app-3", driverName: "Muthu Kumar", driverId: "TR-0114", driverAvatarUrl: "https://ui-avatars.com/api/?name=Muthu+Kumar&background=94a3b8&color=fff", reason: "Inactivity Flag Dispute", priority: "Low", status: "Pending Review" },
   ] as AppealContest[],
 
   drivers: [
-    { id: "TR-8291", name: "Marcus Wright", status: "Active", tripsCompleted: 14, rating: 4.8, avgTripScore: 92 },
-    { id: "TR-4512", name: "Elena Petrov", status: "On Break", tripsCompleted: 22, rating: 4.9, avgTripScore: 96 },
-    { id: "TR-0114", name: "Jordan Smith", status: "Off Duty", tripsCompleted: 0, rating: 4.5, avgTripScore: 88 },
-    { id: "TR-9922", name: "Sarah Connor", status: "Active", tripsCompleted: 8, rating: 5.0, avgTripScore: 98 },
-    { id: "TR-3310", name: "John Doe", status: "Active", tripsCompleted: 26, rating: 4.7, avgTripScore: 85 },
+    { id: "TR-8291", name: "Lim Wei Jie", status: "Active", tripsCompleted: 14, rating: 4.8, avgTripScore: 92 },
+    { id: "TR-4512", name: "Siti Aisyah", status: "On Break", tripsCompleted: 22, rating: 4.9, avgTripScore: 96 },
+    { id: "TR-0114", name: "Muthu Kumar", status: "Off Duty", tripsCompleted: 0, rating: 4.5, avgTripScore: 88 },
+    { id: "TR-9922", name: "Nurul Huda", status: "Active", tripsCompleted: 8, rating: 5.0, avgTripScore: 98 },
+    { id: "TR-3310", name: "Chen Wei Ming", status: "Active", tripsCompleted: 26, rating: 4.7, avgTripScore: 85 },
   ] as DriverProfile[],
 
   routes: [
-    { id: "RT-001", name: "North Hub Supply Run", origin: "Hub-7A North", destination: "Sector 4 Depot", historicalAvgMins: 270, standardDistanceKm: 142.5, totalTripsCompleted: 1042 },
-    { id: "RT-002", name: "Airport Express Loop", origin: "Downtown Core", destination: "Airport Terminal 3", historicalAvgMins: 90, standardDistanceKm: 34.0, totalTripsCompleted: 8550 },
-    { id: "RT-003", name: "East Coast Logistics", origin: "Westside Logistics", destination: "East Coast Park Hub", historicalAvgMins: 195, standardDistanceKm: 68.2, totalTripsCompleted: 430 },
-    { id: "RT-004", name: "Jurong Island Delivery", origin: "Sector 2 Base", destination: "Jurong Island", historicalAvgMins: 150, standardDistanceKm: 45.8, totalTripsCompleted: 210 },
+    { id: "RT-001-A", name: "Changi to CBD Express", origin: "Changi Airport T3", destination: "Marina Bay Sands", historicalAvgMins: 30, standardDistanceKm: 19.5, totalTripsCompleted: 542 },
+    { id: "RT-001-B", name: "CBD to Changi Express", origin: "Marina Bay Sands", destination: "Changi Airport T3", historicalAvgMins: 25, standardDistanceKm: 19.5, totalTripsCompleted: 500 },
+    
+    { id: "RT-002-A", name: "Sentosa Inbound", origin: "VivoCity", destination: "Sentosa Cove", historicalAvgMins: 15, standardDistanceKm: 8.0, totalTripsCompleted: 4200 },
+    { id: "RT-002-B", name: "Sentosa Outbound", origin: "Sentosa Cove", destination: "VivoCity", historicalAvgMins: 18, standardDistanceKm: 8.0, totalTripsCompleted: 4350 },
+    
+    { id: "RT-003-A", name: "East Coast Park Outbound", origin: "Bedok Mall", destination: "East Coast Park", historicalAvgMins: 10, standardDistanceKm: 4.2, totalTripsCompleted: 215 },
+    { id: "RT-003-B", name: "East Coast Park Return", origin: "East Coast Park", destination: "Bedok Mall", historicalAvgMins: 12, standardDistanceKm: 4.2, totalTripsCompleted: 215 },
+    
+    { id: "RT-004-A", name: "Mandai Wildlife Transfer", origin: "Boon Lay MRT", destination: "Mandai Wildlife Reserve", historicalAvgMins: 25, standardDistanceKm: 15.8, totalTripsCompleted: 110 },
+    { id: "RT-004-B", name: "Mandai City Return", origin: "Mandai Wildlife Reserve", destination: "Boon Lay MRT", historicalAvgMins: 22, standardDistanceKm: 15.8, totalTripsCompleted: 100 },
   ] as RouteRecord[],
 
   trips: [
-    { id: "TRP-10042", vehicleId: "V-991", driverId: "TR-8291", routeId: "RT-001", status: "In Progress", startTime: "2026-03-11T08:30:00Z", historicalAvgMins: 270, actualDurationMins: 185, distanceKm: 142.5, currentDistanceKm: 84.0 },
-    { id: "TRP-10043", vehicleId: "V-228", driverId: "TR-4512", routeId: "RT-002", status: "In Progress", startTime: "2026-03-11T10:15:00Z", historicalAvgMins: 90, actualDurationMins: 98, distanceKm: 34.0, currentDistanceKm: 12.5 },
-    { id: "TRP-10044", vehicleId: "V-045", driverId: "TR-9922", routeId: "RT-003", status: "Completed", startTime: "2026-03-11T05:00:00Z", historicalAvgMins: 195, actualDurationMins: 180, distanceKm: 68.2, currentDistanceKm: 68.2, score: 94 },
-    { id: "TRP-10045", vehicleId: "V-712", driverId: "TR-3310", routeId: "RT-004", status: "Scheduled", startTime: "2026-03-11T14:00:00Z", historicalAvgMins: 150, distanceKm: 45.8, currentDistanceKm: 0 },
+    { id: "TRP-10042", vehicleId: "V-991", driverId: "TR-8291", routeId: "RT-001-A", status: "In Progress", startTime: "2026-03-11T08:30:00Z", historicalAvgMins: 30, actualDurationMins: 35, distanceKm: 19.5, currentDistanceKm: 12.0 },
+    { id: "TRP-10043", vehicleId: "V-228", driverId: "TR-4512", routeId: "RT-002-B", status: "In Progress", startTime: "2026-03-11T10:15:00Z", historicalAvgMins: 18, actualDurationMins: 12, distanceKm: 8.0, currentDistanceKm: 6.5 },
+    { id: "TRP-10044", vehicleId: "V-045", driverId: "TR-9922", routeId: "RT-003-A", status: "Completed", startTime: "2026-03-11T05:00:00Z", historicalAvgMins: 10, actualDurationMins: 10, distanceKm: 4.2, currentDistanceKm: 4.2, score: 94 },
+    { id: "TRP-10045", vehicleId: "V-712", driverId: "TR-3310", routeId: "RT-004-B", status: "Scheduled", startTime: "2026-03-11T14:00:00Z", historicalAvgMins: 22, distanceKm: 15.8, currentDistanceKm: 0 },
   ] as TripRecord[],
 
   vehicles: [
-    { id: "V-991", plateNumber: "SGB-1234M", model: "EV-Transit Pro", status: "Active", operatingHours: 1250 },
-    { id: "V-228", plateNumber: "SGB-5678X", model: "EV-Transit Pro", status: "Active", operatingHours: 840 },
-    { id: "V-045", plateNumber: "SGC-9012K", model: "Heavy Hauler 500", status: "Maintenance", operatingHours: 3420 },
-    { id: "V-712", plateNumber: "SGB-3456P", model: "EV-Transit Pro", status: "Active", operatingHours: 150 },
+    { id: "VEH-8712", plateNumber: "SGB-1234M", model: "EV-Transit Pro", status: "In Transit", operatingHours: 1250, driver: "Lim Wei Jie", location: "Marina Bay Sands", signal: "Strong" },
+    { id: "VEH-4501", plateNumber: "SGB-5678X", model: "EV-Transit Pro", status: "Charging", operatingHours: 840, driver: "Siti Aisyah", location: "Changi Terminal 3, EV Bay", signal: "Strong" },
+    { id: "VEH-9923", plateNumber: "SGC-9012K", model: "Heavy Hauler 500", status: "Maintenance", operatingHours: 3420, driver: "Muthu Kumar", location: "Jurong West Depot", signal: "Weak" },
+    { id: "VEH-1102", plateNumber: "SGB-3456P", model: "EV-Transit Pro", status: "Idle", operatingHours: 150, driver: "Nurul Huda", location: "Woodlands Checkpoint", signal: "Strong" },
+    { id: "VEH-3345", plateNumber: "SGB-9876R", model: "EV-Transit Pro", status: "In Transit", operatingHours: 420, driver: "Chen Wei Ming", location: "CTE (Central Expressway)", signal: "Medium" },
   ] as VehicleProfile[]
 };

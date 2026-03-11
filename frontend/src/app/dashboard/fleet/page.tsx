@@ -2,14 +2,10 @@
 
 import { Truck, MapPin, Navigation, SignalHigh } from "lucide-react";
 
+import { dashboardConfig } from "@/config/dashboard";
+
 export default function FleetPage() {
-  const mockVehicles = [
-    { id: "VEH-8712", driver: "Marcus Wright", status: "In Transit", location: "Sector 7G, Downtown", signal: "Strong" },
-    { id: "VEH-4501", driver: "Elena Petrov", status: "Charging", location: "Hub Alpha, Bay 12", signal: "Strong" },
-    { id: "VEH-9923", driver: "Jordan Smith", status: "Maintenance", location: "Depot West", signal: "Weak" },
-    { id: "VEH-1102", driver: "Sarah Connor", status: "Idle", location: "Hub Beta", signal: "Strong" },
-    { id: "VEH-3345", driver: "John Doe", status: "In Transit", location: "Highway 401, Northbound", signal: "Medium" },
-  ];
+  const { vehicles } = dashboardConfig;
 
   return (
     <div className="flex-1 overflow-y-auto p-8 space-y-6 bg-muted/20" data-purpose="fleet-page">
@@ -34,14 +30,16 @@ export default function FleetPage() {
             <thead className="bg-muted/50 border-b border-border">
               <tr>
                 <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">Vehicle ID</th>
+                <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">Plate & Model</th>
                 <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">Assigned Driver</th>
                 <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">Status</th>
                 <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">Location</th>
+                <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">Operating Hrs</th>
                 <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">Telemetry Signal</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {mockVehicles.map((vehicle) => (
+              {vehicles.map((vehicle) => (
                 <tr key={vehicle.id} className="hover:bg-muted/30 transition-colors group cursor-pointer">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
@@ -49,6 +47,12 @@ export default function FleetPage() {
                         <Truck className="w-4 h-4" />
                       </div>
                       <span className="font-mono font-bold text-foreground">{vehicle.id}</span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex flex-col">
+                      <span className="font-bold text-foreground text-sm">{vehicle.plateNumber}</span>
+                      <span className="text-xs text-muted-foreground">{vehicle.model}</span>
                     </div>
                   </td>
                   <td className="px-6 py-4 font-medium text-foreground">{vehicle.driver}</td>
@@ -68,6 +72,9 @@ export default function FleetPage() {
                       <MapPin className="w-4 h-4" />
                       {vehicle.location}
                     </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className="font-mono font-medium text-brand-teal">{vehicle.operatingHours.toLocaleString()}h</span>
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2">
