@@ -6,7 +6,7 @@ export function EcosystemSection() {
       <section className="py-24 bg-muted/30 relative" data-purpose="ecosystem-section">
         <div className="container mx-auto px-6">
           <div className="text-center mb-16">
-            <h2 className="text-sm font-bold text-brand-magenta uppercase tracking-[0.3em] mb-4">
+            <h2 className="text-sm font-bold text-brand-teal uppercase tracking-[0.3em] mb-4">
               The Digital Ecosystem
             </h2>
             <h3 className="text-4xl md:text-5xl font-bold fragmented-header text-foreground">
@@ -16,9 +16,9 @@ export function EcosystemSection() {
           
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             {/* Safety Agent */}
-            <div className="p-8 bg-card border border-border rounded-2xl hover:border-brand-magenta/50 hover:shadow-md transition-all cursor-pointer group">
-              <div className="w-12 h-12 mb-6 bg-brand-magenta/10 rounded-lg flex items-center justify-center group-hover:bg-brand-magenta/20 transition-colors">
-                <ShieldAlert className="w-6 h-6 text-brand-magenta" />
+            <div className="p-8 bg-card border border-border rounded-2xl hover:border-brand-teal/50 hover:shadow-md transition-all cursor-pointer group">
+              <div className="w-12 h-12 mb-6 bg-brand-teal/10 rounded-lg flex items-center justify-center group-hover:bg-brand-teal/20 transition-colors">
+                <ShieldAlert className="w-6 h-6 text-brand-teal" />
               </div>
               <h4 className="font-bold text-lg mb-2 text-foreground">Safety Agent</h4>
               <p className="text-sm text-muted-foreground">Enforces operational guardrails and risk mitigation protocols.</p>
@@ -34,9 +34,9 @@ export function EcosystemSection() {
             </div>
             
             {/* Context Agent */}
-            <div className="p-8 bg-card border border-border rounded-2xl hover:border-brand-magenta/50 hover:shadow-md transition-all cursor-pointer group">
-              <div className="w-12 h-12 mb-6 bg-brand-magenta/10 rounded-lg flex items-center justify-center group-hover:bg-brand-magenta/20 transition-colors">
-                <Network className="w-6 h-6 text-brand-magenta" />
+            <div className="p-8 bg-card border border-border rounded-2xl hover:border-brand-teal/50 hover:shadow-md transition-all cursor-pointer group">
+              <div className="w-12 h-12 mb-6 bg-brand-teal/10 rounded-lg flex items-center justify-center group-hover:bg-brand-teal/20 transition-colors">
+                <Network className="w-6 h-6 text-brand-teal" />
               </div>
               <h4 className="font-bold text-lg mb-2 text-foreground">Context Agent</h4>
               <p className="text-sm text-muted-foreground">Synthesizes environmental and historical data streams.</p>
@@ -52,9 +52,9 @@ export function EcosystemSection() {
             </div>
             
             {/* Advocacy Agent */}
-            <div className="p-8 bg-card border border-border rounded-2xl hover:border-brand-magenta/50 hover:shadow-md transition-all cursor-pointer group">
-              <div className="w-12 h-12 mb-6 bg-brand-magenta/10 rounded-lg flex items-center justify-center group-hover:bg-brand-magenta/20 transition-colors">
-                <HeartHandshake className="w-6 h-6 text-brand-magenta" />
+            <div className="p-8 bg-card border border-border rounded-2xl hover:border-brand-teal/50 hover:shadow-md transition-all cursor-pointer group">
+              <div className="w-12 h-12 mb-6 bg-brand-teal/10 rounded-lg flex items-center justify-center group-hover:bg-brand-teal/20 transition-colors">
+                <HeartHandshake className="w-6 h-6 text-brand-teal" />
               </div>
               <h4 className="font-bold text-lg mb-2 text-foreground">Advocacy Agent</h4>
               <p className="text-sm text-muted-foreground">Represents human operator interests in the AI decision loop.</p>
@@ -70,9 +70,9 @@ export function EcosystemSection() {
             </div>
             
             {/* Coaching Agent */}
-            <div className="p-8 bg-card border border-border rounded-2xl hover:border-brand-magenta/50 hover:shadow-md transition-all cursor-pointer group">
-              <div className="w-12 h-12 mb-6 bg-brand-magenta/10 rounded-lg flex items-center justify-center group-hover:bg-brand-magenta/20 transition-colors">
-                <GraduationCap className="w-6 h-6 text-brand-magenta" />
+            <div className="p-8 bg-card border border-border rounded-2xl hover:border-brand-teal/50 hover:shadow-md transition-all cursor-pointer group">
+              <div className="w-12 h-12 mb-6 bg-brand-teal/10 rounded-lg flex items-center justify-center group-hover:bg-brand-teal/20 transition-colors">
+                <GraduationCap className="w-6 h-6 text-brand-teal" />
               </div>
               <h4 className="font-bold text-lg mb-2 text-foreground">Coaching Agent</h4>
               <p className="text-sm text-muted-foreground">Delivers interventions and performance-enhancing insights.</p>
@@ -120,7 +120,7 @@ export function EcosystemSection() {
               
               <div className="space-y-6">
                 <div className="flex items-start gap-4">
-                  <Activity className="w-6 h-6 text-brand-magenta shrink-0" />
+                  <Activity className="w-6 h-6 text-brand-teal shrink-0" />
                   <div>
                     <h5 className="font-bold text-foreground">Sub-100ms Latency</h5>
                     <p className="text-sm text-muted-foreground">Stream processing at the edge for immediate recalibration.</p>

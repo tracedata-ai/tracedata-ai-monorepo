@@ -39,7 +39,7 @@ export function Footer() {
           <div>
             <h5 className="font-bold text-foreground mb-6 uppercase text-xs tracking-widest">Connect</h5>
             <div className="flex gap-4 cursor-pointer text-muted-foreground">
-              <div className="w-10 h-10 rounded-full border border-border flex items-center justify-center hover:bg-brand-magenta/10 hover:border-brand-magenta hover:text-brand-magenta transition-all">
+              <div className="w-10 h-10 rounded-full border border-border flex items-center justify-center hover:bg-brand-teal/10 hover:border-brand-teal hover:text-brand-teal transition-all">
                 <span className="sr-only">LinkedIn</span>
                 <Linkedin className="w-4 h-4" />
               </div>

@@ -15,7 +15,7 @@ export function DashboardPreview() {
             </p>
             <ul className="space-y-4">
               <li className="flex items-center gap-3 text-sm text-foreground">
-                <span className="w-2 h-2 rounded-full bg-brand-magenta"></span>
+                <span className="w-2 h-2 rounded-full bg-brand-teal"></span>
                 One-click Appeals for AI Routing Decisions
               </li>
               <li className="flex items-center gap-3 text-sm text-foreground">

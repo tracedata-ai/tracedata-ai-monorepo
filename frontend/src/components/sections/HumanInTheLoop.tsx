@@ -6,7 +6,7 @@ export function HumanInTheLoop() {
       
       <div className="container mx-auto px-6 text-center relative pointer-events-auto">
         <div className="max-w-3xl mx-auto">
-          <h2 className="text-sm font-bold text-brand-magenta uppercase tracking-[0.3em] mb-4">
+          <h2 className="text-sm font-bold text-brand-teal uppercase tracking-[0.3em] mb-4">
             Human & AI Harmony
           </h2>
           <h3 className="text-4xl md:text-5xl font-bold mb-8 fragmented-header text-foreground">
@@ -23,7 +23,7 @@ export function HumanInTheLoop() {
             </div>
             <div className="w-12 h-px md:w-px md:h-12 bg-border"></div>
             <div className="text-center md:text-left">
-              <span className="block text-4xl font-bold text-brand-magenta">0.88</span>
+              <span className="block text-4xl font-bold text-brand-teal">0.88</span>
               <span className="text-xs uppercase tracking-widest text-muted-foreground">Fleet Equilibrium Score</span>
             </div>
             <div className="w-12 h-px md:w-px md:h-12 bg-border"></div>

@@ -2,7 +2,7 @@ export function BurnoutHeatmap() {
   return (
     <section className="py-24 bg-muted/30 border-t border-border">
       <div className="container mx-auto px-6 text-center">
-        <h2 className="text-sm font-bold text-brand-magenta uppercase tracking-[0.3em] mb-4">
+        <h2 className="text-sm font-bold text-brand-teal uppercase tracking-[0.3em] mb-4">
           Predictive Wellness
         </h2>
         <h3 className="text-4xl md:text-5xl font-bold mb-12 fragmented-header text-foreground">
@@ -21,7 +21,7 @@ export function BurnoutHeatmap() {
           
           <div className="flex flex-col justify-center gap-6 text-left">
             <div className="p-6 bg-card border border-border rounded-2xl shadow-sm transition-colors">
-              <h5 className="text-brand-magenta font-bold uppercase text-xs mb-2">
+              <h5 className="text-brand-teal font-bold uppercase text-xs mb-2">
                 Wellness Interventions
               </h5>
               <p className="text-muted-foreground text-sm">

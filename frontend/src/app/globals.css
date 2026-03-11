@@ -45,16 +45,15 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
-
   /* Brand Colors */
   --color-brand-deep-navy: #0c1428;
-  --color-brand-magenta: #d62d85;
+  --color-brand-teal: #0d9488; /* Changed from pink to teal */
   --color-brand-blue: #2575fc;
   --color-brand-light-gray: #e5e7eb;
   --color-brand-slate: #1e293b;
 
   /* Brand Gradients */
-  --background-image-gradient-brand: linear-gradient(135deg, #d62d85 0%, #2575fc 100%);
+  --background-image-gradient-brand: linear-gradient(135deg, #2575fc 0%, #0d9488 100%);
   --background-image-mission-control: radial-gradient(circle at center, #1e293b 0%, #0c1428 100%);
 }
 

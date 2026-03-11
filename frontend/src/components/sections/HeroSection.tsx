@@ -4,7 +4,7 @@ export function HeroSection() {
   return (
     <section className="relative min-h-screen flex items-center pt-20 overflow-hidden" data-purpose="hero-section" id="hero">
       <div className="absolute inset-0 grid-overlay opacity-30 dark:opacity-100 -z-10"></div>
-      <div className="absolute top-1/4 -right-20 w-96 h-96 bg-brand-magenta/10 dark:bg-brand-magenta/20 blur-[120px] rounded-full"></div>
+      <div className="absolute top-1/4 -right-20 w-96 h-96 bg-brand-teal/10 dark:bg-brand-teal/20 blur-[120px] rounded-full"></div>
       <div className="absolute bottom-1/4 -left-20 w-96 h-96 bg-brand-blue/10 dark:bg-brand-blue/20 blur-[120px] rounded-full"></div>
       
       <div className="container mx-auto px-6 grid lg:grid-cols-2 gap-12 items-center">
@@ -32,7 +32,7 @@ export function HeroSection() {
           {/* XAI Metrics Small Card */}
           <div className="mt-12 p-4 bg-background/50 border border-border rounded-xl backdrop-blur-sm flex items-center gap-6 max-w-md shadow-sm">
             <div className="flex flex-col">
-              <span className="text-[10px] text-brand-magenta font-bold uppercase tracking-widest">
+              <span className="text-[10px] text-brand-teal font-bold uppercase tracking-widest">
                 Active Orchestration
               </span>
               <span className="text-2xl font-mono text-foreground">
@@ -45,15 +45,15 @@ export function HeroSection() {
                 Latency
               </span>
               <span className="text-2xl font-mono text-foreground">
-                12<span className="text-brand-magenta text-sm">ms</span>
+                12<span className="text-brand-teal text-sm">ms</span>
               </span>
             </div>
             <div className="h-10 w-px bg-border"></div>
             <div className="flex-grow flex justify-end">
               <div className="flex gap-1 items-end h-8">
-                <div className="w-1 bg-brand-magenta h-4"></div>
+                <div className="w-1 bg-brand-teal h-4"></div>
                 <div className="w-1 bg-brand-blue h-6"></div>
-                <div className="w-1 bg-brand-magenta h-8"></div>
+                <div className="w-1 bg-brand-teal h-8"></div>
                 <div className="w-1 bg-brand-blue h-5"></div>
               </div>
             </div>

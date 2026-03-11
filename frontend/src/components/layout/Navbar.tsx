@@ -18,16 +18,16 @@ export function Navbar() {
         </div>
         
         <div className="hidden md:flex items-center gap-8 text-sm font-semibold uppercase tracking-widest text-muted-foreground">
-          <Link href="#" className="hover:text-brand-magenta transition-colors">
+          <Link href="#" className="hover:text-brand-teal transition-colors">
             Ecosystem
           </Link>
-          <Link href="#" className="hover:text-brand-magenta transition-colors">
+          <Link href="#" className="hover:text-brand-teal transition-colors">
             Mission Control
           </Link>
-          <Link href="#" className="hover:text-brand-magenta transition-colors">
+          <Link href="#" className="hover:text-brand-teal transition-colors">
             Human-XAI
           </Link>
-          <Link href="#" className="hover:text-brand-magenta transition-colors">
+          <Link href="#" className="hover:text-brand-teal transition-colors">
             Solutions
           </Link>
         </div>
