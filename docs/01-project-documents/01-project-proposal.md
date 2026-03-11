@@ -47,16 +47,16 @@ Small-to-medium truck fleet operators (50-200 vehicles) currently use basic tele
 
 **Agent 1: Ingestion Quality Agent**
 
-- **Role:** Validates telemetry, monitors data quality
+- **Role:** Validates dual data sources: structured telemetry (GPS/speed) and unstructured text (appeals). Handles batched pings (4-10 min) vs real-time critical bypass.
 - **Assurance:** Schema validation, range checks, offline detection
 - **Fairness:** Equal treatment of all vehicles (no bias in ingestion)
-- **Security:** SQL injection prevention, malicious payload rejection
+- **Security:** SQL injection prevention, malicious payload rejection. Selectively routes only text to the PII Scrubber Agent.
 - **Governance:** Data retention policy enforced
 
 **Agent 2: Orchestrator Agent (Central Router)**
 
-- **Powered by:** LLM
-- **Role:** Routes events to appropriate agents, logs all decisions
+- **Powered by:** Hybrid (Deterministic Router + Small LLM)
+- **Role:** Central dispatcher. Evaluates 4-minute batches quickly (discard/persist) or uses LLM reasoning to route unstructured text and manage driver encouragement profiles.
 - **Trust & Accountability:** full audit trail for decisions made
 - **Fairness:** Ensures fair agent utilization
 - **Explainability:** Reasoning for every routing decision logged
@@ -102,8 +102,8 @@ Small-to-medium truck fleet operators (50-200 vehicles) currently use basic tele
 
 **Agent 7: Safety Agent**
 
-- **Powered by:** Gets dedicated high priority queue from the Telematics unit via Kafka. Information is enriched in context from other agents
-- **Role:** Detects critical incidents, escalates to FM
+- **Powered by:** Dedicated high-priority Critical Events pipe from Kafka. Enriched via Context Agent.
+- **Role:** Detects critical incidents and executes a multi-level intervention strategy: Level 1 (App Notification), Level 2 (Formal Message), Level 3 (Direct Call).
 - **Assurance:** Real-time (< 5 sec) incident detection
 - **Security:** Verification that critical event is real (not false alarm)
 - **Accountability:** Incident log + FM action tracking
@@ -111,8 +111,8 @@ Small-to-medium truck fleet operators (50-200 vehicles) currently use basic tele
 
 **Agent 8: Context Enrichment Agent**
 
-- **Powered by:** API calls first layer, followed by LLM to find meaning. Example, Telematics devices give us raw data like GPS coordinates. Maps API enrich by giving us the latest details for the location like conditions, warnings etc, LLM enriches it to have the data ready for review even before it reaches the fleet manager.
-- **Role:** Provides road/weather context for decisions
+- **Powered by:** Model Context Protocol (MCP) to access external mapping and weather APIs deterministically within < 2 seconds.
+- **Role:** Shared high-speed Tool providing road/weather context for decisions.
 - **Fairness:** Context ensures fair comparisons (night vs day, urban vs highway)
 - **Security:** Lookup integrity, no data leakage
 
@@ -148,7 +148,7 @@ Small-to-medium truck fleet operators (50-200 vehicles) currently use basic tele
 | **ML Model**            | XGBoost               | Fast, interpretable, handles missing data             |
 | **Async Framework**     | FastAPI               | Production-grade async Python framework               |
 | **Task Queue**          | Celery + Redis        | Distributed task execution, priority queuing          |
-| **Database**            | PostgreSQL + pgvector | ACID compliance, JSONB for sparse data, vector search |
+| **Database**            | PostgreSQL + pgvector | ACID compliance, JSONB, schema segregation per agent, vector search   |
 | **Streaming**           | Apache Kafka          | High-throughput event bus, durability                 |
 | **ML Tracking**         | MLflow                | Model versioning, metrics logging                     |
 | **LLM Integration**     | OpenAI API            | Enrichment and Reasoning                              |

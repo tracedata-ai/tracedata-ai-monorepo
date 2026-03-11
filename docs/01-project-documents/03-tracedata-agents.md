@@ -13,8 +13,8 @@ The topology is designed to prevent runaway token costs and execution bottleneck
 ### 1. Ingestion Quality Agent (Deterministic Router)
 
 - **Type**: Deterministic Python Service (Not LLM-based)
-- **Role**: Sits between Kafka consumers and the database. Parses incoming payloads (Start, Batch, End, Emergency).
-- **Execution**: Scrubs standard structured telemetry (GPS, Speed, RPM) using strict validation rules and routes the sanitized data directly to PostgreSQL.
+- **Role**: Sits between Kafka consumers and the database. Receives dual sources: structured telemetry and unstructured driver inputs. Handles 4-10 minute batch pings and real-time critical bypass pings.
+- **Execution**: Scrubs standard structured telemetry (GPS, Speed, RPM) deterministically and routes it directly to PostgreSQL.
 - **Handoff**: Extracts any free-text `user_input` and forwards it exclusively to the PII Scrubber Agent.
 
 ### 2. PII Scrubber Agent
@@ -29,9 +29,9 @@ The topology is designed to prevent runaway token costs and execution bottleneck
 
 - **Type**: LangGraph State Machine (Router/Evaluator)
 - **Role**: The central dispatcher for the system. Once data is pre-processed, the Orchestrator evaluates the event type to determine the execution path.
-- **4-Minute Batch Handling**: Runs a fast, low-cost evaluation node ("Are critical actions needed?"). If no, execution terminates (persists to DB). If yes, routes to appropriate sub-agents.
+- **4-Minute Batch Handling**: Runs a fast, low-cost evaluation node ("Are critical actions needed?"). If no, execution terminates (persists to DB). If yes, routes to appropriate sub-agents. Aggregates data to build an encouragement profile.
 - **End-of-Trip Handling**: Routes the payload to the Behavior Agent to initiate scoring.
-- **Feedback/Appeals**: Routes to the Sentiment and Advocacy agents.
+- **Feedback/Appeals**: Uses LLM-based reasoning on unstructured text to route to the Sentiment and Advocacy agents.
 
 ## 4. Analytical & Action Agents
 
@@ -45,9 +45,9 @@ The topology is designed to prevent runaway token costs and execution bottleneck
 ### 5. Safety Agent
 
 - **Type**: Deterministic Evaluator + Tool Caller
-- **Role**: Triggered by an `Emergency Ping` or a critical flag from a `4-Minute Batch`.
+- **Role**: Triggered by an `Emergency Ping` from the dedicated Critical Events pipe.
 - **Action**: Quickly analyzes the critical event (e.g., hard brake > 0.6g) against enriched context (via Context Agent).
-- **Output**: Generates real-time alerts for the Fleet Manager dashboard via external notification services if the anomaly is severe.
+- **Output**: Executes a multi-level intervention strategy: Level 1 (App Notification), Level 2 (Formal Message), or Level 3 (Direct Call/Escalation to FM).
 
 ### 6. Sentiment Agent
 
