@@ -39,6 +39,7 @@ TraceData is an academic capstone project focusing primarily on advanced AI orch
     *   **4-Minute Batch Ping:** Regular heartbeat containing sparse event arrays and safe operation checkpoints.
     *   **End-of-Trip Ping:** Marks trip completion, encapsulates the full summary, and triggers backend ML scoring.
     *   **Emergency Ping:** Out-of-band transmission for critical events (e.g., collisions, panic button) requiring immediate response.
+    *(See [03-project-report.md](./03-project-report.md) for the detailed Flat Schema JSON structure and trigger conditions).*
 *   **Data Integrity:** The system SHALL ingest telemetry via **Apache Kafka** streams, organized by ping type, to ensure durability, high-throughput handling, and full event replayability. All payloads SHALL be persisted using Time-Series optimized storage, handling out-of-order or duplicate messages idempotently.
 *   **Ingestion Processing:** An **Ingestion Quality Agent** SHALL selectively handle incoming data based on its payload type. Standard telemetry (e.g., GPS, speed) is scrubbed deterministically. User-generated content (e.g., driver text, appeals) is handed over to a dedicated **PII Scrubber Agent** for complex cleaning.
 *   **Orchestrator Handoff:** After PII cleaning and deterministic scrubbing, the data is written to the database and then passed to the Orchestrator. The Orchestrator evaluates `4-Minute Batch Pings` for immediate actions; if none are found, the execution terminates (discarded from active processing).
@@ -112,7 +113,7 @@ TraceData is an academic capstone project focusing primarily on advanced AI orch
 *   **Stream Ingestion:** Apache Kafka SHALL be used for all external telemetry ingestion to mirror industry standards and provide event replayability across different topic pipes.
 *   **Internal Queueing & State:** Redis and Celery SHALL be used for all asynchronous task queueing, state management (e.g., tracking active vs. zombie trips), and background processing within the AI middleware.
 *   **Data Storage:** A single organizational PostgreSQL database SHALL be used. While schemas for fleet data (e.g., vehicles, drivers) will exist, they are nominal and designed strictly to provide the necessary state and context for the AI agents.
-*   **AI Agents:** LangGraph SHALL be used for orchestrating cyclical agent workflows (e.g., Context loops, Refinement). Refer to [03-tracedata-agents.md](./03-tracedata-agents.md) for detailed agent topologies and responsibilities.
+*   **AI Agents:** LangGraph SHALL be used for orchestrating cyclical agent workflows (e.g., Context loops, Refinement). Refer to [03-project-report.md](./03-project-report.md) for detailed agent topologies and responsibilities.
 
 ---
 
