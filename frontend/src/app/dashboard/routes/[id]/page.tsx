@@ -9,8 +9,7 @@ import {
   ArrowLeft,
   Map,
   Activity,
-  Target,
-  ArrowRight as ArrowRightIcon
+  Target
 } from "lucide-react";
 
 export default function RouteDetailsPage({

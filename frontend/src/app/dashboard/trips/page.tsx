@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Search, Route, Clock, CheckCircle2, MapPin, ExternalLink, Activity, ArrowRight, ShieldCheck, Map } from "lucide-react";
-import { dashboardConfig, TripRecord } from "@/config/dashboard";
+import { Search, Route, Clock, CheckCircle2, ExternalLink, ShieldCheck } from "lucide-react";
+import { dashboardConfig } from "@/config/dashboard";
 import {
   Table,
   TableBody,

@@ -1,7 +1,7 @@
 "use client";
 
 import { dashboardConfig } from "@/config/dashboard";
-import { Bot, Activity, BrainCircuit, ShieldCheck, Scale, AlertTriangle, MessageSquare, GraduationCap } from "lucide-react";
+import { Bot, Activity, BrainCircuit, ShieldCheck, Scale, MessageSquare, GraduationCap } from "lucide-react";
 
 export default function AgentsPage() {
   const { agents } = dashboardConfig;

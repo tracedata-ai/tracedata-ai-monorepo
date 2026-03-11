@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Users, Search, UserCheck, ShieldAlert, Award, ExternalLink, X } from "lucide-react";
+import { Search, UserCheck, ShieldAlert, Award, ExternalLink } from "lucide-react";
 import { dashboardConfig } from "@/config/dashboard";
 import {
   Table,

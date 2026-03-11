@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { dashboardConfig, IssueRecord } from "@/config/dashboard";
+import { dashboardConfig } from "@/config/dashboard";
 import Link from "next/link";
 import {
   Download,

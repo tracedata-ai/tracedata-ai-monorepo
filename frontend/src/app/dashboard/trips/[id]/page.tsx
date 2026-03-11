@@ -3,7 +3,7 @@
 import { use } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { dashboardConfig, TripRecord } from "@/config/dashboard";
+import { dashboardConfig } from "@/config/dashboard";
 import {
   ChevronRight,
   ArrowLeft,
