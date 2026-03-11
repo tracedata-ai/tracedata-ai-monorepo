@@ -2,13 +2,15 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Rocket, LayoutDashboard, Bot, Truck, AlertTriangle, BarChart3, Settings } from "lucide-react";
+import { Rocket, LayoutDashboard, Bot, Truck, AlertTriangle, BarChart3, Settings, Users, Route } from "lucide-react";
 import { dashboardConfig } from "@/config/dashboard";
 
 const getIcon = (iconName: string) => {
   switch (iconName) {
     case "LayoutDashboard": return <LayoutDashboard className="w-5 h-5" />;
     case "Bot": return <Bot className="w-5 h-5" />;
+    case "Users": return <Users className="w-5 h-5" />;
+    case "Route": return <Route className="w-5 h-5" />;
     case "Truck": return <Truck className="w-5 h-5" />;
     case "AlertTriangle": return <AlertTriangle className="w-5 h-5" />;
     case "BarChart3": return <BarChart3 className="w-5 h-5" />;
