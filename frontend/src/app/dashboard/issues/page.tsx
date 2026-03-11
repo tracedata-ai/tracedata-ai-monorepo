@@ -1,68 +1,368 @@
 "use client";
 
-import { AlertTriangle, AlertCircle, Info, CheckCircle2 } from "lucide-react";
+import { useState } from "react";
+import { dashboardConfig, IssueRecord } from "@/config/dashboard";
+import {
+  Download,
+  Plus,
+  ChevronsUp,
+  ChevronUp,
+  ChevronDown,
+  Minus,
+  X,
+  Truck,
+  Brain,
+} from "lucide-react";
 
 export default function IssuesPage() {
-  const mockIssues = [
-    { id: "ISS-001", type: "System Alert", severity: "Critical", message: "Telemetry loss on Vehicle VEH-9923 for > 5 minutes.", time: "10 mins ago", status: "Open" },
-    { id: "ISS-002", type: "Driver Contest", severity: "High", message: "Elena Petrov contesting automated break schedule penalty.", time: "1 hr ago", status: "Under Review" },
-    { id: "ISS-003", type: "Agent Warning", severity: "Medium", message: "Behavior Agent (AG-04) detecting anomalous clustering in Sector 7G.", time: "2 hrs ago", status: "Open" },
-    { id: "ISS-004", type: "System Alert", severity: "Low", message: "Daily database optimization routine completed successfully.", time: "5 hrs ago", status: "Resolved" },
-  ];
+  const [activeTab, setActiveTab] = useState("Open");
+  const [selectedIssueId, setSelectedIssueId] = useState<string | null>(null);
+
+  const selectedIssue = dashboardConfig.issues.find(
+    (issue) => issue.id === selectedIssueId
+  ) || null;
+
+  const renderPriorityIcon = (priority: string) => {
+    switch (priority) {
+      case "Critical":
+        return <ChevronsUp className="w-5 h-5 text-red-500" />;
+      case "High":
+        return <ChevronUp className="w-5 h-5 text-orange-500" />;
+      case "Medium":
+        return <Minus className="w-5 h-5 text-slate-400" />;
+      case "Low":
+        return <ChevronDown className="w-5 h-5 text-blue-500" />;
+      default:
+        return <Minus className="w-5 h-5 text-slate-400" />;
+    }
+  };
+
+  const renderStatusBadge = (status: string) => {
+    switch (status) {
+      case "Resolved":
+        return (
+          <span className="px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full text-xs font-bold">
+            Resolved
+          </span>
+        );
+      case "Open":
+        return (
+          <span className="px-3 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-full text-xs font-bold">
+            Open
+          </span>
+        );
+      case "Overdue":
+        return (
+          <span className="px-3 py-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-full text-xs font-bold">
+            Overdue
+          </span>
+        );
+      case "Closed":
+        return (
+          <span className="px-3 py-1 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-full text-xs font-bold">
+            Closed
+          </span>
+        );
+      default:
+        return null;
+    }
+  };
 
   return (
-    <div className="flex-1 overflow-y-auto p-8 space-y-6 bg-muted/20" data-purpose="issues-page">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-foreground">Issue Resolution Center</h2>
-          <p className="text-muted-foreground text-sm">Manage system alerts, agent warnings, and driver appeals.</p>
+    <div className="flex-1 flex flex-col min-w-0 bg-background h-full overflow-hidden">
+      {/* Header Section */}
+      <header className="bg-white dark:bg-slate-900 border-b border-border px-8 py-6 flex-shrink-0">
+        <div className="flex flex-wrap justify-between items-center gap-4">
+          <div>
+            <h2 className="text-3xl font-black text-foreground tracking-tight">
+              Issues
+            </h2>
+            <p className="text-muted-foreground mt-1 text-sm">
+              Manage and track fleet maintenance faults and real-time alerts.
+            </p>
+          </div>
+          <div className="flex gap-3">
+            <button className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-border rounded-lg text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800/80 transition-colors">
+              <Download className="w-4 h-4" />
+              Export Data
+            </button>
+            <button className="flex items-center gap-2 px-4 py-2 bg-brand-blue text-white rounded-lg text-sm font-semibold hover:bg-brand-blue/90 shadow-sm transition-colors">
+              <Plus className="w-4 h-4" />
+              Log New Issue
+            </button>
+          </div>
         </div>
-        <div className="flex gap-2 bg-muted p-1 rounded-lg border border-border">
-          <button className="px-4 py-1.5 text-sm font-bold bg-background shadow-sm rounded-md text-foreground">All Issues</button>
-          <button className="px-4 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Pending (3)</button>
-          <button className="px-4 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Resolved</button>
-        </div>
-      </div>
 
-      <div className="bg-card rounded-xl border border-border overflow-hidden shadow-sm">
-        <div className="p-4 border-b border-border bg-muted/30 flex items-center justify-between">
-          <h3 className="font-bold text-sm text-foreground">Action Required</h3>
-          <span className="text-xs bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 font-bold px-2 py-1 rounded-md">3 Open</span>
-        </div>
-        <div className="divide-y divide-border">
-          {mockIssues.map((issue) => (
-            <div key={issue.id} className="p-4 hover:bg-muted/10 transition-colors flex items-start gap-4">
-              <div className="mt-1">
-                {issue.severity === 'Critical' && <AlertCircle className="w-5 h-5 text-red-500" />}
-                {issue.severity === 'High' && <AlertTriangle className="w-5 h-5 text-amber-500" />}
-                {issue.severity === 'Medium' && <AlertTriangle className="w-5 h-5 text-amber-400" />}
-                {issue.severity === 'Low' && <CheckCircle2 className="w-5 h-5 text-brand-teal" />}
-              </div>
-              <div className="flex-1 space-y-1">
-                <div className="flex justify-between items-start">
-                  <h4 className="font-bold text-sm text-foreground">{issue.message}</h4>
-                  <span className="text-xs text-muted-foreground whitespace-nowrap">{issue.time}</span>
-                </div>
-                <div className="flex items-center gap-3 mt-2">
-                  <span className="text-xs font-mono text-muted-foreground">{issue.id}</span>
-                  <span className="text-xs font-medium text-muted-foreground">•</span>
-                  <span className="text-xs font-medium text-muted-foreground">{issue.type}</span>
-                  <span className="text-xs font-medium text-muted-foreground">•</span>
-                  <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full ${
-                    issue.status === 'Resolved' ? 'bg-brand-teal/10 text-brand-teal border border-brand-teal/20' :
-                    'bg-muted border border-border text-foreground'
-                  }`}>
-                    {issue.status}
-                  </span>
-                </div>
-              </div>
-              <div>
-                <button className="text-brand-blue text-sm font-bold hover:underline">View Details</button>
-              </div>
-            </div>
+        {/* Tabs */}
+        <div className="mt-8 flex gap-8">
+          {["Open", "Overdue", "Resolved", "Closed"].map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`pb-3 border-b-2 text-sm font-bold transition-colors ${
+                activeTab === tab
+                  ? "border-brand-blue text-brand-blue"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {tab}
+            </button>
           ))}
         </div>
+      </header>
+
+      {/* Content Area with Table and Quick View */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Data Table Section */}
+        <div className="flex-1 overflow-auto p-8 border-r border-border">
+          <div className="bg-white dark:bg-slate-900 rounded-xl border border-border overflow-hidden shadow-sm">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-border">
+                  <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                    Priority
+                  </th>
+                  <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                    Name
+                  </th>
+                  <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                    Type
+                  </th>
+                  <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                    Issue #
+                  </th>
+                  <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                    Summary
+                  </th>
+                  <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                    AI Agent
+                  </th>
+                  <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                    Reported
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {dashboardConfig.issues.map((issue) => (
+                  <tr
+                    key={issue.id}
+                    onClick={() => setSelectedIssueId(issue.id)}
+                    className={`hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer transition-colors ${
+                      selectedIssueId === issue.id ? "bg-brand-blue/5" : ""
+                    }`}
+                  >
+                    <td className="px-6 py-4">
+                      {renderPriorityIcon(issue.priority)}
+                    </td>
+                    <td className="px-6 py-4 font-semibold text-foreground">
+                      {issue.assetName}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-muted-foreground">
+                      {issue.type}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-muted-foreground">
+                      {issue.id}
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded text-xs font-medium text-slate-600 dark:text-slate-300">
+                        {issue.summary}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      {issue.agent === "Safety Agent" ? (
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                          <span className="text-xs font-bold text-brand-blue px-2 py-1 bg-brand-blue/10 rounded-full">
+                            {issue.agent}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-xs font-bold text-muted-foreground px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded-full">
+                          {issue.agent}
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4">
+                      {renderStatusBadge(issue.status)}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-muted-foreground">
+                      {issue.reportedDate}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Quick View Sidebar */}
+        {selectedIssue && (
+          <aside className="w-96 flex-shrink-0 bg-white dark:bg-slate-900 border-l border-border flex flex-col overflow-y-auto animate-in slide-in-from-right-4 duration-300">
+            {/* Header */}
+            <div className="p-6 border-b border-border">
+              <div className="flex justify-between items-start mb-4">
+                <h3 className="text-lg font-bold text-foreground tracking-tight">
+                  Issue Details
+                </h3>
+                <button
+                  onClick={() => setSelectedIssueId(null)}
+                  className="p-1 text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="flex items-center gap-4 mb-6">
+                <div className="w-12 h-12 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                  <Truck className="w-6 h-6 text-slate-600 dark:text-slate-400" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-foreground">
+                    {selectedIssue.assetName}
+                  </h4>
+                  <p className="text-xs text-muted-foreground font-medium uppercase">
+                    ID: {selectedIssue.vehicleId}
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                  <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">
+                    Status
+                  </p>
+                  <p
+                    className={`text-sm font-bold uppercase ${
+                      selectedIssue.status === "Resolved"
+                        ? "text-green-600 dark:text-green-400"
+                        : "text-amber-600 dark:text-amber-400"
+                    }`}
+                  >
+                    {selectedIssue.status}
+                  </p>
+                </div>
+                <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                  <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">
+                    Priority
+                  </p>
+                  <p
+                    className={`text-sm font-bold uppercase ${
+                      selectedIssue.priority === "Critical"
+                        ? "text-red-600 dark:text-red-400"
+                        : selectedIssue.priority === "High"
+                        ? "text-orange-600 dark:text-orange-400"
+                        : selectedIssue.priority === "Medium"
+                        ? "text-slate-600 dark:text-slate-400"
+                        : "text-blue-600 dark:text-blue-400"
+                    }`}
+                  >
+                    {selectedIssue.priority}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* AI Context & Timeline */}
+            <div className="p-6 space-y-8">
+              {/* Resolution Summary */}
+              {selectedIssue.status === "Resolved" && (
+                <div>
+                  <h5 className="text-xs font-bold text-foreground uppercase tracking-wider mb-4">
+                    Resolution Summary
+                  </h5>
+                  <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-border space-y-3">
+                    <div>
+                      <p className="text-[10px] text-slate-500 uppercase font-bold">
+                        Technician
+                      </p>
+                      <p className="text-sm font-semibold text-foreground mt-0.5">
+                        {selectedIssue.technician}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-slate-500 uppercase font-bold">
+                        Action Taken
+                      </p>
+                      <p className="text-sm text-slate-600 dark:text-slate-400 mt-0.5">
+                        {selectedIssue.resolutionAction}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-slate-500 uppercase font-bold">
+                        Resolved Date
+                      </p>
+                      <p className="text-sm text-slate-600 dark:text-slate-400 font-medium mt-0.5">
+                        {selectedIssue.resolvedDate}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* AI Reasoning */}
+              {selectedIssue.agentReasoning && (
+                <div>
+                  <h5 className="text-xs font-bold text-foreground uppercase tracking-wider mb-4 flex items-center gap-2">
+                    <Brain className="w-4 h-4 text-brand-blue" />
+                    AI Reasoning ({selectedIssue.agent})
+                  </h5>
+                  <div className="relative pl-6 border-l-2 border-brand-blue/20">
+                    <div className="absolute -left-[9px] top-0 w-4 h-4 bg-brand-blue rounded-full ring-4 ring-white dark:ring-slate-900"></div>
+                    <div className="bg-brand-blue/5 p-4 rounded-xl border border-brand-blue/10">
+                      <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed italic">
+                        &quot;{selectedIssue.agentReasoning}&quot;
+                      </p>
+                      {selectedIssue.agentTags && (
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {selectedIssue.agentTags.map((tag) => (
+                            <span
+                              key={tag}
+                              className="px-2 py-0.5 bg-brand-blue/20 text-brand-blue text-[10px] font-bold rounded"
+                            >
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Fault Timeline */}
+              {selectedIssue.timeline && selectedIssue.timeline.length > 0 && (
+                <div>
+                  <h5 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4">
+                    Fault Timeline
+                  </h5>
+                  <div className="relative pl-6 border-l-2 border-slate-200 dark:border-slate-800 space-y-6">
+                    {selectedIssue.timeline.map((event, idx) => (
+                      <div key={idx} className="relative">
+                        <div className="absolute -left-[31px] top-0 w-4 h-4 bg-slate-300 dark:bg-slate-700 rounded-full ring-4 ring-white dark:ring-slate-900"></div>
+                        <div>
+                          <p className="text-xs font-bold text-foreground">
+                            {event.title}
+                          </p>
+                          <p className="text-xs text-slate-500 mt-0.5">
+                            {event.timestamp}
+                          </p>
+                          <p className="text-sm text-slate-600 dark:text-slate-400 mt-1.5">
+                            {event.description}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </aside>
+        )}
       </div>
     </div>
   );
 }
+

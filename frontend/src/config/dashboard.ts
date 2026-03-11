@@ -86,6 +86,30 @@ export interface TripRecord {
   score?: number; // 0-100, populated when completed
 }
 
+export interface IssueTimelineEvent {
+  title: string;
+  timestamp: string;
+  description: string;
+}
+
+export interface IssueRecord {
+  id: string; // e.g., IDX-902
+  vehicleId: string; // e.g., Truck-402, or V-991 to match vehicles table
+  assetName: string; // e.g., Van-105
+  priority: "Critical" | "High" | "Medium" | "Low";
+  type: string; // e.g., Engine, Brakes
+  summary: string;
+  agent: "Safety Agent" | "Context Agent" | "Behavior Agent" | "Maintenance Agent" | string;
+  agentReasoning?: string;
+  agentTags?: string[];
+  status: "Open" | "Overdue" | "Resolved" | "Closed";
+  reportedDate: string;
+  resolvedDate?: string;
+  technician?: string;
+  resolutionAction?: string;
+  timeline: IssueTimelineEvent[];
+}
+
 // --- Mock Data ---
 
 export const dashboardConfig = {
@@ -185,5 +209,80 @@ export const dashboardConfig = {
     { id: "VEH-9923", plateNumber: "SGC-9012K", model: "Heavy Hauler 500", status: "Maintenance", operatingHours: 3420, driver: "Muthu Kumar", location: "Jurong West Depot", signal: "Weak" },
     { id: "VEH-1102", plateNumber: "SGB-3456P", model: "EV-Transit Pro", status: "Idle", operatingHours: 150, driver: "Nurul Huda", location: "Woodlands Checkpoint", signal: "Strong" },
     { id: "VEH-3345", plateNumber: "SGB-9876R", model: "EV-Transit Pro", status: "In Transit", operatingHours: 420, driver: "Chen Wei Ming", location: "CTE (Central Expressway)", signal: "Medium" },
-  ] as VehicleProfile[]
+  ] as VehicleProfile[],
+
+  issues: [
+    {
+      id: "IDX-902",
+      vehicleId: "VEH-9923",
+      assetName: "Heavy Hauler 500",
+      priority: "Critical",
+      type: "Engine",
+      summary: "Overheating",
+      agent: "Safety Agent",
+      status: "Resolved",
+      reportedDate: "Oct 24, 2026",
+      resolvedDate: "Oct 25, 2026 at 10:30 AM",
+      technician: "Mike Repairs (Jurong West Depot)",
+      resolutionAction: "Radiator replaced and coolant system flushed.",
+      agentReasoning: "Safety Agent flagged this as critical based on sensor data showing oil temperature exceeding 220°F while at idle. Correlated with driver logs indicating 'odd noise' at stop-and-go intervals.",
+      agentTags: ["Engine Thermals", "Acoustic Signal"],
+      timeline: [
+        { title: "Issue Detected", timestamp: "Oct 24, 2026 • 08:42 AM", description: "Automatic diagnostic scan triggered fault code P0217." },
+        { title: "AI Analysis Completed", timestamp: "Oct 24, 2026 • 08:45 AM", description: "Safety Agent assigned priority 'Critical' based on route history." },
+        { title: "Dispatched to Maintenance", timestamp: "Oct 24, 2026 • 09:15 AM", description: "Assigned to Jurong West Depot Service Team." }
+      ]
+    },
+    {
+      id: "IDX-844",
+      vehicleId: "VEH-8712",
+      assetName: "EV-Transit Pro",
+      priority: "High",
+      type: "Brakes",
+      summary: "Wear Alert",
+      agent: "Context Agent",
+      status: "Open",
+      reportedDate: "Oct 23, 2026",
+      agentReasoning: "Context Agent correlated weather data (heavy rain expected in CBD) with deteriorating brake pad sensors (under 15% life). High risk of hydroplaning or extended stopping distance.",
+      agentTags: ["Weather Context", "Sensor Telemetry"],
+      timeline: [
+        { title: "Sensor Threshold Reached", timestamp: "Oct 23, 2026 • 02:14 PM", description: "Brake pad wear sensor below 15%." },
+        { title: "Context Agent Evaluation", timestamp: "Oct 23, 2026 • 02:18 PM", description: "Priority elevated to 'High' due to impending monsoon warning in service area." }
+      ]
+    },
+    {
+      id: "IDX-772",
+      vehicleId: "VEH-4501",
+      assetName: "EV-Transit Pro",
+      priority: "High",
+      type: "Battery",
+      summary: "Thermal Spike",
+      agent: "Safety Agent",
+      status: "Open",
+      reportedDate: "Oct 22, 2026",
+      agentReasoning: "Safety Agent detected rapid temperature escalation in Cell Block 4 during fast-charging at Changi Terminal 3. Halting charge cycle to prevent thermal runaway.",
+      agentTags: ["Battery Thermals", "Charge Cycle"],
+      timeline: [
+        { title: "Temp Anomaly Detected", timestamp: "Oct 22, 2026 • 11:30 AM", description: "Cell Block 4 temp exceeded 45°C during active charging." },
+        { title: "Charge Logic Interrupted", timestamp: "Oct 22, 2026 • 11:31 AM", description: "Safety Agent terminated charge session." }
+      ]
+    },
+    {
+      id: "IDX-104",
+      vehicleId: "VEH-1102",
+      assetName: "EV-Transit Pro",
+      priority: "Medium",
+      type: "Tires",
+      summary: "Low PSI",
+      agent: "Maintenance Agent",
+      status: "Open",
+      reportedDate: "Oct 21, 2026",
+      agentReasoning: "Maintenance Agent noted a slow 3 PSI drop over 48 hours on the front-left tire while operating near Woodlands Checkpoint. Likely a slow leak.",
+      agentTags: ["TPMS Data", "Gradual Variance"],
+      timeline: [
+        { title: "Pressure Drop Flagged", timestamp: "Oct 19, 2026 • 09:00 AM", description: "Front-left tire pressure began dropping 1 PSI per day." },
+        { title: "Issue Logged", timestamp: "Oct 21, 2026 • 08:30 AM", description: "Alert generated for manual inspection." }
+      ]
+    }
+  ] as IssueRecord[]
 };
