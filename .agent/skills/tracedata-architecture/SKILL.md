@@ -49,6 +49,13 @@ This skill must be referenced whenever discussing, planning, or writing code for
    - **Ping Load Classification**: The system explicitly handles four ping types: `Emergency Ping` (critical bypass), `Normal Ping` (4-min batched), `Start of Trip Ping`, and `End of Trip Ping`.
    - **Incident Media**: For any harsh or critical event, the physical device securely uploads 15 seconds of pre/post-incident video/photos to an AWS S3 bucket. The generated S3 URL is then appended to the corresponding telemetry ping payload.
 
+8. **AI Security & Guardrails**:
+   - **LLM Rate Limiting & Quotas**: Implement strict per-driver token/call quotas to prevent LLM cost explosion.
+   - **Prompt Sanitization**: All user-generated text MUST be sanitized and inserted into explicitly templated prompts to mitigate Prompt Injection.
+   - **Fairness Circuit Breakers**: The system must actively monitor the Statistical Parity Difference (SPD). If fairness drift exceeds thresholds (>0.2), manual FM overrides and AIF360 retraining workflows must trigger.
+   - **Degradation & Fallbacks**: Provide deterministic rule-based fallbacks for instances where the LLM API times out, halls, or telemetry data is degraded/missing.
+   - **Data Privacy**: Enforce strict RBAC (JWT) and encryption (AES-256) for all driver-submitted feedback or appeals to prevent unauthorized visibility by Fleet Managers.
+
 ## Directives for AI Agents
 
 - **Always verify constraints**: Before scaffolding new services, confirm they fit within the Python FastAPI + LangGraph boundary.

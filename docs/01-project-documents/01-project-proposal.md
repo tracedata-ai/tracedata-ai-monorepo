@@ -37,6 +37,11 @@ Small-to-medium truck fleet operators (50-200 vehicles) currently use basic tele
 
 7 autonomous agents that address all 7 gaps—fair scoring (AIF360), personalized coaching, burnout detection, appeals, contextual enrichment, private feedback, and integrated safety-welfare management.
 
+### Core Philosophy
+- **Fairness First**: Score adjustments should account for driver context, not penalize inexperience or unfortunate circumstances.
+- **Driver-Centric**: The system empowers fleet managers to support drivers, not surveil them.
+- **Transparent**: Every decision is observable and contestable.
+
 ## Scope of Work
 
 **Content:** Describe the agents in your system. Define your scope of work, which must demonstrate key considerations such as assurance, trust, fairness, accountability, ethical issues, explainability, governance, security measures, agent autonomy and orchestration, as well as MLOps and LLMOps practices.
@@ -156,6 +161,13 @@ Small-to-medium truck fleet operators (50-200 vehicles) currently use basic tele
 | **Testing**             | pytest                | Unit + integration tests, fixtures                    |
 | **Monitoring**          | CloudWatch            | Metrics, logs, alarms                                 |
 | **Containerization**    | Docker                | Environment consistency, scaling                      |
+
+#### AI Security Risk Register & Guardrails
+A comprehensive Risk Register (see *Section 5 of [03-project-report.md](./03-project-report.md)*) is maintained to mitigate AI-specific vulnerabilities, including:
+- **Prompt Injection**: Mitigated via explicit templated prompts and string sanitization.
+- **LLM Cost Explosion**: Mitigated via per-driver token/call quotas.
+- **Fairness Drift**: Mitigated via monthly AIF360 automated audits and retraining loops.
+- **Unauthorized Data Access**: Mitigated via RBAC and AES-256 encryption for private driver feedback.
 
 ## Effort Estimates
 

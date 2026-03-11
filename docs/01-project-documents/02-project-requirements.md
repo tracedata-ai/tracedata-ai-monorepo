@@ -8,8 +8,10 @@
 ### **1.1 Purpose**
 This document specifies the software requirements for TraceData, an AI-powered vehicle telematics and driver advocacy platform. It defines the functional and non-functional requirements, technical constraints, and acceptance criteria for the SWE5008 Capstone Project.
 
-### **1.2 Scope**
+### **1.2 Scope & Core Philosophy**
 TraceData ingests, processes, and analyzes vehicle telemetry data from 10,000+ commercial trucks. Unlike traditional penalizing telemetry systems, TraceData utilizes a Multi-Agent AI architecture to provide equitable trip scoring, fairness auditing, burnout detection, and personalized driver coaching.
+
+The system is governed by a **Driver-Centric, Fairness-First** philosophy, treating drivers as stakeholders deserving transparency and support rather than subjects of surveillance.
 
 ---
 
@@ -104,6 +106,7 @@ TraceData is an academic capstone project focusing primarily on advanced AI orch
 *   **Encryption:** All data SHALL be encrypted in transit (TLS 1.2+) and at rest (AES-256).
 *   **Access Control:** Strict Role-Based Access Control (RBAC) SHALL be enforced. Drivers can only access their own data.
 *   **Regulation:** Must comply fully with Singapore's Personal Data Protection Act (PDPA).
+*   **AI Security & Guardrails:** The system SHALL implement protections against prompt injection, LLM hallucination, data poisoning, and runaway LLM costs. *(See Section 5 of [03-project-report.md](./03-project-report.md) for the detailed Risk Register and Mitigations).*
 
 ---
 
