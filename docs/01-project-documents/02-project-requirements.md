@@ -1,547 +1,125 @@
-# TraceData: Technical Requirements Specification
-
-## SWE5008 Capstone Project - Requirements Document
-
----
-
-## **1. Functional Requirements**
-
-### **1.1 Telemetry Ingestion (FR-1)**
-
-**Requirement:** System shall ingest sparse telematics payloads from 10,000+ truck devices.
-
-**Specifications:**
-
-- **Payload Format:** JSON (JSONB in PostgreSQL)
-- **Ping Types:**
-  - **Start-of-Trip Ping:** Trip boundary (start), driver confirmation, vehicle readiness.
-  - **4-Minute Batch Ping:** Regular heartbeat with events and safe operation checkpoints.
-  - **End-of-Trip Ping:** Trip boundary (end), full summary, triggers ML scoring.
-  - **Emergency Ping:** Out-of-band critical events, immediate response.
-- **Required Fields:** trip_id, vehicle_id, timestamp, ping_type
-- **Optional Fields (Sparse):** speed, cabin_temp, atmosphere_temp, acceleration, harsh_brake, rpm, fuel_consumption, tire_pressure, steering_angle, throttle_position
-- **Protocol:** HTTPS to Kafka or direct MQTT
-- **Data Validation:**
-  - Speed: 0-150 km/h
-  - Cabin temp: -10 to 60°C
-  - Atmosphere temp: -40 to 60°C
-  - Timestamps: ISO 8601 format
-
-**Acceptance Criteria:**
-
-- ✅ Successfully ingest 10,000 concurrent telemetry streams
-- ✅ Validate sparse payloads (no null rejection)
-- ✅ 99.9% data persistence (no loss)
-- ✅ < 1 second latency (Kafka → DB)
+# TraceData: Software Requirements Specification (SRS)
+## SWE5008 Capstone Project
 
 ---
 
-### **1.2 Trip Scoring with Fairness Audit (FR-2)**
+## **1. Introduction**
 
-**Requirement:** System shall score completed trips (0-100) using XGBoost with fairness bias correction.
+### **1.1 Purpose**
+This document specifies the software requirements for TraceData, an AI-powered vehicle telematics and driver advocacy platform. It defines the functional and non-functional requirements, technical constraints, and acceptance criteria for the SWE5008 Capstone Project.
 
-**Specifications:**
-
-- **Trigger:** End-of-trip event detected by Orchestrator
-- **Model:** XGBoost (trained on historical trip data)
-- **Features:** Speed, acceleration, harsh braking, cabin_temp, atmosphere_temp, road_type, hotspot_risk, trip_duration
-- **Output:** Numeric score (0-100) + fairness_flag (boolean)
-- **Fairness Metric:** Statistical Parity Difference (SPD)
-  - Target: SPD < 0.5 (88% reduction from -6.9)
-  - Cohorts: Novice (< 1yr) vs Expert (> 5yr)
-  - Bias Correction: AIF360 Reweighting preprocessor
-- **Explainability:**
-  - LIME: Local explanation per trip (top 3 factors)
-  - SHAP: Feature importance across driver cohort
-  - Output: Feature importance JSON in decision log
-
-**Acceptance Criteria:**
-
-- ✅ Score generated < 3 seconds after trip end
-- ✅ SPD measured monthly (report in decision_log)
-- ✅ SPD drift detection (if SPD > 0.2, trigger retraining)
-- ✅ LIME/SHAP explanations for 100% of scores
-- ✅ No score variance > 5% across identical trips
+### **1.2 Scope**
+TraceData ingests, processes, and analyzes vehicle telemetry data from 10,000+ commercial trucks. Unlike traditional penalizing telemetry systems, TraceData utilizes a Multi-Agent AI architecture to provide equitable trip scoring, fairness auditing, burnout detection, and personalized driver coaching.
 
 ---
 
-### **1.3 Driver Appeals & Contestability (FR-3)**
+## **2. Overall Description**
 
-**Requirement:** System shall accept driver appeals and process with full audit trail.
+### **2.1 Product Perspective**
+TraceData is an academic capstone project focusing primarily on advanced AI orchestration rather than a full-scale fleet management backend. The system is built as an **Agentic AI Middleware Monolith** (Python, FastAPI, LangGraph) providing specialized analytical and generative capabilities, serving a **Next.js** frontend application. While basic fleet components exist, they are nominal and scoped only to support the AI workflows.
 
-**Specifications:**
+### **2.2 User Classes and Characteristics**
+1.  **Drivers:** End-users generating telemetry. They interact with the system via a mobile application to view scores, receive coaching, and submit private feedback or appeals.
+2.  **Fleet Managers (FM):** Administrative users who monitor fleet safety, review escalated incidents, and manage overall operations.
+3.  **System Administrators:** Technical users responsible for system health, fairness audits, and AI model governance.
 
-- **Appeal Types:** Fairness dispute, process complaint, emotional support request, safety concern
-- **Input:** Driver submits via app (trip_id, appeal_text, optional emotion_rating 1-10)
-- **Processing:**
-  - Classify appeal type (deterministic rules or LLM)
-  - Fetch original trip score + LIME explanation
-  - Route to Advocacy Agent for response generation
-  - Possible escalation to Fleet Manager if complex
-- **Response Time:** < 24 hours
-- **Logging:** All appeals logged in advocacy_appeals table with:
-  - appeal_id, trip_id, driver_id, appeal_text, appeal_type, appeal_status, fm_decision, timestamp
-
-**Acceptance Criteria:**
-
-- ✅ 100% of appeals logged
-- ✅ Audit trail queryable by driver_id or trip_id
-- ✅ FM can review + override decision
-- ✅ Driver notified of decision status
-- ✅ No data loss (cascading deletes on driver deletion)
+### **2.3 Operating Environment**
+-   **Infrastructure:** AWS (Single Region: ap-southeast-1).
+-   **Hardware Interfaces:** Telematics IoT devices installed in 10,000+ trucks sending JSON over HTTPS/MQTT.
 
 ---
 
-### **1.4 Emotional Trajectory & Burnout Detection (FR-4)**
+## **3. System Features (Functional Requirements)**
 
-**Requirement:** System shall track driver emotional state and detect burnout risk.
+### **3.1 Telemetry Ingestion & Lifecycle Management (FR-1)**
+**Requirement:** The system SHALL reliably ingest and process stateful vehicle telemetry data representing the trip lifecycle.
 
-**Specifications:**
+*   **Input Streams:**
+    *   **Start-of-Trip Ping:** Marks trip boundary initiation, driver confirmation, and vehicle readiness.
+    *   **4-Minute Batch Ping:** Regular heartbeat containing sparse event arrays and safe operation checkpoints.
+    *   **End-of-Trip Ping:** Marks trip completion, encapsulates the full summary, and triggers backend ML scoring.
+    *   **Emergency Ping:** Out-of-band transmission for critical events (e.g., collisions, panic button) requiring immediate response.
+*   **Data Integrity:** The system SHALL ingest telemetry via **Apache Kafka** streams, organized by ping type, to ensure durability, high-throughput handling, and full event replayability. All payloads SHALL be persisted using Time-Series optimized storage, handling out-of-order or duplicate messages idempotently.
+*   **State Management:** The system SHALL actively track "Active Trips" and handle "Zombie Trips" (missing End-of-Trip pings). Internal asynchronous task queuing and state management SHALL be orchestrated using **Redis** and **Celery**.
 
-- **Trigger:** Driver submits feedback (optional emotion_rating 1-10)
-- **Tracking Window:** Last 5 feedback events (rolling window)
-- **Metrics:**
-  - emotional_state: happy, neutral, stressed, very_stressed
-  - risk_level: 0-1 (0=healthy, 1=burnout imminent)
-  - trend_direction: improving, declining, stable
-- **Burnout Threshold:** risk_level > 0.7
-- **Alert:** If burnout detected, notify FM + Driver via app
-- **Output:** sentiment_trends table with driver_id, emotional_state, risk_level, trend_direction, burnout_flag
+### **3.2 Trip Scoring & Fairness Audit (FR-2)**
+**Requirement:** The system SHALL calculate a safety score (0-100) for completed trips using an XGBoost model, subject to automated fairness bias correction.
 
-**Acceptance Criteria:**
+*   **Trigger:** Successful processing of the `End-of-Trip Ping` or a timeout-triggered synthetic trip closure.
+*   **Fairness Metric:** Statistical Parity Difference (SPD) SHALL be maintained below 0.5 (comparing predefined cohorts such as Novice vs. Expert drivers).
+*   **Explainability:** The system SHALL generate feature importance logs (via SHAP/LIME) for 100% of generated scores to facilitate transparency.
 
-- ✅ Emotional state updated in real-time
-- ✅ Burnout alerts sent < 5 minutes of detection
-- ✅ False positive rate < 10% (manual validation needed)
-- ✅ Historical trend visible in driver app
+### **3.3 Driver Appeals & Contestability (FR-3)**
+**Requirement:** The system SHALL provide a structured mechanism for drivers to dispute scores or raise safety/process concerns.
 
----
+*   **Processing:** Appeals SHALL be classified and routed to an AI Advocacy Agent for initial response generation, with automatic escalation to Fleet Managers for complex or high-severity cases.
+*   **Auditability:** A complete, tamper-evident audit trail of the appeal, AI reasoning, and final resolution SHALL be maintained.
 
-### **1.5 Personalized Coaching (FR-5)**
+### **3.4 Emotional Trajectory & Burnout Detection (FR-4)**
+**Requirement:** The system SHALL calculate and monitor driver emotional states over time to preemptively detect burnout risk.
 
-**Requirement:** System shall generate personalized coaching based on trip score + emotional state.
+*   **Mechanism:** Analyzes the last 5 feedback events submitted by the driver (rolling window).
+*   **Action:** If the computed `risk_level` exceeds the burnout threshold (0.7), the system SHALL immediately alert the Fleet Manager and trigger supportive workflows.
 
-**Specifications:**
+### **3.5 Personalized Coaching (FR-5)**
+**Requirement:** The system SHALL dynamically generate actionable, personalized coaching recommendations.
 
-- **Trigger:** Behavior Agent flags coaching_needed OR Advocacy Agent requests support
-- **Tone Selection:**
-  - Encouraging (for healthy drivers, good performance)
-  - Supportive (for stressed drivers)
-  - Directive (for repeated violations)
-  - Tone based on emotion_state from Sentiment Agent (if available)
-- **Content:**
-  - Focus areas (specific infractions to improve)
-  - Encouragement (acknowledge strengths)
-  - Actionable next steps (concrete improvements)
-  - Personalized examples from driver's trip history
-- **Delivery:** App notification + email
-- **Optional LLM:** Can use LLM for tone/content generation (with fallback to rule-based coaching)
+*   **Content Generation:** Coaching tone (Encouraging, Supportive, Directive) SHALL be adapted based on the driver's current emotional state and specific trip infractions.
+*   **Uniqueness:** No two coaching outputs for different drivers with different histories SHALL be identical.
 
-**Acceptance Criteria:**
+### **3.6 Private Feedback & Driver Listening (FR-6)**
+**Requirement:** The system SHALL allow drivers to submit private feedback that is cryptographically isolated from Fleet Manager visibility.
 
-- ✅ Coaching generated < 3 seconds after score
-- ✅ Tone matches driver's emotional state (subjective evaluation)
-- ✅ Focus areas match trip infractions (rule-based validation)
-- ✅ Uniqueness: No two drivers get identical coaching (personalization check)
+*   **Privacy Guarantees:** Feedback SHALL NOT be accessible via Fleet Manager APIs and SHALL NOT be used negatively in scoring models.
+*   **PDPA Compliance:** The system SHALL support right-to-access and right-to-deletion requests for all submitted feedback.
 
----
+### **3.7 Critical Incident Handling (FR-7)**
+**Requirement:** The system SHALL process `Emergency Pings` strictly in real-time.
 
-### **1.6 Private Feedback & Driver Listening (FR-6)**
+*   **SLA:** Critical incidents (e.g., collision detection) SHALL trigger Fleet Manager escalation mechanisms (dashboard alert, SMS/Email) within 30 seconds of ingestion.
 
-**Requirement:** System shall accept private feedback from drivers with strict privacy controls.
+### **3.8 Context Enrichment (FR-8)**
+**Requirement:** The system SHALL enrich raw telemetry with geospatial and environmental context (road type, speed limits, weather risk).
 
-**Specifications:**
-
-- **Input:** Driver app form (free-text, optional emotion_rating)
-- **Privacy Guarantees:**
-  - Feedback stored in driver_input table
-  - NOT accessible to Fleet Manager (separation of concerns)
-  - Only accessible to: Driver (own data), Sentiment/Advocacy agents, Compliance audit (with notice)
-  - Cannot be used for scoring/penalization
-- **Storage:** Encrypted at rest (PostgreSQL encryption)
-- **PDPA Compliance:**
-  - Right to access (driver can request their feedback)
-  - Right to deletion (feedback deleted on driver request)
-  - Audit logging (track who accessed feedback)
-
-**Acceptance Criteria:**
-
-- ✅ FM cannot view driver_input via API
-- ✅ Query access logging (audit trail)
-- ✅ Encryption verified (manual security review)
-- ✅ PDPA deletion tested (cascade + restore verification)
+*   **Performance:** Context lookups SHALL return within 100ms. If external APIs time out, the system SHALL seamlessly fallback to cached or default values without blocking downstream processing.
 
 ---
 
-### **1.7 Critical Incident Handling (FR-7)**
+## **4. Non-Functional Requirements**
 
-**Requirement:** System shall detect + escalate critical safety incidents in real-time.
+### **4.1 Performance & Scalability (NFR-1)**
+*   **Throughput:** The system SHALL comfortably ingest batches from 10,000 concurrent vehicles without backpressure exhaustion.
+*   **Latency:** Critical ML scoring (FR-2) SHALL complete in < 3 seconds; standard API responses SHALL be < 500ms.
+*   **Scalability:** The architecture SHALL scale horizontally (compute, Kafka brokers, Redis clusters, and read-replicas) to accommodate 50,000 vehicles.
 
-**Specifications:**
+### **4.2 Reliability & Availability (NFR-2)**
+*   **Uptime:** The system SHALL maintain 99.9% availability.
+*   **Resilience:** The AI Multi-Agent workflows SHALL incorporate fallback mechanisms (e.g., reverting to deterministic rules if the LLM provider fails).
 
-- **Incidents:** Collision, hard brake (>0.6g), engine malfunction, loss of signal
-- **Detection:** From telemetry Critical priority stream
-- **Processing:**
-  - Immediate (realtime path, not async)
-  - Escalate to Fleet Manager within 30 seconds
-  - Include context (location, vehicle state, driver info)
-  - Optional: Notify driver (optional feature)
-- **Escalation:** Alert + dashboard update + email to FM
-- **Logging:** safety_incidents table with incident_id, incident_type, severity, timestamp, fm_notified, fm_action
-
-**Acceptance Criteria:**
-
-- ✅ Incident detection latency < 5 seconds
-- ✅ FM notification latency < 30 seconds
-- ✅ 100% incident logging (no data loss)
-- ✅ Can query incidents by vehicle_id or driver_id
-- ✅ FM can mark as resolved/investigating
+### **4.3 Security & Compliance (NFR-3)**
+*   **Encryption:** All data SHALL be encrypted in transit (TLS 1.2+) and at rest (AES-256).
+*   **Access Control:** Strict Role-Based Access Control (RBAC) SHALL be enforced. Drivers can only access their own data.
+*   **Regulation:** Must comply fully with Singapore's Personal Data Protection Act (PDPA).
 
 ---
 
-### **1.8 Context Enrichment (FR-8)**
+## **5. Technical & Domain Constraints**
 
-**Requirement:** System shall enrich trips with contextual data (road, speed, weather).
-
-**Specifications:**
-
-- **Trigger:** Synchronous calls from Behavior, Advocacy, Coaching, Sentiment, Safety agents
-- **Lookups:**
-  - Road type (highway, urban, rural) via map matching (GPS → segment)
-  - Speed limit (from road database, e.g., OpenStreetMap)
-  - Hotspot risk (historical incident frequency in region)
-  - Weather (optional, from API)
-- **Response Time:** < 100ms (critical for blocking task execution)
-- **Fallback:** If lookup fails, use cached default values (last known good)
-- **Output:** context_enrichment table with trip_id, road_type, speed_limit, hotspot_risk, weather
-
-**Acceptance Criteria:**
-
-- ✅ Context latency < 100ms (p99)
-- ✅ Accuracy: Road type matches actual road (manual validation, 100 samples)
-- ✅ Speed limit accuracy: ±5 km/h (vs actual posted limits)
-- ✅ Fallback works (no task failures if lookup down)
+*   **Architecture Pattern:** Agentic AI Middleware Monolith (Python) + Next.js Frontend. As an academic project, the scope is deliberately constrained to exclude a full-featured traditional fleet management backend.
+*   **Stream Ingestion:** Apache Kafka SHALL be used for all external telemetry ingestion to mirror industry standards and provide event replayability across different topic pipes.
+*   **Internal Queueing & State:** Redis and Celery SHALL be used for all asynchronous task queueing, state management (e.g., tracking active vs. zombie trips), and background processing within the AI middleware.
+*   **Data Storage:** A single organizational PostgreSQL database SHALL be used. While schemas for fleet data (e.g., vehicles, drivers) will exist, they are nominal and designed strictly to provide the necessary state and context for the AI agents.
+*   **AI Agents:** LangGraph SHALL be used for orchestrating cyclical agent workflows (e.g., Context loops, Refinement).
 
 ---
 
-## **2. Non-Functional Requirements**
+## **6. Acceptance & Testing Requirements**
 
-### **2.1 Performance (NFR-1)**
-
-**Requirement:** System shall meet latency and throughput targets.
-
-| Metric                         | Target              | Acceptable Range |
-| ------------------------------ | ------------------- | ---------------- |
-| Telemetry ingestion → DB       | < 1 sec             | 0.5 - 2 sec      |
-| End-of-trip detection          | < 5 sec             | 2 - 10 sec       |
-| Trip scoring (Behavior Agent)  | < 3 sec             | 1 - 5 sec        |
-| Feedback classification (LLM)  | < 2 sec             | 1 - 5 sec        |
-| Context lookup (sync)          | < 100ms             | 50 - 200ms       |
-| Full trip-to-coaching pipeline | < 10 sec            | 5 - 15 sec       |
-| **Throughput**                 | 10,000 vehicles/min | ≥ 8,000/min      |
-| **API Response (REST)**        | < 500ms             | < 1 sec          |
-
-**Testing:**
-
-- Load test with 10,000 concurrent telemetry streams
-- Profile bottlenecks (Kafka, DB, agent execution)
-- Horizontal scaling (auto-scale Celery workers)
+1.  **Unit & Integration:** ≥ 80% code coverage across core monolithic modules and Python agents.
+2.  **Fairness Validation:** SPD calculations must provably shift from a baseline bias (e.g., -6.9) to a neutral band (< 0.5) using AIF360/Reweighting.
+3.  **Privacy Audit:** Verification that `driver_input` tables are inaccessible to Fleet Management DB roles and APIs.
+4.  **Load Testing:** Sustained throughput simulation representing 10,000 active trucks operating the 4-ping lifecycle over a 24-hour period.
 
 ---
-
-### **2.2 Reliability & Availability (NFR-2)**
-
-**Requirement:** System shall achieve 99.9% uptime (43.2 min downtime/month allowed).
-
-**Specifications:**
-
-- **Kafka:** Multi-broker cluster (3 brokers minimum)
-- **Database:** Multi-AZ RDS with automated failover
-- **API:** Auto-scaling (2-4 instances behind ALB)
-- **Workers:** Auto-scaling Celery (4-8 workers)
-- **Backup:** Daily snapshots, 30-day retention
-- **Disaster Recovery:** RTO < 1 hour, RPO < 5 minutes
-
-**Acceptance Criteria:**
-
-- ✅ 99.9% uptime verified over 30 days
-- ✅ No data loss during failover
-- ✅ Graceful degradation (non-critical features optional)
-- ✅ Retry logic (Celery exponential backoff)
-
----
-
-### **2.3 Data Integrity (NFR-3)**
-
-**Requirement:** System shall guarantee data integrity for all persistent stores.
-
-**Specifications:**
-
-- **Constraints:**
-  - Foreign key integrity (appeals → trips)
-  - No orphaned records (cascade delete on driver removal)
-  - Unique constraints (trip_id, appeal_id, sentiment_log_id)
-- **Transactional Consistency:** ACID for all writes
-- **Idempotency:** Duplicate Kafka messages → single DB record (event_id deduplication)
-- **Validation:**
-  - Schema validation (JSON schema for sparse payloads)
-  - Referential integrity checks
-  - Data range validation (e.g., score 0-100)
-
-**Acceptance Criteria:**
-
-- ✅ No constraint violations in test suite
-- ✅ Duplicate message handling verified
-- ✅ Data consistency after failures (restore test)
-- ✅ ACID compliance verified (transaction logs)
-
----
-
-### **2.4 Scalability (NFR-4)**
-
-**Requirement:** System shall scale horizontally to support growth.
-
-**Specifications:**
-
-- **Horizontal Scaling:**
-  - FastAPI: Add instances behind ALB (auto-scale based on CPU)
-  - Celery: Add workers for agent execution (queue-depth based)
-  - Kafka: Add brokers if throughput > 100k msgs/min
-  - PostgreSQL: Read replicas for query offloading
-- **Vertical Scaling:**
-  - RDS instance type upgradeable (db.r5.xlarge → db.r6i.2xlarge)
-  - Redis upgradeable (m5.large → r6g.xlarge)
-- **Future Growth:** Designed for 50,000 vehicles (5x current scope)
-
-**Testing:**
-
-- Stress test to 50,000 vehicles
-- Measure resource utilization (CPU, memory, disk I/O)
-- Identify scaling bottlenecks
-
----
-
-### **2.5 Security (NFR-5)**
-
-**Requirement:** System shall protect sensitive driver data and comply with PDPA.
-
-**Specifications:**
-
-- **Encryption:**
-  - TLS 1.2+ for all network communication
-  - AES-256 for data at rest (PostgreSQL)
-  - Secrets stored in AWS Secrets Manager (API keys, DB passwords)
-- **Authentication:** JWT tokens (FastAPI) with 1-hour expiry
-- **Authorization:**
-  - Role-based access control (Driver, Fleet Manager, Admin)
-  - Driver can only access own data
-  - FM cannot access driver_input (private feedback)
-- **Audit Logging:**
-  - All data access logged (who, what, when)
-  - Especially sensitive: appeals, feedback, fairness flags
-- **PDPA Compliance:**
-  - Data retention: 2 years (configurable)
-  - Right to access: API endpoint to download all driver data
-  - Right to deletion: Cascade delete with audit trail
-  - Purpose limitation: Data used only for stated purposes
-
-**Testing:**
-
-- Penetration testing (manual security review)
-- PDPA compliance checklist (access control, audit logging)
-- Encryption verification (manual inspection)
-
----
-
-### **2.6 Maintainability (NFR-6)**
-
-**Requirement:** System code shall be well-structured, documented, and testable.
-
-**Specifications:**
-
-- **Code Quality:**
-  - Test coverage ≥ 80%
-  - Pylint/Black formatting
-  - Type hints for all functions
-  - Docstrings for all modules/classes/functions
-- **Documentation:**
-  - README (setup, deployment, testing)
-  - Architecture doc (this file + system design)
-  - API documentation (OpenAPI/Swagger)
-  - Agent documentation (inputs, outputs, decision logic)
-- **Modularity:**
-  - Each agent in separate file/module
-  - Agents import from shared utilities (DB, logging)
-  - No circular dependencies
-- **Versioning:** Git with semantic versioning (v1.0.0, etc.)
-
-**Testing:**
-
-- Linting passes (Pylint score > 8.5/10)
-- Coverage report generated per commit
-- Documentation auto-generated from docstrings
-
----
-
-## **3. Technical Constraints**
-
-### **3.1 Technology Stack**
-
-**Mandatory:**
-
-- Backend: Python 3.9+ (FastAPI)
-- Orchestration: LangGraph
-- ML/XAI: XGBoost, AIF360, SHAP, LIME
-- Streaming: Apache Kafka
-- Database: PostgreSQL 12+ with JSONB
-- Task Queue: Celery + Redis
-
-**Optional:**
-
-- LLM: OpenAI API or local LLM (fallback to rules if unavailable)
-- Frontend: Next.js (user-facing)
-
-**NOT Allowed:**
-
-- Microservices (monolith simpler for capstone scope)
-- Polyglot (Python-only backend for simplicity)
-- NoSQL only (PostgreSQL required for ACID)
-
----
-
-### **3.2 Data Constraints**
-
-**Sparse Telemetry:**
-
-- No full payloads (only non-null values)
-- Compression via JSONB (PostgreSQL handles)
-- Storage estimation to be updated (based on 4-minute batch frequency vs continuous 1/min)
-
-**Data Retention:**
-
-- Raw telemetry: 90 days (then archive to S3)
-- Trip scores: 2 years
-- Appeals: 5 years (legal requirement)
-- Decision log: 2 years
-
-**Privacy:**
-
-- driver_input encrypted at rest
-- No driver_input accessible to FM API
-- PII minimal (driver_id only, no name/email stored)
-
----
-
-### **3.3 Operational Constraints**
-
-**Deployment:**
-
-- AWS only (EC2, RDS, MSK, S3, ALB)
-- Single region (Singapore: ap-southeast-1)
-- Infrastructure as Code (Terraform, not manual setup)
-
-**Monitoring:**
-
-- CloudWatch metrics (latency, errors, throughput)
-- Alerts for SLO breaches (latency > 5 sec, error rate > 1%)
-- Dashboard with real-time system health
-
----
-
-## **4. Test Requirements**
-
-### **4.1 Test Coverage**
-
-| Category                 | Count  | Coverage                             |
-| ------------------------ | ------ | ------------------------------------ |
-| Unit tests               | 30     | 80% of code                          |
-| Integration tests        | 12     | Happy path + error cases             |
-| Fairness tests           | 6      | Bias injection + mitigation          |
-| LLM resilience tests     | 5      | Fallback, timeouts, hallucination    |
-| Privacy/Compliance tests | 3      | PDPA, access control                 |
-| Load tests               | 2      | 10K concurrent, sustained throughput |
-| **Total**                | **58** | **Comprehensive**                    |
-
-### **4.2 Fairness Testing**
-
-**Test Cases:**
-
-1. Inject bias: Give novice drivers harder trips (night, urban)
-2. Verify detection: SPD calculation shows -6.9 bias
-3. Apply mitigation: AIF360 reweighting applied
-4. Verify correction: SPD improves to -0.8
-5. Validate performance: ROC-AUC maintained at 0.78
-6. Monitor drift: Monthly SPD audit, retrain if drift > 0.2
-
-**Manual Validation:**
-
-- 100 sample trips reviewed by domain expert
-- Fairness judgment: "Is this score fair?" (subjective)
-- Bias mitigation effectiveness: "Is the system less biased?"
-
----
-
-## **5. Acceptance Criteria Checklist**
-
-### **Architecture**
-
-- [ ] 8 agents implemented (Ingestion Quality, Orchestrator, Behavior, Advocacy, Sentiment, Coaching, Safety, Context)
-- [ ] Kafka streaming (2 topics: telemetry, high-priority)
-- [ ] Async execution (Celery) except Context Enrichment (sync)
-- [ ] Sparse telemetry payloads (only non-null values)
-- [ ] Agent output tables (9 total + decision_log)
-- [ ] Junction merging (all agent flows converge)
-
-### **Fairness**
-
-- [ ] Fairness metric: SPD < 0.5 (88% improvement from -6.9)
-- [ ] LIME/SHAP explanations for 100% of scores
-- [ ] AIF360 bias correction in Behavior Agent
-- [ ] Fairness test suite (6 tests, all passing)
-- [ ] Monthly fairness audit (SPD monitoring)
-
-### **Data & Privacy**
-
-- [ ] PDPA compliance verified (access control, deletion)
-- [ ] Private feedback inaccessible to FM
-- [ ] Audit logging (all data access)
-- [ ] Data integrity tests (constraints, idempotency)
-- [ ] Encryption at rest (PostgreSQL) + in transit (TLS)
-
-### **Testing**
-
-- [ ] 58 tests passing (30 unit + 12 integration + 6 fairness + 5 LLM + 3 privacy + 2 load)
-- [ ] 80%+ code coverage
-- [ ] Load test: 10,000 concurrent streams
-- [ ] Latency targets met (all SLAs < target)
-
-### **Documentation**
-
-- [ ] Architecture doc complete (this file)
-- [ ] API documentation (OpenAPI/Swagger)
-- [ ] Agent documentation (inputs, outputs, logic)
-- [ ] Deployment guide (setup, scaling)
-- [ ] Code comments & docstrings
-
-### **Demonstration**
-
-- [ ] Working prototype (device → score → coaching pipeline)
-- [ ] Sample data + pilot results
-- [ ] Fairness case study (before/after SPD)
-- [ ] Presentation slides (20-25 slides)
-
----
-
-## **6. Change Log**
-
-| Version | Date        | Changes                                                        |
-| ------- | ----------- | -------------------------------------------------------------- |
-| 0.1     | Mar 9, 2025 | Initial draft                                                  |
-| 0.2     | Mar 9, 2025 | Added sparse payloads, hybrid Orchestrator, temperature fields |
-| 1.0     | Mar 9, 2025 | Final version, all requirements locked                         |
-
----
-
-**Document Version:** 1.0  
-**Status:** Final - Ready for Development  
-**Approval:** SWE5008 Capstone Team
+**Document Version:** 1.1 (Updated to Industry SRS Standard)
+**Status:** Approved for Architectural Review
