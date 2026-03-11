@@ -82,6 +82,7 @@ The flat, generic event schema was deliberately chosen over a stratified (typed/
 - **Distributed Processing Simplicity**: A single ubiquitous schema simplifies integration with Kafka and downstream serverless/middleware functions, eliminating union type overhead and discriminator logic complexity.
 - **Extensibility & API Evolution**: Adding new event fields is non-breaking (forward-compatible), as new fields are simply inserted into the details dictionary.
 - **Negligible Cost Tradeoffs**: The slight increase in network processing and storage cost (an extra ~100-200 bytes per event) is irrelevant at the current scale, minimized by compression, and outweighed by massive AI benefits.
+- **Sparse Fields & Sparsity**: The database tables and JSON schemas are highly scalable. Any event-specific fields not relevant to the current `event_type` or lacking valid data from the device are simply omitted from the payload (not sent) to save bandwidth while guaranteeing a uniform columnar structure for fast querying.
 - **Runtime Type Safety**: While compile-time type safety is lost with a flat schema, this is mitigated by robust runtime Pydantic validation upon ingestion, achieving equal safety via a different mechanism.
 
 ### 2. General JSON Structure
@@ -102,6 +103,10 @@ The telematics payload sent to the ingestion layer follows this flat structure:
   "location": {
     "lat": "<latitude float>",
     "lon": "<longitude float>"
+  },
+  "media": {
+    "video_url": "<s3_url_15s_clip>", // Omitted if no video
+    "image_url": "<s3_url_snapshot>"  // Omitted if no image
   },
   "schema_version": "event_v<version>",
   "details": {
@@ -146,7 +151,7 @@ To support the flat schema effectively, TraceData classifies ingestions into fou
 - **Data Content**:
   - Critical event identifier (collision or rollover)
   - Raw sensor data (pre/post-impact buffer)
-  - Video evidence (dashcam, 10 sec window)
+  - **Video evidence**: 15s pre/post-incident dashcam clip uploaded to AWS S3 (provided as `video_url`)
   - Voice recording (cabin audio, injury detection)
   - High-precision GPS coordinates
 
@@ -155,6 +160,7 @@ To support the flat schema effectively, TraceData classifies ingestions into fou
 - **Trigger**: Timer fires every 4 minutes during an active trip.
 - **Data Content**:
   - **Incident-Driven (Threshold triggered)**:
+    *(Note: Any harsh event triggers a 15s pre/post-incident video/photo upload to AWS S3, provided as URLs in the ping data)*
     - `speeding` (>speed_limit for >30s)
     - `harsh_brake` (g_force < -0.7)
     - `hard_accel` (g_force > 0.75)

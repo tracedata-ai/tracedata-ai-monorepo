@@ -42,6 +42,13 @@ This skill must be referenced whenever discussing, planning, or writing code for
    - **Table Segregation**: Each processing agent writes its outputs to distinct tables (schema separation based on agent), correlated strongly by a unique `trip_id`.
    - **Redis + Celery**: Used for handling asynchronous task queuing and internal background processing within the middleware.
 
+7. **Telematics Data Shape (Flat Schema)**:
+   - **Structure**: All incoming telemetry MUST be processed and stored using a flattened, sparse JSON schema (NO deeply nested object hierarchies). 
+   - **Sparsity**: The schema is highly scalable; event-specific fields that are not relevant to the current `event_type` or lack valid data MUST be omitted entirely from the device payload (not sent) to save bandwidth.
+   - **XAI Optimization**: All type-specific features must be contained within a single `details` dictionary. This ensures that downstream ML models (XGBoost) and Explainable AI tools (AIF360, SHAP/LIME) receive a uniform, easily comparable feature space.
+   - **Ping Load Classification**: The system explicitly handles four ping types: `Emergency Ping` (critical bypass), `Normal Ping` (4-min batched), `Start of Trip Ping`, and `End of Trip Ping`.
+   - **Incident Media**: For any harsh or critical event, the physical device securely uploads 15 seconds of pre/post-incident video/photos to an AWS S3 bucket. The generated S3 URL is then appended to the corresponding telemetry ping payload.
+
 ## Directives for AI Agents
 
 - **Always verify constraints**: Before scaffolding new services, confirm they fit within the Python FastAPI + LangGraph boundary.
