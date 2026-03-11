@@ -193,11 +193,136 @@ export const dashboardConfig = {
   ] as AppealContest[],
 
   drivers: [
-    { id: "TR-8291", name: "Lim Wei Jie", status: "Active", tripsCompleted: 14, rating: 4.8, avgTripScore: 92, licenseStatus: "Valid", recentIncidents: 0, explanation: { humanSummary: "Excellent speed control, slight harsh cornering in wet conditions.", featureImportance: { "speed": 0.15, "smooth_brake": 0.1, "cornering": -0.05 }, fairnessAuditScore: 0.12 } },
-    { id: "TR-4512", name: "Siti Aisyah", status: "On Break", tripsCompleted: 22, rating: 4.9, avgTripScore: 96, licenseStatus: "Valid", recentIncidents: 0, explanation: { humanSummary: "Highly consistent safe driving patterns across all routes.", featureImportance: { "speed": 0.2, "smooth_brake": 0.15, "idle_time": 0.05 }, fairnessAuditScore: 0.08 } },
-    { id: "TR-0114", name: "Muthu Kumar", status: "Off Duty", tripsCompleted: 12, rating: 4.5, avgTripScore: 88, licenseStatus: "Expiring Soon", recentIncidents: 1, explanation: { humanSummary: "Identified fatigue pattern during night shifts; overall safety remains high.", featureImportance: { "fatigue_index": -0.1, "speed": 0.1, "lane_keep": 0.05 }, fairnessAuditScore: 0.15 } },
-    { id: "TR-9922", name: "Nurul Huda", status: "Active", tripsCompleted: 8, rating: 5.0, avgTripScore: 98, licenseStatus: "Valid", recentIncidents: 0, explanation: { humanSummary: "Perfect compliance with speed limits and harsh event thresholds.", featureImportance: { "speed": 0.25, "brake_g": 0.15, "accel_g": 0.1 }, fairnessAuditScore: 0.05 } },
-    { id: "TR-3310", name: "Chen Wei Ming", status: "Active", tripsCompleted: 26, rating: 4.7, avgTripScore: 85, licenseStatus: "Expired", recentIncidents: 2, explanation: { humanSummary: "Frequent hard acceleration in CBD areas; recommended for eco-driving coaching.", featureImportance: { "harsh_accel": -0.15, "urban_speed": 0.1, "braking": 0.05 }, fairnessAuditScore: 0.18 } },
+    { 
+      id: "TR-8291", 
+      name: "Lim Wei Jie", 
+      status: "Active", 
+      tripsCompleted: 14, 
+      rating: 4.8, 
+      avgTripScore: 92, 
+      licenseStatus: "Valid", 
+      recentIncidents: 0, 
+      explanation: { 
+        humanSummary: "Professional and cautious driver with exceptional speed adherence. Maintains steady pace even in Changi's high-traffic zones.", 
+        featureImportance: { 
+          "Speed Adherence": 0.25, 
+          "Harsh Braking": 0.15, 
+          "Rapid Acceleration": 0.12, 
+          "Cornering G-Force": 0.10, 
+          "Idling Duration": 0.08, 
+          "Routing Efficiency": 0.07, 
+          "Eco-Driving Score": 0.07, 
+          "Fatigue Indicators": 0.06, 
+          "Following Distance": 0.05, 
+          "Signal Compliance": 0.05 
+        }, 
+        fairnessAuditScore: 0.12 
+      } 
+    },
+    { 
+      id: "TR-4512", 
+      name: "Siti Aisyah", 
+      status: "On Break", 
+      tripsCompleted: 22, 
+      rating: 4.9, 
+      avgTripScore: 96, 
+      licenseStatus: "Valid", 
+      recentIncidents: 0, 
+      explanation: { 
+        humanSummary: "High-consistency safe driving profile. Demonstrates superior route optimization and fuel efficiency.", 
+        featureImportance: { 
+          "Eco-Driving Score": 0.20, 
+          "Routing Efficiency": 0.18, 
+          "Speed Adherence": 0.15, 
+          "Following Distance": 0.12, 
+          "Harsh Braking": 0.10, 
+          "Signal Compliance": 0.08, 
+          "Cornering G-Force": 0.06, 
+          "Idling Duration": 0.05, 
+          "Rapid Acceleration": 0.04, 
+          "Fatigue Indicators": 0.02 
+        }, 
+        fairnessAuditScore: 0.08 
+      } 
+    },
+    { 
+      id: "TR-0114", 
+      name: "Muthu Kumar", 
+      status: "Off Duty", 
+      tripsCompleted: 12, 
+      rating: 4.5, 
+      avgTripScore: 88, 
+      licenseStatus: "Expiring Soon", 
+      recentIncidents: 1, 
+      explanation: { 
+        humanSummary: "Performance dip identified during night shifts due to steering micro-corrections (Fatigue). Safety remains above baseline.", 
+        featureImportance: { 
+          "Fatigue Indicators": -0.15, 
+          "Speed Adherence": 0.12, 
+          "Idling Duration": 0.12, 
+          "Following Distance": 0.10, 
+          "Routing Efficiency": 0.10, 
+          "Signal Compliance": 0.10, 
+          "Harsh Braking": 0.08, 
+          "Cornering G-Force": 0.08, 
+          "Rapid Acceleration": 0.08, 
+          "Eco-Driving Score": 0.07 
+        }, 
+        fairnessAuditScore: 0.15 
+      } 
+    },
+    { 
+      id: "TR-9922", 
+      name: "Nurul Huda", 
+      status: "Active", 
+      tripsCompleted: 8, 
+      rating: 5.0, 
+      avgTripScore: 98, 
+      licenseStatus: "Valid", 
+      recentIncidents: 0, 
+      explanation: { 
+        humanSummary: "Perfect adherence to IMDA safe-driving guidelines. Exemplary use of indicators and following distance.", 
+        featureImportance: { 
+          "Speed Adherence": 0.15, 
+          "Signal Compliance": 0.15, 
+          "Following Distance": 0.15, 
+          "Eco-Driving Score": 0.12, 
+          "Harsh Braking": 0.10, 
+          "Rapid Acceleration": 0.10, 
+          "Cornering G-Force": 0.08, 
+          "Routing Efficiency": 0.05, 
+          "Idling Duration": 0.05, 
+          "Fatigue Indicators": 0.05 
+        }, 
+        fairnessAuditScore: 0.05 
+      } 
+    },
+    { 
+      id: "TR-3310", 
+      name: "Chen Wei Ming", 
+      status: "Active", 
+      tripsCompleted: 26, 
+      rating: 4.7, 
+      avgTripScore: 85, 
+      licenseStatus: "Expired", 
+      recentIncidents: 2, 
+      explanation: { 
+        humanSummary: "Aggressive acceleration profile detected in urban CBD sectors. Recommended for eco-driving modules.", 
+        featureImportance: { 
+          "Rapid Acceleration": -0.20, 
+          "Speed Adherence": 0.12, 
+          "Harsh Braking": 0.10, 
+          "Routing Efficiency": 0.10, 
+          "Cornering G-Force": 0.10, 
+          "Following Distance": 0.08, 
+          "Eco-Driving Score": 0.08, 
+          "Signal Compliance": 0.08, 
+          "Idling Duration": 0.07, 
+          "Fatigue Indicators": 0.07 
+        }, 
+        fairnessAuditScore: 0.18 
+      } 
+    },
   ] as DriverProfile[],
 
   routes: [
@@ -217,7 +342,35 @@ export const dashboardConfig = {
   trips: [
     { id: "TRP-10042", vehicleId: "V-991", driverId: "TR-8291", routeId: "RT-001-A", status: "In Progress", startTime: "2026-03-11T08:30:00Z", historicalAvgMins: 30, actualDurationMins: 35, distanceKm: 19.5, currentDistanceKm: 12.0 },
     { id: "TRP-10043", vehicleId: "V-228", driverId: "TR-4512", routeId: "RT-002-B", status: "In Progress", startTime: "2026-03-11T10:15:00Z", historicalAvgMins: 18, actualDurationMins: 12, distanceKm: 8.0, currentDistanceKm: 6.5 },
-    { id: "TRP-10044", vehicleId: "V-045", driverId: "TR-9922", routeId: "RT-003-A", status: "Completed", startTime: "2026-03-11T05:00:00Z", historicalAvgMins: 10, actualDurationMins: 10, distanceKm: 4.2, currentDistanceKm: 4.2, score: 94, explanation: { humanSummary: "Safe driving with proactive braking in heavy traffic.", featureImportance: { "speed": 0.12, "brake_proactive": 0.08, "patience": 0.05 }, fairnessAuditScore: 0.04 } },
+    { 
+      id: "TRP-10044", 
+      vehicleId: "V-045", 
+      driverId: "TR-9922", 
+      routeId: "RT-003-A", 
+      status: "Completed", 
+      startTime: "2026-03-11T05:00:00Z", 
+      historicalAvgMins: 10, 
+      actualDurationMins: 10, 
+      distanceKm: 4.2, 
+      currentDistanceKm: 4.2, 
+      score: 94, 
+      explanation: { 
+        humanSummary: "Exemplary safety execution. Proactive braking and generous following distance mitigated congestion risks.", 
+        featureImportance: { 
+          "Following Distance": 0.20, 
+          "Harsh Braking": 0.15, 
+          "Speed Adherence": 0.15, 
+          "Eco-Driving Score": 0.10, 
+          "Signal Compliance": 0.10, 
+          "Idling Duration": 0.10, 
+          "Routing Efficiency": 0.05, 
+          "Cornering G-Force": 0.05, 
+          "Rapid Acceleration": 0.05, 
+          "Fatigue Indicators": 0.05 
+        }, 
+        fairnessAuditScore: 0.04 
+      } 
+    },
     { id: "TRP-10045", vehicleId: "V-712", driverId: "TR-3310", routeId: "RT-004-B", status: "Scheduled", startTime: "2026-03-11T14:00:00Z", historicalAvgMins: 22, distanceKm: 15.8, currentDistanceKm: 0 },
   ] as TripRecord[],
 
