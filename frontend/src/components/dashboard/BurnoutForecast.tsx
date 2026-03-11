@@ -13,12 +13,13 @@ export function BurnoutForecast() {
         const timeRisk = col > 6 && col < 11 ? 3 : 0; // Peak risk around middle hours
         const sectorRisk = row === 3 || row === 4 ? 2 : 0; // Sectors 3-4 are higher risk
         
-        let risk = baseRisk + timeRisk + sectorRisk;
+        const risk = baseRisk + timeRisk + sectorRisk;
         // Cap at 9 (for our color scales 0-9)
         return Math.floor(Math.min(9, Math.max(0, risk))); 
       })
     );
-    setGrid(mockGrid);
+    // Defer state update to prevent synchronous cascading render warning
+    Promise.resolve().then(() => setGrid(mockGrid));
   }, []);
 
   const getHeatmapColor = (riskLevel: number) => {

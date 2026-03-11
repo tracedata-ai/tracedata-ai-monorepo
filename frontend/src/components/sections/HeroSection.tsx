@@ -1,4 +1,3 @@
-import Image from "next/image";
 import { landingConfig } from "@/config/landing";
 
 export function HeroSection() {

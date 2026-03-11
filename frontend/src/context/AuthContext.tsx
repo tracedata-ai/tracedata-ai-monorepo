@@ -27,13 +27,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // Check localStorage on mount
     const storedAuth = localStorage.getItem("tracedata_auth");
-    if (storedAuth) {
-      const parsed = JSON.parse(storedAuth);
-      setIsAuthenticated(parsed.isAuthenticated);
-      setRole(parsed.role);
-      setTenantId(parsed.tenantId);
-    }
-    setIsLoading(false);
+    // Defer state updates to avoid synchronous cascading renders
+    Promise.resolve().then(() => {
+      if (storedAuth) {
+        const parsed = JSON.parse(storedAuth);
+        setIsAuthenticated(parsed.isAuthenticated);
+        setRole(parsed.role);
+        setTenantId(parsed.tenantId);
+      }
+      setIsLoading(false);
+    });
   }, []);
 
   useEffect(() => {
