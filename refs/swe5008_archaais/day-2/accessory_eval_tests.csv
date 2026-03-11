@@ -1,0 +1,11 @@
+id,prompt,expected_total
+t01,I want to buy 20 Orchid Earring. Then 15 Heart Necklace. What will be the total cost?,74.5000
+t02,Please price 3 Ruby Ring and 2 Bracelet.,13.5000
+t03,"Total for 10 Orchid Earring, 10 Heart Necklace, 10 Ruby Ring?",67.0000
+t04,Buy 1 Bracelet.,3.0000
+t05,"Order: Orchid Earring x0, Heart Necklace x5.",9.5000
+t06,Quote 7 Orchid Earring; unknown Anklet 3; and 1 Heart Necklace.,18.0000
+t07,Could you give me total for Heart Necklace 100?,190.0000
+t08,Need cost: 2 Orchid Earring; 3 Bracelet; and 4 Ruby Ring.,23.6000
+t09,"Compute total: Ruby Ring 1, Bracelet 1, Orchid Earring 1, Heart Necklace 1",9.7000
+t10,"Just need Bracelet 2 and Bracelet 5, thanks",18.5000
