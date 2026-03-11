@@ -28,9 +28,14 @@ export function Navbar() {
           ))}
         </div>
         
-        <Link href="/login" className="px-6 py-2 bg-[image:var(--background-image-gradient-brand)] rounded-full font-bold text-sm uppercase text-white tracking-wider hover:opacity-90 transition-opacity flex items-center gap-2">
-          {navbar.cta}
-        </Link>
+        <div className="flex items-center gap-6">
+          <Link href="/login" className="text-sm font-bold uppercase tracking-widest text-foreground hover:text-brand-blue transition-colors">
+            Login
+          </Link>
+          <Link href="/login" className="px-6 py-2 bg-[image:var(--background-image-gradient-brand)] rounded-full font-bold text-sm uppercase text-white tracking-wider hover:opacity-90 transition-opacity flex items-center gap-2">
+            {navbar.cta}
+          </Link>
+        </div>
       </div>
     </nav>
   );
