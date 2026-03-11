@@ -16,6 +16,14 @@ export default function TripsPage() {
     }
   };
 
+  const formatMinsToHours = (mins: number) => {
+    const hours = Math.floor(mins / 60);
+    const remainingMins = mins % 60;
+    return hours > 0 
+      ? remainingMins > 0 ? `${hours}h ${remainingMins}m` : `${hours}h`
+      : `${remainingMins}m`;
+  };
+
   return (
     <div className="flex-1 overflow-y-auto p-8 space-y-6 bg-muted/20" data-purpose="trips-page">
       <div className="flex items-center justify-between">
@@ -103,7 +111,7 @@ export default function TripsPage() {
                   <td className="px-6 py-4">
                     <div className="flex flex-col gap-1">
                       <span className="text-sm font-medium text-foreground">
-                        {trip.actualDurationMins ? `${trip.actualDurationMins}m` : '--'} / {trip.estimatedDurationMins}m
+                        {trip.actualDurationMins ? formatMinsToHours(trip.actualDurationMins) : '--'} / {formatMinsToHours(trip.estimatedDurationMins)}
                       </span>
                       {trip.actualDurationMins && (
                         <span className={`text-xs font-bold ${
