@@ -13,7 +13,6 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { StatCard } from "@/components/shared/StatCard";
 import {
-  AlertCircleIcon,
   CheckCircle2Icon,
   ShieldAlertIcon,
 } from "lucide-react";

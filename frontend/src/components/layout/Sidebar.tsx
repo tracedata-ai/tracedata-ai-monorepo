@@ -11,7 +11,6 @@ import {
   LayoutDashboardIcon,
   SettingsIcon,
   NetworkIcon,
-  ChevronRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {

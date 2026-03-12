@@ -13,6 +13,7 @@ import {
   Edge,
   BackgroundVariant,
   Position,
+  Node,
 } from '@xyflow/react';
 
 import '@xyflow/react/dist/style.css';
@@ -20,6 +21,18 @@ import '@xyflow/react/dist/style.css';
 import { initialNodes, initialEdges } from './flow-data';
 import KafkaNode from './KafkaNode';
 import dagre from 'dagre';
+
+/**
+ * Node Data Interface
+ * Standardizes the data properties for all flow nodes.
+ */
+interface SystemNodeData extends Record<string, unknown> {
+  label: string;
+  status: 'idle' | 'processing' | 'alert' | 'error';
+  queueDepth?: number;
+}
+
+type SystemNode = Node<SystemNodeData>;
 
 const nodeTypes = {
   kafka: KafkaNode,
@@ -31,7 +44,7 @@ dagreGraph.setDefaultEdgeLabel(() => ({}));
 const nodeWidth = 200;
 const nodeHeight = 80;
 
-const getLayoutedElements = (nodes: any[], edges: any[], direction = 'TB') => {
+const getLayoutedElements = (nodes: SystemNode[], edges: Edge[], direction = 'TB') => {
   const isHorizontal = direction === 'LR';
   dagreGraph.setGraph({ rankdir: direction });
 
@@ -62,7 +75,7 @@ const getLayoutedElements = (nodes: any[], edges: any[], direction = 'TB') => {
 };
 
 const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
-  initialNodes,
+  initialNodes as SystemNode[],
   initialEdges
 );
 
@@ -70,32 +83,83 @@ export default function SystemFlow() {
   const [nodes, setNodes, onNodesChange] = useNodesState(layoutedNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(layoutedEdges);
 
-  // Simulation logic for Kafka Queue Depth
+  // Simulation logic for Kafka Queue Depth and Node Status Transitions
   React.useEffect(() => {
     const interval = setInterval(() => {
-      setNodes((nds) =>
-        nds.map((node) => {
+      // 1. Update Nodes
+      setNodes((nds) => {
+        const nextNodes = nds.map((node) => {
+          // Kafka logic
           if (node.type === 'kafka') {
-            const currentDepth = (node.data as any).queueDepth || 0;
-            // Randomly fluctuate between 0 and 20
+            const currentDepth = node.data.queueDepth || 0;
             const change = Math.floor(Math.random() * 5) - 2;
             const newDepth = Math.max(0, Math.min(20, currentDepth + change));
             
+            let newStatus: 'idle' | 'processing' | 'alert' | 'error' = 'idle';
+            if (newDepth > 15) newStatus = 'error';
+            else if (newDepth > 8) newStatus = 'alert';
+            else if (newDepth > 0) newStatus = 'processing';
+
             return {
               ...node,
-              data: {
-                ...node.data,
-                queueDepth: newDepth,
-              },
+              data: { ...node.data, queueDepth: newDepth, status: newStatus },
             };
           }
+
+          if (node.id !== 'trucks' && node.id !== 'frontend') {
+            if (Math.random() > 0.8) {
+              const statuses: ('idle' | 'processing' | 'alert' | 'error')[] = ['idle', 'processing', 'alert'];
+              const randomStatus = statuses[Math.floor(Math.random() * statuses.length)];
+              
+              return {
+                ...node,
+                data: { ...node.data, status: randomStatus },
+                className: `${node.className?.split(' border-')[0]} border-${
+                  randomStatus === 'processing' ? 'blue-500' :
+                  randomStatus === 'alert' ? 'orange-500' :
+                  randomStatus === 'error' ? 'red-500' : 'zinc-200'
+                } border-2`,
+              };
+            }
+          }
           return node;
-        })
-      );
+        });
+
+        // 2. Update Edges immediately based on the new nodes
+        setEdges((eds) => {
+          return eds.map((edge) => {
+            const sourceNode = nextNodes.find((n) => n.id === edge.source);
+            if (!sourceNode) return edge;
+
+            const status = sourceNode.data.status;
+            let color = '#cbd5e1'; 
+            let animated = false;
+
+            if (status === 'processing') {
+              color = '#3b82f6';
+              animated = true;
+            } else if (status === 'alert') {
+              color = '#f97316';
+              animated = true;
+            } else if (status === 'error') {
+              color = '#ef4444';
+              animated = true;
+            }
+
+            return {
+              ...edge,
+              animated,
+              style: { ...edge.style, stroke: color, strokeWidth: animated ? 2 : 1 },
+            };
+          });
+        });
+
+        return nextNodes;
+      });
     }, 2000);
 
     return () => clearInterval(interval);
-  }, [setNodes]);
+  }, [setNodes, setEdges]);
 
   const onConnect = useCallback(
     (params: Connection | Edge) => setEdges((eds) => addEdge(params, eds)),

@@ -5,7 +5,7 @@ export const initialNodes: Node[] = [
   {
     id: 'trucks',
     type: 'input',
-    data: { label: '🚚 10K+ Trucks' },
+    data: { label: '🚚 10K+ Trucks', status: 'processing' },
     position: { x: 0, y: 0 },
     draggable: false,
     className: 'bg-white text-zinc-800 border-blue-200 rounded-xl p-4 font-bold shadow-sm',
@@ -13,7 +13,7 @@ export const initialNodes: Node[] = [
   {
     id: 'kafka',
     type: 'kafka',
-    data: { label: 'Kafka Queue', queueDepth: 0, maxQueueDepth: 20 },
+    data: { label: 'Kafka Queue', queueDepth: 0, maxQueueDepth: 20, status: 'idle' },
     position: { x: 0, y: 0 },
     draggable: false,
   },
@@ -21,14 +21,14 @@ export const initialNodes: Node[] = [
   // Ingestion Layer
   {
     id: 'ingestion-agent',
-    data: { label: 'Quality Ingestion Agent\n(Deterministic Router)' },
+    data: { label: 'Quality Ingestion Agent\n(Deterministic Router)', status: 'processing' },
     position: { x: 0, y: 0 },
     draggable: false,
     className: 'bg-white text-zinc-700 border-indigo-200 rounded-xl p-4 font-semibold shadow-sm',
   },
   {
     id: 'pii-scrubber',
-    data: { label: 'PII Scrubber Agent\n(GenAI/NLP)' },
+    data: { label: 'PII Scrubber Agent\n(GenAI/NLP)', status: 'idle' },
     position: { x: 0, y: 0 },
     draggable: false,
     className: 'bg-white text-zinc-600 border-purple-200 rounded-xl p-4 shadow-sm',
@@ -37,7 +37,7 @@ export const initialNodes: Node[] = [
   // Persistence
   {
     id: 'db',
-    data: { label: '🗄️ PostgreSQL\n(Flat Schema)' },
+    data: { label: '🗄️ PostgreSQL\n(Flat Schema)', status: 'idle' },
     position: { x: 0, y: 0 },
     draggable: false,
     className: 'bg-white text-zinc-700 border-zinc-200 rounded-xl p-4 shadow-sm font-medium',
@@ -46,7 +46,7 @@ export const initialNodes: Node[] = [
   // Orchestration
   {
     id: 'orchestrator',
-    data: { label: '🧠 LangGraph Orchestrator\n(State Machine)' },
+    data: { label: '🧠 LangGraph Orchestrator\n(State Machine)', status: 'processing' },
     position: { x: 0, y: 0 },
     draggable: false,
     className: 'bg-white text-zinc-800 border-amber-200 rounded-xl p-6 font-bold shadow-md border-2',
@@ -55,35 +55,35 @@ export const initialNodes: Node[] = [
   // Specialized Agents
   {
     id: 'behavior-agent',
-    data: { label: 'Behavior Agent\n(XGBoost / AIF360)' },
+    data: { label: 'Behavior Agent\n(XGBoost / AIF360)', status: 'idle' },
     position: { x: 0, y: 0 },
     draggable: false,
     className: 'bg-white text-zinc-600 border-slate-200 rounded-xl p-4 shadow-sm',
   },
   {
     id: 'safety-agent',
-    data: { label: 'Safety Agent\n(Cyclical Loop)' },
+    data: { label: 'Safety Agent\n(Cyclical Loop)', status: 'idle' },
     position: { x: 0, y: 0 },
     draggable: false,
     className: 'bg-white text-red-600 border-red-200 rounded-xl p-4 shadow-sm font-semibold',
   },
   {
     id: 'sentiment-agent',
-    data: { label: 'Sentiment Agent\n(Burnout Risk)' },
+    data: { label: 'Sentiment Agent\n(Burnout Risk)', status: 'idle' },
     position: { x: 0, y: 0 },
     draggable: false,
     className: 'bg-white text-pink-600 border-pink-200 rounded-xl p-4 shadow-sm',
   },
   {
     id: 'coaching-agent',
-    data: { label: 'Coaching Agent\n(GenAI)' },
+    data: { label: 'Coaching Agent\n(GenAI)', status: 'idle' },
     position: { x: 0, y: 0 },
     draggable: false,
     className: 'bg-white text-cyan-600 border-cyan-200 rounded-xl p-4 shadow-sm',
   },
   {
     id: 'advocacy-agent',
-    data: { label: 'Advocacy Agent\n(Appeals Logic)' },
+    data: { label: 'Advocacy Agent\n(Appeals Logic)', status: 'idle' },
     position: { x: 0, y: 0 },
     draggable: false,
     className: 'bg-white text-emerald-600 border-emerald-200 rounded-xl p-4 shadow-sm',
@@ -92,7 +92,7 @@ export const initialNodes: Node[] = [
   // Tools
   {
     id: 'mcp-tool',
-    data: { label: 'MCP Tool\nContext Enrichment' },
+    data: { label: 'MCP Tool\nContext Enrichment', status: 'idle' },
     position: { x: 0, y: 0 },
     draggable: false,
     className: 'bg-white text-violet-600 border-violet-200 border-dashed rounded-xl p-4 shadow-sm',
@@ -102,7 +102,7 @@ export const initialNodes: Node[] = [
   {
     id: 'frontend',
     type: 'output',
-    data: { label: '🖥️ Next.js Dashboard' },
+    data: { label: '🖥️ Next.js Dashboard', status: 'idle' },
     position: { x: 0, y: 0 },
     draggable: false,
     className: 'bg-zinc-800 text-white border-zinc-900 rounded-xl p-4 font-bold shadow-lg',
