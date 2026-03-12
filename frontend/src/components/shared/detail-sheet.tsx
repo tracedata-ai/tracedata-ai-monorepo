@@ -3,6 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { ExternalLink } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 import {
   Sheet,
@@ -10,6 +11,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet"
+import { Button, buttonVariants } from "@/components/ui/button"
 
 export interface DetailSheetProps {
   isOpen: boolean;
@@ -35,7 +37,10 @@ export function DetailSheet({ isOpen, onClose, title, deepLink, children }: Deta
                 {deepLink && (
                   <Link 
                     href={deepLink}
-                    className="flex items-center gap-1.5 text-xs font-bold text-brand-blue bg-brand-blue/10 hover:bg-brand-blue/20 px-3 py-1.5 rounded-md transition-colors"
+                    className={cn(
+                      buttonVariants({ variant: "secondary", size: "sm" }),
+                      "gap-1.5 font-bold h-7"
+                    )}
                   >
                     Open Page <ExternalLink className="w-3.5 h-3.5" />
                   </Link>

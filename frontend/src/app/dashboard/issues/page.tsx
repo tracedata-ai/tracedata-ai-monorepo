@@ -19,50 +19,41 @@ import { cn } from "@/lib/utils";
 import { DataTable } from "@/components/shared/data-table";
 import { DetailSheet } from "@/components/shared/detail-sheet";
 import { MetricCard } from "@/components/shared/MetricCard";
-import { GlassCard } from "@/components/shared/GlassCard";
 import { issueColumns } from "./issue-columns";
 import { InfoCard } from "@/components/shared/InfoCard";
 import { FeatureCard } from "@/components/shared/FeatureCard";
-import { DashboardSection } from "@/components/shared/DashboardSection";
+import { DashboardPageTemplate } from "@/components/shared/DashboardPageTemplate";
+import { DetailContentTemplate } from "@/components/shared/DetailContentTemplate";
+import { Button } from "@/components/ui/button";
+
 function IssueDetailContent({ issue }: { issue: IssueRecord }) {
   return (
-    <div className="space-y-6">
-      <DashboardSection gridCols={1} isFullWidth className="px-6 py-0 pb-6 border-b border-border">
-         <div className="flex items-center gap-4 mb-4">
-           <div className="w-12 h-12 rounded-2xl bg-brand-blue/5 flex items-center justify-center text-brand-blue border border-brand-blue/10 shadow-sm">
-             <Truck className="w-6 h-6" />
-           </div>
-           <div>
-             <h4 className="text-xl font-black text-foreground tracking-tight leading-tight">{issue.assetName}</h4>
-             <p className="text-[10px] text-brand-blue font-bold tracking-widest uppercase font-mono mt-1">{issue.vehicleId}</p>
-           </div>
-         </div>
-         
-         <div className="grid grid-cols-2 gap-4">
-           <MetricCard
-             compact
-             label="Current Status"
-             value={issue.status}
-             className={cn(
-               issue.status === 'Resolved' ? 'text-brand-teal' :
-               issue.status === 'Open' ? 'text-amber-500' :
-               'text-slate-400'
-             )}
-           />
-           <MetricCard
-             compact
-             label="Priority Level"
-             value={issue.priority}
-             className={cn(
-               issue.priority === 'Critical' ? 'text-rose-500' :
-               issue.priority === 'High' ? 'text-amber-500' :
-               'text-slate-500'
-             )}
-           />
-         </div>
-       </DashboardSection>
-
-      <div className="p-6 space-y-6">
+    <DetailContentTemplate
+      heroIcon={Truck}
+      heroTitle={issue.assetName}
+      heroSubtitle={issue.vehicleId}
+      highlights={[
+        {
+          label: "Current Status",
+          value: issue.status,
+          className: cn(
+            issue.status === 'Resolved' ? 'text-brand-teal' :
+            issue.status === 'Open' ? 'text-amber-500' :
+            'text-slate-400'
+          )
+        },
+        {
+          label: "Priority Level",
+          value: issue.priority,
+          className: cn(
+            issue.priority === 'Critical' ? 'text-rose-500' :
+            issue.priority === 'High' ? 'text-amber-500' :
+            'text-slate-500'
+          )
+        }
+      ]}
+    >
+      <div className="space-y-6">
         {/* AI Insight Section */}
         {issue.agentReasoning && (
           <FeatureCard
@@ -115,7 +106,7 @@ function IssueDetailContent({ issue }: { issue: IssueRecord }) {
           </div>
         </FeatureCard>
       </div>
-    </div>
+    </DetailContentTemplate>
   );
 }
 
@@ -130,78 +121,71 @@ export default function IssuesPage() {
   // Statistics for MetricCards
   const criticalCount = issues.filter(i => i.priority === 'Critical' && i.status !== 'Resolved').length;
   const openCount = issues.filter(i => i.status === 'Open').length;
-  const resolvedToday = issues.filter(i => i.status === 'Resolved').length; // Mock simplified
+  const resolvedToday = issues.filter(i => i.status === 'Resolved').length;
 
   return (
-    <div className="flex-1 flex flex-col min-w-0 bg-background h-full overflow-hidden">
-      <header className="bg-white dark:bg-slate-900 border-b border-border flex-shrink-0">
-        <DashboardSection gridCols={1} className="py-6">
-          <div className="flex flex-wrap justify-between items-center gap-4">
-            <div>
-              <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">Issues Hub</h2>
-              <p className="text-muted-foreground mt-1 text-sm">Manage fleet maintenance faults and real-time alerts.</p>
-            </div>
-            <div className="flex gap-3">
-              <button className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-border rounded-lg text-sm font-semibold hover:bg-slate-50 transition-colors">
-                <Download className="w-4 h-4" /> Export
-              </button>
-              <button className="flex items-center gap-2 px-4 py-2 bg-brand-blue text-white rounded-lg text-sm font-semibold hover:bg-brand-blue/90 shadow-sm transition-colors">
-                <Plus className="w-4 h-4" /> New Issue
-              </button>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
-            <MetricCard
-              label="Active Critical"
-              value={criticalCount}
-              icon={AlertTriangle}
-              iconColor="text-red-500"
-              trend={{ value: 2, label: "v. yesterday", isPositive: false }}
-            />
-            <MetricCard
-              label="Open Tickets"
-              value={openCount}
-              icon={Clock}
-              trend={{ value: 5, label: "since Monday", isPositive: false }}
-            />
-            <MetricCard
-              label="Resolved Today"
-              value={resolvedToday}
-              icon={CheckCircle2}
-              iconColor="text-emerald-500"
-              trend={{ value: 12, label: "matched SLA", isPositive: true }}
-            />
-          </div>
-
-          <div className="mt-8 flex gap-8">
-            {["Open", "Overdue", "Resolved", "Closed"].map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`pb-3 border-b-2 text-sm font-bold transition-colors ${
-                  activeTab === tab
-                    ? "border-brand-blue text-brand-blue"
-                    : "border-transparent text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                {tab}
-              </button>
-            ))}
-          </div>
-        </DashboardSection>
-      </header>
-
-      <main className="flex-1 overflow-auto bg-slate-50/50 dark:bg-slate-900/50">
-        <DashboardSection gridCols={1} className="py-8">
-          <DataTable
-            columns={issueColumns}
-            data={filteredIssues}
-            selectedId={selectedIssueId}
-            onRowClick={(issue) => setSelectedIssueId(issue.id)}
+    <DashboardPageTemplate
+      title="Issues Hub"
+      description="Manage fleet maintenance faults and real-time alerts."
+      headerActions={
+        <>
+          <Button variant="outline" className="gap-2">
+            <Download className="w-4 h-4" /> Export
+          </Button>
+          <Button className="gap-2">
+            <Plus className="w-4 h-4" /> New Issue
+          </Button>
+        </>
+      }
+      stats={
+        <>
+          <MetricCard
+            label="Active Critical"
+            value={criticalCount}
+            icon={AlertTriangle}
+            iconColor="text-red-500"
+            trend={{ value: 2, label: "v. yesterday", isPositive: false }}
           />
-        </DashboardSection>
-      </main>
+          <MetricCard
+            label="Open Tickets"
+            value={openCount}
+            icon={Clock}
+            trend={{ value: 5, label: "since Monday", isPositive: false }}
+          />
+          <MetricCard
+            label="Resolved Today"
+            value={resolvedToday}
+            icon={CheckCircle2}
+            iconColor="text-emerald-500"
+            trend={{ value: 12, label: "matched SLA", isPositive: true }}
+          />
+        </>
+      }
+      filters={
+        <div className="flex gap-8">
+          {["Open", "Overdue", "Resolved", "Closed"].map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={cn(
+                "pb-3 border-b-2 text-sm font-bold transition-colors outline-none",
+                activeTab === tab
+                  ? "border-brand-blue text-brand-blue"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              )}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
+      }
+    >
+      <DataTable
+        columns={issueColumns}
+        data={filteredIssues}
+        selectedId={selectedIssueId}
+        onRowClick={(issue) => setSelectedIssueId(issue.id)}
+      />
 
       <DetailSheet
         isOpen={!!selectedIssueId}
@@ -211,7 +195,7 @@ export default function IssuesPage() {
       >
         {selectedIssue && <IssueDetailContent issue={selectedIssue} />}
       </DetailSheet>
-    </div>
+    </DashboardPageTemplate>
   );
 }
 

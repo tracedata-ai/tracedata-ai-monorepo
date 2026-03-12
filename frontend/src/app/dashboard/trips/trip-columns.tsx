@@ -3,6 +3,7 @@
 import { ColumnDef } from "@tanstack/react-table"
 import { Route } from "lucide-react"
 import { TripRecord } from "@/config/dashboard"
+import { Progress } from "@/components/ui/progress"
 
 function formatMinsToHours(mins: number): string {
   const hours = Math.floor(mins / 60)
@@ -17,7 +18,7 @@ function getTripStatusClass(status: string): string {
     case "In Progress": return "bg-brand-blue/5 text-brand-blue border-brand-blue/10"
     case "Completed": return "bg-brand-teal/5 text-brand-teal border-brand-teal/10"
     case "Scheduled": return "bg-slate-50 text-slate-500 border-slate-100"
-    case "Cancelled": return "bg-rose-50 text-rose-500 border-rose-100"
+    case "Cancelled": return "bg-rose-50 text-rose-600 border-rose-100"
     default: return ""
   }
 }
@@ -71,12 +72,7 @@ export const tripColumns: ColumnDef<TripRecord>[] = [
             <span className="text-brand-blue">{(trip.currentDistanceKm ?? 0).toFixed(1)}km</span>
             <span className="text-slate-400">{trip.distanceKm.toFixed(1)}km</span>
           </div>
-          <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
-            <div
-              className={`h-full rounded-full transition-all ${trip.status === 'Completed' ? 'bg-brand-teal' : 'bg-brand-blue'}`}
-              style={{ width: `${pct}%` }}
-            />
-          </div>
+          <Progress value={pct} className="h-1.5" />
         </div>
       )
     },

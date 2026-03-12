@@ -69,6 +69,7 @@ export interface RouteRecord {
   historicalAvgMins: number;
   standardDistanceKm: number;
   totalTripsCompleted: number;
+  status: "Active" | "Inactive";
 }
 
 export interface VehicleProfile {
@@ -377,17 +378,17 @@ export const dashboardConfig = {
   ] as DriverProfile[],
 
   routes: [
-    { id: "RT-001-A", name: "Changi to CBD Express", origin: "Changi Airport T3", destination: "Marina Bay Sands", historicalAvgMins: 30, standardDistanceKm: 19.5, totalTripsCompleted: 542 },
-    { id: "RT-001-B", name: "CBD to Changi Express", origin: "Marina Bay Sands", destination: "Changi Airport T3", historicalAvgMins: 25, standardDistanceKm: 19.5, totalTripsCompleted: 500 },
+    { id: "RT-001-A", name: "Changi to CBD Express", origin: "Changi Airport T3", destination: "Marina Bay Sands", historicalAvgMins: 30, standardDistanceKm: 19.5, totalTripsCompleted: 542, status: "Active" },
+    { id: "RT-001-B", name: "CBD to Changi Express", origin: "Marina Bay Sands", destination: "Changi Airport T3", historicalAvgMins: 25, standardDistanceKm: 19.5, totalTripsCompleted: 500, status: "Active" },
     
-    { id: "RT-002-A", name: "Sentosa Inbound", origin: "VivoCity", destination: "Sentosa Cove", historicalAvgMins: 15, standardDistanceKm: 8.0, totalTripsCompleted: 4200 },
-    { id: "RT-002-B", name: "Sentosa Outbound", origin: "Sentosa Cove", destination: "VivoCity", historicalAvgMins: 18, standardDistanceKm: 8.0, totalTripsCompleted: 4350 },
+    { id: "RT-002-A", name: "Sentosa Inbound", origin: "VivoCity", destination: "Sentosa Cove", historicalAvgMins: 15, standardDistanceKm: 8.0, totalTripsCompleted: 4200, status: "Active" },
+    { id: "RT-002-B", name: "Sentosa Outbound", origin: "Sentosa Cove", destination: "VivoCity", historicalAvgMins: 18, standardDistanceKm: 8.0, totalTripsCompleted: 4350, status: "Active" },
     
-    { id: "RT-003-A", name: "East Coast Park Outbound", origin: "Bedok Mall", destination: "East Coast Park", historicalAvgMins: 10, standardDistanceKm: 4.2, totalTripsCompleted: 215 },
-    { id: "RT-003-B", name: "East Coast Park Return", origin: "East Coast Park", destination: "Bedok Mall", historicalAvgMins: 12, standardDistanceKm: 4.2, totalTripsCompleted: 215 },
+    { id: "RT-003-A", name: "East Coast Park Outbound", origin: "Bedok Mall", destination: "East Coast Park", historicalAvgMins: 10, standardDistanceKm: 4.2, totalTripsCompleted: 215, status: "Active" },
+    { id: "RT-003-B", name: "East Coast Park Return", origin: "East Coast Park", destination: "Bedok Mall", historicalAvgMins: 12, standardDistanceKm: 4.2, totalTripsCompleted: 215, status: "Active" },
     
-    { id: "RT-004-A", name: "Mandai Wildlife Transfer", origin: "Boon Lay MRT", destination: "Mandai Wildlife Reserve", historicalAvgMins: 25, standardDistanceKm: 15.8, totalTripsCompleted: 110 },
-    { id: "RT-004-B", name: "Mandai City Return", origin: "Mandai Wildlife Reserve", destination: "Boon Lay MRT", historicalAvgMins: 22, standardDistanceKm: 15.8, totalTripsCompleted: 100 },
+    { id: "RT-004-A", name: "Mandai Wildlife Transfer", origin: "Boon Lay MRT", destination: "Mandai Wildlife Reserve", historicalAvgMins: 25, standardDistanceKm: 15.8, totalTripsCompleted: 110, status: "Active" },
+    { id: "RT-004-B", name: "Mandai City Return", origin: "Mandai Wildlife Reserve", destination: "Boon Lay MRT", historicalAvgMins: 22, standardDistanceKm: 15.8, totalTripsCompleted: 100, status: "Active" },
   ] as RouteRecord[],
 
   trips: [

@@ -2,59 +2,81 @@
 
 import { useState } from "react";
 import { dashboardConfig, RouteRecord } from "@/config/dashboard";
-import { Map, Search, Route, BarChart3, Activity, Target, ArrowRight, ShieldCheck, TrendingUp } from "lucide-react";
+import { Route, Map, MapPin, Clock, TrendingUp, Search } from "lucide-react";
 import { DataTable } from "@/components/shared/data-table";
 import { DetailSheet } from "@/components/shared/detail-sheet";
-import { routeColumns, formatRouteMins } from "./route-columns";
+import { routeColumns } from "./route-columns";
 import { MetricCard } from "@/components/shared/MetricCard";
 import { InfoCard } from "@/components/shared/InfoCard";
 import { FeatureCard } from "@/components/shared/FeatureCard";
-import { DashboardSection } from "@/components/shared/DashboardSection";
+import { DashboardPageTemplate } from "@/components/shared/DashboardPageTemplate";
+import { DetailContentTemplate } from "@/components/shared/DetailContentTemplate";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 function RouteDetailContent({ route }: { route: RouteRecord }) {
   return (
-    <div className="space-y-6">
-      <DashboardSection gridCols={1} isFullWidth className="px-6 py-0 pb-6 border-b border-border">
-         <div className="flex items-center gap-4 mb-4">
-           <div className="w-12 h-12 rounded-2xl bg-brand-blue/5 flex items-center justify-center text-brand-blue border border-brand-blue/10 shadow-sm">
-             <Map className="w-6 h-6" />
-           </div>
-           <div>
-             <h4 className="text-xl font-black text-foreground tracking-tight leading-tight">{route.name}</h4>
-             <p className="text-[10px] text-brand-blue font-bold tracking-widest uppercase font-mono mt-1">{route.id}</p>
-           </div>
-         </div>
-         <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-4 border border-border">
-           <div className="flex items-center gap-3">
-             <div className="w-2 h-2 rounded-full bg-slate-400 dark:bg-slate-600 shadow-sm" />
-             <p className="text-xs font-bold text-foreground uppercase tracking-tight">{route.origin}</p>
-           </div>
-           <div className="ml-[3px] border-l-2 border-dashed border-slate-300 dark:border-slate-700 h-6 my-1" />
-           <div className="flex items-center gap-3">
-             <div className="w-2 h-2 rounded-full bg-brand-teal shadow-sm shadow-brand-teal/20" />
-             <p className="text-xs font-bold text-foreground uppercase tracking-tight">{route.destination}</p>
-           </div>
-         </div>
-       </DashboardSection>
-
-      <div className="p-6 space-y-6">
+    <DetailContentTemplate
+      heroIcon={Map}
+      heroTitle={route.id}
+      heroSubtitle={route.name}
+      highlights={[
+        {
+          label: "Status",
+          value: "Active",
+          className: 'text-brand-teal'
+        },
+        {
+          label: "Avg. Duration",
+          value: `${route.historicalAvgMins} mins`,
+          icon: Clock,
+          iconColor: "text-amber-500"
+        }
+      ]}
+    >
+      <div className="space-y-6">
         <InfoCard
-          title="Average Baselines"
-          icon={Activity}
+          title="Physical Parameters"
+          icon={MapPin}
           items={[
-            { label: "Est. Time", value: formatRouteMins(route.historicalAvgMins) },
-            { label: "Standard Distance", value: `${route.standardDistanceKm.toFixed(1)} km` }
+            { label: "Total Distance", value: `${route.standardDistanceKm} km` },
+            { label: "Complexity", value: route.standardDistanceKm > 50 ? "High" : "Standard" }
           ]}
         />
 
-        <MetricCard
-          label="Total Trips Run"
-          value={route.totalTripsCompleted.toLocaleString()}
-          icon={Target}
-          iconColor="text-brand-teal"
+        <InfoCard
+          title="Performance Registry"
+          icon={TrendingUp}
+          items={[
+            { label: "Total Trips Run", value: route.totalTripsCompleted },
+            { label: "Optimal Time", value: `${Math.round(route.historicalAvgMins * 0.9)} mins` }
+          ]}
         />
+
+        <FeatureCard
+          title="Route Path Definition"
+          icon={Route}
+        >
+          <div className="space-y-4">
+            <div className="flex items-start gap-3">
+              <div className="w-6 h-6 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600 text-[10px] font-bold border border-emerald-100 flex-shrink-0 mt-0.5">A</div>
+              <div>
+                <p className="text-xs font-bold text-foreground capitalize">{route.id.split('-')[1]?.toLowerCase() || 'Origin'} Hub</p>
+                <p className="text-[10px] text-muted-foreground">Primary loading zone</p>
+              </div>
+            </div>
+            <div className="w-[1px] h-6 bg-slate-200 ml-3"></div>
+            <div className="flex items-start gap-3">
+              <div className="w-6 h-6 rounded-full bg-rose-50 flex items-center justify-center text-rose-600 text-[10px] font-bold border border-rose-100 flex-shrink-0 mt-0.5">B</div>
+              <div>
+                <p className="text-xs font-bold text-foreground capitalize">{route.id.split('-')[2]?.toLowerCase() || 'Destination'} Terminal</p>
+                <p className="text-[10px] text-muted-foreground">Delivery point</p>
+              </div>
+            </div>
+          </div>
+        </FeatureCard>
       </div>
-    </div>
+    </DetailContentTemplate>
   );
 }
 
@@ -64,66 +86,57 @@ export default function RoutesPage() {
   const selectedRoute = routes.find(r => r.id === selectedRouteId) || null;
 
   return (
-    <div className="flex-1 flex flex-col min-w-0 bg-background h-full overflow-hidden" data-purpose="routes-page">
-      <header className="bg-white dark:bg-slate-900 border-b border-border flex-shrink-0">
-        <DashboardSection gridCols={1} className="py-6">
-          <div className="flex flex-wrap justify-between items-center gap-4">
-            <div>
-              <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">Route Catalog</h2>
-              <p className="text-muted-foreground mt-1 text-sm">Manage standard fleet paths, review historical baselines, and track efficiency.</p>
-            </div>
-            <div className="flex gap-3">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <input type="text" placeholder="Search origin or destination..." className="pl-9 pr-4 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/20 focus:border-brand-blue" />
-              </div>
-              <button className="bg-brand-blue text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-brand-blue/90 shadow-sm transition-colors">Generate Route</button>
-            </div>
+    <DashboardPageTemplate
+      title="Route Repository"
+      description="Define and manage logistics corridors and baseline performance."
+      headerActions={
+        <>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <input type="text" placeholder="Search routes..." className="pl-9 pr-4 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/20 focus:border-brand-blue" />
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
-            <MetricCard
-              label="Active Templates"
-              value={routes.length}
-              icon={Map}
-              iconColor="text-brand-blue"
-            />
-            <MetricCard
-              label="Total Fleet Trips"
-              value={routes.reduce((acc, r) => acc + r.totalTripsCompleted, 0).toLocaleString()}
-              icon={Route}
-              iconColor="text-brand-teal"
-            />
-            <MetricCard
-              label="Optimization Status"
-              value="Running"
-              icon={BarChart3}
-              iconColor="text-amber-500"
-              trend={{ value: 100, label: "AI active", isPositive: true }}
-            />
-          </div>
-        </DashboardSection>
-      </header>
-
-      <main className="flex-1 overflow-auto bg-slate-50/50 dark:bg-slate-900/50">
-        <DashboardSection gridCols={1} className="py-8">
-          <DataTable
-            columns={routeColumns}
-            data={routes}
-            selectedId={selectedRouteId}
-            onRowClick={(route) => setSelectedRouteId(route.id)}
+          <Button>Create Route</Button>
+        </>
+      }
+      stats={
+        <>
+          <MetricCard
+            label="Active Corridors"
+            value={routes.length}
+            icon={Route}
+            iconColor="text-brand-blue"
           />
-        </DashboardSection>
-      </main>
+          <MetricCard
+            label="Total Network"
+            value={`${routes.reduce((acc, curr) => acc + curr.standardDistanceKm, 0).toLocaleString()} km`}
+            icon={Map}
+            iconColor="text-brand-teal"
+          />
+          <MetricCard
+            label="Efficiency Index"
+            value="94%"
+            icon={TrendingUp}
+            iconColor="text-amber-500"
+            trend={{ value: 3, label: "optimizing", isPositive: true }}
+          />
+        </>
+      }
+    >
+      <DataTable
+        columns={routeColumns}
+        data={routes}
+        selectedId={selectedRouteId}
+        onRowClick={(route) => setSelectedRouteId(route.id)}
+      />
 
       <DetailSheet
         isOpen={!!selectedRouteId}
         onClose={() => setSelectedRouteId(null)}
-        title="Route Details"
+        title="Route Detail Configuration"
         deepLink={selectedRoute ? `/dashboard/routes/${selectedRoute.id}` : undefined}
       >
         {selectedRoute && <RouteDetailContent route={selectedRoute} />}
       </DetailSheet>
-    </div>
+    </DashboardPageTemplate>
   );
 }
