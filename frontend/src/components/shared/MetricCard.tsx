@@ -32,7 +32,7 @@ export function MetricCard({
   return (
     <GlassCard compact={compact} className={cn("flex flex-col h-full group hover:shadow-[0_20px_40px_rgba(0,0,0,0.06)]", className)} {...props}>
       <div className={cn("flex justify-between items-start", compact ? "mb-2 min-h-[32px]" : "mb-6 min-h-[44px]")}>
-        <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest">
           {label}
         </h3>
         {Icon && (
@@ -56,13 +56,13 @@ export function MetricCard({
         {(subValue || trend) && (
           <div className="flex items-center gap-3">
             {subValue && (
-              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">
+              <p className="text-xs font-medium text-slate-500 uppercase tracking-tight">
                 {subValue}
               </p>
             )}
             {trend && (
               <span className={cn(
-                "text-[10px] font-black px-2.5 py-1 rounded-full border shadow-sm",
+                "text-xs font-bold px-2.5 py-1 rounded-full border shadow-sm",
                 trend.isPositive 
                   ? "bg-emerald-50 text-emerald-600 border-emerald-100" 
                   : "bg-rose-50 text-rose-600 border-rose-100"

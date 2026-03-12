@@ -9,7 +9,7 @@
   --color-foreground: var(--foreground);
   --font-sans:
     "SF Pro Display", "SF Pro Text", -apple-system, BlinkMacSystemFont,
-    "Inter", var(--font-roboto), sans-serif;
+    var(--font-roboto), sans-serif;
   --font-mono: "SF Mono", var(--font-geist-mono), monospace;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);

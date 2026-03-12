@@ -14,7 +14,7 @@ function DriverDetailContent({ driver }: { driver: DriverProfile }) {
   return (
     <div className="p-6 space-y-6">
       <div className="space-y-4">
-        <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-1 flex items-center gap-2">
+        <h5 className="text-xs font-bold text-slate-400 uppercase tracking-widest px-1 flex items-center gap-2">
           <UserCheck className="w-4 h-4 text-emerald-500" />
           Operator Identity
         </h5>
@@ -40,18 +40,18 @@ function DriverDetailContent({ driver }: { driver: DriverProfile }) {
       </div>
 
       <GlassCard compact className="space-y-6">
-        <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
+        <h5 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
           <Activity className="w-4 h-4 text-brand-blue" />
           Aggregate metrics
         </h5>
         <div className="grid grid-cols-1 gap-4">
           <div className="flex justify-between items-center p-4 bg-slate-50/50 rounded-2xl border border-slate-100">
-            <p className="text-[10px] text-slate-500 uppercase font-black tracking-widest">Trips Completed</p>
-            <p className="text-sm font-black font-mono text-slate-900">{driver.tripsCompleted}</p>
+            <p className="text-xs text-slate-500 uppercase font-bold tracking-wider">Trips Completed</p>
+            <p className="text-sm font-bold font-mono text-slate-900">{driver.tripsCompleted}</p>
           </div>
           <div className="flex justify-between items-center p-4 bg-slate-50/50 rounded-2xl border border-slate-100">
-            <p className="text-[10px] text-slate-500 uppercase font-black tracking-widest">Rating</p>
-            <div className="flex items-center gap-1.5 text-sm font-black text-brand-blue">
+            <p className="text-xs text-slate-500 uppercase font-bold tracking-wider">Rating</p>
+            <div className="flex items-center gap-1.5 text-sm font-bold text-brand-blue">
               {driver.rating.toFixed(1)} <Award className="w-4 h-4 text-amber-500" />
             </div>
           </div>
@@ -59,22 +59,22 @@ function DriverDetailContent({ driver }: { driver: DriverProfile }) {
       </GlassCard>
 
       <GlassCard compact className="space-y-6">
-        <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
+        <h5 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
           <ShieldAlert className="w-4 h-4 text-amber-500" />
           Compliance Audit
         </h5>
         <div className="space-y-4">
           <div className="flex justify-between items-center">
-            <p className="text-[10px] text-slate-500 uppercase font-black tracking-widest">License</p>
-            <span className={`text-[10px] font-black px-3 py-1 rounded-full border ${
+            <p className="text-xs text-slate-500 uppercase font-bold tracking-wider">License</p>
+            <span className={`text-xs font-bold px-3 py-1 rounded-full border ${
               driver.licenseStatus === "Valid" ? "bg-emerald-50 text-emerald-600 border-emerald-100" :
               driver.licenseStatus === "Expiring Soon" ? "bg-amber-50 text-amber-700 border-amber-100" :
               "bg-rose-50 text-rose-600 border-rose-100"
             }`}>{driver.licenseStatus}</span>
           </div>
           <div className="flex justify-between items-center">
-            <p className="text-[10px] text-slate-500 uppercase font-black tracking-widest">Recent Incidents</p>
-            <p className={`text-sm font-black font-mono ${driver.recentIncidents > 0 ? "text-rose-500" : "text-emerald-500"}`}>
+            <p className="text-xs text-slate-500 uppercase font-bold tracking-wider">Recent Incidents</p>
+            <p className={`text-sm font-bold font-mono ${driver.recentIncidents > 0 ? "text-rose-500" : "text-emerald-500"}`}>
               {driver.recentIncidents}
             </p>
           </div>
@@ -87,21 +87,21 @@ function DriverDetailContent({ driver }: { driver: DriverProfile }) {
             <BrainCircuit className="w-full h-full" />
           </div>
           
-          <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
+          <h5 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-6 flex items-center gap-2">
             <BrainCircuit className="w-4 h-4 text-purple-500" /> Behavioral DNA
           </h5>
           
           <div className="space-y-6 relative z-10">
-            <p className="text-[11px] font-bold text-slate-900 leading-relaxed italic border-l-2 border-purple-200 pl-4 py-1">
+            <p className="text-sm font-medium text-slate-900 leading-relaxed italic border-l-2 border-purple-200 pl-4 py-1">
               "{driver.explanation.humanSummary}"
             </p>
             
             <div className="space-y-4">
-              <p className="text-[9px] text-purple-500 uppercase font-black tracking-[0.2em]">Feature Significance</p>
+              <p className="text-xs text-purple-500 uppercase font-bold tracking-widest">Feature Significance</p>
               {Object.entries(driver.explanation.featureImportance).map(([feature, value]) => (
                 <div key={feature} className="space-y-1.5">
-                  <div className="flex justify-between text-[9px] items-end font-black">
-                    <span className="text-slate-400 uppercase tracking-tighter">{feature.replace('_', ' ')}</span>
+                  <div className="flex justify-between text-xs items-end font-bold">
+                    <span className="text-slate-400 uppercase tracking-tight">{feature.replace('_', ' ')}</span>
                     <span className={value >= 0 ? 'text-emerald-500' : 'text-rose-500'}>
                       {value >= 0 ? '+' : ''}{(value * 100).toFixed(1)}%
                     </span>
@@ -117,8 +117,8 @@ function DriverDetailContent({ driver }: { driver: DriverProfile }) {
             </div>
 
             <div className="pt-4 border-t border-slate-100 flex justify-between items-center">
-              <p className="text-[9px] text-slate-400 uppercase font-black tracking-widest">Fairness Audit</p>
-              <p className="text-sm font-black text-slate-900 font-mono">{driver.explanation.fairnessAuditScore.toFixed(3)}</p>
+              <p className="text-xs text-slate-400 uppercase font-bold tracking-widest">Fairness Audit</p>
+              <p className="text-sm font-bold text-slate-900 font-mono">{driver.explanation.fairnessAuditScore.toFixed(3)}</p>
             </div>
           </div>
         </GlassCard>

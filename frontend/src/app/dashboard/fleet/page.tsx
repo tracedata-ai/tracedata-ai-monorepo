@@ -38,7 +38,7 @@ function VehicleDetailContent({ vehicle }: { vehicle: VehicleProfile }) {
             {statusIcon} {vehicle.status}
           </div>
           <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-border flex flex-col justify-center">
-            <p className="text-[10px] text-slate-500 uppercase font-bold mb-0.5 tracking-wider">Signal</p>
+            <p className="text-xs text-slate-500 uppercase font-bold mb-0.5 tracking-wider">Signal</p>
             <div className="flex items-center gap-1.5">
               <SignalHigh className={`w-3.5 h-3.5 ${signalCls}`} />
               <span className="text-xs font-bold text-foreground">{vehicle.signal}</span>
@@ -54,11 +54,11 @@ function VehicleDetailContent({ vehicle }: { vehicle: VehicleProfile }) {
           </h5>
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-border">
-              <p className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Model</p>
+              <p className="text-xs text-slate-500 uppercase font-bold tracking-wider">Model</p>
               <p className="text-sm font-bold text-foreground mt-1 truncate">{vehicle.model}</p>
             </div>
             <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-border">
-              <p className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Total Op Hours</p>
+              <p className="text-xs text-slate-500 uppercase font-bold tracking-wider">Total Op Hours</p>
               <p className="text-sm font-bold text-foreground font-mono mt-1">{vehicle.operatingHours.toLocaleString()}h</p>
             </div>
           </div>

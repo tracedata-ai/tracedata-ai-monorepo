@@ -40,11 +40,11 @@ function RouteDetailContent({ route }: { route: RouteRecord }) {
           </h5>
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-border">
-              <p className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Time</p>
+              <p className="text-xs text-slate-500 uppercase font-bold tracking-wider">Time</p>
               <p className="text-lg font-bold text-foreground mt-1">{formatRouteMins(route.historicalAvgMins)}</p>
             </div>
             <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-border">
-              <p className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Distance</p>
+              <p className="text-xs text-slate-500 uppercase font-bold tracking-wider">Distance</p>
               <p className="text-lg font-bold text-foreground mt-1">{route.standardDistanceKm.toFixed(1)} km</p>
             </div>
           </div>

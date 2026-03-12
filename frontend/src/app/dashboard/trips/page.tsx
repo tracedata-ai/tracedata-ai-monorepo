@@ -14,7 +14,7 @@ function TripDetailContent({ trip }: { trip: TripRecord }) {
   return (
     <div className="p-6 space-y-6">
       <div className="space-y-4">
-        <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-1 flex items-center gap-2">
+        <h5 className="text-xs font-bold text-slate-400 uppercase tracking-widest px-1 flex items-center gap-2">
           <Route className="w-4 h-4 text-brand-blue" />
           Dispatch Intelligence
         </h5>
@@ -39,7 +39,7 @@ function TripDetailContent({ trip }: { trip: TripRecord }) {
       </div>
 
       <GlassCard compact className="space-y-6">
-        <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
+        <h5 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
           <Clock className="w-4 h-4 text-brand-blue" />
           Temporal Performance
         </h5>
@@ -47,14 +47,14 @@ function TripDetailContent({ trip }: { trip: TripRecord }) {
         <div className="grid grid-cols-1 gap-4">
           <div className="flex justify-between items-center p-4 bg-slate-50/50 rounded-2xl border border-slate-100">
             <div>
-              <p className="text-[10px] text-slate-500 uppercase font-black tracking-widest">Actual Duration</p>
-              <p className="text-xl font-black text-slate-900 mt-1 font-mono">
+              <p className="text-xs text-slate-500 uppercase font-bold tracking-wider">Actual Duration</p>
+              <p className="text-xl font-bold text-slate-900 mt-1 font-mono">
                 {trip.actualDurationMins ? formatTripMins(trip.actualDurationMins) : '--'}
               </p>
             </div>
             <div className="text-right">
-              <p className="text-[10px] text-slate-400 uppercase font-black tracking-widest">Baseline</p>
-              <p className="text-sm font-black text-slate-400 mt-1 font-mono">
+              <p className="text-xs text-slate-400 uppercase font-bold tracking-wider">Baseline</p>
+              <p className="text-sm font-bold text-slate-400 mt-1 font-mono">
                 {formatTripMins(trip.historicalAvgMins)}
               </p>
             </div>
@@ -62,7 +62,7 @@ function TripDetailContent({ trip }: { trip: TripRecord }) {
 
           {trip.actualDurationMins && (
             <div className={cn(
-              "text-[10px] font-black p-3 text-center rounded-2xl border uppercase tracking-widest",
+              "text-xs font-bold p-3 text-center rounded-2xl border uppercase tracking-widest",
               trip.actualDurationMins > trip.historicalAvgMins 
                 ? 'bg-rose-50 text-rose-600 border-rose-100' :
               trip.actualDurationMins < trip.historicalAvgMins 
@@ -94,21 +94,21 @@ function TripDetailContent({ trip }: { trip: TripRecord }) {
             <BrainCircuit className="w-full h-full" />
           </div>
           
-          <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
+          <h5 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-6 flex items-center gap-2">
             <BrainCircuit className="w-4 h-4 text-purple-500" /> Behavioral DNA
           </h5>
           
           <div className="space-y-6 relative z-10">
-            <p className="text-[11px] font-bold text-slate-900 leading-relaxed italic border-l-2 border-purple-200 pl-4 py-1">
+            <p className="text-sm font-medium text-slate-900 leading-relaxed italic border-l-2 border-purple-200 pl-4 py-1">
               "{trip.explanation.humanSummary}"
             </p>
             
             <div className="space-y-4">
-              <p className="text-[9px] text-purple-500 uppercase font-black tracking-[0.2em]">Feature Significance</p>
+              <p className="text-xs text-purple-500 uppercase font-bold tracking-widest">Feature Significance</p>
               {Object.entries(trip.explanation.featureImportance).map(([feature, value]) => (
                 <div key={feature} className="space-y-1.5">
-                  <div className="flex justify-between text-[9px] items-end font-black">
-                    <span className="text-slate-400 uppercase tracking-tighter">{feature.replace('_', ' ')}</span>
+                  <div className="flex justify-between text-xs items-end font-bold">
+                    <span className="text-slate-400 uppercase tracking-tight">{feature.replace('_', ' ')}</span>
                     <span className={value >= 0 ? 'text-emerald-500' : 'text-rose-500'}>
                       {value >= 0 ? '+' : ''}{(value * 100).toFixed(1)}%
                     </span>
@@ -124,8 +124,8 @@ function TripDetailContent({ trip }: { trip: TripRecord }) {
             </div>
 
             <div className="pt-4 border-t border-slate-100 flex justify-between items-center">
-              <p className="text-[9px] text-slate-400 uppercase font-black tracking-widest">Fairness Audit</p>
-              <p className="text-sm font-black text-slate-900 font-mono">{trip.explanation.fairnessAuditScore.toFixed(3)}</p>
+              <p className="text-xs text-slate-400 uppercase font-bold tracking-widest">Fairness Audit</p>
+              <p className="text-sm font-bold text-slate-900 font-mono">{trip.explanation.fairnessAuditScore.toFixed(3)}</p>
             </div>
           </div>
         </GlassCard>

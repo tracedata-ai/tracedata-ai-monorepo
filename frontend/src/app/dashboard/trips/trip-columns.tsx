@@ -34,7 +34,7 @@ export const tripColumns: ColumnDef<TripRecord>[] = [
     accessorKey: "status",
     header: "Status",
     cell: ({ row }) => (
-      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] uppercase font-bold tracking-wider ${getTripStatusClass(row.original.status)}`}>
+      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs uppercase font-bold tracking-wider ${getTripStatusClass(row.original.status)}`}>
         {row.original.status}
       </span>
     ),
