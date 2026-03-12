@@ -27,34 +27,34 @@ function VehicleDetailContent({ vehicle }: { vehicle: VehicleProfile }) {
 
   return (
     <div className="space-y-6">
-      <DashboardSection gridCols={1} isFullWidth className="px-6 py-0 pb-4 border-b border-border">
-        <div className="flex items-center gap-4 mb-4">
-          <div className="w-12 h-12 rounded-lg bg-brand-blue/10 flex items-center justify-center text-brand-blue">
-            <Truck className="w-6 h-6" />
-          </div>
-          <div>
-            <h4 className="font-bold text-foreground text-lg leading-tight font-mono">{vehicle.id}</h4>
-            <p className="text-xs font-bold text-muted-foreground mt-1 tracking-widest uppercase">{vehicle.plateNumber}</p>
-          </div>
-        </div>
-        
-        <div className="grid grid-cols-2 gap-4">
-          <MetricCard
-            compact
-            label="Live Status"
-            value={vehicle.status}
-            icon={statusIcon}
-            className={statusCls}
-          />
-          <MetricCard
-            compact
-            label="Connectivity"
-            value={vehicle.signal || 'Unknown'}
-            icon={SignalHigh}
-            iconColor={vehicle.signal === 'Strong' ? 'text-brand-teal' : vehicle.signal === 'Medium' ? 'text-amber-500' : 'text-red-500'}
-          />
-        </div>
-      </DashboardSection>
+      <DashboardSection gridCols={1} isFullWidth className="px-6 py-0 pb-6 border-b border-border">
+         <div className="flex items-center gap-4 mb-4">
+           <div className="w-12 h-12 rounded-2xl bg-brand-blue/5 flex items-center justify-center text-brand-blue border border-brand-blue/10 shadow-sm">
+             <Truck className="w-6 h-6" />
+           </div>
+           <div>
+             <h4 className="text-xl font-black text-foreground tracking-tight leading-tight font-mono uppercase">{vehicle.id}</h4>
+             <p className="text-[10px] text-brand-blue font-bold tracking-widest uppercase font-mono mt-1">{vehicle.plateNumber}</p>
+           </div>
+         </div>
+         
+         <div className="grid grid-cols-2 gap-4">
+           <MetricCard
+             compact
+             label="Live Status"
+             value={vehicle.status}
+             icon={statusIcon}
+             className={statusCls}
+           />
+           <MetricCard
+             compact
+             label="Connectivity"
+             value={vehicle.signal || 'Unknown'}
+             icon={SignalHigh}
+             iconColor={vehicle.signal === 'Strong' ? 'text-brand-teal' : vehicle.signal === 'Medium' ? 'text-amber-500' : 'text-red-500'}
+           />
+         </div>
+       </DashboardSection>
 
       <div className="p-6 space-y-6">
         <InfoCard
@@ -97,7 +97,7 @@ export default function FleetPage() {
         <DashboardSection gridCols={1} className="py-6">
           <div className="flex flex-wrap justify-between items-center gap-4">
             <div>
-              <h2 className="text-3xl font-black text-slate-900 tracking-tight">Fleet Telemetry</h2>
+              <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">Fleet Telemetry</h2>
               <p className="text-muted-foreground mt-1 text-sm">Real-time vehicle tracking and status monitoring.</p>
             </div>
             <div className="flex gap-3">

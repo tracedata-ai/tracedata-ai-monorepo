@@ -58,7 +58,7 @@ export default function VehicleDetailsPage({
   return (
     <div className="flex-1 flex flex-col min-w-0 bg-background h-full overflow-hidden text-slate-900">
       <header className="bg-white dark:bg-slate-900 border-b border-slate-100 flex-shrink-0">
-        <DashboardSection gridCols={1} className="py-5">
+        <DashboardSection gridCols={1} className="py-4">
           <nav className="flex items-center text-xs font-bold text-slate-400 uppercase tracking-widest">
             <Link href="/dashboard/fleet" className="hover:text-brand-blue transition-colors flex items-center gap-1.5 -ml-2 px-2 py-1 rounded-full hover:bg-slate-50">
               <ArrowLeft className="w-3.5 h-3.5" />
@@ -71,8 +71,8 @@ export default function VehicleDetailsPage({
       </header>
 
       <div className="flex-1 overflow-auto bg-slate-50/30 dark:bg-slate-900/50">
-        <DashboardSection gridCols={1} className="py-8">
-          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-8">
+        <DashboardSection gridCols={1} className="py-6">
+          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-6">
             <div className="flex items-center gap-6">
               <div className="w-16 h-16 rounded-2xl bg-brand-blue/5 flex items-center justify-center text-brand-blue border border-brand-blue/10 shadow-sm">
                 <Truck className="w-8 h-8" />
@@ -89,8 +89,8 @@ export default function VehicleDetailsPage({
             </div>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-             <div className="md:col-span-2 space-y-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+             <div className="md:col-span-2 space-y-6">
                 <InfoCard
                   title="Asset Diagnostics"
                   icon={Activity}
@@ -146,16 +146,16 @@ export default function VehicleDetailsPage({
                 />
              </div>
 
-             <div className="md:col-span-1 space-y-8">
+             <div className="md:col-span-1 space-y-6">
                 <InfoCard
                   title="Maintenance Hub"
                   icon={Wrench}
                 >
-                   <div className="flex flex-col items-center justify-center py-10 text-center opacity-40">
-                      <div className="w-20 h-20 rounded-full border-2 border-dashed border-slate-300 flex items-center justify-center mb-6">
-                        <Truck className="w-8 h-8 text-slate-400" />
+                   <div className="flex flex-col items-center justify-center py-8 text-center opacity-40">
+                      <div className="w-16 h-16 rounded-full border-2 border-dashed border-slate-300 flex items-center justify-center mb-4">
+                        <Truck className="w-6 h-6 text-slate-400" />
                       </div>
-                      <p className="text-sm font-bold text-slate-500 uppercase tracking-tight">No active faults</p>
+                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">No active faults</p>
                       <p className="text-xs text-slate-400 mt-2">Fleet health is optimal.</p>
                    </div>
                 </InfoCard>

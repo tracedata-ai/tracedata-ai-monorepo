@@ -15,30 +15,37 @@ import { Route, Clock, CheckCircle2, Search, ShieldCheck, BrainCircuit, Trending
 function TripDetailContent({ trip }: { trip: TripRecord }) {
   return (
     <div className="space-y-6">
-      <DashboardSection gridCols={1} isFullWidth className="px-6 py-0 pb-4 border-b border-border">
-        <h5 className="text-xs font-bold text-slate-400 uppercase tracking-widest px-1 mb-4 flex items-center gap-2">
-          <Route className="w-4 h-4 text-brand-blue" />
-          Dispatch Intelligence
-        </h5>
-        <div className="grid grid-cols-2 gap-4 auto-rows-fr">
-          <MetricCard
-            compact
-            label="Live Status"
-            value={trip.status}
-            className={cn(
-              trip.status === "In Progress" ? "text-brand-blue" :
-              trip.status === "Completed" ? "text-emerald-500" :
-              "text-slate-400"
-            )}
-          />
-          <MetricCard
-            compact
-            label="Template ID"
-            value={trip.routeId}
-            icon={Route}
-          />
-        </div>
-      </DashboardSection>
+      <DashboardSection gridCols={1} isFullWidth className="px-6 py-0 pb-6 border-b border-border">
+         <div className="flex items-center gap-4 mb-4">
+           <div className="w-12 h-12 rounded-2xl bg-brand-blue/5 flex items-center justify-center text-brand-blue border border-brand-blue/10 shadow-sm">
+             <Route className="w-6 h-6" />
+           </div>
+           <div>
+             <h4 className="text-xl font-black text-foreground tracking-tight leading-tight uppercase font-mono">{trip.id}</h4>
+             <p className="text-[10px] text-brand-blue font-bold tracking-widest uppercase font-mono mt-1">{trip.routeId}</p>
+           </div>
+         </div>
+         
+         <div className="grid grid-cols-2 gap-4">
+           <MetricCard
+             compact
+             label="Live Status"
+             value={trip.status}
+             className={cn(
+               trip.status === "In Progress" ? "text-brand-blue" :
+               trip.status === "Completed" ? "text-emerald-500" :
+               "text-slate-400"
+             )}
+           />
+           <MetricCard
+             compact
+             label="Performance Score"
+             value={trip.score !== undefined ? trip.score : '--'}
+             icon={TrendingUp}
+             iconColor="text-emerald-500"
+           />
+         </div>
+       </DashboardSection>
 
       <div className="p-6 space-y-6">
         <FeatureCard
@@ -141,7 +148,7 @@ export default function TripsPage() {
         <DashboardSection gridCols={1} className="py-6">
           <div className="flex flex-wrap justify-between items-center gap-4">
             <div>
-              <h2 className="text-3xl font-black text-slate-900 tracking-tight">Trip Manifest</h2>
+              <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">Trip Manifest</h2>
               <p className="text-muted-foreground mt-1 text-sm">Monitor active routing, scheduled dispatches, and historical trips.</p>
             </div>
             <div className="flex gap-3">

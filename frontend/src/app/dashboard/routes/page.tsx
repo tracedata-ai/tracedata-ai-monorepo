@@ -14,28 +14,28 @@ import { DashboardSection } from "@/components/shared/DashboardSection";
 function RouteDetailContent({ route }: { route: RouteRecord }) {
   return (
     <div className="space-y-6">
-      <DashboardSection gridCols={1} isFullWidth className="px-6 py-0 pb-4 border-b border-border">
-        <div className="flex items-center gap-4 mb-4">
-          <div className="w-12 h-12 rounded-lg bg-brand-blue/10 flex items-center justify-center text-brand-blue">
-            <Map className="w-6 h-6" />
-          </div>
-          <div>
-            <h4 className="font-bold text-foreground text-lg leading-tight">{route.name}</h4>
-            <p className="text-xs text-brand-blue font-bold tracking-widest uppercase font-mono mt-1">{route.id}</p>
-          </div>
-        </div>
-        <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4 border border-border">
-          <div className="flex items-center gap-3">
-            <div className="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-600" />
-            <p className="text-sm font-medium text-foreground">{route.origin}</p>
-          </div>
-          <div className="ml-[3px] border-l-2 border-dashed border-slate-300 dark:border-slate-600 h-6 my-1" />
-          <div className="flex items-center gap-3">
-            <div className="w-2 h-2 rounded-full bg-brand-teal" />
-            <p className="text-sm font-medium text-foreground">{route.destination}</p>
-          </div>
-        </div>
-      </DashboardSection>
+      <DashboardSection gridCols={1} isFullWidth className="px-6 py-0 pb-6 border-b border-border">
+         <div className="flex items-center gap-4 mb-4">
+           <div className="w-12 h-12 rounded-2xl bg-brand-blue/5 flex items-center justify-center text-brand-blue border border-brand-blue/10 shadow-sm">
+             <Map className="w-6 h-6" />
+           </div>
+           <div>
+             <h4 className="text-xl font-black text-foreground tracking-tight leading-tight">{route.name}</h4>
+             <p className="text-[10px] text-brand-blue font-bold tracking-widest uppercase font-mono mt-1">{route.id}</p>
+           </div>
+         </div>
+         <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-4 border border-border">
+           <div className="flex items-center gap-3">
+             <div className="w-2 h-2 rounded-full bg-slate-400 dark:bg-slate-600 shadow-sm" />
+             <p className="text-xs font-bold text-foreground uppercase tracking-tight">{route.origin}</p>
+           </div>
+           <div className="ml-[3px] border-l-2 border-dashed border-slate-300 dark:border-slate-700 h-6 my-1" />
+           <div className="flex items-center gap-3">
+             <div className="w-2 h-2 rounded-full bg-brand-teal shadow-sm shadow-brand-teal/20" />
+             <p className="text-xs font-bold text-foreground uppercase tracking-tight">{route.destination}</p>
+           </div>
+         </div>
+       </DashboardSection>
 
       <div className="p-6 space-y-6">
         <InfoCard
@@ -69,7 +69,7 @@ export default function RoutesPage() {
         <DashboardSection gridCols={1} className="py-6">
           <div className="flex flex-wrap justify-between items-center gap-4">
             <div>
-              <h2 className="text-3xl font-black text-slate-900 tracking-tight">Route Catalog</h2>
+              <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">Route Catalog</h2>
               <p className="text-muted-foreground mt-1 text-sm">Manage standard fleet paths, review historical baselines, and track efficiency.</p>
             </div>
             <div className="flex gap-3">

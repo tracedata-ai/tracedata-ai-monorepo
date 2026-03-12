@@ -131,7 +131,7 @@ export default function TripDetailsPage({
   return (
     <div className="flex-1 flex flex-col min-w-0 bg-background h-full overflow-hidden text-slate-900">
       <header className="bg-white dark:bg-slate-900 border-b border-slate-100 flex-shrink-0">
-        <DashboardSection gridCols={1} className="py-5">
+        <DashboardSection gridCols={1} className="py-4">
           <nav className="flex items-center text-xs font-bold text-slate-400 uppercase tracking-widest">
             <Link href="/dashboard/trips" className="hover:text-brand-blue transition-colors flex items-center gap-1.5 -ml-2 px-2 py-1 rounded-full hover:bg-slate-50">
               <ArrowLeft className="w-3.5 h-3.5" />
@@ -144,8 +144,8 @@ export default function TripDetailsPage({
       </header>
 
       <div className="flex-1 overflow-auto bg-slate-50/30 dark:bg-slate-900/50">
-        <DashboardSection gridCols={1} className="py-8">
-          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-8">
+        <DashboardSection gridCols={1} className="py-6">
+          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-6">
             <div className="flex items-center gap-6">
               <div className="w-14 h-14 rounded-2xl bg-brand-blue/5 flex items-center justify-center text-brand-blue border border-brand-blue/10">
                 <Route className="w-6 h-6" />
@@ -239,8 +239,8 @@ export default function TripDetailsPage({
                        </ResponsiveContainer>
                      </div>
                    ) : (
-                     <div className="h-[350px] flex items-center justify-center border-2 border-dashed border-slate-100 rounded-3xl mt-4">
-                        <p className="text-sm text-slate-400 font-bold uppercase tracking-widest italic">Awaiting high-res telemetry packet...</p>
+                     <div className="h-[200px] flex items-center justify-center border-2 border-dashed border-slate-100 rounded-3xl mt-4">
+                        <p className="text-xs text-slate-400 font-bold uppercase tracking-widest italic">Awaiting high-res telemetry packet...</p>
                      </div>
                    )}
                 </FeatureCard>
@@ -332,7 +332,7 @@ export default function TripDetailsPage({
                 )}
              </div>
 
-             <div className="md:col-span-1 space-y-8">
+             <div className="md:col-span-1 space-y-6">
                 <FeatureCard 
                   title="Validation Hub" 
                   icon={ShieldCheck}
@@ -357,11 +357,11 @@ export default function TripDetailsPage({
                          </p>
                       </div>
                    ) : (
-                      <div className="flex flex-col items-center justify-center py-12 text-center opacity-40">
-                         <div className="w-20 h-20 rounded-full border-2 border-dashed border-slate-300 flex items-center justify-center mb-4">
-                           <ShieldCheck className="w-8 h-8 text-slate-400" />
+                      <div className="flex flex-col items-center justify-center py-6 text-center opacity-40">
+                         <div className="w-16 h-16 rounded-full border-2 border-dashed border-slate-300 flex items-center justify-center mb-4">
+                           <ShieldCheck className="w-6 h-6 text-slate-400" />
                          </div>
-                         <p className="text-xs font-bold uppercase text-slate-500">Awaiting Signal</p>
+                         <p className="text-[10px] font-bold uppercase text-slate-500">Awaiting Signal</p>
                       </div>
                    )}
                 </FeatureCard>

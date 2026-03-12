@@ -15,31 +15,37 @@ import { Activity, ShieldAlert, Award, BrainCircuit, Search, UserCheck, Trash2 }
 function DriverDetailContent({ driver }: { driver: DriverProfile }) {
   return (
     <div className="space-y-6">
-      <DashboardSection gridCols={1} isFullWidth className="px-6 py-0 pb-4 border-b border-border">
-        <h5 className="text-xs font-bold text-slate-400 uppercase tracking-widest px-1 mb-4 flex items-center gap-2">
-          <UserCheck className="w-4 h-4 text-emerald-500" />
-          Operator Identity
-        </h5>
-        <div className="grid grid-cols-2 gap-4 auto-rows-fr">
-          <MetricCard
-            compact
-            label="Current Status"
-            value={driver.status}
-            className={cn(
-              driver.status === 'Active' ? 'text-emerald-600' :
-              driver.status === 'On Break' ? 'text-amber-500' :
-              'text-slate-400'
-            )}
-          />
-          <MetricCard
-            compact
-            label="Avg. Score"
-            value={driver.avgTripScore}
-            icon={Award}
-            iconColor="text-emerald-500"
-          />
-        </div>
-      </DashboardSection>
+      <DashboardSection gridCols={1} isFullWidth className="px-6 py-0 pb-6 border-b border-border">
+         <div className="flex items-center gap-4 mb-4">
+           <div className="w-12 h-12 rounded-2xl bg-brand-blue/5 flex items-center justify-center text-brand-blue border border-brand-blue/10 shadow-sm font-black text-xl">
+             {driver.name.split(' ').map(n => n[0]).join('')}
+           </div>
+           <div>
+             <h4 className="text-xl font-black text-foreground tracking-tight leading-tight">{driver.name}</h4>
+             <p className="text-[10px] text-brand-blue font-bold tracking-widest uppercase font-mono mt-1">{driver.id}</p>
+           </div>
+         </div>
+         
+         <div className="grid grid-cols-2 gap-4">
+           <MetricCard
+             compact
+             label="Current Status"
+             value={driver.status}
+             className={cn(
+               driver.status === 'Active' ? 'text-emerald-600' :
+               driver.status === 'On Break' ? 'text-amber-500' :
+               'text-slate-400'
+             )}
+           />
+           <MetricCard
+             compact
+             label="Avg. Score"
+             value={driver.avgTripScore}
+             icon={Award}
+             iconColor="text-emerald-500"
+           />
+         </div>
+       </DashboardSection>
 
       <div className="p-6 space-y-6">
         <InfoCard
@@ -133,7 +139,7 @@ export default function DriversPage() {
         <DashboardSection gridCols={1} className="py-6">
           <div className="flex flex-wrap justify-between items-center gap-4">
             <div>
-              <h2 className="text-3xl font-black text-slate-900 tracking-tight">Driver Operations</h2>
+              <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">Driver Operations</h2>
               <p className="text-muted-foreground mt-1 text-sm">Manage fleet drivers, view shift compliance, and monitor performance.</p>
             </div>
             <div className="flex gap-3">

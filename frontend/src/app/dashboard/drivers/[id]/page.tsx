@@ -77,7 +77,7 @@ export default function DriverDetailsPage({
   return (
     <div className="flex-1 flex flex-col min-w-0 bg-background h-full overflow-hidden text-slate-900">
       <header className="bg-white dark:bg-slate-900 border-b border-slate-100 flex-shrink-0">
-        <DashboardSection gridCols={1} className="py-5">
+        <DashboardSection gridCols={1} className="py-4">
           <nav className="flex items-center text-xs font-bold text-slate-400 uppercase tracking-widest">
             <Link href="/dashboard/drivers" className="hover:text-brand-blue transition-colors flex items-center gap-1.5 -ml-2 px-2 py-1 rounded-full hover:bg-slate-50">
               <ArrowLeft className="w-3.5 h-3.5" />
@@ -90,8 +90,8 @@ export default function DriverDetailsPage({
       </header>
 
       <div className="flex-1 overflow-auto bg-slate-50/30 dark:bg-slate-900/50">
-        <DashboardSection gridCols={1} className="py-8">
-          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-8">
+        <DashboardSection gridCols={1} className="py-6">
+          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-6">
             <div className="flex items-center gap-6">
               <div className="w-16 h-16 rounded-2xl bg-brand-blue/5 flex items-center justify-center text-brand-blue font-black text-2xl border border-brand-blue/10 shadow-sm">
                 {driver.name.split(' ').map(n => n[0]).join('')}
@@ -115,13 +115,13 @@ export default function DriverDetailsPage({
             </div>
           </div>
           
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-             <div className="col-span-1 lg:col-span-2 space-y-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+             <div className="col-span-1 lg:col-span-2 space-y-6">
                 <FeatureCard 
                   title="Performance Trajectory" 
                   icon={TrendingUp}
                 >
-                   <div className="h-[300px] w-full mt-4">
+                   <div className="h-[250px] w-full mt-4">
                      <ResponsiveContainer width="100%" height="100%">
                        <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                          <defs>
@@ -200,12 +200,12 @@ export default function DriverDetailsPage({
                     variant="brand"
                     isNarrative
                   >
-                    <div className="space-y-8">
-                      <div className="text-xl font-medium text-slate-900 dark:text-slate-100 leading-relaxed italic border-l-4 border-brand-blue/20 pl-6 py-2">
+                    <div className="space-y-6">
+                      <div className="text-xl font-medium text-slate-900 dark:text-slate-100 leading-relaxed italic border-l-4 border-brand-blue/20 pl-6 py-1">
                         "{driver.explanation.humanSummary}"
                       </div>
                       
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-12 pt-8 border-t border-slate-100 dark:border-slate-800">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-6 border-t border-slate-100 dark:border-slate-800">
                         <div className="space-y-6">
                           <p className="text-xs text-brand-blue uppercase font-bold tracking-widest">Feature Contribution Profile</p>
                           <div className="space-y-5">
@@ -252,7 +252,7 @@ export default function DriverDetailsPage({
                 )}
              </div>
 
-             <div className="col-span-1 space-y-8">
+             <div className="col-span-1 space-y-6">
                 <FeatureCard
                   title="Journey Log"
                   icon={History}

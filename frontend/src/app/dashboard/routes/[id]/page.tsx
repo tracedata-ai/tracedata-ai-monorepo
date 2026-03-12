@@ -43,7 +43,7 @@ export default function RouteDetailsPage({
   return (
     <div className="flex-1 flex flex-col min-w-0 bg-background h-full overflow-hidden text-slate-900">
       <header className="bg-white dark:bg-slate-900 border-b border-slate-100 flex-shrink-0">
-        <DashboardSection gridCols={1} className="py-5">
+        <DashboardSection gridCols={1} className="py-4">
           <nav className="flex items-center text-xs font-bold text-slate-400 uppercase tracking-widest">
             <Link href="/dashboard/routes" className="hover:text-brand-blue transition-colors flex items-center gap-1.5 -ml-2 px-2 py-1 rounded-full hover:bg-slate-50">
               <ArrowLeft className="w-3.5 h-3.5" />
@@ -56,8 +56,8 @@ export default function RouteDetailsPage({
       </header>
 
       <div className="flex-1 overflow-auto bg-slate-50/30 dark:bg-slate-900/50">
-        <DashboardSection gridCols={1} className="py-8">
-          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-8">
+        <DashboardSection gridCols={1} className="py-6">
+          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-6">
             <div className="flex items-center gap-6">
               <div className="w-16 h-16 rounded-2xl bg-brand-blue/5 flex items-center justify-center text-brand-blue border border-brand-blue/10 shadow-sm">
                 <Navigation className="w-8 h-8" />
@@ -73,8 +73,8 @@ export default function RouteDetailsPage({
             </div>
           </div>
           
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-             <div className="col-span-1 lg:col-span-2 space-y-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+             <div className="col-span-1 lg:col-span-2 space-y-6">
                 <InfoCard
                   title="Path Details"
                   icon={Map}
@@ -113,7 +113,7 @@ export default function RouteDetailsPage({
                 </div>
              </div>
 
-             <div className="col-span-1 space-y-8">
+             <div className="col-span-1 space-y-6">
                 <InfoCard
                   title="Usage Statistics"
                   icon={Target}
@@ -122,7 +122,7 @@ export default function RouteDetailsPage({
                     { label: "Total Trips Completed", value: route.totalTripsCompleted.toLocaleString(), className: "text-2xl font-black text-brand-teal" }
                   ]}
                 >
-                   <p className="text-xs text-slate-400 leading-relaxed font-medium mt-6 border-t border-brand-teal/10 pt-6">
+                   <p className="text-[10px] text-slate-400 leading-relaxed font-medium mt-4 border-t border-brand-teal/10 pt-4">
                       This template is actively used by the dispatch engine for routing. Adjustments to baselines will affect ETA estimations across the fleet.
                    </p>
                 </InfoCard>

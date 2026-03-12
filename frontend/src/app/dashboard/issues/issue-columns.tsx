@@ -3,6 +3,7 @@
 import { ColumnDef } from "@tanstack/react-table"
 import { AlertCircle, Clock, CheckCircle2, XCircle, Brain } from "lucide-react"
 import { IssueRecord } from "@/config/dashboard"
+import { cn } from "@/lib/utils"
 
 const renderPriorityIcon = (priority: string) => {
   switch (priority) {
@@ -39,13 +40,14 @@ export const issueColumns: ColumnDef<IssueRecord>[] = [
     accessorKey: "priority",
     header: "Priority",
     cell: ({ row }) => (
-      <div className="flex items-center gap-2 font-bold text-xs uppercase tracking-wider">
+      <div className="flex items-center gap-2">
         {renderPriorityIcon(row.original.priority)}
-        <span className={
-          row.original.priority === 'Critical' ? 'text-red-600' :
-          row.original.priority === 'High' ? 'text-orange-600' :
+        <span className={cn(
+          "text-[10px] font-bold uppercase tracking-wider",
+          row.original.priority === 'Critical' ? 'text-rose-500' :
+          row.original.priority === 'High' ? 'text-amber-500' :
           'text-slate-500'
-        }>{row.original.priority}</span>
+        )}>{row.original.priority}</span>
       </div>
     ),
   },
@@ -54,8 +56,8 @@ export const issueColumns: ColumnDef<IssueRecord>[] = [
     header: "Asset",
     cell: ({ row }) => (
       <div className="flex flex-col">
-        <span className="font-bold text-foreground text-sm">{row.original.assetName}</span>
-        <span className="text-xs text-muted-foreground font-mono uppercase tracking-tighter">{row.original.vehicleId}</span>
+        <span className="text-sm font-bold text-foreground">{row.original.assetName}</span>
+        <span className="text-[10px] text-muted-foreground font-mono uppercase tracking-tighter">{row.original.vehicleId}</span>
       </div>
     ),
   },
@@ -63,7 +65,7 @@ export const issueColumns: ColumnDef<IssueRecord>[] = [
     accessorKey: "type",
     header: "Fault Type",
     cell: ({ row }) => (
-      <span className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-widest">{row.original.type}</span>
+      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{row.original.type}</span>
     ),
   },
   {
@@ -71,8 +73,8 @@ export const issueColumns: ColumnDef<IssueRecord>[] = [
     header: "Issue Summary",
     cell: ({ row }) => (
       <div className="max-w-[200px]">
-        <span className="text-sm font-medium text-foreground line-clamp-1">{row.original.summary}</span>
-        <span className="text-[11px] text-muted-foreground font-mono">{row.original.id}</span>
+        <span className="text-sm font-bold text-foreground line-clamp-1">{row.original.summary}</span>
+        <span className="text-[10px] text-muted-foreground font-mono uppercase tracking-tighter">{row.original.id}</span>
       </div>
     ),
   },
@@ -92,7 +94,10 @@ export const issueColumns: ColumnDef<IssueRecord>[] = [
     accessorKey: "status",
     header: "Status",
     cell: ({ row }) => (
-      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold border ${getStatusBadgeClass(row.original.status)}`}>
+      <span className={cn(
+        "inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider border",
+        getStatusBadgeClass(row.original.status)
+      )}>
         {row.original.status}
       </span>
     ),

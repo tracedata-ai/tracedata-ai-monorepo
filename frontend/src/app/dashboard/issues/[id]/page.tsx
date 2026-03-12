@@ -67,23 +67,24 @@ export default function IssueDetailsPage({
 
       {/* Main Content */}
       <main className="flex-1 overflow-auto bg-slate-50/50 dark:bg-slate-900/50">
-        <DashboardSection gridCols={4} className="py-8">
-          <div className="col-span-1 lg:col-span-4 flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-6">
+        <DashboardSection gridCols={4} className="py-6">
+          <div className="col-span-1 lg:col-span-4 flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-4">
             <div>
-              <h1 className="text-3xl font-black text-slate-900 tracking-tight">{issue.summary}</h1>
-              <p className="text-muted-foreground font-medium mt-2 flex items-center gap-2">
-                <span className="text-slate-900 font-bold">{issue.assetName}</span> (ID: {issue.vehicleId})
+              <h1 className="text-2xl font-black text-slate-900 tracking-tight">{issue.summary}</h1>
+              <p className="text-muted-foreground font-bold mt-1.5 flex items-center gap-2 text-sm uppercase tracking-tight">
+                <span className="text-brand-blue">{issue.assetName}</span>
+                <span className="w-1 h-1 rounded-full bg-slate-300"></span>
+                <span className="font-mono text-[10px]">{issue.vehicleId}</span>
               </p>
             </div>
             
-            {/* Status Button/Badge */}
-            <div className={`px-4 py-2 flex items-center gap-2 rounded-full text-xs font-bold uppercase border shadow-sm ${
+            <div className={`px-3 py-1.5 flex items-center gap-2 rounded-md text-[10px] font-bold uppercase border shadow-sm ${
                  issue.status === "Resolved"
                  ? "bg-emerald-50 text-emerald-600 border-emerald-100"
                  : "bg-amber-50 text-amber-600 border-amber-100"
              }`}>
-              {issue.status === "Resolved" && <div className="w-2 h-2 rounded-full bg-emerald-500"></div>}
-              {issue.status === "Open" && <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></div>}
+              {issue.status === "Resolved" && <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500/50"></div>}
+              {issue.status === "Open" && <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse shadow-sm shadow-amber-500/50"></div>}
               {issue.status}
             </div>
           </div>
@@ -110,6 +111,7 @@ export default function IssueDetailsPage({
                 }
               ]}
               columns={1}
+              className="p-3"
             />
 
             {issue.status === "Resolved" && (
@@ -134,12 +136,13 @@ export default function IssueDetailsPage({
                 icon={Brain}
                 variant="brand"
                 isNarrative
+                className="p-4"
               >
                 {issue.agentReasoning}
                 {issue.agentTags && (
-                  <div className="mt-6 flex flex-wrap gap-2">
+                  <div className="mt-4 flex flex-wrap gap-1.5">
                     {issue.agentTags.map((tag) => (
-                      <span key={tag} className="px-3 py-1 bg-white text-brand-blue text-xs font-bold rounded-lg border border-brand-blue/10 shadow-sm uppercase tracking-tighter">
+                      <span key={tag} className="px-2 py-0.5 bg-white text-brand-blue text-[10px] font-bold rounded border border-brand-blue/10 shadow-sm uppercase tracking-tighter">
                         {tag}
                       </span>
                     ))}
@@ -151,19 +154,20 @@ export default function IssueDetailsPage({
             <FeatureCard
               title="Event Narrative Timeline"
               icon={History}
+              className="p-4"
             >
-              <div className="relative pl-8 border-l-2 border-slate-100 dark:border-slate-800 space-y-10 ml-2">
+              <div className="relative pl-6 border-l-2 border-slate-100 dark:border-slate-800 space-y-6 ml-1">
                 {issue.timeline.map((event, idx) => (
                   <div key={idx} className="relative group">
-                    <div className="absolute -left-[41px] top-1 w-4 h-4 bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-700 group-hover:border-brand-blue transition-colors rounded-full z-10"></div>
+                    <div className="absolute -left-[31.5px] top-1 w-3 h-3 bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-700 group-hover:border-brand-blue transition-colors rounded-full z-10"></div>
                     <div>
-                      <p className="text-base font-bold text-slate-900 group-hover:text-brand-blue transition-colors">
+                      <p className="text-sm font-bold text-slate-900 group-hover:text-brand-blue transition-colors">
                         {event.title}
                       </p>
-                      <p className="text-xs text-brand-blue font-bold mt-1 uppercase tracking-widest font-mono">
+                      <p className="text-[10px] text-brand-blue font-bold mt-0.5 uppercase tracking-widest font-mono">
                         {event.timestamp}
                       </p>
-                      <p className="text-sm text-slate-500 mt-3 leading-relaxed max-w-2xl">
+                      <p className="text-xs text-slate-500 mt-2 leading-relaxed max-w-2xl">
                         {event.description}
                       </p>
                     </div>

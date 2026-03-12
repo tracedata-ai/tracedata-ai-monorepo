@@ -10,10 +10,10 @@ export const fleetColumns: ColumnDef<VehicleProfile>[] = [
     header: "Vehicle ID",
     cell: ({ row }) => (
       <div className="flex items-center gap-3">
-        <div className="p-2 bg-brand-blue/10 text-brand-blue rounded-lg">
+        <div className="p-2 bg-brand-blue/5 text-brand-blue rounded-xl border border-brand-blue/10 shadow-sm">
           <Truck className="w-4 h-4" />
         </div>
-        <span className="font-mono font-bold text-foreground">{row.original.id}</span>
+        <span className="font-mono text-[10px] font-bold text-slate-600 uppercase tracking-tighter">{row.original.id}</span>
       </div>
     ),
   },
@@ -22,8 +22,8 @@ export const fleetColumns: ColumnDef<VehicleProfile>[] = [
     header: "Plate & Model",
     cell: ({ row }) => (
       <div className="flex flex-col">
-        <span className="font-bold text-foreground text-sm">{row.original.plateNumber}</span>
-        <span className="text-xs text-muted-foreground">{row.original.model}</span>
+        <span className="text-sm font-bold text-foreground tracking-tight">{row.original.plateNumber}</span>
+        <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">{row.original.model}</span>
       </div>
     ),
   },
@@ -31,7 +31,7 @@ export const fleetColumns: ColumnDef<VehicleProfile>[] = [
     accessorKey: "driver",
     header: "Assigned Driver",
     cell: ({ row }) => (
-      <div className="font-medium text-foreground">{row.original.driver || '--'}</div>
+      <div className="text-sm font-bold text-foreground">{row.original.driver || '--'}</div>
     ),
   },
   {
@@ -50,7 +50,7 @@ export const fleetColumns: ColumnDef<VehicleProfile>[] = [
         status === 'Maintenance' ? <Wrench className="w-3 h-3" /> :
         <PowerOff className="w-3 h-3" />
       return (
-        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border ${cls}`}>
+        <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider border ${cls}`}>
           {icon} {status}
         </span>
       )
@@ -60,8 +60,8 @@ export const fleetColumns: ColumnDef<VehicleProfile>[] = [
     accessorKey: "location",
     header: "Location",
     cell: ({ row }) => (
-      <div className="flex items-center gap-2 text-muted-foreground text-sm font-medium">
-        <MapPin className="w-4 h-4 shrink-0" />
+      <div className="flex items-center gap-2 text-muted-foreground text-xs font-bold uppercase tracking-tight">
+        <MapPin className="w-3.5 h-3.5 shrink-0 text-brand-blue" />
         <span className="truncate max-w-[150px] block">{row.original.location || '--'}</span>
       </div>
     ),
@@ -70,7 +70,7 @@ export const fleetColumns: ColumnDef<VehicleProfile>[] = [
     accessorKey: "operatingHours",
     header: "Operating Hrs",
     cell: ({ row }) => (
-      <span className="font-mono font-bold text-foreground">{row.original.operatingHours.toLocaleString()}h</span>
+      <span className="font-mono text-[10px] font-bold text-slate-600 uppercase tracking-tighter">{row.original.operatingHours.toLocaleString()}h</span>
     ),
   },
   {
@@ -81,8 +81,8 @@ export const fleetColumns: ColumnDef<VehicleProfile>[] = [
       const cls = signal === 'Strong' ? 'text-brand-teal' : signal === 'Medium' ? 'text-amber-500' : 'text-red-500'
       return (
         <div className="flex items-center gap-2">
-          <SignalHigh className={`w-4 h-4 ${cls}`} />
-          <span className="text-sm font-bold text-foreground">{signal}</span>
+          <SignalHigh className={`w-3.5 h-3.5 ${cls}`} />
+          <span className="text-[10px] font-bold text-foreground uppercase tracking-wider">{signal}</span>
         </div>
       )
     },

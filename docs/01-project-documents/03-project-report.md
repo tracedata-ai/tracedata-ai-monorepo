@@ -449,3 +449,79 @@ wait_time = 2 ** failure_count # 2s, 4s, 8s, ...
 time.sleep(wait_time)
 circuit_breaker.half_open() # Try again
 ```
+## 6. System Architecture & Detailed Dataflow
+
+### 6.1 Architecture Overview
+TraceData is an **Agentic AI Middleware Monolith** built with Python, FastAPI, and LangGraph. It orchestrates specialized agents to process telemetry and provide driver-centric insights.
+
+```mermaid
+graph TD
+    subgraph "External Streams"
+        T[10K+ Trucks] -- "HTTPS / MQTT" --> K[Apache Kafka]
+    end
+
+    subgraph "AI Middleware (FastAPI)"
+        K --> I[Ingestion Quality Agent]
+        I -- "Standard Telemetry" --> DB[(PostgreSQL)]
+        I -- "Driver Text" --> PII[PII Scrubber Agent]
+        PII --> DB
+        
+        DB --> O[Orchestrator Agent - LangGraph]
+        
+        subgraph "Specialized Agents"
+            O --> B[Behavior Agent - XGBoost/AIF360]
+            O --> S[Safety Agent - Cyclical]
+            O --> C[Coaching Agent]
+            O --> SA[Sentiment Agent]
+            O --> AD[Advocacy Agent]
+        end
+        
+        subgraph "Tools"
+            B & S & O --> EN[Context Enrichment - MCP]
+        end
+    end
+
+    subgraph "State Management"
+        O & S <--> R[(Redis - Trip State)]
+    end
+
+    subgraph "Frontend"
+        FE[Next.js Dashboard] <--> FastAPI
+    end
+```
+
+### 6.2 The 4-Ping Telematics Lifecycle
+
+| Ping Type | Frequency | Primary Agent | Action |
+| :--- | :--- | :--- | :--- |
+| **Start of Trip** | Once per trip | Ingestion | Marks boundary, captures baseline (fuel, odometer). |
+| **4-Min Normal** | Periodic (Heartbeat) | Orchestrator | Evaluates for immediate action or persist-to-analytics. |
+| **End of Trip** | Once per trip | Behavior | Triggers ML Scoring, Fairness Audit, and Coaching. |
+| **Emergency** | Event-driven | Safety | High-priority cyclical intervention (Alert -> SMS -> Call). |
+
+---
+
+## 7. Technical Implementation Roadmap
+
+TraceData implementation follows a phased, incremental approach to ensure reliability and validation at each step.
+
+### 7.1 Phase 1: End-to-End "Hello World" Shells
+**Objective**: Validate the connectivity pipe from API through the LangGraph orchestrator to a shell agent.
+- **FastAPI Wrapper**: Implement minimal `/telemetry` POST endpoint.
+- **Shell Orchestrator**: Logic-less LangGraph supervisor using the Agent Registry pattern.
+- **Shell Behavior Agent**: A placeholder node returning a fixed success/score payload.
+- **Success Criteria**: A dummy JSON ping travels end-to-end through the middleware and returns a response.
+
+### 7.2 Phase 2: Core Middleware Infrastructure
+- **Agent Registry**: Centralized management of agent configurations and tools.
+- **Schema Enforcement**: Pydantic models for all 4-ping types.
+- **State Persistence**: Redis integration for trip lifecycle management.
+
+### 7.3 Phase 3: Specialist Agent Development
+- **Behavior Agent**: Integration of XGBoost, AIF360 (Fairness), and SHAP (Explainability).
+- **Context Agent**: Implementation of the Model Context Protocol (MCP) for real-time traffic/weather lookups.
+- **Safety Agent**: Cyclical LangGraph flow for multi-level escalation.
+
+---
+
+**Senior Architect Note**: "This roadmap ensures we don't build in isolation. By starting with Phase 1 'Shells', we validate the message pass-through and the graph structure before layering on complex AI reasoning and ML models."

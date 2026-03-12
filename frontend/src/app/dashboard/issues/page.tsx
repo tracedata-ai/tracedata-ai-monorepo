@@ -14,6 +14,7 @@ import {
   History,
   Wrench
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 import { DataTable } from "@/components/shared/data-table";
 import { DetailSheet } from "@/components/shared/detail-sheet";
@@ -26,42 +27,40 @@ import { DashboardSection } from "@/components/shared/DashboardSection";
 function IssueDetailContent({ issue }: { issue: IssueRecord }) {
   return (
     <div className="space-y-6">
-      <DashboardSection gridCols={1} isFullWidth className="px-6 py-0 pb-4 border-b border-border">
-        <div className="flex items-center gap-4 mb-4">
-          <div className="w-12 h-12 rounded-lg bg-brand-blue/10 flex items-center justify-center text-brand-blue">
-            <Truck className="w-6 h-6" />
-          </div>
-          <div>
-            <h4 className="font-bold text-foreground text-lg leading-tight">{issue.assetName}</h4>
-            <p className="text-xs text-muted-foreground font-bold tracking-widest uppercase font-mono mt-1">{issue.vehicleId}</p>
-          </div>
-        </div>
-        
-        <InfoCard
-          items={[
-            { 
-              label: "Status", 
-              value: (
-                <span className={issue.status === "Resolved" ? "text-brand-teal" : "text-amber-600"}>
-                  {issue.status}
-                </span>
-              )
-            },
-            { 
-              label: "Priority", 
-              value: (
-                <span className={
-                  issue.priority === "Critical" ? "text-red-600" : 
-                  issue.priority === "High" ? "text-orange-600" : "text-slate-600"
-                }>
-                  {issue.priority}
-                </span>
-              )
-            }
-          ]}
-          className="p-3 !bg-transparent !border-0 !shadow-none !p-0"
-        />
-      </DashboardSection>
+      <DashboardSection gridCols={1} isFullWidth className="px-6 py-0 pb-6 border-b border-border">
+         <div className="flex items-center gap-4 mb-4">
+           <div className="w-12 h-12 rounded-2xl bg-brand-blue/5 flex items-center justify-center text-brand-blue border border-brand-blue/10 shadow-sm">
+             <Truck className="w-6 h-6" />
+           </div>
+           <div>
+             <h4 className="text-xl font-black text-foreground tracking-tight leading-tight">{issue.assetName}</h4>
+             <p className="text-[10px] text-brand-blue font-bold tracking-widest uppercase font-mono mt-1">{issue.vehicleId}</p>
+           </div>
+         </div>
+         
+         <div className="grid grid-cols-2 gap-4">
+           <MetricCard
+             compact
+             label="Current Status"
+             value={issue.status}
+             className={cn(
+               issue.status === 'Resolved' ? 'text-brand-teal' :
+               issue.status === 'Open' ? 'text-amber-500' :
+               'text-slate-400'
+             )}
+           />
+           <MetricCard
+             compact
+             label="Priority Level"
+             value={issue.priority}
+             className={cn(
+               issue.priority === 'Critical' ? 'text-rose-500' :
+               issue.priority === 'High' ? 'text-amber-500' :
+               'text-slate-500'
+             )}
+           />
+         </div>
+       </DashboardSection>
 
       <div className="p-6 space-y-6">
         {/* AI Insight Section */}
@@ -139,10 +138,8 @@ export default function IssuesPage() {
         <DashboardSection gridCols={1} className="py-6">
           <div className="flex flex-wrap justify-between items-center gap-4">
             <div>
-              <h2 className="text-3xl font-black text-slate-900 tracking-tight flex items-center gap-3">
-                Issues Hub
-              </h2>
-              <p className="text-muted-foreground mt-1 text-sm">Manage and track fleet maintenance faults and real-time alerts.</p>
+              <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">Issues Hub</h2>
+              <p className="text-muted-foreground mt-1 text-sm">Manage fleet maintenance faults and real-time alerts.</p>
             </div>
             <div className="flex gap-3">
               <button className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-border rounded-lg text-sm font-semibold hover:bg-slate-50 transition-colors">
