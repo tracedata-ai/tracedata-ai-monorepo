@@ -505,14 +505,21 @@ graph TD
 
 TraceData implementation follows a phased, incremental approach to ensure reliability and validation at each step.
 
-### 7.1 Phase 1: End-to-End "Hello World" Shells
-**Objective**: Validate the connectivity pipe from API through the LangGraph orchestrator to a shell agent.
-- **FastAPI Wrapper**: Implement minimal `/telemetry` POST endpoint.
+### 7.1 Phase 0: Project Foundation (Infrastructure & Environment)
+**Objective**: Establish a production-grade containerized environment with core data tools.
+- **Dockerization**: Create `Dockerfile` for the middleware and configure `docker-compose.yml` for service orchestration.
+- **Data Foundation**: Initialize **PostgreSQL** (with **pgvector**) and **Redis**.
+- **Core Stack**: Setup **SQLAlchemy** for ORM and **Pydantic** for runtime type safety.
+- **Environment**: Configure Python `venv` and standardizing dependencies for Agentic AI workflows.
+
+### 7.2 Phase 1: End-to-End "Hello World" Shells
+**Objective**: Validate the connectivity pipe from API through the LangGraph orchestrator to multiple shell agents within the Docker network.
+- **Multiple Shell Endpoints**: Implement `/api/v1/telemetry`, `/api/v1/health`, and `/api/v1/chat-shell`.
 - **Shell Orchestrator**: Logic-less LangGraph supervisor using the Agent Registry pattern.
 - **Shell Behavior Agent**: A placeholder node returning a fixed success/score payload.
-- **Success Criteria**: A dummy JSON ping travels end-to-end through the middleware and returns a response.
+- **Success Criteria**: Dummy JSON payloads travel end-to-end through dockerized services and return responses.
 
-### 7.2 Phase 2: Core Middleware Infrastructure
+### 7.3 Phase 2: Core Middleware Infrastructure
 - **Agent Registry**: Centralized management of agent configurations and tools.
 - **Schema Enforcement**: Pydantic models for all 4-ping types.
 - **State Persistence**: Redis integration for trip lifecycle management.
