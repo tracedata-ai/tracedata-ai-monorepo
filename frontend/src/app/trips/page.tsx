@@ -1,3 +1,10 @@
+/**
+ * Expeditions (Trips) Management Page
+ * 
+ * Monitors the lifecycle of vehicle paths, including real-time telemetry
+ * streams and operational status (ongoing, completed, delayed).
+ */
+
 "use client";
 
 import { DataTable } from "@/components/shared/DataTable";
@@ -5,22 +12,29 @@ import { ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { TruckIcon, TimerIcon, MapPinIcon } from "lucide-react";
+import { TruckIcon, TimerIcon, ActivityIcon, CheckCircle2Icon } from "lucide-react";
 
+/**
+ * Trip Domain Object
+ * Represents an active or historical transport path.
+ */
 type Trip = {
-  id: string;
-  vehicleId: string;
+  id: string; // T-1001 mapping
+  vehicleId: string; // V-901 mapping
   driverName: string;
-  startTime: string;
+  startTime: string; // ISO-8601 formatted
   status: "ongoing" | "completed" | "delayed";
 };
 
+/**
+ * Column Definitions
+ */
 const columns: ColumnDef<Trip>[] = [
   {
     accessorKey: "id",
     header: "Trip ID",
     cell: ({ row }) => (
-      <span className="font-mono text-[11px] font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">
+      <span className="font-mono text-xs font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">
         {row.getValue("id")}
       </span>
     ),
@@ -52,7 +66,7 @@ const columns: ColumnDef<Trip>[] = [
     cell: ({ row }) => (
       <div className="flex items-center gap-2 text-slate-500">
         <TimerIcon className="w-3 h-3" />
-        <span className="text-[11px] font-medium">
+        <span className="text-xs font-medium">
           {row.getValue("startTime")}
         </span>
       </div>
@@ -73,7 +87,7 @@ const columns: ColumnDef<Trip>[] = [
                 : "destructive"
           }
           className={cn(
-            "capitalize font-semibold text-[10px] px-2 py-0",
+            "capitalize font-semibold text-xs px-2 py-0",
             status === "ongoing" && "bg-slate-700 text-white",
             status === "completed" && "bg-slate-100 text-slate-700",
             status === "delayed" && "bg-red-500 text-white",
@@ -86,6 +100,9 @@ const columns: ColumnDef<Trip>[] = [
   },
 ];
 
+/**
+ * Mock Data - Integration point for backend API
+ */
 const data: Trip[] = [
   {
     id: "T-1001",
@@ -129,6 +146,7 @@ export default function TripsPage() {
         </p>
       </div>
 
+      {/* Analytics Overview Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card className="border shadow-none">
           <CardHeader className="p-4 pb-2">
@@ -159,11 +177,10 @@ export default function TripsPage() {
         </Card>
       </div>
 
-      <div className="border rounded-lg p-1 bg-white">
+      {/* Main Data Table */}
+      <div className="">
         <DataTable columns={columns} data={data} filterKey="driverName" />
       </div>
     </div>
   );
 }
-
-import { ActivityIcon, CheckCircle2Icon } from "lucide-react";

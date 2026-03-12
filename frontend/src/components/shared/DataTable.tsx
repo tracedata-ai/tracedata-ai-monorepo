@@ -30,6 +30,16 @@ interface DataTableProps<TData, TValue> {
   filterKey?: string;
 }
 
+/**
+ * DataTable Component
+ * 
+ * A high-performance, accessible data table powered by TanStack Table (v8).
+ * Supports client-side sorting, filtering, and pagination out-of-the-box.
+ * 
+ * @param columns - TanStack ColumnDef array defining the table structure.
+ * @param data - Array of data objects to be rendered.
+ * @param filterKey - Optional key to enable client-side text filtering.
+ */
 export function DataTable<TData, TValue>({
   columns,
   data,
@@ -43,6 +53,7 @@ export function DataTable<TData, TValue>({
     React.useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = React.useState({});
 
+  // Initialize TanStack Table instance
   const table = useReactTable({
     data,
     columns,
@@ -64,6 +75,7 @@ export function DataTable<TData, TValue>({
 
   return (
     <div className="space-y-4">
+      {/* Search/Filter Bar */}
       {filterKey && (
         <div className="flex items-center">
           <Input
@@ -78,6 +90,8 @@ export function DataTable<TData, TValue>({
           />
         </div>
       )}
+
+      {/* Main Table Container */}
       <div className="rounded-lg border bg-white overflow-hidden">
         <Table>
           <TableHeader>
@@ -138,6 +152,8 @@ export function DataTable<TData, TValue>({
           </TableBody>
         </Table>
       </div>
+
+      {/* Pagination Controls */}
       <div className="flex items-center justify-end space-x-2">
         <div className="flex-1 text-sm text-slate-500">
           {table.getFilteredSelectedRowModel().rows.length} of{" "}

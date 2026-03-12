@@ -1,3 +1,10 @@
+/**
+ * Incident Logs (Issues) Page
+ * 
+ * Central monitoring point for fleet anomalies, safety events, and 
+ * maintenance alerts. Tracks issue severity and resolution status.
+ */
+
 "use client";
 
 import { DataTable } from "@/components/shared/DataTable";
@@ -11,20 +18,26 @@ import {
   ShieldAlertIcon,
 } from "lucide-react";
 
+/**
+ * Issue Context Object
+ */
 type Issue = {
-  id: string;
+  id: string; // ISS-001 format
   type: "maintenance" | "safety" | "delay";
   description: string;
   severity: "low" | "medium" | "high" | "critical";
   status: "open" | "resolved";
 };
 
+/**
+ * Column Definitions
+ */
 const columns: ColumnDef<Issue>[] = [
   {
     accessorKey: "id",
     header: "Issue ID",
     cell: ({ row }) => (
-      <span className="font-mono text-[11px] font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">
+      <span className="font-mono text-xs font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">
         {row.getValue("id")}
       </span>
     ),
@@ -58,9 +71,9 @@ const columns: ColumnDef<Issue>[] = [
       return (
         <Badge
           className={cn(
-            "capitalize font-semibold text-[10px] px-2 py-0",
+            "capitalize font-semibold text-xs px-2 py-0",
             severity === "low" && "bg-slate-100 text-slate-600",
-            severity === "medium" && "bg-yellow-100 text-yellow-700",
+            severity === "medium" && "bg-blue-50 text-blue-700",
             severity === "high" && "bg-orange-100 text-orange-700",
             severity === "critical" && "bg-red-600 text-white",
           )}
@@ -79,7 +92,7 @@ const columns: ColumnDef<Issue>[] = [
         <Badge
           variant={status === "resolved" ? "outline" : "default"}
           className={cn(
-            "capitalize font-semibold text-[10px]",
+            "capitalize font-semibold text-xs",
             status === "resolved"
               ? "border-slate-200 text-slate-500"
               : "bg-slate-800 text-white",
@@ -92,6 +105,9 @@ const columns: ColumnDef<Issue>[] = [
   },
 ];
 
+/**
+ * Mock Data
+ */
 const data: Issue[] = [
   {
     id: "ISS-001",
@@ -148,11 +164,11 @@ export default function IssuesPage() {
           </CardContent>
         </Card>
 
-        <Card className="border shadow-none border-t-2 border-slate-200">
+        <Card className="border shadow-none">
           <CardHeader className="p-4 pb-2">
             <CardTitle className="text-xs uppercase tracking-wider text-slate-500 font-bold flex items-center gap-2">
-              <CheckCircle2Icon className="w-4 h-4 text-slate-400" />
-              Resolved Today
+              <CheckCircle2Icon className="w-4 h-4" />
+              Resolved
             </CardTitle>
           </CardHeader>
           <CardContent className="p-4 pt-0">
@@ -163,7 +179,8 @@ export default function IssuesPage() {
         </Card>
       </div>
 
-      <div className="border rounded-lg p-1 bg-white">
+      {/* Main Data Table */}
+      <div className="">
         <DataTable columns={columns} data={data} filterKey="description" />
       </div>
     </div>

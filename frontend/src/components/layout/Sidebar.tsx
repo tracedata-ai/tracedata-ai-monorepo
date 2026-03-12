@@ -35,11 +35,19 @@ const navigation = [
   { name: "Issues", href: "/issues", icon: AlertCircleIcon },
 ];
 
+/**
+ * Global Sidebar Navigation
+ * 
+ * Provides top-level navigation for the TraceData management platform.
+ * Features a collapsible structure, active route highlighting, and 
+ * high-level branding.
+ */
 export function Sidebar() {
   const pathname = usePathname();
 
   return (
     <ShadcnSidebar collapsible="icon" className="border-r bg-slate-50/50">
+      {/* Sidebar Branding / Logo Header */}
       <SidebarHeader className="p-4">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded bg-slate-200 flex items-center justify-center text-slate-700 font-bold shrink-0">
@@ -56,6 +64,7 @@ export function Sidebar() {
         </div>
       </SidebarHeader>
 
+      {/* Primary Navigation Links */}
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel className="group-data-[collapsible=icon]:hidden text-[10px] uppercase font-bold text-slate-400 mb-2">
@@ -94,6 +103,7 @@ export function Sidebar() {
         </SidebarGroup>
       </SidebarContent>
 
+      {/* Sidebar Action Footer */}
       <SidebarFooter className="p-4 border-t">
         <SidebarMenu>
           <SidebarMenuItem>

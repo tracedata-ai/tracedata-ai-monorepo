@@ -1,3 +1,11 @@
+/**
+ * Drivers Management Page
+ * 
+ * Provides a comprehensive view of the fleet's personnel, including their
+ * real-time status (available, on-trip, offline), performance ratings,
+ * and verified credentials.
+ */
+
 "use client";
 
 import { DataTable } from "@/components/shared/DataTable";
@@ -8,15 +16,23 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { UsersIcon, UserCheckIcon } from "lucide-react";
 
+/**
+ * Driver Domain Object
+ * Represents a registered driver in the TraceData ecosystem.
+ */
 type Driver = {
-  id: string;
+  id: string; // Unique identifier (e.g., D-501)
   name: string;
-  license: string;
-  rating: number;
-  status: "available" | "on-trip" | "offline";
+  license: string; // Statutory license number
+  rating: number; // Aggregated performance score (0-5)
+  status: "available" | "on-trip" | "offline"; // Real-time telemetry status
   avatar?: string;
 };
 
+/**
+ * Column Definitions for the Drivers Table
+ * Uses TanStack Table (v8) for high-performance rendering.
+ */
 const columns: ColumnDef<Driver>[] = [
   {
     accessorKey: "name",
@@ -39,7 +55,7 @@ const columns: ColumnDef<Driver>[] = [
             <span className="font-semibold text-slate-900 leading-none mb-1">
               {name}
             </span>
-            <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-tighter">
+            <span className="text-[9px] text-muted-foreground font-medium uppercase tracking-tighter">
               Verified Professional
             </span>
           </div>
@@ -51,7 +67,7 @@ const columns: ColumnDef<Driver>[] = [
     accessorKey: "license",
     header: "License No.",
     cell: ({ row }) => (
-      <code className="text-[11px] font-mono bg-slate-100 px-1.5 py-0.5 rounded text-slate-600 border border-slate-200">
+      <code className="text-xs font-mono bg-slate-100 px-1.5 py-0.5 rounded text-slate-600 border border-slate-200">
         {row.getValue("license")}
       </code>
     ),
@@ -84,7 +100,7 @@ const columns: ColumnDef<Driver>[] = [
                 : "outline"
           }
           className={cn(
-            "capitalize font-semibold text-[10px] px-2 py-0",
+            "capitalize font-semibold text-xs px-2 py-0",
             status === "available" && "bg-slate-700 text-white",
             status === "on-trip" && "bg-slate-100 text-slate-700",
             status === "offline" && "text-slate-400 bg-slate-50",
@@ -97,6 +113,9 @@ const columns: ColumnDef<Driver>[] = [
   },
 ];
 
+/**
+ * Mock Data - Integration point for backend API
+ */
 const data: Driver[] = [
   {
     id: "D-501",
@@ -138,6 +157,7 @@ const data: Driver[] = [
 export default function DriversPage() {
   return (
     <div className="space-y-6">
+      {/* Page Header */}
       <div className="flex flex-col gap-1">
         <h2 className="text-2xl font-bold text-slate-900">Personnel</h2>
         <p className="text-slate-500">
@@ -145,6 +165,7 @@ export default function DriversPage() {
         </p>
       </div>
 
+      {/* Analytics Overview Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card className="border shadow-none">
           <CardHeader className="p-4 pb-2">
@@ -175,7 +196,8 @@ export default function DriversPage() {
         </Card>
       </div>
 
-      <div className="border rounded-lg p-1 bg-white">
+      {/* Main Data Table */}
+      <div className="">
         <DataTable columns={columns} data={data} filterKey="name" />
       </div>
     </div>
