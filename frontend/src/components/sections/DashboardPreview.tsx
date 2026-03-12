@@ -8,7 +8,7 @@ export function DashboardPreview() {
   const { transparency } = landingConfig;
   
   return (
-    <SectionWrapper id="transparency" darkBg>
+    <SectionWrapper id="transparency" variant="surface">
       <div className="flex flex-col lg:flex-row items-center gap-32">
         <div className="lg:w-1/2">
           <SectionHeader 

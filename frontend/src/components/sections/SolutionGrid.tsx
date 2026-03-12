@@ -8,7 +8,7 @@ export function SolutionGrid() {
   const { solutions } = landingConfig;
   
   return (
-    <SectionWrapper id="solutions">
+    <SectionWrapper id="solutions" variant="surface">
       <SectionHeader 
         badge={solutions.badge}
         title={solutions.title}

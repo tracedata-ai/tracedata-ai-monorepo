@@ -4,6 +4,8 @@ import { use } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { dashboardConfig } from "@/config/dashboard";
+import { GlassCard } from "@/components/shared/GlassCard";
+import { MetricCard } from "@/components/shared/MetricCard";
 import {
   ChevronRight,
   ArrowLeft,
@@ -123,7 +125,7 @@ export default function TripDetailsPage({
   };
 
   return (
-    <div className="flex-1 flex flex-col min-w-0 bg-white h-full overflow-hidden text-slate-900">
+    <div className="flex-1 flex flex-col min-w-0 bg-background h-full overflow-hidden text-slate-900">
       {/* Breadcrumb Header - Clean Light */}
       <header className="bg-white border-b border-slate-100 px-8 py-5 flex-shrink-0">
         <nav className="flex items-center text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
@@ -137,7 +139,7 @@ export default function TripDetailsPage({
       </header>
 
       {/* Main Content */}
-      <div className="flex-1 overflow-auto p-4 sm:p-8 bg-slate-50/30">
+      <div className="flex-1 overflow-auto p-4 sm:p-8">
         <div className="max-w-6xl mx-auto space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 pb-8">
             <div className="flex items-center gap-6">
@@ -160,7 +162,7 @@ export default function TripDetailsPage({
           
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
              <div className="md:col-span-3 space-y-6">
-                <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.02)] relative overflow-hidden">
+                <GlassCard className="relative overflow-hidden">
                    <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
                       <Activity className="w-24 h-24 text-slate-200" />
                    </div>
@@ -252,51 +254,37 @@ export default function TripDetailsPage({
                         <p className="text-sm text-slate-400 font-bold uppercase tracking-widest italic">Awaiting high-res telemetry packet...</p>
                      </div>
                    )}
-                </div>
+                </GlassCard>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                   <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
+                   <GlassCard className="p-6">
                       <h3 className="text-[10px] font-black text-slate-400 mb-6 uppercase tracking-widest flex items-center gap-2">
                         <Car className="w-4 h-4 text-brand-blue" />
                         Asset Links
                       </h3>
                       <div className="space-y-4">
-                         <Link href={`/dashboard/drivers/${trip.driverId}`} className="group flex items-center justify-between p-4 bg-slate-50 rounded-2xl hover:bg-brand-blue/5 transition-colors">
+                         <Link href={`/dashboard/drivers/${trip.driverId}`} className="group flex items-center justify-between p-4 bg-slate-50/50 rounded-2xl hover:bg-brand-blue/5 transition-colors">
                             <span className="text-[10px] font-black text-slate-400 uppercase">Driver</span>
                             <span className="font-bold text-slate-900 group-hover:text-brand-blue">{trip.driverId}</span>
                          </Link>
-                         <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl">
-                            <span className="text-[10px] font-black text-slate-400 uppercase">Vehicle</span>
-                            <span className="font-bold text-slate-900 font-mono">{trip.vehicleId}</span>
+                         <div className="flex items-center justify-between p-4 bg-slate-50/50 rounded-2xl text-[10px] font-black text-slate-400 uppercase">
+                            <span>Vehicle</span>
+                            <span className="text-slate-900 font-mono tracking-normal text-sm font-bold">{trip.vehicleId}</span>
                          </div>
                       </div>
-                   </div>
+                   </GlassCard>
 
-                   <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
-                      <h3 className="text-[10px] font-black text-slate-400 mb-6 uppercase tracking-widest flex items-center gap-2">
-                        <Clock className="w-4 h-4 text-brand-blue" />
-                        Temporal Metrics
-                      </h3>
-                      <div className="flex justify-between items-end h-[88px] pb-2">
-                        <div>
-                           <p className="text-[10px] text-slate-500 uppercase font-black tracking-widest mb-1">Duration</p>
-                           <p className="text-3xl font-black text-slate-900 leading-none">
-                              {trip.actualDurationMins ? formatMinsToHours(trip.actualDurationMins) : '--'}
-                           </p>
-                        </div>
-                        <div className="text-right">
-                           <p className="text-[10px] text-slate-400 uppercase font-black tracking-widest mb-1">Baseline</p>
-                           <p className="text-lg font-bold text-slate-400 leading-none">
-                              {formatMinsToHours(trip.historicalAvgMins)}
-                           </p>
-                        </div>
-                      </div>
-                   </div>
+                   <MetricCard
+                      label="Temporal Metrics"
+                      value={trip.actualDurationMins ? formatMinsToHours(trip.actualDurationMins) : '--'}
+                      subValue={`Baseline: ${formatMinsToHours(trip.historicalAvgMins)}`}
+                      icon={Clock}
+                   />
                 </div>
              </div>
 
              <div className="md:col-span-1 space-y-6">
-                <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm flex flex-col items-center">
+                <GlassCard className="flex flex-col items-center">
                    <div className="w-full flex justify-between items-center mb-8">
                       <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
                          <ShieldCheck className="w-4 h-4 text-emerald-500" /> Validation
@@ -307,7 +295,7 @@ export default function TripDetailsPage({
                       <div className="flex flex-col items-center justify-center flex-1 py-4 text-center">
                          <div className="relative mb-10">
                             <svg className="w-32 h-32 transform -rotate-90">
-                               <circle cx="64" cy="64" r="58" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-slate-50" />
+                               <circle cx="64" cy="64" r="58" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-slate-100" />
                                <circle cx="64" cy="64" r="58" stroke="currentColor" strokeWidth="8" fill="transparent" strokeDasharray={364.4} strokeDashoffset={364.4 - (364.4 * trip.score) / 100} className="text-emerald-500 transition-all duration-1000 ease-out" />
                             </svg>
                             <div className="absolute inset-0 flex items-center justify-center">
@@ -330,9 +318,9 @@ export default function TripDetailsPage({
                          <p className="text-[10px] font-black uppercase text-slate-500">Awaiting Signal</p>
                       </div>
                    )}
-                </div>
+                </GlassCard>
 
-                <div className="bg-brand-blue/[0.02] p-8 rounded-3xl border border-brand-blue/5 flex flex-col gap-4">
+                <GlassCard variant="brand" className="flex flex-col gap-4">
                    <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
                       <MapPin className="w-4 h-4 text-brand-blue" /> Route Status
                    </h3>
@@ -341,18 +329,18 @@ export default function TripDetailsPage({
                          <span className="text-slate-400">Progress</span>
                          <span className="text-slate-900">{Math.round(((trip.currentDistanceKm || 0) / trip.distanceKm) * 100)}%</span>
                       </div>
-                      <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                      <div className="w-full h-1.5 bg-slate-200/50 rounded-full overflow-hidden">
                          <div className="h-full bg-brand-blue rounded-full" style={{ width: `${((trip.currentDistanceKm || 0) / trip.distanceKm) * 100}%` }}></div>
                       </div>
                       <p className="text-[10px] font-bold text-slate-400 text-center uppercase tracking-tighter">
                          {trip.currentDistanceKm?.toFixed(1)} / {trip.distanceKm.toFixed(1)} km
                       </p>
                    </div>
-                </div>
+                </GlassCard>
              </div>
 
              {trip.explanation && (
-                <div className="md:col-span-4 bg-white p-8 sm:p-12 rounded-[2.5rem] border border-slate-100 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.05)]">
+                <GlassCard className="md:col-span-4 p-8 sm:p-12 rounded-[2.5rem]">
                   <div className="flex flex-col lg:flex-row gap-16">
                     <div className="lg:w-1/3 space-y-10">
                        <div>
@@ -370,7 +358,7 @@ export default function TripDetailsPage({
                          </div>
                        </div>
 
-                       <div className="bg-slate-900 text-white p-8 rounded-3xl space-y-6">
+                       <div className="bg-slate-900 text-white p-8 rounded-3xl space-y-6 shadow-2xl">
                          <div className="flex items-center gap-3 text-emerald-400">
                            <ShieldAlert className="w-5 h-5" />
                            <p className="text-[10px] font-black uppercase tracking-[0.2em]">Fairness Audit</p>
@@ -401,7 +389,7 @@ export default function TripDetailsPage({
                                  </span>
                                </div>
                                <div className="flex items-center gap-4">
-                                  <div className="flex-1 h-1 bg-slate-50 rounded-full overflow-hidden flex">
+                                  <div className="flex-1 h-1 bg-slate-100 rounded-full overflow-hidden flex">
                                     <div 
                                       className={`h-full rounded-full transition-all duration-1000 ${value >= 0 ? 'bg-emerald-500' : 'bg-rose-500'}`}
                                       style={{ width: `${Math.abs(value) * 100}%`, marginLeft: value >= 0 ? '0' : 'auto' }}
@@ -413,7 +401,7 @@ export default function TripDetailsPage({
                        </div>
                     </div>
                   </div>
-                </div>
+                </GlassCard>
               )}
           </div>
         </div>

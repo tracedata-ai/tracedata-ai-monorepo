@@ -18,7 +18,7 @@ export function SectionHeader({ badge, title, description, align = "left", class
         {title}
       </h2>
       {description && (
-        <p className="text-xl md:text-2xl text-muted-foreground dark:text-white/40 font-medium tracking-tight">
+        <p className="text-xl md:text-2xl text-[var(--muted-foreground)] opacity-90 font-medium tracking-tight">
           {description}
         </p>
       )}

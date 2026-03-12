@@ -17,9 +17,9 @@ export function HeroSection() {
           alt={hero.visualAlt}
           className="w-full h-full object-cover opacity-60 dark:opacity-40 grayscale-[20%]"
         />
-        <div className="absolute inset-0 bg-white/40 dark:bg-[#090e1a]/80 backdrop-blur-[2px]"></div>
-        <div className="absolute inset-0 bg-gradient-to-tr from-white dark:from-[#090e1a] via-transparent to-brand-teal/5"></div>
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-white dark:to-[#090e1a]"></div>
+        <div className="absolute inset-0 bg-background/40 dark:bg-[#090e1a]/80 backdrop-blur-[2px]"></div>
+        <div className="absolute inset-0 bg-gradient-to-tr from-background dark:from-[#090e1a] via-transparent to-brand-teal/5"></div>
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-background dark:to-[#090e1a]"></div>
       </div>
       
       <div className="absolute inset-0 grid-overlay opacity-[0.03] dark:opacity-[0.07] -z-10"></div>
@@ -35,7 +35,7 @@ export function HeroSection() {
             </span>
           </h1>
           
-          <p className="text-2xl text-muted-foreground/90 dark:text-white/60 mb-12 max-w-xl leading-relaxed font-medium tracking-tight">
+          <p className="text-2xl text-foreground/80 dark:text-white/60 mb-12 max-w-xl leading-relaxed font-medium tracking-tight">
             {hero.description}
           </p>
           
