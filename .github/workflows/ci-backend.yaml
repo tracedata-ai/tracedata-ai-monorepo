@@ -67,7 +67,9 @@ jobs:
 
       - name: Run Pytest
         working-directory: ai-agents
-        run: pytest test_smoke.py
+        run: |
+          export PYTHONPATH=$PYTHONPATH:$(pwd)
+          pytest tests/test_smoke.py
 
   summary:
     name: 📊 CI Summary
