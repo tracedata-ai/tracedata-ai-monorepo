@@ -1,19 +1,13 @@
 import type { Metadata } from "next";
-import { Roboto, Geist_Mono } from "next/font/google";
+import { Inter } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 
-const roboto = Roboto({
-  variable: "--font-roboto",
-  weight: ["300", "400", "500", "700", "900"],
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
 });
 
@@ -30,7 +24,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${roboto.variable} ${geistMono.variable} antialiased font-sans`}
+        className={`${inter.variable} antialiased font-sans`}
       >
         <TooltipProvider>
           <AuthProvider>

@@ -10,6 +10,7 @@ import {
   AlertCircleIcon,
   LayoutDashboardIcon,
   SettingsIcon,
+  NetworkIcon,
   ChevronRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -33,6 +34,7 @@ const navigation = [
   { name: "Trips", href: "/trips", icon: TruckIcon },
   { name: "Drivers", href: "/drivers", icon: UsersIcon },
   { name: "Issues", href: "/issues", icon: AlertCircleIcon },
+  { name: "System Map", href: "/system-map", icon: NetworkIcon },
 ];
 
 /**

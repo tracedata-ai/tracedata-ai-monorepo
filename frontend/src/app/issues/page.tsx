@@ -1,7 +1,7 @@
 /**
  * Incident Logs (Issues) Page
- * 
- * Central monitoring point for fleet anomalies, safety events, and 
+ *
+ * Central monitoring point for fleet anomalies, safety events, and
  * maintenance alerts. Tracks issue severity and resolution status.
  */
 
@@ -10,8 +10,8 @@
 import { DataTable } from "@/components/shared/DataTable";
 import { ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { StatCard } from "@/components/shared/StatCard";
 import {
   AlertCircleIcon,
   CheckCircle2Icon,
@@ -150,33 +150,20 @@ export default function IssuesPage() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <Card className="border shadow-none border-t-2 border-red-500">
-          <CardHeader className="p-4 pb-2">
-            <CardTitle className="text-xs uppercase tracking-wider text-slate-500 font-bold flex items-center gap-2">
-              <ShieldAlertIcon className="w-4 h-4 text-red-500" />
-              Active Alerts
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-4 pt-0">
-            <div className="text-2xl font-bold text-red-500 leading-none">
-              {data.filter((i) => i.status === "open").length}
-            </div>
-          </CardContent>
-        </Card>
+        <StatCard
+          title="Active Alerts"
+          value={data.filter((i) => i.status === "open").length}
+          icon={ShieldAlertIcon}
+          className="border-t-2 border-red-500"
+          valueClassName="text-red-500"
+          iconClassName="text-red-500"
+        />
 
-        <Card className="border shadow-none">
-          <CardHeader className="p-4 pb-2">
-            <CardTitle className="text-xs uppercase tracking-wider text-slate-500 font-bold flex items-center gap-2">
-              <CheckCircle2Icon className="w-4 h-4" />
-              Resolved
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-4 pt-0">
-            <div className="text-2xl font-bold text-slate-500 leading-none">
-              {data.filter((i) => i.status === "resolved").length}
-            </div>
-          </CardContent>
-        </Card>
+        <StatCard
+          title="Resolved"
+          value={data.filter((i) => i.status === "resolved").length}
+          icon={CheckCircle2Icon}
+        />
       </div>
 
       {/* Main Data Table */}

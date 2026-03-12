@@ -1,7 +1,5 @@
----
-name: tracedata-frontend
-description: Complete frontend skill for TraceData capstone—enforces architecture (Python FastAPI + LangGraph middleware, Next.js frontend, multi-tenancy), design system (glassmorphism, Tailwind + Shadcn), and implementation patterns (XRAI, security, performance, accessibility). Aligns with all four rubric areas and integrates with Orchestrator Agent, Safety Agent, and telematics pipelines. Use for ALL frontend development, scaffolding, and UI/UX work.
----
+name: tracedata-playbook
+description: The single authoritative reference for TraceData—enforces architecture (Python FastAPI + LangGraph), ingestion pipelines (Kafka/MQTT), driver profiling, and premium Next.js frontend standards (Shadcn, StatCard, TanStack).
 
 # TraceData Frontend Playbook
 
@@ -90,6 +88,17 @@ Evaluated by Safety Agent on Critical Events:
 
 **Frontend**: Display safety levels with corresponding urgency (red for Level 3, orange for Level 2, yellow for Level 1)
 
+### Driver Encouragement & Profiling
+
+- **Objective**: The system must go beyond penalization to build an encouragement profile. Raw telemetry points must be aggregated to detect positive driving patterns.
+- **Reasoning**: The AI (Orchestrator or Coaching Agent) uses these aggregated data points and contextual anomalies to reason autonomously, deciding when to boost encouragement scores.
+
+### Internal State & Persistence
+
+- **PostgreSQL (`pgvector`)**: Mandatory for semantic search against historical profiles and text submissions.
+- **Table Segregation**: Each processing agent writes its outputs to distinct tables, correlated by `trip_id` and isolated by `tenant_id`.
+- **Redis + Celery**: Used for asynchronous task queuing and internal background processing (conversation state, agent context).
+
 ### AI Security & Guardrails
 
 - **LLM Rate Limiting**: Strict per-driver/per-tenant token quotas
@@ -144,10 +153,10 @@ Define in `src/styles/globals.css`:
 
 ### Typography
 
-- **Headers (Display)**: Bold, uppercase, tracked. Convey authority.
-  - Font: SF Pro Display, `font-bold text-lg md:text-2xl uppercase tracking-tight`
-- **Body (Roboto)**: Dense data, readable. `font-roboto text-base leading-relaxed`. Fallback to **SF Pro Text** where applicable.
-- **Identifiers (Geist Mono)**: Trip IDs, vehicle IDs, metric values. `font-mono text-sm`
+- **Headers (Display)**: Bold, tracking tightened. Convey authority.
+  - Font: Inter, `font-bold text-lg md:text-2xl tracking-tight`
+- **Body (Inter)**: Clean, professional, highly readable. Use `font-sans` (mapped to Inter).
+- **Identifiers & Metrics**: Use semibold weight for numeric clarity. `font-semibold text-sm`
 - **Emphasis**: Use weight variation (regular → semibold → bold) rather than italic
 
 ### Page Templates (NEVER START FROM SCRATCH)
@@ -255,88 +264,21 @@ export default function DriversPage() {
 }
 ```
 
-#### [Template] DetailContentTemplate
+#### [Template] StatCard
 
-Render consistent content within detail sheets or full-page detail views.
+Standardized card for displaying analytics and metrics with consistent icons and status indicators.
 
 ```typescript
-// src/components/shared/DetailContentTemplate.tsx
-'use client';
+// src/components/shared/StatCard.tsx
+import { StatCard } from "@/components/shared/StatCard";
 
-interface DetailContentTemplateProps {
-  icon: ReactNode;
-  id: string;
-  status: 'active' | 'inactive' | 'alert' | 'critical';
-  title: string;
-  highlights?: {
-    label: string;
-    value: string | number;
-    unit?: string;
-  }[];
-  sections?: {
-    title: string;
-    content: ReactNode;
-  }[];
-}
-
-export function DetailContentTemplate({
-  icon,
-  id,
-  status,
-  title,
-  highlights,
-  sections,
-}: DetailContentTemplateProps) {
-  const statusColor = {
-    active: 'bg-teal-100 text-teal-800',
-    inactive: 'bg-gray-100 text-gray-800',
-    alert: 'bg-rose-100 text-rose-800',
-    critical: 'bg-red-100 text-red-800',
-  };
-
-  return (
-    <div className="space-y-6">
-      {/* Hero Section */}
-      <div className="flex items-start gap-4">
-        <div className="text-4xl">{icon}</div>
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">{title}</h2>
-          <p className="mt-1 text-sm text-gray-600 font-mono">{id}</p>
-          <span className={`mt-2 inline-block rounded px-3 py-1 text-xs font-semibold ${statusColor[status]}`}>
-            {status.charAt(0).toUpperCase() + status.slice(1)}
-          </span>
-        </div>
-      </div>
-
-      {/* Highlights Grid */}
-      {highlights && (
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
-          {highlights.map((h) => (
-            <div key={h.label} className="rounded bg-gray-50 p-3">
-              <p className="text-xs font-medium text-gray-600">{h.label}</p>
-              <p className="mt-1 text-lg font-bold text-gray-900">
-                {h.value}
-                {h.unit && <span className="text-sm text-gray-600"> {h.unit}</span>}
-              </p>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Content Sections */}
-      {sections && (
-        <div className="space-y-4">
-          {sections.map((section) => (
-            <div key={section.title} className="rounded border border-gray-200 p-4">
-              <h3 className="font-semibold text-gray-900">{section.title}</h3>
-              <div className="mt-3 text-sm text-gray-700">{section.content}</div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
+<StatCard
+  title="Active Now"
+  value={98}
+  icon={ActivityIcon}
+  iconClassName="text-slate-500"
+  description="Up 12% from last hour"
+/>
 ```
 
 ### Component Standards
@@ -354,74 +296,21 @@ Always use Shadcn components for consistent styling and accessibility:
 
 #### Rule 2: Data Table Pattern
 
-Overview pages must use a shared `DataTable` component with row-click selection:
+Overview pages must use the shared `DataTable` component built on **TanStack Table (v8)**. It supports filtering, pagination (optional), and custom cell rendering.
 
 ```typescript
 // src/components/shared/DataTable.tsx
-'use client';
-
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-
-interface DataTableProps<T> {
-  columns: {
-    key: keyof T;
-    label: string;
-    render?: (value: T[keyof T], row: T) => ReactNode;
-  }[];
-  data: T[];
-  onRowClick?: (row: T) => void;
-  rowKey: keyof T;
-}
-
-export function DataTable<T>({
-  columns,
-  data,
-  onRowClick,
-  rowKey,
-}: DataTableProps<T>) {
-  return (
-    <div className="rounded border border-gray-200 overflow-hidden">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            {columns.map((col) => (
-              <TableHead key={String(col.key)} className="font-semibold text-gray-900">
-                {col.label}
-              </TableHead>
-            ))}
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {data.map((row) => (
-            <TableRow
-              key={String(row[rowKey])}
-              onClick={() => onRowClick?.(row)}
-              className={onRowClick ? 'cursor-pointer hover:bg-gray-50' : ''}
-            >
-              {columns.map((col) => (
-                <TableCell key={String(col.key)}>
-                  {col.render ? col.render(row[col.key], row) : String(row[col.key])}
-                </TableCell>
-              ))}
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </div>
-  );
-}
+// Usage:
+<DataTable 
+  columns={columns} 
+  data={data} 
+  filterKey="name" 
+/>
 ```
 
 #### Rule 3: Detail Sheet Pattern
 
-Record details must be shown in a `DetailSheet` occupying exactly **1/3** of viewport width:
+Record details must be shown in a `DetailSheet` occupying exactly **1/3** of viewport width. Ensure the sheets are accessible to both fleet managers and specialized roles.
 
 ```typescript
 // src/components/shared/DetailSheet.tsx
@@ -615,6 +504,7 @@ export const ExampleComponent: FC<ExampleComponentProps> = ({
 **Key Principles**:
 
 - Use `'use client'` for client-side interactivity; maximize server-side rendering
+- **Document all code**: Use JSDoc-style technical comments for pages, core components, and complex logic to ensure maintainability and traceability.
 - Document rubric alignment in JSDoc comments
 - Use TypeScript strict mode; no `any` types
 - Use `cn()` utility for Tailwind merging
@@ -1575,9 +1465,10 @@ When scaffolding new code:
 5. **Document rubric alignment**: Every component should note which rubric area it addresses
 6. **Reference architecture docs**: Comment with A1–A5, A16, A20 references
 7. **Security by default**: Input validation, JWT checks, sanitization on user inputs
-8. **Explain the "why"**: Especially for scoring/predictions—use SHAP/LIME
-9. **Accessibility counts**: ARIA labels, keyboard nav, contrast checks
-10. **Performance matters**: Lazy load heavy components, cache API responses, use WebSocket for real-time
+11. **Traceability first**: Ensure all agent actions write to their respective Postgres tables with the `trip_id` identifier.
+12. **Explain the "why"**: Especially for scoring/predictions—use SHAP/LIME
+13. **Accessibility counts**: ARIA labels, keyboard nav, contrast checks
+14. **Performance matters**: Lazy load heavy components, cache API responses, use WebSocket for real-time
 
 ---
 

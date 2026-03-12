@@ -1,6 +1,6 @@
 /**
  * Drivers Management Page
- * 
+ *
  * Provides a comprehensive view of the fleet's personnel, including their
  * real-time status (available, on-trip, offline), performance ratings,
  * and verified credentials.

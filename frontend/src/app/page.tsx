@@ -1,13 +1,9 @@
 import { StatCard } from "@/components/shared/StatCard";
-import {
-  ActivityIcon,
-  TrendingUpIcon,
-  AlertTriangleIcon,
-} from "lucide-react";
+import { ActivityIcon, TrendingUpIcon, AlertTriangleIcon } from "lucide-react";
 
 /**
  * Fleet Overview (Dashboard Home)
- * 
+ *
  * Provides a high-level summary of the entire fleet's operational health,
  * including active vehicles, system availability, and urgent alerts.
  */
