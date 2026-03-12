@@ -9,25 +9,13 @@ import { DashboardPageTemplate } from "@/components/shared/DashboardPageTemplate
 import { SHAPForcePlot } from "@/components/explainability/SHAPForcePlot";
 import { BehaviorScoreBreakdown } from "@/components/explainability/BehaviorScoreBreakdown";
 import { useAuth } from "@/context/AuthContext";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Route, MapPin } from "lucide-react";
 import { mockTripScores, mockSHAPData } from "@/lib/mock-data";
+import { DataTable } from "@/components/shared/data-table";
+import { DetailSheet } from "@/components/shared/detail-sheet";
+import { ColumnDef } from "@tanstack/react-table";
 
 // Mock driver trips
 const MOCK_DRIVER_TRIPS = [
@@ -77,7 +65,7 @@ export default function DriverTrips() {
   const [selectedTrip, setSelectedTrip] = useState<
     (typeof MOCK_DRIVER_TRIPS)[0] | null
   >(null);
-  const driverId = "driver_alice_001";
+  const { role } = useAuth();
 
   const getRiskColor = (level: string) => {
     switch (level) {
@@ -105,6 +93,80 @@ export default function DriverTrips() {
     }
   };
 
+  const columns: ColumnDef<(typeof MOCK_DRIVER_TRIPS)[0]>[] = [
+    {
+      accessorKey: "date",
+      header: "Date",
+      cell: ({ row }) => (
+        <span className="text-sm font-mono">
+          {new Date(row.original.date).toLocaleDateString()}
+        </span>
+      ),
+    },
+    {
+      accessorKey: "from",
+      header: "Route",
+      cell: ({ row }) => (
+        <div className="flex flex-col gap-1 text-left">
+          <span className="font-medium text-sm">{row.original.from}</span>
+          <span className="text-xs text-muted-foreground">
+            → {row.original.to}
+          </span>
+        </div>
+      ),
+    },
+    {
+      accessorKey: "distance",
+      header: "Distance",
+      cell: ({ row }) => <span className="text-sm">{row.original.distance} mi</span>,
+    },
+    {
+      accessorKey: "score",
+      header: "Score",
+      cell: ({ row }) => (
+        <div className="flex items-center gap-2">
+          <div
+            className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
+              row.original.score >= 80
+                ? "bg-green-100 text-green-900"
+                : row.original.score >= 70
+                  ? "bg-yellow-100 text-yellow-900"
+                  : "bg-red-100 text-red-900"
+            }`}
+          >
+            {row.original.score}
+          </div>
+        </div>
+      ),
+    },
+    {
+      accessorKey: "riskLevel",
+      header: "Risk",
+      cell: ({ row }) => (
+        <Badge className={getRiskColor(row.original.riskLevel)}>
+          {getRiskLabel(row.original.riskLevel)}
+        </Badge>
+      ),
+    },
+    {
+      id: "actions",
+      header: "Action",
+      cell: ({ row }) => (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={(e) => {
+            e.stopPropagation();
+            setSelectedTrip(row.original);
+          }}
+          className="text-brand-blue hover:text-brand-blue/90 font-bold"
+        >
+          Details
+        </Button>
+      ),
+    },
+  ];
+
   const tripScore = selectedTrip ? mockTripScores[selectedTrip.id] : null;
   const tripSHAP = selectedTrip ? mockSHAPData[selectedTrip.id] : null;
 
@@ -112,15 +174,6 @@ export default function DriverTrips() {
     <DashboardPageTemplate
       title="My Trips"
       description="View your trip history and performance scores"
-      breadcrumbs={
-        <div className="flex items-center gap-2 text-xs text-slate-500">
-          <a href="/driver" className="hover:text-slate-700">
-            Dashboard
-          </a>
-          <span>/</span>
-          <span>Trips</span>
-        </div>
-      }
       stats={
         <>
           <div className="glass-card rounded-xl p-4">
@@ -157,158 +210,79 @@ export default function DriverTrips() {
       }
     >
       <div className="space-y-6">
-        {/* Trips Table */}
-        <section className="rounded-lg border border-slate-200 overflow-hidden">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-slate-50">
-                  <TableHead className="font-bold text-foreground">
-                    Date
-                  </TableHead>
-                  <TableHead className="font-bold text-foreground">
-                    Route
-                  </TableHead>
-                  <TableHead className="font-bold text-foreground">
-                    Distance
-                  </TableHead>
-                  <TableHead className="font-bold text-foreground">
-                    Score
-                  </TableHead>
-                  <TableHead className="font-bold text-foreground">
-                    Risk
-                  </TableHead>
-                  <TableHead className="font-bold text-foreground">
-                    Action
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {MOCK_DRIVER_TRIPS.map((trip) => (
-                  <TableRow key={trip.id} className="hover:bg-slate-50">
-                    <TableCell className="text-sm font-mono">
-                      {new Date(trip.date).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell className="text-sm">
-                      <div className="flex flex-col gap-1">
-                        <span className="font-medium">{trip.from}</span>
-                        <span className="text-xs text-muted-foreground">
-                          → {trip.to}
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-sm">
-                      {trip.distance} mi
-                    </TableCell>
-                    <TableCell className="text-sm">
-                      <div className="flex items-center gap-2">
-                        <div
-                          className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
-                            trip.score >= 80
-                              ? "bg-green-100 text-green-900"
-                              : trip.score >= 70
-                                ? "bg-yellow-100 text-yellow-900"
-                                : "bg-red-100 text-red-900"
-                          }`}
-                        >
-                          {trip.score}
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={getRiskColor(trip.riskLevel)}>
-                        {getRiskLabel(trip.riskLevel)}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setSelectedTrip(trip)}
-                        className="text-brand-blue hover:text-brand-blue/90"
-                      >
-                        Details
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </section>
+        <DataTable
+          columns={columns}
+          data={MOCK_DRIVER_TRIPS}
+          onRowClick={(trip) => setSelectedTrip(trip)}
+          selectedId={selectedTrip?.id}
+        />
       </div>
 
-      {/* Detail Sheet */}
-      <Sheet open={!!selectedTrip} onOpenChange={() => setSelectedTrip(null)}>
-        <SheetContent className="w-full max-w-2xl overflow-y-auto">
-          {selectedTrip && tripScore && tripSHAP && (
-            <>
-              <SheetHeader>
-                <SheetTitle>Trip Details</SheetTitle>
-                <SheetDescription>
-                  {selectedTrip.from} → {selectedTrip.to}
-                </SheetDescription>
-              </SheetHeader>
-
-              <div className="space-y-8 mt-6">
-                {/* Trip Info */}
-                <div className="space-y-3">
-                  <h3 className="font-semibold text-foreground">
-                    Trip Information
-                  </h3>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <p className="text-muted-foreground text-xs uppercase tracking-wider font-bold">
-                        Date
-                      </p>
-                      <p className="font-mono">
-                        {new Date(selectedTrip.date).toLocaleDateString()}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground text-xs uppercase tracking-wider font-bold">
-                        Duration
-                      </p>
-                      <p className="font-mono">{selectedTrip.duration} min</p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground text-xs uppercase tracking-wider font-bold">
-                        Distance
-                      </p>
-                      <p className="font-mono">{selectedTrip.distance} miles</p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground text-xs uppercase tracking-wider font-bold">
-                        Risk Level
-                      </p>
-                      <Badge className={getRiskColor(selectedTrip.riskLevel)}>
-                        {getRiskLabel(selectedTrip.riskLevel)}
-                      </Badge>
-                    </div>
-                  </div>
+      <DetailSheet
+        open={!!selectedTrip}
+        onOpenChange={(open) => !open && setSelectedTrip(null)}
+        title="Trip Details"
+      >
+        {selectedTrip && tripScore && tripSHAP && (
+          <div className="space-y-8 px-6 pb-6 mt-4">
+            <div>
+              <h3 className="font-semibold text-foreground mb-3">
+                Trip Information
+              </h3>
+              <div className="grid grid-cols-2 gap-4 text-sm bg-muted/20 p-4 rounded-lg">
+                <div>
+                  <p className="text-muted-foreground text-[10px] uppercase tracking-wider font-bold">
+                    Date
+                  </p>
+                  <p className="font-mono font-bold">
+                    {new Date(selectedTrip.date).toLocaleDateString()}
+                  </p>
                 </div>
-
-                {/* Score Breakdown */}
-                <BehaviorScoreBreakdown score={tripScore} />
-
-                {/* SHAP Explanation */}
-                <SHAPForcePlot data={tripSHAP} />
-
-                {/* Appeal Option */}
-                <div className="border-t pt-4">
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    onClick={() => setSelectedTrip(null)}
-                  >
-                    Dispute or Appeal This Trip
-                  </Button>
+                <div>
+                  <p className="text-muted-foreground text-[10px] uppercase tracking-wider font-bold">
+                    Duration
+                  </p>
+                  <p className="font-mono font-bold">{selectedTrip.duration} min</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground text-[10px] uppercase tracking-wider font-bold">
+                    Distance
+                  </p>
+                  <p className="font-mono font-bold">{selectedTrip.distance} miles</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground text-[10px] uppercase tracking-wider font-bold mb-1">
+                    Risk Level
+                  </p>
+                  <Badge className={`${getRiskColor(selectedTrip.riskLevel)} font-bold`}>
+                    {getRiskLabel(selectedTrip.riskLevel)}
+                  </Badge>
                 </div>
               </div>
-            </>
-          )}
-        </SheetContent>
-      </Sheet>
+            </div>
+
+            <div>
+              <h3 className="font-semibold text-foreground mb-3 uppercase tracking-tight text-xs">Behavioral Score Breakdown</h3>
+              <BehaviorScoreBreakdown score={tripScore} />
+            </div>
+
+            <div>
+              <h3 className="font-semibold text-foreground mb-3 uppercase tracking-tight text-xs">Feature Importance (SHAP)</h3>
+              <SHAPForcePlot data={tripSHAP} />
+            </div>
+
+            <div className="border-t pt-6">
+              <Button
+                variant="outline"
+                className="w-full font-bold border-brand-blue text-brand-blue hover:bg-brand-blue/10"
+                onClick={() => setSelectedTrip(null)}
+              >
+                Dispute or Appeal This Trip
+              </Button>
+            </div>
+          </div>
+        )}
+      </DetailSheet>
     </DashboardPageTemplate>
   );
 }

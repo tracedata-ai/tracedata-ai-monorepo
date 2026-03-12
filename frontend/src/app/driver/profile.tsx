@@ -4,14 +4,18 @@
 
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { DashboardPageTemplate } from "@/components/shared/DashboardPageTemplate";
 import { DetailContentTemplate } from "@/components/shared/DetailContentTemplate";
+import { DetailSheet } from "@/components/shared/detail-sheet";
+import { DriverDetailSheetContent } from "@/components/dashboard/DriverDetailSheetContent";
 import { useAuth } from "@/context/AuthContext";
-import { User, Calendar, Award } from "lucide-react";
+import { User, Calendar, Award, BarChart3 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { mockDrivers, mockDriverBehavior } from "@/lib/mock-data";
 
 export default function DriverProfile() {
+  const [showDetails, setShowDetails] = useState(false);
   const driverId = "driver_alice_001"; // In production, get from auth
   const driver = mockDrivers.find((d) => d.id === driverId);
   const profile = mockDriverBehavior[driverId];
@@ -24,6 +28,15 @@ export default function DriverProfile() {
     <DashboardPageTemplate
       title="My Profile"
       description="Personal information and performance summary"
+      headerActions={
+        <Button 
+          onClick={() => setShowDetails(true)}
+          className="bg-brand-blue text-white hover:bg-brand-blue/90 font-bold gap-2"
+        >
+          <BarChart3 className="w-4 h-4" />
+          Detailed Performance
+        </Button>
+      }
       breadcrumbs={
         <div className="flex items-center gap-2 text-xs text-slate-500">
           <a href="/driver" className="hover:text-slate-700">
@@ -108,6 +121,14 @@ export default function DriverProfile() {
           </p>
         </section>
       </div>
+
+      <DetailSheet
+        open={showDetails}
+        onOpenChange={setShowDetails}
+        title={`${driver.name} Performance Details`}
+      >
+        <DriverDetailSheetContent driverId={driver.id} driverName={driver.name} />
+      </DetailSheet>
     </DashboardPageTemplate>
   );
 }

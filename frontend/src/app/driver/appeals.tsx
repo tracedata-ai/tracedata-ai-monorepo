@@ -56,6 +56,11 @@ const MOCK_DRIVER_APPEALS = [
   },
 ];
 
+import { DataTable } from "@/components/shared/data-table";
+import { ColumnDef } from "@tanstack/react-table";
+
+// ... (existing helper functions getStatusColor and getStatusLabel kept as is)
+
 export default function DriverAppeals() {
   const [selectedAppeal, setSelectedAppeal] = useState<
     (typeof MOCK_DRIVER_APPEALS)[0] | null
@@ -88,19 +93,74 @@ export default function DriverAppeals() {
     }
   };
 
+  const columns: ColumnDef<(typeof MOCK_DRIVER_APPEALS)[0]>[] = [
+    {
+      accessorKey: "tripId",
+      header: "Trip ID",
+      cell: ({ row }) => <span className="text-sm font-mono">{row.original.tripId}</span>,
+    },
+    {
+      accessorKey: "reason",
+      header: "Reason",
+      cell: ({ row }) => <span className="text-sm">{row.original.reason}</span>,
+    },
+    {
+      accessorKey: "score",
+      header: "Score",
+      cell: ({ row }) => (
+        <div
+          className={`inline-flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold ${
+            row.original.score >= 80
+              ? "bg-green-100 text-green-900"
+              : row.original.score >= 70
+                ? "bg-yellow-100 text-yellow-900"
+                : "bg-red-100 text-red-900"
+          }`}
+        >
+          {row.original.score}
+        </div>
+      ),
+    },
+    {
+      accessorKey: "status",
+      header: "Status",
+      cell: ({ row }) => (
+        <Badge className={getStatusColor(row.original.status)}>
+          {getStatusLabel(row.original.status)}
+        </Badge>
+      ),
+    },
+    {
+      accessorKey: "createdAt",
+      header: "Date",
+      cell: ({ row }) => (
+        <span className="text-sm text-muted-foreground">{row.original.createdAt}</span>
+      ),
+    },
+    {
+      id: "actions",
+      header: "Action",
+      cell: ({ row }) => (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={(e) => {
+            e.stopPropagation();
+            setSelectedAppeal(row.original);
+          }}
+          className="text-brand-blue hover:text-brand-blue/90"
+        >
+          Review
+        </Button>
+      ),
+    },
+  ];
+
   return (
     <DashboardPageTemplate
       title="Appeals & Disputes"
       description="Review and manage your appeals"
-      breadcrumbs={
-        <div className="flex items-center gap-2 text-xs text-slate-500">
-          <a href="/driver" className="hover:text-slate-700">
-            Dashboard
-          </a>
-          <span>/</span>
-          <span>Appeals</span>
-        </div>
-      }
+      // ... (stats remained unchanged)
       stats={
         <>
           <div className="glass-card rounded-xl p-4">
@@ -137,75 +197,12 @@ export default function DriverAppeals() {
     >
       <div className="space-y-6">
         {/* Appeals Table */}
-        <section className="rounded-lg border border-slate-200 overflow-hidden">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-slate-50">
-                  <TableHead className="font-bold text-foreground">
-                    Trip ID
-                  </TableHead>
-                  <TableHead className="font-bold text-foreground">
-                    Reason
-                  </TableHead>
-                  <TableHead className="font-bold text-foreground">
-                    Score
-                  </TableHead>
-                  <TableHead className="font-bold text-foreground">
-                    Status
-                  </TableHead>
-                  <TableHead className="font-bold text-foreground">
-                    Date
-                  </TableHead>
-                  <TableHead className="font-bold text-foreground">
-                    Action
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {MOCK_DRIVER_APPEALS.map((appeal) => (
-                  <TableRow key={appeal.id} className="hover:bg-slate-50">
-                    <TableCell className="text-sm font-mono">
-                      {appeal.tripId}
-                    </TableCell>
-                    <TableCell className="text-sm">{appeal.reason}</TableCell>
-                    <TableCell className="text-sm">
-                      <div
-                        className={`inline-flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold ${
-                          appeal.score >= 80
-                            ? "bg-green-100 text-green-900"
-                            : appeal.score >= 70
-                              ? "bg-yellow-100 text-yellow-900"
-                              : "bg-red-100 text-red-900"
-                        }`}
-                      >
-                        {appeal.score}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={getStatusColor(appeal.status)}>
-                        {getStatusLabel(appeal.status)}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {appeal.createdAt}
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setSelectedAppeal(appeal)}
-                        className="text-brand-blue hover:text-brand-blue/90"
-                      >
-                        Review
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </section>
+        <DataTable
+          columns={columns}
+          data={MOCK_DRIVER_APPEALS}
+          onRowClick={(appeal) => setSelectedAppeal(appeal)}
+          selectedId={selectedAppeal?.id}
+        />
 
         {/* No Appeals Info */}
         {MOCK_DRIVER_APPEALS.length === 0 && (

@@ -15,16 +15,11 @@ import { ManagerOnly } from "@/components/security/RoleGuard";
 import { DashboardPageTemplate } from "@/components/shared/DashboardPageTemplate";
 import { DataTable } from "@/components/shared/data-table";
 import { DetailSheet } from "@/components/shared/detail-sheet";
-import { DetailContentTemplate } from "@/components/shared/DetailContentTemplate";
-import { BehaviorScoreBreakdown } from "@/components/explainability/BehaviorScoreBreakdown";
-import { SHAPForcePlot } from "@/components/explainability/SHAPForcePlot";
+import { DriverDetailSheetContent } from "@/components/dashboard/DriverDetailSheetContent";
 import { Button } from "@/components/ui/button";
-import { BarChart3, Users, TrendingUp, AlertTriangle } from "lucide-react";
+import { Users, TrendingUp, AlertTriangle } from "lucide-react";
 import {
   mockDrivers,
-  mockTripScores,
-  mockSHAPData,
-  mockDriverBehavior,
 } from "@/lib/mock-data";
 
 interface SelectedDriver {
@@ -151,106 +146,10 @@ function FleetDashboardPage() {
           onOpenChange={setDetailOpen}
           title={selectedDriver.name}
         >
-          <div className="space-y-6 px-6 pb-6">
-            {/* Behavior Profile */}
-            <div>
-              <h4 className="font-semibold text-foreground mb-3">
-                Behavior Profile
-              </h4>
-              {mockDriverBehavior[selectedDriver.id] && (
-                <DetailContentTemplate
-                  heroIcon={BarChart3}
-                  heroTitle={selectedDriver.id}
-                  heroSubtitle="Driver ID"
-                  highlights={[
-                    {
-                      label: "Total Trips",
-                      value: mockDriverBehavior[selectedDriver.id].totalTrips,
-                    },
-                    {
-                      label: "Avg Score",
-                      value:
-                        mockDriverBehavior[
-                          selectedDriver.id
-                        ].averageScore.toFixed(1),
-                    },
-                    {
-                      label: "Risk Incidents",
-                      value:
-                        mockDriverBehavior[selectedDriver.id]
-                          .totalRiskIncidents,
-                    },
-                    {
-                      label: "Burnout Risk",
-                      value:
-                        mockDriverBehavior[selectedDriver.id]
-                          .burnoutRiskLevel === 0
-                          ? "Low"
-                          : "High",
-                      iconColor:
-                        mockDriverBehavior[selectedDriver.id]
-                          .burnoutRiskLevel === 0
-                          ? "text-brand-teal"
-                          : "text-brand-red",
-                    },
-                  ]}
-                >
-                  {/* Burnout indicators if high risk */}
-                  {mockDriverBehavior[selectedDriver.id].burnoutRiskLevel ===
-                    1 && (
-                    <div className="rounded bg-red-50 p-3 text-sm text-red-800">
-                      <p className="font-semibold">Burnout Indicators</p>
-                      <ul className="mt-2 list-inside space-y-1 list-disc">
-                        {mockDriverBehavior[
-                          selectedDriver.id
-                        ].burnoutIndicators.map((indicator, idx) => (
-                          <li key={idx} className="text-sm">
-                            {indicator}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </DetailContentTemplate>
-              )}
-            </div>
-
-            {/* Latest Trip Score with XRAI */}
-            {mockTripScores["trip_20250310_001"] &&
-              selectedDriver.id === "driver_alice_001" && (
-                <div>
-                  <h4 className="font-semibold text-foreground mb-3">
-                    Latest Trip Score
-                  </h4>
-                  <BehaviorScoreBreakdown
-                    score={mockTripScores["trip_20250310_001"]}
-                  />
-                </div>
-              )}
-
-            {mockTripScores["trip_20250310_002"] &&
-              selectedDriver.id === "driver_bob_002" && (
-                <div>
-                  <h4 className="font-semibold text-foreground mb-3">
-                    Latest Trip Score
-                  </h4>
-                  <BehaviorScoreBreakdown
-                    score={mockTripScores["trip_20250310_002"]}
-                  />
-                </div>
-              )}
-
-            {/* SHAP Force Plot for first driver */}
-            {mockSHAPData["trip_20250310_001"] &&
-              selectedDriver.id === "driver_alice_001" && (
-                <div>
-                  <h4 className="font-semibold text-foreground mb-3">
-                    SHAP Explainability
-                  </h4>
-                  <SHAPForcePlot data={mockSHAPData["trip_20250310_001"]} />
-                </div>
-              )}
-          </div>
+          <DriverDetailSheetContent 
+            driverId={selectedDriver.id} 
+            driverName={selectedDriver.name} 
+          />
         </DetailSheet>
       )}
     </>

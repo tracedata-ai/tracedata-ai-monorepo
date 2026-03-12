@@ -1,4 +1,60 @@
-import { dashboardConfig } from "@/config/dashboard";
+import { dashboardConfig, AppealContest } from "@/config/dashboard";
+import { DataTable } from "@/components/shared/data-table";
+import { ColumnDef } from "@tanstack/react-table";
+
+const columns: ColumnDef<AppealContest>[] = [
+  {
+    accessorKey: "driverName",
+    header: "Driver / ID",
+    cell: ({ row }) => (
+      <div className="flex items-center gap-3 text-left">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img 
+          src={row.original.driverAvatarUrl} 
+          alt="" 
+          className="w-8 h-8 rounded-full border border-border" 
+        />
+        <div>
+          <div className="text-xs font-bold text-foreground">{row.original.driverName}</div>
+          <div className="text-[10px] text-muted-foreground">{row.original.driverId}</div>
+        </div>
+      </div>
+    ),
+  },
+  {
+    accessorKey: "reason",
+    header: "Contest Reason",
+    cell: ({ row }) => (
+      <div className="text-xs text-foreground/80 font-medium text-left">{row.original.reason}</div>
+    ),
+  },
+  {
+    accessorKey: "priority",
+    header: "Priority",
+    cell: ({ row }) => (
+      <div className="text-left">
+        <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+          row.original.priority === 'Urgent' ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800' :
+          row.original.priority === 'Medium' ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-500 border border-amber-200 dark:border-amber-800' :
+          'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700'
+        }`}>
+          {row.original.priority}
+        </span>
+      </div>
+    ),
+  },
+  {
+    id: "actions",
+    header: () => <div className="text-right">Action</div>,
+    cell: () => (
+      <div className="text-right">
+        <button className="text-[11px] font-bold text-brand-blue hover:text-white hover:bg-brand-blue px-3 py-1.5 rounded-md border border-brand-blue/20 transition-all">
+          Review Case
+        </button>
+      </div>
+    ),
+  },
+];
 
 export function AdvocacyAppeals() {
   const { appeals } = dashboardConfig;
@@ -15,61 +71,11 @@ export function AdvocacyAppeals() {
         </button>
       </div>
       
-      <div className="overflow-x-auto">
-        <table className="w-full text-left">
-          <thead className="bg-muted/50 border-b border-border">
-            <tr>
-              <th className="px-6 py-3 text-[10px] font-bold text-muted-foreground uppercase">Driver / ID</th>
-              <th className="px-6 py-3 text-[10px] font-bold text-muted-foreground uppercase">Contest Reason</th>
-              <th className="px-6 py-3 text-[10px] font-bold text-muted-foreground uppercase">Priority</th>
-              <th className="px-6 py-3 text-[10px] font-bold text-muted-foreground uppercase text-right">Action</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {appeals.map((appeal) => (
-              <tr key={appeal.id} className="hover:bg-muted/30 transition-colors group">
-                <td className="px-6 py-4">
-                  <div className="flex items-center gap-3">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img 
-                      src={appeal.driverAvatarUrl} 
-                      alt="" 
-                      className="w-8 h-8 rounded-full border border-border" 
-                    />
-                    <div>
-                      <div className="text-xs font-bold text-foreground">{appeal.driverName}</div>
-                      <div className="text-[10px] text-muted-foreground">{appeal.driverId}</div>
-                    </div>
-                  </div>
-                </td>
-                <td className="px-6 py-4">
-                  <div className="text-xs text-foreground/80 font-medium">{appeal.reason}</div>
-                </td>
-                <td className="px-6 py-4">
-                  <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                    appeal.priority === 'Urgent' ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800' :
-                    appeal.priority === 'Medium' ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-500 border border-amber-200 dark:border-amber-800' :
-                    'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700'
-                  }`}>
-                    {appeal.priority}
-                  </span>
-                </td>
-                <td className="px-6 py-4 text-right">
-                  <button className="text-[11px] font-bold text-brand-blue hover:text-white hover:bg-brand-blue px-3 py-1.5 rounded-md border border-brand-blue/20 transition-all">
-                    Review Case
-                  </button>
-                </td>
-              </tr>
-            ))}
-            {appeals.length === 0 && (
-              <tr>
-                <td colSpan={4} className="px-6 py-8 text-center text-sm text-muted-foreground">
-                  No pending appeals. Fleet operating at consensus.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+      <div className="p-0">
+        <DataTable 
+          columns={columns} 
+          data={appeals} 
+        />
       </div>
     </div>
   );
