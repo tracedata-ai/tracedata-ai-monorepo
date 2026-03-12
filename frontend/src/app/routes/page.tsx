@@ -1,3 +1,10 @@
+/**
+ * Logistics Network (Routes) Page
+ * 
+ * Visualizes the logistics topology, including path optimization metrics,
+ * distances, and route status (active, planned, inactive).
+ */
+
 "use client";
 
 import { DataTable } from "@/components/shared/DataTable";
@@ -5,8 +12,11 @@ import { ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { MapIcon, NavigationIcon, RulerIcon } from "lucide-react";
+import { NetworkIcon, NavigationIcon, RulerIcon, ZapIcon } from "lucide-react";
 
+/**
+ * Route Domain Object
+ */
 type Route = {
   id: string;
   name: string;
@@ -16,6 +26,9 @@ type Route = {
   status: "active" | "planned" | "inactive";
 };
 
+/**
+ * Column Definitions
+ */
 const columns: ColumnDef<Route>[] = [
   {
     accessorKey: "name",
@@ -33,7 +46,7 @@ const columns: ColumnDef<Route>[] = [
     accessorKey: "startPoint",
     header: "A",
     cell: ({ row }) => (
-      <span className="text-[11px] font-bold text-slate-500 uppercase tracking-tighter">
+      <span className="text-xs font-bold text-slate-500 uppercase tracking-tighter">
         {row.getValue("startPoint")}
       </span>
     ),
@@ -42,18 +55,18 @@ const columns: ColumnDef<Route>[] = [
     accessorKey: "endPoint",
     header: "B",
     cell: ({ row }) => (
-      <span className="text-[11px] font-bold text-slate-500 uppercase tracking-tighter">
+      <span className="text-xs font-bold text-slate-500 uppercase tracking-tighter">
         {row.getValue("endPoint")}
       </span>
     ),
   },
   {
     accessorKey: "distance",
-    header: "Dist",
+    header: "Distance",
     cell: ({ row }) => (
       <div className="flex items-center gap-1 text-slate-400">
         <RulerIcon className="w-3 h-3" />
-        <span className="text-[11px] font-mono">
+        <span className="text-xs font-mono">
           {row.getValue("distance")}
         </span>
       </div>
@@ -68,7 +81,7 @@ const columns: ColumnDef<Route>[] = [
         <Badge
           variant={status === "active" ? "default" : "outline"}
           className={cn(
-            "capitalize font-semibold text-[10px] px-2 py-0",
+            "capitalize font-semibold text-xs px-2 py-0",
             status === "active" && "bg-slate-700 text-white",
             status === "planned" &&
               "border-slate-300 text-slate-500 bg-slate-50",
@@ -82,6 +95,9 @@ const columns: ColumnDef<Route>[] = [
   },
 ];
 
+/**
+ * Mock Data
+ */
 const data: Route[] = [
   {
     id: "1",
@@ -120,6 +136,7 @@ const data: Route[] = [
 export default function RoutesPage() {
   return (
     <div className="space-y-6">
+      {/* Page Header */}
       <div className="flex flex-col gap-1">
         <h2 className="text-2xl font-bold text-slate-900">Network</h2>
         <p className="text-slate-500 font-medium">
@@ -127,12 +144,13 @@ export default function RoutesPage() {
         </p>
       </div>
 
+      {/* Overview Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card className="border shadow-none">
           <CardHeader className="p-4 pb-2">
             <CardTitle className="text-xs uppercase tracking-wider text-slate-500 font-bold flex items-center gap-2">
-              <MapIcon className="w-4 h-4" />
-              Total Vectors
+              <NetworkIcon className="w-4 h-4" />
+              Total Sectors
             </CardTitle>
           </CardHeader>
           <CardContent className="p-4 pt-0">
@@ -145,8 +163,8 @@ export default function RoutesPage() {
         <Card className="border shadow-none">
           <CardHeader className="p-4 pb-2">
             <CardTitle className="text-xs uppercase tracking-wider text-slate-500 font-bold flex items-center gap-2">
-              <NavigationIcon className="w-4 h-4" />
-              Operational
+              <ZapIcon className="w-4 h-4" />
+              Active Paths
             </CardTitle>
           </CardHeader>
           <CardContent className="p-4 pt-0">
@@ -157,7 +175,8 @@ export default function RoutesPage() {
         </Card>
       </div>
 
-      <div className="border rounded-lg p-1 bg-white">
+      {/* Main Data Table */}
+      <div className="">
         <DataTable columns={columns} data={data} filterKey="name" />
       </div>
     </div>
