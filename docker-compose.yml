@@ -10,6 +10,43 @@ services:
     restart: always
     environment:
       - NODE_ENV=production
-    # If you later add a backend (like ai-service), you'll link it here.
-    # depends_on:
-    #   - ai-service
+    depends_on:
+      - ai-agents
+
+  ai-agents:
+    build:
+      context: ./ai-agents
+      dockerfile: Dockerfile
+    container_name: tracedata-ai-agents
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./ai-agents:/app
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/tracedata
+      - REDIS_URL=redis://redis:6379/0
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+    depends_on:
+      - db
+      - redis
+
+  db:
+    image: ankane/pgvector:latest
+    container_name: tracedata-db
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=tracedata
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:alpine
+    container_name: tracedata-redis
+    ports:
+      - "6379:6379"
+
+volumes:
+  postgres_data:
