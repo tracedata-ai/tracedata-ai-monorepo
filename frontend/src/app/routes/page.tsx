@@ -1,6 +1,6 @@
 /**
  * Logistics Network (Routes) Page
- * 
+ *
  * Visualizes the logistics topology, including path optimization metrics,
  * distances, and route status (active, planned, inactive).
  */
@@ -44,7 +44,7 @@ const columns: ColumnDef<Route>[] = [
   },
   {
     accessorKey: "startPoint",
-    header: "A",
+    header: "Start",
     cell: ({ row }) => (
       <span className="text-xs font-bold text-slate-500 uppercase tracking-tighter">
         {row.getValue("startPoint")}
@@ -53,7 +53,7 @@ const columns: ColumnDef<Route>[] = [
   },
   {
     accessorKey: "endPoint",
-    header: "B",
+    header: "End",
     cell: ({ row }) => (
       <span className="text-xs font-bold text-slate-500 uppercase tracking-tighter">
         {row.getValue("endPoint")}
@@ -66,9 +66,7 @@ const columns: ColumnDef<Route>[] = [
     cell: ({ row }) => (
       <div className="flex items-center gap-1 text-slate-400">
         <RulerIcon className="w-3 h-3" />
-        <span className="text-xs font-mono">
-          {row.getValue("distance")}
-        </span>
+        <span className="text-xs font-mono">{row.getValue("distance")}</span>
       </div>
     ),
   },

@@ -9,10 +9,10 @@
 "use client";
 
 import { DataTable } from "@/components/shared/DataTable";
+import { StatCard } from "@/components/shared/StatCard";
 import { ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { UsersIcon, UserCheckIcon } from "lucide-react";
 
@@ -167,33 +167,19 @@ export default function DriversPage() {
 
       {/* Analytics Overview Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <Card className="border shadow-none">
-          <CardHeader className="p-4 pb-2">
-            <CardTitle className="text-xs uppercase tracking-wider text-slate-500 font-bold flex items-center gap-2">
-              <UsersIcon className="w-4 h-4" />
-              Total Workforce
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-4 pt-0">
-            <div className="text-2xl font-bold text-slate-900">
-              {data.length}
-            </div>
-          </CardContent>
-        </Card>
+        <StatCard
+          title="Total Workforce"
+          value={data.length}
+          icon={UsersIcon}
+          iconClassName="text-slate-500"
+        />
 
-        <Card className="border shadow-none">
-          <CardHeader className="p-4 pb-2">
-            <CardTitle className="text-xs uppercase tracking-wider text-slate-500 font-bold flex items-center gap-2">
-              <UserCheckIcon className="w-4 h-4" />
-              Available Now
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-4 pt-0">
-            <div className="text-2xl font-bold text-slate-900">
-              {data.filter((d) => d.status === "available").length}
-            </div>
-          </CardContent>
-        </Card>
+        <StatCard
+          title="Available Now"
+          value={data.filter((d) => d.status === "available").length}
+          icon={UserCheckIcon}
+          iconClassName="text-slate-500"
+        />
       </div>
 
       {/* Main Data Table */}

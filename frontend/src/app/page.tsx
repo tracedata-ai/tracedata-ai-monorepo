@@ -1,12 +1,5 @@
+import { StatCard } from "@/components/shared/StatCard";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  LayoutDashboardIcon,
   ActivityIcon,
   TrendingUpIcon,
   AlertTriangleIcon,
@@ -31,44 +24,30 @@ export default function Home() {
 
       {/* High-Level Analytics Grid */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {/* Active Deployment Card */}
-        <Card className="border shadow-none transition-all hover:border-slate-300">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xs uppercase tracking-wider text-slate-500 font-bold">
-              Active Vehicles
-            </CardTitle>
-            <ActivityIcon className="h-4 w-4 text-slate-400" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-slate-900">98</div>
-          </CardContent>
-        </Card>
+        <StatCard
+          title="Active Vehicles"
+          value="98"
+          icon={ActivityIcon}
+          iconClassName="text-slate-400"
+          className="hover:border-slate-300"
+        />
 
-        {/* Operational Efficiency Card */}
-        <Card className="border shadow-none transition-all hover:border-slate-300">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xs uppercase tracking-wider text-slate-500 font-bold">
-              Deployment Rate
-            </CardTitle>
-            <TrendingUpIcon className="h-4 w-4 text-slate-400" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-slate-900">92.4%</div>
-          </CardContent>
-        </Card>
+        <StatCard
+          title="Deployment Rate"
+          value="92.4%"
+          icon={TrendingUpIcon}
+          iconClassName="text-slate-400"
+          className="hover:border-slate-300"
+        />
 
-        {/* Urgent Monitoring Card */}
-        <Card className="border shadow-none transition-all hover:border-slate-300 border-t-2 border-t-red-500">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xs uppercase tracking-wider text-slate-500 font-bold">
-              System Alerts
-            </CardTitle>
-            <AlertTriangleIcon className="h-4 w-4 text-red-400" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-slate-900">3</div>
-          </CardContent>
-        </Card>
+        <StatCard
+          title="System Alerts"
+          value="3"
+          icon={AlertTriangleIcon}
+          iconClassName="text-red-400"
+          valueClassName="text-slate-900"
+          className="hover:border-slate-300 border-t-2 border-t-red-500"
+        />
       </div>
     </div>
   );

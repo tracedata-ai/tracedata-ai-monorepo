@@ -8,22 +8,22 @@
 "use client";
 
 import { DataTable } from "@/components/shared/DataTable";
+import { StatCard } from "@/components/shared/StatCard";
 import { ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { TruckIcon, TimerIcon, ActivityIcon, CheckCircle2Icon } from "lucide-react";
+import { TruckIcon, TimerIcon, CheckCircle2Icon } from "lucide-react";
 
 /**
- * Trip Domain Object
- * Represents an active or historical transport path.
+ * Trip Record Object
+ * Tracks the movement of a vehicle and driver through a scheduled route.
  */
 type Trip = {
-  id: string; // T-1001 mapping
-  vehicleId: string; // V-901 mapping
+  id: string; // T-1001 format
+  vehicleId: string;
   driverName: string;
-  startTime: string; // ISO-8601 formatted
-  status: "ongoing" | "completed" | "delayed";
+  startTime: string;
+  status: "ongoing" | "completed" | "delayed"; // Real-time transit status
 };
 
 /**
@@ -41,7 +41,7 @@ const columns: ColumnDef<Trip>[] = [
   },
   {
     accessorKey: "vehicleId",
-    header: "Vehicle ID",
+    header: "Vehicle",
     cell: ({ row }) => (
       <div className="flex items-center gap-2">
         <TruckIcon className="w-4 h-4 text-slate-400" />
@@ -55,21 +55,18 @@ const columns: ColumnDef<Trip>[] = [
     accessorKey: "driverName",
     header: "Driver",
     cell: ({ row }) => (
-      <span className="text-slate-600 font-medium">
+      <span className="font-semibold text-slate-800">
         {row.getValue("driverName")}
       </span>
     ),
   },
   {
     accessorKey: "startTime",
-    header: "Start Time",
+    header: "Departure",
     cell: ({ row }) => (
-      <div className="flex items-center gap-2 text-slate-500">
-        <TimerIcon className="w-3 h-3" />
-        <span className="text-xs font-medium">
-          {row.getValue("startTime")}
-        </span>
-      </div>
+      <span className="text-slate-500 font-medium">
+        {row.getValue("startTime")}
+      </span>
     ),
   },
   {
@@ -79,18 +76,12 @@ const columns: ColumnDef<Trip>[] = [
       const status = row.getValue("status") as string;
       return (
         <Badge
-          variant={
-            status === "ongoing"
-              ? "default"
-              : status === "completed"
-                ? "secondary"
-                : "destructive"
-          }
+          variant={status === "ongoing" ? "default" : "outline"}
           className={cn(
             "capitalize font-semibold text-xs px-2 py-0",
             status === "ongoing" && "bg-slate-700 text-white",
-            status === "completed" && "bg-slate-100 text-slate-700",
-            status === "delayed" && "bg-red-500 text-white",
+            status === "completed" && "border-slate-300 text-slate-400",
+            status === "delayed" && "border-orange-200 text-orange-600 bg-orange-50",
           )}
         >
           {status}
@@ -101,7 +92,7 @@ const columns: ColumnDef<Trip>[] = [
 ];
 
 /**
- * Mock Data - Integration point for backend API
+ * Mock Data
  */
 const data: Trip[] = [
   {
@@ -137,44 +128,29 @@ const data: Trip[] = [
 export default function TripsPage() {
   return (
     <div className="space-y-6">
+      {/* Page Header */}
       <div className="flex flex-col gap-1">
-        <h2 className="text-2xl font-bold text-slate-900 text-balance">
-          Expeditions
-        </h2>
-        <p className="text-slate-500">
-          Real-time telemetry streams and trip lifecycle management.
+        <h2 className="text-2xl font-bold text-slate-900">Transit</h2>
+        <p className="text-slate-500 font-medium">
+          Real-time tracking of active and completed trips.
         </p>
       </div>
 
-      {/* Analytics Overview Cards */}
+      {/* Overview Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <Card className="border shadow-none">
-          <CardHeader className="p-4 pb-2">
-            <CardTitle className="text-xs uppercase tracking-wider text-slate-500 font-bold flex items-center gap-2">
-              <ActivityIcon className="w-4 h-4" />
-              In Progress
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-4 pt-0">
-            <div className="text-2xl font-bold text-slate-900">
-              {data.filter((t) => t.status === "ongoing").length}
-            </div>
-          </CardContent>
-        </Card>
+        <StatCard
+          title="Active Now"
+          value={data.filter((t) => t.status === "ongoing").length}
+          icon={TimerIcon}
+          iconClassName="text-slate-500"
+        />
 
-        <Card className="border shadow-none">
-          <CardHeader className="p-4 pb-2">
-            <CardTitle className="text-xs uppercase tracking-wider text-slate-500 font-bold flex items-center gap-2">
-              <CheckCircle2Icon className="w-4 h-4" />
-              Fulfilled
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-4 pt-0">
-            <div className="text-2xl font-bold text-slate-900">
-              {data.filter((t) => t.status === "completed").length}
-            </div>
-          </CardContent>
-        </Card>
+        <StatCard
+          title="Completed"
+          value={data.filter((t) => t.status === "completed").length}
+          icon={CheckCircle2Icon}
+          iconClassName="text-slate-500"
+        />
       </div>
 
       {/* Main Data Table */}
