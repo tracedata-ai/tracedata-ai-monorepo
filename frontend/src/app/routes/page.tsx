@@ -8,9 +8,9 @@
 "use client";
 
 import { DataTable } from "@/components/shared/DataTable";
+import { StatCard } from "@/components/shared/StatCard";
 import { ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { NetworkIcon, NavigationIcon, RulerIcon, ZapIcon } from "lucide-react";
 
@@ -44,7 +44,7 @@ const columns: ColumnDef<Route>[] = [
   },
   {
     accessorKey: "startPoint",
-    header: "Start",
+    header: "A",
     cell: ({ row }) => (
       <span className="text-xs font-bold text-slate-500 uppercase tracking-tighter">
         {row.getValue("startPoint")}
@@ -53,7 +53,7 @@ const columns: ColumnDef<Route>[] = [
   },
   {
     accessorKey: "endPoint",
-    header: "End",
+    header: "B",
     cell: ({ row }) => (
       <span className="text-xs font-bold text-slate-500 uppercase tracking-tighter">
         {row.getValue("endPoint")}
@@ -144,33 +144,19 @@ export default function RoutesPage() {
 
       {/* Overview Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <Card className="border shadow-none">
-          <CardHeader className="p-4 pb-2">
-            <CardTitle className="text-xs uppercase tracking-wider text-slate-500 font-bold flex items-center gap-2">
-              <NetworkIcon className="w-4 h-4" />
-              Total Sectors
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-4 pt-0">
-            <div className="text-2xl font-bold text-slate-900">
-              {data.length}
-            </div>
-          </CardContent>
-        </Card>
+        <StatCard
+          title="Total Sectors"
+          value={data.length}
+          icon={NetworkIcon}
+          iconClassName="text-slate-500"
+        />
 
-        <Card className="border shadow-none">
-          <CardHeader className="p-4 pb-2">
-            <CardTitle className="text-xs uppercase tracking-wider text-slate-500 font-bold flex items-center gap-2">
-              <ZapIcon className="w-4 h-4" />
-              Active Paths
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-4 pt-0">
-            <div className="text-2xl font-bold text-slate-900">
-              {data.filter((r) => r.status === "active").length}
-            </div>
-          </CardContent>
-        </Card>
+        <StatCard
+          title="Active Paths"
+          value={data.filter((r) => r.status === "active").length}
+          icon={ZapIcon}
+          iconClassName="text-slate-500"
+        />
       </div>
 
       {/* Main Data Table */}
