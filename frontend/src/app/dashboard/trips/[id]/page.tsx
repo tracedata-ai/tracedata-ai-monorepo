@@ -4,8 +4,6 @@ import { use } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { dashboardConfig } from "@/config/dashboard";
-import { GlassCard } from "@/components/shared/GlassCard";
-import { MetricCard } from "@/components/shared/MetricCard";
 import {
   ChevronRight,
   ArrowLeft,
@@ -21,8 +19,14 @@ import {
   Zap,
   CheckCircle2,
   TrendingDown,
-  TrendingUp
+  TrendingUp,
+  Target
 } from "lucide-react";
+import { InfoCard } from "@/components/shared/InfoCard";
+import { FeatureCard } from "@/components/shared/FeatureCard";
+import { DashboardSection } from "@/components/shared/DashboardSection";
+import { MetricCard } from "@/components/shared/MetricCard";
+import { cn } from "@/lib/utils";
 import {
   LineChart,
   Line,
@@ -126,65 +130,54 @@ export default function TripDetailsPage({
 
   return (
     <div className="flex-1 flex flex-col min-w-0 bg-background h-full overflow-hidden text-slate-900">
-      {/* Breadcrumb Header - Clean Light */}
-      <header className="bg-white border-b border-slate-100 px-8 py-5 flex-shrink-0">
-        <nav className="flex items-center text-xs font-bold text-slate-400 uppercase tracking-widest">
-          <Link href="/dashboard/trips" className="hover:text-brand-blue transition-colors flex items-center gap-1.5 -ml-2 px-2 py-1 rounded-full hover:bg-slate-50">
-            <ArrowLeft className="w-3.5 h-3.5" />
-            Manifest
-          </Link>
-          <ChevronRight className="w-3.5 h-3.5 mx-3 opacity-30" />
-          <span className="text-slate-900">{trip.id}</span>
-        </nav>
+      <header className="bg-white dark:bg-slate-900 border-b border-slate-100 flex-shrink-0">
+        <DashboardSection gridCols={1} className="py-5">
+          <nav className="flex items-center text-xs font-bold text-slate-400 uppercase tracking-widest">
+            <Link href="/dashboard/trips" className="hover:text-brand-blue transition-colors flex items-center gap-1.5 -ml-2 px-2 py-1 rounded-full hover:bg-slate-50">
+              <ArrowLeft className="w-3.5 h-3.5" />
+              Manifest
+            </Link>
+            <ChevronRight className="w-3.5 h-3.5 mx-3 opacity-30" />
+            <span className="text-slate-900 dark:text-slate-100">{trip.id}</span>
+          </nav>
+        </DashboardSection>
       </header>
 
-      {/* Main Content */}
-      <div className="flex-1 overflow-auto p-4 sm:p-8">
-        <div className="max-w-6xl mx-auto space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 pb-8">
+      <div className="flex-1 overflow-auto bg-slate-50/30 dark:bg-slate-900/50">
+        <DashboardSection gridCols={1} className="py-8">
+          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-8">
             <div className="flex items-center gap-6">
               <div className="w-14 h-14 rounded-2xl bg-brand-blue/5 flex items-center justify-center text-brand-blue border border-brand-blue/10">
                 <Route className="w-6 h-6" />
               </div>
               <div>
-                <h1 className="text-4xl font-black text-slate-900 tracking-tighter font-mono">{trip.id}</h1>
+                <h1 className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter font-mono">{trip.id}</h1>
                 <p className="text-slate-500 font-bold text-xs uppercase tracking-widest mt-1">
                   Ingested: {new Date(trip.startTime).toLocaleDateString()} at {new Date(trip.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                 </p>
               </div>
             </div>
             
-            <div className={`px-4 py-2 flex items-center gap-2 rounded-full text-xs font-bold uppercase tracking-widest shadow-sm ${getStatusColor(trip.status)}`}>
+            <div className={`px-4 py-2 flex items-center gap-2 rounded-full text-xs font-bold uppercase tracking-widest shadow-sm border ${getStatusColor(trip.status)}`}>
               {trip.status === "In Progress" && <div className="w-2 h-2 rounded-full bg-brand-blue animate-pulse"></div>}
               {trip.status}
             </div>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-             <div className="md:col-span-3 space-y-6">
-                <GlassCard className="relative overflow-hidden">
-                   <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
-                      <Activity className="w-24 h-24 text-slate-200" />
-                   </div>
-                   
-                   <div className="flex justify-between items-center mb-10 relative z-10">
-                     <div>
-                        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                          Telemetric Dynamics
-                        </h3>
-                        <p className="text-sm font-bold text-slate-600 mt-1">Overlay: Speed vs. Pedal Pressure</p>
-                     </div>
-                     <div className="flex gap-6">
-                        <div className="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase tracking-tight">
-                           <div className="w-3 h-1 rounded-full bg-brand-blue"></div> Speed (km/h)
-                        </div>
-                        <div className="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase tracking-tight">
-                           <div className="w-3 h-1 rounded-full bg-rose-400"></div> Dynamics (±%)
-                        </div>
-                        <div className="flex items-center gap-2 text-xs font-bold text-slate-300 uppercase tracking-tight">
-                           <div className="w-3 h-[1px] border-t border-dashed border-slate-400"></div> Speed Limit
-                        </div>
-                     </div>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+             <div className="md:col-span-3 space-y-8">
+                <FeatureCard
+                  title="Telemetric Dynamics"
+                  subtitle="Overlay: Speed vs. Pedal Pressure"
+                  icon={Activity}
+                >
+                   <div className="flex gap-6 mt-4 mb-8">
+                      <div className="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase tracking-tight">
+                         <div className="w-3 h-1 rounded-full bg-brand-blue"></div> Speed (km/h)
+                      </div>
+                      <div className="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase tracking-tight">
+                         <div className="w-3 h-1 rounded-full bg-rose-400"></div> Dynamics (±%)
+                      </div>
                    </div>
 
                    {telemetryData ? (
@@ -196,29 +189,27 @@ export default function TripDetailsPage({
                               dataKey="timestamp" 
                               axisLine={false} 
                               tickLine={false} 
-                              tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 800 }} 
+                              tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 700 }} 
                               dy={15}
                            />
                            <YAxis 
                               domain={[0, 100]} 
                               axisLine={false} 
                               tickLine={false} 
-                              tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 800 }}
+                              tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 700 }}
                            />
                            <Tooltip content={<CustomTelemetryTooltip />} cursor={{ stroke: '#f1f5f9', strokeWidth: 2 }} />
                            
-                           {/* National Speed Limit Reference */}
                            {trip.nationalSpeedLimit && (
                              <ReferenceLine 
                                 y={trip.nationalSpeedLimit} 
                                 stroke="#94a3b8" 
                                 strokeDasharray="5 5"
                                 strokeWidth={1}
-                                label={{ value: `Limit: ${trip.nationalSpeedLimit}`, position: 'right', fill: '#94a3b8', fontSize: 9, fontWeight: 800, dy: -10 }} 
+                                label={{ value: `Limit: ${trip.nationalSpeedLimit}`, position: 'right', fill: '#94a3b8', fontSize: 9, fontWeight: 700, dy: -10 }} 
                              />
                            )}
 
-                           {/* Dynamics Line - Accel - Brake */}
                            <Line 
                               type="monotone" 
                               dataKey="dynamics" 
@@ -229,7 +220,6 @@ export default function TripDetailsPage({
                               activeDot={false}
                            />
 
-                           {/* Primary Speed Line */}
                            <Line 
                               type="monotone" 
                               dataKey="speed" 
@@ -240,7 +230,6 @@ export default function TripDetailsPage({
                               animationDuration={1500}
                            />
 
-                           {/* Reward Attention Points */}
                            <Scatter 
                               dataKey="speed" 
                               shape={<RewardPoint />}
@@ -250,29 +239,28 @@ export default function TripDetailsPage({
                        </ResponsiveContainer>
                      </div>
                    ) : (
-                     <div className="h-[350px] flex items-center justify-center border-2 border-dashed border-slate-100 rounded-3xl">
+                     <div className="h-[350px] flex items-center justify-center border-2 border-dashed border-slate-100 rounded-3xl mt-4">
                         <p className="text-sm text-slate-400 font-bold uppercase tracking-widest italic">Awaiting high-res telemetry packet...</p>
                      </div>
                    )}
-                </GlassCard>
+                </FeatureCard>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                   <GlassCard className="p-6">
-                      <h3 className="text-xs font-bold text-slate-400 mb-6 uppercase tracking-widest flex items-center gap-2">
-                        <Car className="w-4 h-4 text-brand-blue" />
-                        Asset Links
-                      </h3>
-                      <div className="space-y-4">
-                         <Link href={`/dashboard/drivers/${trip.driverId}`} className="group flex items-center justify-between p-4 bg-slate-50/50 rounded-2xl hover:bg-brand-blue/5 transition-colors">
-                            <span className="text-xs font-bold text-slate-400 uppercase">Driver</span>
-                            <span className="font-bold text-slate-900 group-hover:text-brand-blue">{trip.driverId}</span>
-                         </Link>
-                         <div className="flex items-center justify-between p-4 bg-slate-50/50 rounded-2xl text-xs font-bold text-slate-400 uppercase">
-                            <span>Vehicle</span>
-                            <span className="text-slate-900 font-mono tracking-normal text-sm font-bold">{trip.vehicleId}</span>
-                         </div>
-                      </div>
-                   </GlassCard>
+                   <InfoCard
+                      title="Asset Links"
+                      icon={Car}
+                      items={[
+                        { 
+                          label: "Driver", 
+                          value: (
+                            <Link href={`/dashboard/drivers/${trip.driverId}`} className="text-brand-blue font-bold hover:underline">
+                              {trip.driverId}
+                            </Link>
+                          )
+                        },
+                        { label: "Vehicle", value: trip.vehicleId, className: "font-mono" }
+                      ]}
+                   />
 
                    <MetricCard
                       label="Temporal Metrics"
@@ -281,130 +269,122 @@ export default function TripDetailsPage({
                       icon={Clock}
                    />
                 </div>
+
+                {trip.explanation && (
+                  <FeatureCard
+                    title="Decision Forensic"
+                    subtitle="AI Interpretability Layer"
+                    icon={BrainCircuit}
+                    variant="brand"
+                    isNarrative
+                  >
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+                      <div className="lg:col-span-1 space-y-8">
+                         <div className="bg-slate-50/50 dark:bg-slate-800/30 border border-slate-100 dark:border-slate-800 p-8 rounded-3xl">
+                            <p className="text-xs text-slate-400 uppercase font-bold tracking-widest mb-4">AI Personality narrative</p>
+                            <p className="text-xl font-medium text-slate-900 dark:text-slate-100 leading-tight italic">
+                              "{trip.explanation.humanSummary}"
+                            </p>
+                         </div>
+
+                         <div className="bg-slate-900 text-white p-8 rounded-3xl space-y-6 shadow-xl">
+                           <div className="flex items-center gap-3 text-emerald-400">
+                             <ShieldAlert className="w-5 h-5" />
+                             <p className="text-xs font-bold uppercase tracking-widest">Fairness Audit</p>
+                           </div>
+                           <div className="flex justify-between items-end">
+                              <p className="text-xs text-slate-400 uppercase font-bold">Statistical parity</p>
+                              <p className="text-3xl font-mono font-bold text-emerald-400 leading-none">{trip.explanation.fairnessAuditScore.toFixed(3)}</p>
+                           </div>
+                           <div className="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                              <div className="bg-emerald-400 h-full" style={{ width: `${(trip.explanation.fairnessAuditScore) * 100}%` }}></div>
+                           </div>
+                         </div>
+                      </div>
+
+                      <div className="lg:col-span-2 space-y-10">
+                         <p className="text-xs text-brand-blue uppercase font-bold tracking-widest border-b border-slate-100 dark:border-slate-800 pb-6">
+                           SHAP Influence Vector
+                         </p>
+                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-12 gap-y-10">
+                            {Object.entries(trip.explanation.featureImportance).map(([feature, value]) => (
+                              <div key={feature} className="space-y-3">
+                                 <div className="flex justify-between items-center text-xs font-bold">
+                                   <span className="text-slate-500 uppercase tracking-widest">
+                                     {feature.replace('_', ' ')}
+                                   </span>
+                                   <span className={value >= 0 ? 'text-emerald-500' : 'text-rose-500'}>
+                                     {value >= 0 ? '+' : ''}{ (value * 100).toFixed(1) }%
+                                   </span>
+                                 </div>
+                                 <div className="h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden flex">
+                                    <div 
+                                      className={`h-full rounded-full transition-all duration-1000 ${value >= 0 ? 'bg-emerald-500' : 'bg-rose-500'}`}
+                                      style={{ width: `${Math.abs(value) * 100}%`, marginLeft: value >= 0 ? '0' : 'auto' }}
+                                    ></div>
+                                 </div>
+                              </div>
+                            ))}
+                         </div>
+                      </div>
+                    </div>
+                  </FeatureCard>
+                )}
              </div>
 
-             <div className="md:col-span-1 space-y-6">
-                <GlassCard className="flex flex-col items-center">
-                   <div className="w-full flex justify-between items-center mb-8">
-                      <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                         <ShieldCheck className="w-4 h-4 text-emerald-500" /> Validation
-                      </h3>
-                   </div>
-                   
+             <div className="md:col-span-1 space-y-8">
+                <FeatureCard 
+                  title="Validation Hub" 
+                  icon={ShieldCheck}
+                >
                    {trip.status === "Completed" && trip.score !== undefined ? (
-                      <div className="flex flex-col items-center justify-center flex-1 py-4 text-center">
-                         <div className="relative mb-10">
+                      <div className="flex flex-col items-center justify-center py-6 text-center">
+                         <div className="relative mb-8">
                             <svg className="w-32 h-32 transform -rotate-90">
-                               <circle cx="64" cy="64" r="58" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-slate-100" />
+                               <circle cx="64" cy="64" r="58" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-slate-100 dark:text-slate-800" />
                                <circle cx="64" cy="64" r="58" stroke="currentColor" strokeWidth="8" fill="transparent" strokeDasharray={364.4} strokeDashoffset={364.4 - (364.4 * trip.score) / 100} className="text-emerald-500 transition-all duration-1000 ease-out" />
                             </svg>
                             <div className="absolute inset-0 flex items-center justify-center">
-                               <span className="text-4xl font-black text-slate-900 font-mono">{trip.score}</span>
+                               <span className="text-4xl font-black text-slate-900 dark:text-white font-mono">{trip.score}</span>
                             </div>
                          </div>
-                         <div className="bg-emerald-50 text-emerald-600 px-4 py-2 rounded-full flex items-center gap-2 mb-4">
-                            <Zap className="w-3.5 h-3.5 fill-emerald-600" />
+                         <div className="bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 px-4 py-2 rounded-full flex items-center gap-2 mb-4 border border-emerald-100 dark:border-emerald-800/30">
+                            <Zap className="w-3.5 h-3.5 fill-current" />
                             <span className="text-xs font-bold uppercase tracking-wider">Reward Earned</span>
                          </div>
-                         <p className="text-xs text-slate-500 font-bold leading-relaxed px-4">
+                         <p className="text-xs text-slate-500 font-medium leading-relaxed">
                            Behavior Agent verified optimal pedal modulation.
                          </p>
                       </div>
                    ) : (
-                      <div className="flex flex-col items-center justify-center flex-1 py-12 text-center grayscale opacity-30">
-                         <div className="w-20 h-20 rounded-full border-2 border-dashed border-slate-400 flex items-center justify-center mb-4">
+                      <div className="flex flex-col items-center justify-center py-12 text-center opacity-40">
+                         <div className="w-20 h-20 rounded-full border-2 border-dashed border-slate-300 flex items-center justify-center mb-4">
                            <ShieldCheck className="w-8 h-8 text-slate-400" />
                          </div>
                          <p className="text-xs font-bold uppercase text-slate-500">Awaiting Signal</p>
                       </div>
                    )}
-                </GlassCard>
+                </FeatureCard>
 
-                <GlassCard variant="brand" className="flex flex-col gap-4">
-                   <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                      <MapPin className="w-4 h-4 text-brand-blue" /> Route Status
-                   </h3>
-                   <div className="space-y-4">
-                      <div className="flex justify-between text-xs font-bold uppercase">
-                         <span className="text-slate-400">Progress</span>
-                         <span className="text-slate-900">{Math.round(((trip.currentDistanceKm || 0) / trip.distanceKm) * 100)}%</span>
-                      </div>
-                      <div className="w-full h-1.5 bg-slate-200/50 rounded-full overflow-hidden">
-                         <div className="h-full bg-brand-blue rounded-full" style={{ width: `${((trip.currentDistanceKm || 0) / trip.distanceKm) * 100}%` }}></div>
-                      </div>
-                      <p className="text-xs font-bold text-slate-400 text-center uppercase tracking-tight">
-                         {trip.currentDistanceKm?.toFixed(1)} / {trip.distanceKm.toFixed(1)} km
-                      </p>
-                   </div>
-                </GlassCard>
-             </div>
-
-             {trip.explanation && (
-                <GlassCard className="md:col-span-4 p-8 sm:p-12 rounded-[2.5rem]">
-                  <div className="flex flex-col lg:flex-row gap-16">
-                    <div className="lg:w-1/3 space-y-10">
-                       <div>
-                         <h3 className="text-xs font-bold text-slate-400 mb-8 uppercase tracking-widest flex items-center gap-3">
-                           <div className="p-2 bg-slate-50 rounded-xl text-slate-900 border border-slate-100">
-                             <BrainCircuit className="w-4 h-4" />
-                           </div>
-                           Decision Forensic
-                         </h3>
-                         <div className="bg-slate-50 border border-slate-100 p-8 rounded-3xl">
-                            <p className="text-xs text-slate-400 uppercase font-bold tracking-widest mb-4">AI Narrative</p>
-                            <p className="text-xl font-bold text-slate-900 leading-tight italic">
-                              "{trip.explanation.humanSummary}"
-                            </p>
-                         </div>
-                       </div>
-
-                       <div className="bg-slate-900 text-white p-8 rounded-3xl space-y-6 shadow-2xl">
-                         <div className="flex items-center gap-3 text-emerald-400">
-                           <ShieldAlert className="w-5 h-5" />
-                           <p className="text-xs font-bold uppercase tracking-widest">Fairness Audit</p>
-                         </div>
-                         <div className="flex justify-between items-end">
-                            <p className="text-xs text-slate-500 uppercase font-bold">Statistical Parity</p>
-                            <p className="text-3xl font-mono font-bold text-emerald-400 leading-none">{trip.explanation.fairnessAuditScore.toFixed(3)}</p>
-                         </div>
-                         <div className="w-full bg-slate-800 rounded-full h-1 overflow-hidden">
-                            <div className="bg-emerald-400 h-full" style={{ width: '4%' }}></div>
-                         </div>
-                       </div>
-                    </div>
-
-                    <div className="lg:w-2/3 space-y-10">
-                       <p className="text-xs text-slate-400 uppercase font-bold tracking-widest border-b border-slate-100 pb-6">
-                         SHAP Influence Vector
-                       </p>
-                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-16 gap-y-12">
-                          {Object.entries(trip.explanation.featureImportance).map(([feature, value], idx) => (
-                            <div key={feature} className="space-y-4">
-                               <div className="flex justify-between items-center">
-                                 <span className="text-xs font-bold text-slate-900 uppercase tracking-widest">
-                                   {feature.replace('_', ' ')}
-                                 </span>
-                                 <span className={`text-xs font-bold font-mono ${value >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
-                                   {value >= 0 ? '+' : ''}{ (value * 100).toFixed(1) }%
-                                 </span>
-                               </div>
-                               <div className="flex items-center gap-4">
-                                  <div className="flex-1 h-1 bg-slate-100 rounded-full overflow-hidden flex">
-                                    <div 
-                                      className={`h-full rounded-full transition-all duration-1000 ${value >= 0 ? 'bg-emerald-500' : 'bg-rose-500'}`}
-                                      style={{ width: `${Math.abs(value) * 100}%`, marginLeft: value >= 0 ? '0' : 'auto' }}
-                                    ></div>
-                                  </div>
-                               </div>
-                            </div>
-                          ))}
-                       </div>
-                    </div>
+                <InfoCard
+                  title="Route Status"
+                  icon={MapPin}
+                  items={[
+                    { label: "Completion", value: `${Math.round(((trip.currentDistanceKm || 0) / trip.distanceKm) * 100)}%` },
+                    { 
+                      label: "Odometer", 
+                      value: `${trip.currentDistanceKm?.toFixed(1) || 0} / ${trip.distanceKm.toFixed(1)} km`,
+                      className: "col-span-2" 
+                    }
+                  ]}
+                >
+                  <div className="w-full h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden mt-6">
+                     <div className="h-full bg-brand-blue rounded-full transition-all duration-1000" style={{ width: `${((trip.currentDistanceKm || 0) / trip.distanceKm) * 100}%` }}></div>
                   </div>
-                </GlassCard>
-              )}
+                </InfoCard>
+             </div>
           </div>
-        </div>
+        </DashboardSection>
       </div>
     </div>
   );

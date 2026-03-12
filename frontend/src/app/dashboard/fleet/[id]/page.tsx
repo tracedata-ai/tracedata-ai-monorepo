@@ -16,6 +16,10 @@ import {
   PowerOff,
   SignalHigh
 } from "lucide-react";
+import { InfoCard } from "@/components/shared/InfoCard";
+import { DashboardSection } from "@/components/shared/DashboardSection";
+import { MetricCard } from "@/components/shared/MetricCard";
+import { cn } from "@/lib/utils";
 
 export default function VehicleDetailsPage({
   params,
@@ -52,128 +56,120 @@ export default function VehicleDetailsPage({
   };
 
   return (
-    <div className="flex-1 flex flex-col min-w-0 bg-background h-full overflow-hidden">
-      {/* Breadcrumb Header */}
-      <header className="bg-white dark:bg-slate-900 border-b border-border px-8 py-5 flex-shrink-0">
-        <nav className="flex items-center text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-          <Link href="/dashboard/fleet" className="hover:text-brand-blue hover:bg-brand-blue/5 px-2 py-1 rounded transition-colors flex items-center gap-1.5 -ml-2">
-            <ArrowLeft className="w-4 h-4" />
-            Fleet Telemetry
-          </Link>
-          <ChevronRight className="w-4 h-4 mx-3" />
-          <span className="text-foreground">{vehicle.id}</span>
-        </nav>
+    <div className="flex-1 flex flex-col min-w-0 bg-background h-full overflow-hidden text-slate-900">
+      <header className="bg-white dark:bg-slate-900 border-b border-slate-100 flex-shrink-0">
+        <DashboardSection gridCols={1} className="py-5">
+          <nav className="flex items-center text-xs font-bold text-slate-400 uppercase tracking-widest">
+            <Link href="/dashboard/fleet" className="hover:text-brand-blue transition-colors flex items-center gap-1.5 -ml-2 px-2 py-1 rounded-full hover:bg-slate-50">
+              <ArrowLeft className="w-3.5 h-3.5" />
+              Fleet Telemetry
+            </Link>
+            <ChevronRight className="w-3.5 h-3.5 mx-3 opacity-30" />
+            <span className="text-slate-900 dark:text-slate-100">{vehicle.id}</span>
+          </nav>
+        </DashboardSection>
       </header>
 
-      {/* Main Content */}
-      <div className="flex-1 overflow-auto p-4 sm:p-8 bg-slate-50/50 dark:bg-slate-900/50">
-        <div className="max-w-6xl mx-auto space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 border-b border-border pb-6">
-            <div className="flex items-center gap-5">
-              <div className="w-16 h-16 rounded-xl bg-brand-blue/10 flex items-center justify-center text-brand-blue shadow-sm border border-brand-blue/20">
+      <div className="flex-1 overflow-auto bg-slate-50/30 dark:bg-slate-900/50">
+        <DashboardSection gridCols={1} className="py-8">
+          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-8">
+            <div className="flex items-center gap-6">
+              <div className="w-16 h-16 rounded-2xl bg-brand-blue/5 flex items-center justify-center text-brand-blue border border-brand-blue/10 shadow-sm">
                 <Truck className="w-8 h-8" />
               </div>
               <div>
-                <h1 className="text-3xl font-black text-foreground tracking-tight font-mono">{vehicle.id}</h1>
-                <p className="text-brand-blue font-bold mt-1 tracking-widest uppercase">{vehicle.plateNumber}</p>
+                <h1 className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter font-mono">{vehicle.id}</h1>
+                <p className="text-brand-blue font-bold mt-1 tracking-widest uppercase text-xs">{vehicle.plateNumber}</p>
               </div>
             </div>
             
-            <div className={`px-4 py-2 flex items-center gap-2 rounded-lg text-sm font-bold uppercase border shadow-sm ${getStatusColor(vehicle.status)}`}>
+            <div className={`px-4 py-2 flex items-center gap-2 rounded-full text-xs font-bold uppercase tracking-widest shadow-sm border ${getStatusColor(vehicle.status)}`}>
               {getStatusIcon(vehicle.status)}
               {vehicle.status}
             </div>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
-             <div className="md:col-span-2 space-y-6">
-                <div className="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-xl border border-border shadow-sm">
-                   <h3 className="text-sm font-bold text-foreground mb-6 uppercase tracking-widest flex items-center gap-2">
-                     <Activity className="w-4 h-4 text-brand-blue" />
-                     Diagnostics & Specifications
-                   </h3>
-                   
-                   <div className="grid grid-cols-2 gap-6">
-                      <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-border">
-                         <p className="text-[10px] text-slate-500 uppercase font-bold tracking-widest mb-1">Model / Asset Type</p>
-                         <p className="text-lg font-bold text-foreground">{vehicle.model}</p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+             <div className="md:col-span-2 space-y-8">
+                <InfoCard
+                  title="Asset Diagnostics"
+                  icon={Activity}
+                  items={[
+                    { label: "Model / Asset Type", value: vehicle.model },
+                    { label: "Operating Hours", value: `${vehicle.operatingHours.toLocaleString()} hrs`, className: "font-mono" }
+                  ]}
+                >
+                   <div className="mt-8 pt-8 border-t border-slate-100 dark:border-slate-800">
+                      <div className="flex justify-between items-center mb-4">
+                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Telemetry Signal Status</p>
+                        <SignalHigh className={cn(
+                          "w-5 h-5",
+                          vehicle.signal === 'Strong' ? 'text-brand-teal' :
+                          vehicle.signal === 'Medium' ? 'text-amber-500' :
+                          'text-red-500'
+                        )} />
                       </div>
-                      
-                      <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-border">
-                         <p className="text-[10px] text-slate-500 uppercase font-bold tracking-widest mb-1">Total Operating Hours</p>
-                         <p className="text-3xl font-black text-foreground font-mono mt-1">
-                           {vehicle.operatingHours.toLocaleString()}<span className="text-sm text-muted-foreground ml-1">hrs</span>
-                         </p>
-                      </div>
-
-                      <div className="col-span-2 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-border">
-                         <div className="flex justify-between items-center mb-2">
-                           <p className="text-[10px] text-slate-500 uppercase font-bold tracking-widest">Telemetry Signal Status</p>
-                           <SignalHigh className={`w-5 h-5 ${
-                              vehicle.signal === 'Strong' ? 'text-brand-teal' :
-                              vehicle.signal === 'Medium' ? 'text-amber-500' :
-                              'text-red-500'
-                           }`} />
-                         </div>
-                         <div className="flex items-center gap-2">
-                           <span className="text-lg font-bold text-foreground">{vehicle.signal}</span>
-                           <span className="text-xs font-medium text-muted-foreground ml-2">
-                             Connected to Command Center
-                           </span>
-                         </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-xl font-bold text-slate-900 dark:text-white">{vehicle.signal}</span>
+                        <div className="flex gap-1">
+                          {[1, 2, 3].map(i => (
+                            <div key={i} className={cn(
+                              "w-1.5 h-4 rounded-full",
+                              i === 1 && "bg-brand-teal",
+                              i === 2 && (vehicle.signal === 'Strong' || vehicle.signal === 'Medium' ? "bg-brand-teal" : "bg-slate-200"),
+                              i === 3 && (vehicle.signal === 'Strong' ? "bg-brand-teal" : "bg-slate-200")
+                            )} />
+                          ))}
+                        </div>
                       </div>
                    </div>
-                </div>
+                </InfoCard>
 
-                <div className="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-xl border border-border shadow-sm">
-                   <h3 className="text-sm font-bold text-foreground mb-6 uppercase tracking-widest flex items-center gap-2">
-                     <MapPin className="w-4 h-4 text-brand-blue" />
-                     Current Context
-                   </h3>
-                   
-                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="border border-border p-5 rounded-xl">
-                        <p className="text-[10px] text-slate-500 uppercase font-bold tracking-widest mb-2">Assigned Driver</p>
-                        {vehicle.driver ? (
-                          <Link href={`/dashboard/drivers/${vehicle.driver}`} className="text-xl font-bold text-brand-blue hover:underline">
-                             {vehicle.driver}
-                          </Link>
-                        ) : (
-                          <p className="text-lg font-medium text-muted-foreground">Unassigned</p>
-                        )}
-                        <p className="text-xs text-muted-foreground mt-2">Currently commanding this vehicle.</p>
-                      </div>
-
-                      <div className="border border-border p-5 rounded-xl bg-slate-50 dark:bg-slate-800/50">
-                        <p className="text-[10px] text-slate-500 uppercase font-bold tracking-widest mb-2">Last Known Location</p>
-                        <p className="text-lg font-bold text-foreground leading-tight">
-                           {vehicle.location || 'Location unavailable'}
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
-                          <MapPin className="w-3 h-3" /> Updated via GPS
-                        </p>
-                      </div>
-                   </div>
-                </div>
+                <InfoCard
+                  title="Current Context"
+                  icon={MapPin}
+                  items={[
+                    { 
+                      label: "Assigned Driver", 
+                      value: vehicle.driver ? (
+                        <Link href={`/dashboard/drivers/${vehicle.driver}`} className="text-brand-blue hover:underline">
+                           {vehicle.driver}
+                        </Link>
+                      ) : "Unassigned"
+                    },
+                    { 
+                      label: "Last Known Location", 
+                      value: vehicle.location || 'Location unavailable',
+                      icon: Navigation
+                    }
+                  ]}
+                />
              </div>
 
-             <div className="md:col-span-1 space-y-6">
-                <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-border shadow-sm flex flex-col h-full">
-                   <h3 className="text-sm font-bold text-foreground mb-6 uppercase tracking-widest flex items-center gap-2">
-                     <Wrench className="w-4 h-4 text-slate-400" /> Active Issues
-                   </h3>
-                   
-                   <div className="flex flex-col items-center justify-center flex-1 py-8 text-center opacity-60">
-                      <div className="w-20 h-20 rounded-full border-4 border-dashed border-slate-300 dark:border-slate-700 flex items-center justify-center mb-4">
+             <div className="md:col-span-1 space-y-8">
+                <InfoCard
+                  title="Maintenance Hub"
+                  icon={Wrench}
+                >
+                   <div className="flex flex-col items-center justify-center py-10 text-center opacity-40">
+                      <div className="w-20 h-20 rounded-full border-2 border-dashed border-slate-300 flex items-center justify-center mb-6">
                         <Truck className="w-8 h-8 text-slate-400" />
                       </div>
-                      <p className="text-sm font-bold text-muted-foreground">No active faults</p>
-                      <p className="text-xs text-muted-foreground mt-2 px-4">See Issues tab for historical logs.</p>
+                      <p className="text-sm font-bold text-slate-500 uppercase tracking-tight">No active faults</p>
+                      <p className="text-xs text-slate-400 mt-2">Fleet health is optimal.</p>
                    </div>
-                </div>
+                </InfoCard>
+
+                <MetricCard
+                  label="Health Score"
+                  value="98"
+                  icon={Activity}
+                  iconColor="text-brand-teal"
+                  subValue="Optimal Performance"
+                />
              </div>
           </div>
-        </div>
+        </DashboardSection>
       </div>
     </div>
   );
