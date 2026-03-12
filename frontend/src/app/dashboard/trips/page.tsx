@@ -13,24 +13,32 @@ import { Route, Clock, CheckCircle2, Search, ShieldCheck, BrainCircuit, Trending
 function TripDetailContent({ trip }: { trip: TripRecord }) {
   return (
     <div className="p-6 space-y-6">
-      <div className="grid grid-cols-2 gap-4">
-        <MetricCard
-          label="Status"
-          value={trip.status}
-          className={cn(
-            trip.status === "In Progress" ? "text-brand-blue" :
-            trip.status === "Completed" ? "text-emerald-500" :
-            "text-slate-400"
-          )}
-        />
-        <MetricCard
-          label="Route Template"
-          value={trip.routeId}
-          icon={Route}
-        />
+      <div className="space-y-4">
+        <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-1 flex items-center gap-2">
+          <Route className="w-4 h-4 text-brand-blue" />
+          Dispatch Intelligence
+        </h5>
+        <div className="grid grid-cols-2 gap-4 auto-rows-fr">
+          <MetricCard
+            compact
+            label="Live Status"
+            value={trip.status}
+            className={cn(
+              trip.status === "In Progress" ? "text-brand-blue" :
+              trip.status === "Completed" ? "text-emerald-500" :
+              "text-slate-400"
+            )}
+          />
+          <MetricCard
+            compact
+            label="Template ID"
+            value={trip.routeId}
+            icon={Route}
+          />
+        </div>
       </div>
 
-      <GlassCard className="space-y-6">
+      <GlassCard compact className="space-y-6">
         <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
           <Clock className="w-4 h-4 text-brand-blue" />
           Temporal Performance
@@ -72,6 +80,7 @@ function TripDetailContent({ trip }: { trip: TripRecord }) {
       </GlassCard>
 
       <MetricCard
+        compact
         label="Dynamic Performance Score"
         value={trip.score !== undefined ? trip.score : '--'}
         icon={TrendingUp}
@@ -80,7 +89,7 @@ function TripDetailContent({ trip }: { trip: TripRecord }) {
       />
 
       {trip.explanation && (
-        <GlassCard className="relative overflow-hidden group">
+        <GlassCard compact className="relative overflow-hidden group">
           <div className="absolute right-0 top-0 w-24 h-24 text-brand-blue/[0.03] transform translate-x-8 -translate-y-8 group-hover:scale-110 transition-transform">
             <BrainCircuit className="w-full h-full" />
           </div>

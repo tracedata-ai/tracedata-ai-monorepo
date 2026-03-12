@@ -13,25 +13,33 @@ import { Activity, ShieldAlert, Award, BrainCircuit, Search, UserCheck } from "l
 function DriverDetailContent({ driver }: { driver: DriverProfile }) {
   return (
     <div className="p-6 space-y-6">
-      <div className="grid grid-cols-2 gap-4">
-        <MetricCard
-          label="Status"
-          value={driver.status}
-          className={cn(
-            driver.status === 'Active' ? 'text-emerald-600' :
-            driver.status === 'On Break' ? 'text-amber-500' :
-            'text-slate-400'
-          )}
-        />
-        <MetricCard
-          label="Trip Score"
-          value={driver.avgTripScore}
-          icon={Award}
-          iconColor="text-emerald-500"
-        />
+      <div className="space-y-4">
+        <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-1 flex items-center gap-2">
+          <UserCheck className="w-4 h-4 text-emerald-500" />
+          Operator Identity
+        </h5>
+        <div className="grid grid-cols-2 gap-4 auto-rows-fr">
+          <MetricCard
+            compact
+            label="Current Status"
+            value={driver.status}
+            className={cn(
+              driver.status === 'Active' ? 'text-emerald-600' :
+              driver.status === 'On Break' ? 'text-amber-500' :
+              'text-slate-400'
+            )}
+          />
+          <MetricCard
+            compact
+            label="Avg. Score"
+            value={driver.avgTripScore}
+            icon={Award}
+            iconColor="text-emerald-500"
+          />
+        </div>
       </div>
 
-      <GlassCard className="space-y-6">
+      <GlassCard compact className="space-y-6">
         <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
           <Activity className="w-4 h-4 text-brand-blue" />
           Aggregate metrics
@@ -50,7 +58,7 @@ function DriverDetailContent({ driver }: { driver: DriverProfile }) {
         </div>
       </GlassCard>
 
-      <GlassCard className="space-y-6">
+      <GlassCard compact className="space-y-6">
         <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
           <ShieldAlert className="w-4 h-4 text-amber-500" />
           Compliance Audit
@@ -74,7 +82,7 @@ function DriverDetailContent({ driver }: { driver: DriverProfile }) {
       </GlassCard>
 
       {driver.explanation && (
-        <GlassCard className="relative overflow-hidden group">
+        <GlassCard compact className="relative overflow-hidden group">
           <div className="absolute right-0 top-0 w-24 h-24 text-brand-blue/[0.03] transform translate-x-8 -translate-y-8 group-hover:scale-110 transition-transform">
             <BrainCircuit className="w-full h-full" />
           </div>

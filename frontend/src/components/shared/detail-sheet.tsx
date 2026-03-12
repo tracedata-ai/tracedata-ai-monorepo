@@ -22,7 +22,7 @@ export interface DetailSheetProps {
 export function DetailSheet({ isOpen, onClose, title, deepLink, children }: DetailSheetProps) {
   return (
     <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <SheetContent className="w-full sm:max-w-md bg-white dark:bg-slate-900 border-l border-border flex flex-col overflow-y-auto p-0 gap-0 shadow-xl">
+      <SheetContent className="w-full sm:!w-[33.33vw] sm:!max-w-none bg-white dark:bg-slate-900 border-l border-border flex flex-col overflow-y-auto p-0 gap-0 shadow-2xl">
         <SheetHeader className="sr-only">
           <SheetTitle>{title}</SheetTitle>
         </SheetHeader>
