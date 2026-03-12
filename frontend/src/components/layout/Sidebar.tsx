@@ -39,24 +39,24 @@ export function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <ShadcnSidebar collapsible="icon" className="border-r bg-white/50 backdrop-blur-md">
-      <SidebarHeader className="p-6">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-blue to-brand-teal flex items-center justify-center text-white font-bold shadow-lg shadow-brand-blue/20 shrink-0">
-            T
+    <ShadcnSidebar collapsible="icon" className="border-r bg-slate-50/50">
+      <SidebarHeader className="p-4">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded bg-slate-200 flex items-center justify-center text-slate-700 font-bold shrink-0">
+            D
           </div>
           <div className="flex flex-col group-data-[collapsible=icon]:hidden">
-            <h1 className="text-xl font-bold bg-gradient-to-r from-brand-blue to-brand-teal bg-clip-text text-transparent fragmented-header leading-tight">
-              TraceData
+            <h1 className="text-lg font-bold text-slate-900 leading-none">
+              Dashboard
             </h1>
-            <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">AI Orchestrator</span>
+            <span className="text-[10px] uppercase font-medium text-slate-400">Management System</span>
           </div>
         </div>
       </SidebarHeader>
 
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel className="group-data-[collapsible=icon]:hidden text-xs uppercase tracking-wider font-bold text-muted-foreground/50 mb-2">Platform</SidebarGroupLabel>
+          <SidebarGroupLabel className="group-data-[collapsible=icon]:hidden text-[10px] uppercase font-bold text-slate-400 mb-2">Navigation</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {navigation.map((item) => {
@@ -68,20 +68,17 @@ export function Sidebar() {
                       isActive={isActive}
                       tooltip={item.name}
                       className={cn(
-                        "transition-all duration-300 h-11 px-4 mb-1",
+                        "h-9 px-3 mb-1",
                         isActive 
-                          ? "bg-brand-blue text-white shadow-md shadow-brand-blue/20 hover:bg-brand-blue/90 hover:text-white" 
-                          : "hover:bg-brand-blue/5 text-muted-foreground hover:text-brand-blue"
+                          ? "bg-slate-200 text-slate-900 font-semibold" 
+                          : "text-slate-500 hover:bg-slate-100 hover:text-slate-900"
                       )}
                     >
                       <item.icon className={cn(
-                        "w-5 h-5 transition-transform duration-300 group-hover:scale-110",
-                        isActive ? "text-white" : "text-muted-foreground group-hover:text-brand-blue"
+                        "w-4 h-4",
+                        isActive ? "text-slate-900" : "text-slate-500"
                       )} />
-                      <span className="font-semibold tracking-tight">{item.name}</span>
-                      {isActive && !process.env.NEXT_PUBLIC_DISABLE_ANIMATIONS && (
-                          <ChevronRight className="ml-auto w-4 h-4 animate-in slide-in-from-left-2" />
-                      )}
+                      <span className="text-sm">{item.name}</span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 );
@@ -91,12 +88,12 @@ export function Sidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="p-4 border-t border-border/50 bg-muted/30">
+      <SidebarFooter className="p-4 border-t">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton tooltip="Settings" className="hover:bg-brand-blue/5 text-muted-foreground hover:text-brand-blue h-11 px-4 transition-all duration-300">
-              <SettingsIcon className="w-5 h-5" />
-              <span className="font-semibold tracking-tight">Settings</span>
+            <SidebarMenuButton tooltip="Settings" className="text-slate-500 hover:bg-slate-100 hover:text-slate-900 h-9 px-3">
+              <SettingsIcon className="w-4 h-4" />
+              <span className="text-sm">Settings</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

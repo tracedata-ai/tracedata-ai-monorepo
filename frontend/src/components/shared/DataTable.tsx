@@ -72,21 +72,21 @@ export function DataTable<TData, TValue>({
             onChange={(event) =>
               table.getColumn(filterKey)?.setFilterValue(event.target.value)
             }
-            className="max-w-sm glass-card"
+            className="max-w-sm"
           />
         </div>
       )}
-      <div className="rounded-xl border border-border/80 bg-white shadow-sm overflow-hidden transition-all duration-300">
+      <div className="rounded-lg border bg-white overflow-hidden">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id} className="hover:bg-transparent border-border/60 bg-muted/30">
+              <TableRow key={headerGroup.id} className="hover:bg-transparent border-b bg-slate-50">
                 {headerGroup.headers.map((header) => {
                   return (
-                    <TableHead key={header.id} className="text-muted-foreground/70 font-bold uppercase text-[10px] tracking-widest py-4">
+                    <TableHead key={header.id} className="text-slate-500 font-bold uppercase text-[10px] tracking-wider py-3">
                       {header.isPlaceholder
-                        ? null
-                        : flexRender(
+                         ? null
+                         : flexRender(
                             header.column.columnDef.header,
                             header.getContext()
                           )}
@@ -102,10 +102,10 @@ export function DataTable<TData, TValue>({
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() && "selected"}
-                  className="border-border/40 hover:bg-brand-blue/[0.02] transition-colors group"
+                  className="border-b hover:bg-slate-50/50 transition-colors group"
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id} className="py-4 text-sm font-medium text-slate-600 transition-colors group-hover:text-brand-blue">
+                    <TableCell key={cell.id} className="py-3 text-sm text-slate-600">
                       {flexRender(
                         cell.column.columnDef.cell,
                         cell.getContext()
@@ -118,7 +118,7 @@ export function DataTable<TData, TValue>({
               <TableRow>
                 <TableCell
                   colSpan={columns.length}
-                  className="h-24 text-center text-muted-foreground italic"
+                  className="h-24 text-center text-slate-400 italic"
                 >
                   No results.
                 </TableCell>
@@ -128,7 +128,7 @@ export function DataTable<TData, TValue>({
         </Table>
       </div>
       <div className="flex items-center justify-end space-x-2">
-        <div className="flex-1 text-sm text-muted-foreground">
+        <div className="flex-1 text-sm text-slate-500">
           {table.getFilteredSelectedRowModel().rows.length} of{" "}
           {table.getFilteredRowModel().rows.length} row(s) selected.
         </div>
@@ -138,7 +138,6 @@ export function DataTable<TData, TValue>({
             size="sm"
             onClick={() => table.previousPage()}
             disabled={!table.getCanPreviousPage()}
-            className="glass-card"
           >
             Previous
           </Button>
@@ -147,7 +146,6 @@ export function DataTable<TData, TValue>({
             size="sm"
             onClick={() => table.nextPage()}
             disabled={!table.getCanNextPage()}
-            className="glass-card"
           >
             Next
           </Button>

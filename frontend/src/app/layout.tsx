@@ -18,8 +18,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "TraceData | AI-Powered Fleet Management",
-  description: "Advanced telemetry and fleet orchestration platform.",
+  title: "Management System",
+  description: "Internal fleet management and telemetry dashboard.",
 };
 
 export default function RootLayout({
@@ -36,7 +36,7 @@ export default function RootLayout({
           <AuthProvider>
             <SidebarProvider>
               <Sidebar />
-              <SidebarInset className="bg-background/50 backdrop-blur-sm">
+              <SidebarInset className="bg-white">
                 <main className="flex-1 overflow-y-auto p-8">
                   {children}
                 </main>
