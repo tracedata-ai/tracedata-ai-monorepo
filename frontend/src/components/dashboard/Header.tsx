@@ -1,5 +1,6 @@
 import { Search, Bell, Plus } from "lucide-react";
 import { dashboardConfig } from "@/config/dashboard";
+import { Button } from "@/components/ui/button";
 
 export function Header() {
   const { header } = dashboardConfig;
@@ -21,13 +22,13 @@ export function Header() {
         </div>
         
         <div className="flex items-center gap-3">
-          <button className="w-9 h-9 flex items-center justify-center rounded-lg border border-border text-muted-foreground hover:bg-muted transition-colors">
+          <Button variant="outline" size="icon" className="w-9 h-9">
             <Bell className="w-4 h-4" />
-          </button>
-          <button className="bg-brand-blue text-white px-4 py-1.5 rounded-lg text-sm font-semibold hover:bg-brand-blue/90 transition-all flex items-center gap-2 shadow-sm">
+          </Button>
+          <Button className="bg-brand-blue text-white hover:bg-brand-blue/90 font-semibold gap-2 shadow-sm">
             <Plus className="w-4 h-4" />
             <span>Dispatch</span>
-          </button>
+          </Button>
         </div>
       </div>
     </header>

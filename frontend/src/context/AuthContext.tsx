@@ -42,10 +42,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // Route protection logic
     if (!isLoading) {
-      if (!isAuthenticated && pathname?.startsWith("/dashboard")) {
+      if (!isAuthenticated && pathname?.startsWith("/fleet-manager")) {
         router.push("/login");
       } else if (isAuthenticated && pathname === "/login") {
-        router.push("/dashboard");
+        router.push("/fleet-manager");
       }
     }
   }, [isLoading, isAuthenticated, pathname, router]);
@@ -58,7 +58,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       "tracedata_auth",
       JSON.stringify({ isAuthenticated: true, role: newRole, tenantId: newTenantId })
     );
-    router.push("/dashboard");
+    router.push("/fleet-manager");
   };
 
   const logout = () => {

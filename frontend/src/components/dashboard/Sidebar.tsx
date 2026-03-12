@@ -14,7 +14,6 @@ import {
   Route,
   Building2,
 } from "lucide-react";
-import { dashboardConfig } from "@/config/dashboard";
 import { useAuth } from "@/context/AuthContext";
 import {
   Sidebar as ShadcnSidebar,
@@ -70,16 +69,36 @@ const getIcon = (iconName: string) => {
   }
 };
 
+// Role-based navigation configuration
+const getRoleBasedNavigation = (role: string | null) => {
+  if (role === "Manager") {
+    return [
+      { label: "Dashboard", href: "/fleet-manager", icon: "LayoutDashboard" },
+      { label: "Drivers", href: "/fleet-manager/fleet", icon: "Users" },
+      { label: "Observability", href: "/fleet-manager/admin", icon: "BarChart3" },
+      { label: "Settings", href: "/fleet-manager/settings", icon: "Settings" },
+    ];
+  } else if (role === "Driver") {
+    return [
+      {
+        label: "My Dashboard",
+        href: "/driver/dashboard",
+        icon: "LayoutDashboard",
+      },
+      { label: "My Profile", href: "/driver/profile", icon: "Users" },
+      { label: "My Trips", href: "/driver/trips", icon: "Route" },
+      { label: "Appeals", href: "/driver/appeals", icon: "AlertTriangle" },
+    ];
+  }
+  return [];
+};
+
 export function Sidebar() {
-  const { navigation } = dashboardConfig;
   const pathname = usePathname();
   const { role, tenantId, logout } = useAuth();
 
-  // Filter links based on current user role
-  const filteredLinks = navigation.links.filter((link) => {
-    if (!role) return false;
-    return link.roles ? link.roles.includes(role) : true;
-  });
+  // Get role-based navigation
+  const navLinks = getRoleBasedNavigation(role);
 
   return (
     <ShadcnSidebar
@@ -94,10 +113,14 @@ export function Sidebar() {
           </div>
           <div className="flex flex-col group-data-[collapsible=icon]:hidden">
             <h1 className="text-sm font-bold tracking-tight text-foreground">
-              {navigation.title}
+              TraceData
             </h1>
             <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">
-              {navigation.subtitle}
+              {role === "Manager"
+                ? "Fleet Manager"
+                : role === "Driver"
+                  ? "Driver Portal"
+                  : ""}
             </p>
           </div>
         </div>
@@ -107,11 +130,11 @@ export function Sidebar() {
         <SidebarGroup className="p-0">
           <SidebarGroupContent>
             <SidebarMenu className="gap-1">
-              {filteredLinks.map((link, i) => {
+              {navLinks.map((link, i) => {
                 const isActive =
                   pathname === link.href ||
-                  (pathname.startsWith(link.href) &&
-                    link.href !== "/dashboard");
+                  (pathname && pathname.startsWith(link.href) &&
+                    link.href !== "/fleet-manager");
 
                 return (
                   <SidebarMenuItem key={i}>
@@ -125,15 +148,10 @@ export function Sidebar() {
                           <span className="text-sm">{link.label}</span>
                         </Link>
                       }
-                      isActive={isActive}
+                      isActive={!!isActive}
                       tooltip={link.label}
                       className={`h-10 transition-colors ${isActive ? "bg-brand-blue/10 text-brand-blue font-medium hover:bg-brand-blue/15 hover:text-brand-blue" : "text-muted-foreground font-medium"}`}
                     />
-                    {link.badge && (
-                      <SidebarMenuBadge className="bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 font-bold px-1.5 py-0.5 pointer-events-none">
-                        {link.badge}
-                      </SidebarMenuBadge>
-                    )}
                   </SidebarMenuItem>
                 );
               })}
@@ -154,10 +172,10 @@ export function Sidebar() {
               </div>
               <div className="flex flex-col text-left group-data-[collapsible=icon]:hidden">
                 <span className="text-xs font-semibold text-foreground uppercase tracking-wider">
-                  {tenantId?.replace("_", " ") || "Guest"}
+                  {role || "Not Logged In"}
                 </span>
                 <span className="text-[10px] text-muted-foreground">
-                  {role || "Unauthenticated"}
+                  Logout
                 </span>
               </div>
             </SidebarMenuButton>

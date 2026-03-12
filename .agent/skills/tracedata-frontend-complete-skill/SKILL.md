@@ -143,8 +143,8 @@ Define in `src/styles/globals.css`:
 ### Typography
 
 - **Headers (Display)**: Bold, uppercase, tracked. Convey authority.
-  - Font: `font-bold text-lg md:text-2xl uppercase tracking-tight`
-- **Body (Roboto)**: Dense data, readable. `font-roboto text-base leading-relaxed`
+  - Font: SF Pro Display, `font-bold text-lg md:text-2xl uppercase tracking-tight`
+- **Body (Roboto)**: Dense data, readable. `font-roboto text-base leading-relaxed`. Fallback to **SF Pro Text** where applicable.
 - **Identifiers (Geist Mono)**: Trip IDs, vehicle IDs, metric values. `font-mono text-sm`
 - **Emphasis**: Use weight variation (regular → semibold → bold) rather than italic
 

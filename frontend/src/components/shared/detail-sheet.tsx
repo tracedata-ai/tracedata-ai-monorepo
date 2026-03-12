@@ -14,22 +14,22 @@ import {
 import { Button, buttonVariants } from "@/components/ui/button"
 
 export interface DetailSheetProps {
-  isOpen: boolean;
-  onClose: () => void;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
   title: string;
   deepLink?: string;
   children: React.ReactNode;
 }
 
-export function DetailSheet({ isOpen, onClose, title, deepLink, children }: DetailSheetProps) {
+export function DetailSheet({ open, onOpenChange, title, deepLink, children }: DetailSheetProps) {
   return (
-    <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
+    <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-full sm:!w-[33.33vw] sm:!max-w-none bg-white dark:bg-slate-900 border-l border-border flex flex-col overflow-y-auto p-0 gap-0 shadow-2xl">
         <SheetHeader className="sr-only">
           <SheetTitle>{title}</SheetTitle>
         </SheetHeader>
         
-        {isOpen && (
+        {open && (
           <div className="flex flex-col h-full mt-8">
             <div className="px-6 pt-2 pb-4">
               <div className="flex justify-between items-start">

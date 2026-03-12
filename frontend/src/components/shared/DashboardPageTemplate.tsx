@@ -6,7 +6,7 @@ import { Separator } from "@/components/ui/separator";
 
 interface DashboardPageTemplateProps {
   title: string;
-  description: string;
+  description?: string;
   headerActions?: React.ReactNode;
   stats?: React.ReactNode;
   filters?: React.ReactNode;
