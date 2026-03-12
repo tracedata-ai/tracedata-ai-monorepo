@@ -3,6 +3,7 @@ import { Roboto, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { Sidebar } from "@/components/layout/Sidebar";
 
 const roboto = Roboto({
   variable: "--font-roboto",
@@ -32,7 +33,12 @@ export default function RootLayout({
       >
         <TooltipProvider>
           <AuthProvider>
-            {children}
+            <div className="flex min-h-screen bg-background">
+              <Sidebar />
+              <main className="flex-1 overflow-y-auto p-8">
+                {children}
+              </main>
+            </div>
           </AuthProvider>
         </TooltipProvider>
       </body>
