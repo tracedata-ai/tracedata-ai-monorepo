@@ -14,8 +14,10 @@ This is the **single authoritative reference** for all frontend work on the Trac
 ### Core Stack
 
 - **Backend**: Python (FastAPI + LangGraph) — Agentic AI Middleware Monolith
-- **Frontend**: Next.js with App Router
-- **Styling**: Tailwind CSS + Shadcn UI
+- **Frontend**: **Next.js 16 (App Router)**
+- **Styling**: **Tailwind CSS v4** + **Shadcn UI**
+- **Language**: **TypeScript 5** (Strict mode)
+- **Data Logic**: **TanStack Table (v8)** for data-heavy views, **Recharts** for telemetry charts
 - **Database**: PostgreSQL with pgvector (semantic search), Redis (caching), Celery (task queues)
 - **Messaging**: Kafka (telematics), MQTT (device ingestion), WebSocket (real-time safety alerts)
 

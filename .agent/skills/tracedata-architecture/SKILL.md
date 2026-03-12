@@ -11,7 +11,7 @@ This skill must be referenced whenever discussing, planning, or writing code for
 
 1. **Architecture Pattern**: 
    - **Agentic AI Middleware Monolith**: Built in Python (FastAPI + LangGraph). 
-   - **Frontend**: Next.js application built with **Tailwind CSS** and **Shadcn UI**.
+   - **Frontend**: **Next.js 16 (App Router)** application built with **Tailwind CSS v4** and **Shadcn UI**.
    - **Multi-Tenancy**: Mandatory. All data layers (Telematics, Driver Profiles, Trip Logs) must include and enforce a `tenant_id` for strict data isolation.
 
 2. **Ingestion & Data Pipelines (Kafka/MQTT)**:
@@ -23,9 +23,11 @@ This skill must be referenced whenever discussing, planning, or writing code for
    - **Tenant Routing**: Every payload must explicitly contain a `tenant_id` to ensure proper routing and persistence.
 
 3. **Frontend & UI Standards**:
-   - **Framework**: Next.js (App Router).
-   - **Styling**: Tailwind CSS for layout and utilities.
-   - **Components**: Shadcn UI for all interactive elements (Buttons, Tables, Sheets, Dialogs).
+   - **Framework**: **Next.js 16 (App Router)**.
+   - **Language**: **TypeScript 5** (Strict mode).
+   - **Styling**: **Tailwind CSS v4** for layout and utilities.
+   - **Components**: **Shadcn UI** for all interactive elements (Buttons, Tables, Sheets, Dialogs).
+   - **Data Logic**: **TanStack Table (v8)** and **Recharts** for telemetry visualization.
    - **Patterns**: Use the "Headless Table + Slots" pattern for data-heavy views (Drivers, Trips, Fleet) to maintain consistency and reusability.
 
 4. **Context Enrichment (MCP)**:
