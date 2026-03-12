@@ -13,13 +13,13 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,7 +37,7 @@ export function DataTable<TData, TValue>({
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
-    []
+    [],
   );
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({});
@@ -68,7 +68,9 @@ export function DataTable<TData, TValue>({
         <div className="flex items-center">
           <Input
             placeholder={`Filter ${filterKey}...`}
-            value={(table.getColumn(filterKey)?.getFilterValue() as string) ?? ""}
+            value={
+              (table.getColumn(filterKey)?.getFilterValue() as string) ?? ""
+            }
             onChange={(event) =>
               table.getColumn(filterKey)?.setFilterValue(event.target.value)
             }
@@ -80,15 +82,21 @@ export function DataTable<TData, TValue>({
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id} className="hover:bg-transparent border-b bg-slate-50">
+              <TableRow
+                key={headerGroup.id}
+                className="hover:bg-transparent border-b bg-slate-50"
+              >
                 {headerGroup.headers.map((header) => {
                   return (
-                    <TableHead key={header.id} className="text-slate-500 font-bold uppercase text-[10px] tracking-wider py-3">
+                    <TableHead
+                      key={header.id}
+                      className="text-slate-500 font-bold uppercase text-[10px] tracking-wider py-3"
+                    >
                       {header.isPlaceholder
-                         ? null
-                         : flexRender(
+                        ? null
+                        : flexRender(
                             header.column.columnDef.header,
-                            header.getContext()
+                            header.getContext(),
                           )}
                     </TableHead>
                   );
@@ -105,10 +113,13 @@ export function DataTable<TData, TValue>({
                   className="border-b hover:bg-slate-50/50 transition-colors group"
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id} className="py-3 text-sm text-slate-600">
+                    <TableCell
+                      key={cell.id}
+                      className="py-3 text-sm text-slate-600"
+                    >
                       {flexRender(
                         cell.column.columnDef.cell,
-                        cell.getContext()
+                        cell.getContext(),
                       )}
                     </TableCell>
                   ))}

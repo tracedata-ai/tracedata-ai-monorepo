@@ -29,12 +29,19 @@ const columns: ColumnDef<Driver>[] = [
           <Avatar className="h-9 w-9 border border-border shadow-sm">
             <AvatarImage src={avatar} alt={name} />
             <AvatarFallback className="bg-slate-100 text-slate-500 font-bold text-xs">
-              {name.split(" ").map(n => n[0]).join("")}
+              {name
+                .split(" ")
+                .map((n) => n[0])
+                .join("")}
             </AvatarFallback>
           </Avatar>
           <div className="flex flex-col">
-            <span className="font-semibold text-slate-900 leading-none mb-1">{name}</span>
-            <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-tighter">Verified Professional</span>
+            <span className="font-semibold text-slate-900 leading-none mb-1">
+              {name}
+            </span>
+            <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-tighter">
+              Verified Professional
+            </span>
           </div>
         </div>
       );
@@ -43,7 +50,11 @@ const columns: ColumnDef<Driver>[] = [
   {
     accessorKey: "license",
     header: "License No.",
-    cell: ({ row }) => <code className="text-[11px] font-mono bg-slate-100 px-1.5 py-0.5 rounded text-slate-600 border border-slate-200">{row.getValue("license")}</code>,
+    cell: ({ row }) => (
+      <code className="text-[11px] font-mono bg-slate-100 px-1.5 py-0.5 rounded text-slate-600 border border-slate-200">
+        {row.getValue("license")}
+      </code>
+    ),
   },
   {
     accessorKey: "rating",
@@ -64,13 +75,19 @@ const columns: ColumnDef<Driver>[] = [
     cell: ({ row }) => {
       const status = row.getValue("status") as string;
       return (
-        <Badge 
-          variant={status === "available" ? "default" : status === "on-trip" ? "secondary" : "outline"}
+        <Badge
+          variant={
+            status === "available"
+              ? "default"
+              : status === "on-trip"
+                ? "secondary"
+                : "outline"
+          }
           className={cn(
             "capitalize font-semibold text-[10px] px-2 py-0",
             status === "available" && "bg-slate-700 text-white",
             status === "on-trip" && "bg-slate-100 text-slate-700",
-            status === "offline" && "text-slate-400 bg-slate-50"
+            status === "offline" && "text-slate-400 bg-slate-50",
           )}
         >
           {status}
@@ -81,11 +98,41 @@ const columns: ColumnDef<Driver>[] = [
 ];
 
 const data: Driver[] = [
-  { id: "D-501", name: "Alex Chen", license: "S1234567A", rating: 4.8, status: "on-trip" },
-  { id: "D-502", name: "Sarah Lim", license: "S7654321B", rating: 4.9, status: "on-trip" },
-  { id: "D-503", name: "Michael Tan", license: "S9876543C", rating: 4.5, status: "available" },
-  { id: "D-504", name: "Priya Singh", license: "S1122334D", rating: 4.7, status: "available" },
-  { id: "D-505", name: "David Wong", license: "S4433221E", rating: 4.2, status: "offline" },
+  {
+    id: "D-501",
+    name: "Alex Chen",
+    license: "S1234567A",
+    rating: 4.8,
+    status: "on-trip",
+  },
+  {
+    id: "D-502",
+    name: "Sarah Lim",
+    license: "S7654321B",
+    rating: 4.9,
+    status: "on-trip",
+  },
+  {
+    id: "D-503",
+    name: "Michael Tan",
+    license: "S9876543C",
+    rating: 4.5,
+    status: "available",
+  },
+  {
+    id: "D-504",
+    name: "Priya Singh",
+    license: "S1122334D",
+    rating: 4.7,
+    status: "available",
+  },
+  {
+    id: "D-505",
+    name: "David Wong",
+    license: "S4433221E",
+    rating: 4.2,
+    status: "offline",
+  },
 ];
 
 export default function DriversPage() {
@@ -93,9 +140,11 @@ export default function DriversPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-1">
         <h2 className="text-2xl font-bold text-slate-900">Personnel</h2>
-        <p className="text-slate-500">Manage driver credentials, ratings, and real-time availability.</p>
+        <p className="text-slate-500">
+          Manage driver credentials, ratings, and real-time availability.
+        </p>
       </div>
-      
+
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card className="border shadow-none">
           <CardHeader className="p-4 pb-2">
@@ -105,7 +154,9 @@ export default function DriversPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="p-4 pt-0">
-            <div className="text-2xl font-bold text-slate-900">{data.length}</div>
+            <div className="text-2xl font-bold text-slate-900">
+              {data.length}
+            </div>
           </CardContent>
         </Card>
 
@@ -118,7 +169,7 @@ export default function DriversPage() {
           </CardHeader>
           <CardContent className="p-4 pt-0">
             <div className="text-2xl font-bold text-slate-900">
-              {data.filter(d => d.status === "available").length}
+              {data.filter((d) => d.status === "available").length}
             </div>
           </CardContent>
         </Card>

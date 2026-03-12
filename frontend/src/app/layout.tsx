@@ -37,9 +37,7 @@ export default function RootLayout({
             <SidebarProvider>
               <Sidebar />
               <SidebarInset className="bg-white">
-                <main className="flex-1 overflow-y-auto p-8">
-                  {children}
-                </main>
+                <main className="flex-1 overflow-y-auto p-8">{children}</main>
               </SidebarInset>
             </SidebarProvider>
           </AuthProvider>

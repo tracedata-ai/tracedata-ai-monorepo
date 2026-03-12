@@ -23,19 +23,29 @@ const columns: ColumnDef<Route>[] = [
     cell: ({ row }) => (
       <div className="flex items-center gap-2">
         <NavigationIcon className="w-4 h-4 text-slate-400 rotate-45" />
-        <span className="font-semibold text-slate-800">{row.getValue("name")}</span>
+        <span className="font-semibold text-slate-800">
+          {row.getValue("name")}
+        </span>
       </div>
     ),
   },
   {
     accessorKey: "startPoint",
     header: "A",
-    cell: ({ row }) => <span className="text-[11px] font-bold text-slate-500 uppercase tracking-tighter">{row.getValue("startPoint")}</span>,
+    cell: ({ row }) => (
+      <span className="text-[11px] font-bold text-slate-500 uppercase tracking-tighter">
+        {row.getValue("startPoint")}
+      </span>
+    ),
   },
   {
     accessorKey: "endPoint",
     header: "B",
-    cell: ({ row }) => <span className="text-[11px] font-bold text-slate-500 uppercase tracking-tighter">{row.getValue("endPoint")}</span>,
+    cell: ({ row }) => (
+      <span className="text-[11px] font-bold text-slate-500 uppercase tracking-tighter">
+        {row.getValue("endPoint")}
+      </span>
+    ),
   },
   {
     accessorKey: "distance",
@@ -43,7 +53,9 @@ const columns: ColumnDef<Route>[] = [
     cell: ({ row }) => (
       <div className="flex items-center gap-1 text-slate-400">
         <RulerIcon className="w-3 h-3" />
-        <span className="text-[11px] font-mono">{row.getValue("distance")}</span>
+        <span className="text-[11px] font-mono">
+          {row.getValue("distance")}
+        </span>
       </div>
     ),
   },
@@ -53,13 +65,14 @@ const columns: ColumnDef<Route>[] = [
     cell: ({ row }) => {
       const status = row.getValue("status") as string;
       return (
-        <Badge 
+        <Badge
           variant={status === "active" ? "default" : "outline"}
           className={cn(
             "capitalize font-semibold text-[10px] px-2 py-0",
             status === "active" && "bg-slate-700 text-white",
-            status === "planned" && "border-slate-300 text-slate-500 bg-slate-50",
-            status === "inactive" && "border-red-200 text-red-500 bg-red-50"
+            status === "planned" &&
+              "border-slate-300 text-slate-500 bg-slate-50",
+            status === "inactive" && "border-red-200 text-red-500 bg-red-50",
           )}
         >
           {status}
@@ -70,10 +83,38 @@ const columns: ColumnDef<Route>[] = [
 ];
 
 const data: Route[] = [
-  { id: "1", name: "North-South Express", startPoint: "Woodlands", endPoint: "HarbourFront", distance: "25km", status: "active" },
-  { id: "2", name: "East Coast Loop", startPoint: "Changi", endPoint: "Marina Bay", distance: "18km", status: "active" },
-  { id: "3", name: "Western Industrial", startPoint: "Tuas", endPoint: "Jurong East", distance: "12km", status: "planned" },
-  { id: "4", name: "Central Orbit", startPoint: "Orchard", endPoint: "Ang Mo Kio", distance: "10km", status: "inactive" },
+  {
+    id: "1",
+    name: "North-South Express",
+    startPoint: "Woodlands",
+    endPoint: "HarbourFront",
+    distance: "25km",
+    status: "active",
+  },
+  {
+    id: "2",
+    name: "East Coast Loop",
+    startPoint: "Changi",
+    endPoint: "Marina Bay",
+    distance: "18km",
+    status: "active",
+  },
+  {
+    id: "3",
+    name: "Western Industrial",
+    startPoint: "Tuas",
+    endPoint: "Jurong East",
+    distance: "12km",
+    status: "planned",
+  },
+  {
+    id: "4",
+    name: "Central Orbit",
+    startPoint: "Orchard",
+    endPoint: "Ang Mo Kio",
+    distance: "10km",
+    status: "inactive",
+  },
 ];
 
 export default function RoutesPage() {
@@ -81,9 +122,11 @@ export default function RoutesPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-1">
         <h2 className="text-2xl font-bold text-slate-900">Network</h2>
-        <p className="text-slate-500 font-medium">Logistics topology and path optimization metrics.</p>
+        <p className="text-slate-500 font-medium">
+          Logistics topology and path optimization metrics.
+        </p>
       </div>
-      
+
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card className="border shadow-none">
           <CardHeader className="p-4 pb-2">
@@ -93,7 +136,9 @@ export default function RoutesPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="p-4 pt-0">
-            <div className="text-2xl font-bold text-slate-900">{data.length}</div>
+            <div className="text-2xl font-bold text-slate-900">
+              {data.length}
+            </div>
           </CardContent>
         </Card>
 
@@ -106,7 +151,7 @@ export default function RoutesPage() {
           </CardHeader>
           <CardContent className="p-4 pt-0">
             <div className="text-2xl font-bold text-slate-900">
-              {data.filter(r => r.status === "active").length}
+              {data.filter((r) => r.status === "active").length}
             </div>
           </CardContent>
         </Card>

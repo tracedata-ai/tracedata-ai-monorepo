@@ -3,14 +3,14 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { 
-  MapIcon, 
-  TruckIcon, 
-  UsersIcon, 
-  AlertCircleIcon, 
+import {
+  MapIcon,
+  TruckIcon,
+  UsersIcon,
+  AlertCircleIcon,
   LayoutDashboardIcon,
   SettingsIcon,
-  ChevronRight
+  ChevronRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -49,14 +49,18 @@ export function Sidebar() {
             <h1 className="text-lg font-bold text-slate-900 leading-none">
               Dashboard
             </h1>
-            <span className="text-[10px] uppercase font-medium text-slate-400">Management System</span>
+            <span className="text-[10px] uppercase font-medium text-slate-400">
+              Management System
+            </span>
           </div>
         </div>
       </SidebarHeader>
 
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel className="group-data-[collapsible=icon]:hidden text-[10px] uppercase font-bold text-slate-400 mb-2">Navigation</SidebarGroupLabel>
+          <SidebarGroupLabel className="group-data-[collapsible=icon]:hidden text-[10px] uppercase font-bold text-slate-400 mb-2">
+            Navigation
+          </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {navigation.map((item) => {
@@ -69,15 +73,17 @@ export function Sidebar() {
                       tooltip={item.name}
                       className={cn(
                         "h-9 px-3 mb-1",
-                        isActive 
-                          ? "bg-slate-200 text-slate-900 font-semibold" 
-                          : "text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+                        isActive
+                          ? "bg-slate-200 text-slate-900 font-semibold"
+                          : "text-slate-500 hover:bg-slate-100 hover:text-slate-900",
                       )}
                     >
-                      <item.icon className={cn(
-                        "w-4 h-4",
-                        isActive ? "text-slate-900" : "text-slate-500"
-                      )} />
+                      <item.icon
+                        className={cn(
+                          "w-4 h-4",
+                          isActive ? "text-slate-900" : "text-slate-500",
+                        )}
+                      />
                       <span className="text-sm">{item.name}</span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -91,7 +97,10 @@ export function Sidebar() {
       <SidebarFooter className="p-4 border-t">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton tooltip="Settings" className="text-slate-500 hover:bg-slate-100 hover:text-slate-900 h-9 px-3">
+            <SidebarMenuButton
+              tooltip="Settings"
+              className="text-slate-500 hover:bg-slate-100 hover:text-slate-900 h-9 px-3"
+            >
               <SettingsIcon className="w-4 h-4" />
               <span className="text-sm">Settings</span>
             </SidebarMenuButton>
