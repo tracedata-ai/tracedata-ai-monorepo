@@ -126,7 +126,7 @@ const data: Trip[] = [
 ];
 
 import { useEffect, useState } from "react";
-import { entitiesApi } from "@/lib/api";
+import { entitiesApi, BackendTrip } from "@/lib/api";
 
 export default function TripsPage() {
   const [trips, setTrips] = useState<Trip[]>([]);
@@ -137,13 +137,20 @@ export default function TripsPage() {
       try {
         setLoading(true);
         const data = await entitiesApi.getTrips();
-        const mapped: Trip[] = data.items.map((item: any) => ({
-          id: `T-${item.id.slice(0, 4).toUpperCase()}`,
-          vehicleId: item.vehicle_id.slice(0, 8),
-          driverName: "Professional Driver", // Driver name mapping would require JOIN/Expand
-          startTime: new Date(item.start_time).toLocaleString(),
-          status: item.status === "in_progress" ? "ongoing" : item.status,
-        }));
+        const mapped: Trip[] = data.items.map((item: BackendTrip) => {
+          // Map backend status to frontend literal types
+          let status: Trip["status"] = "ongoing";
+          if (item.status === "completed") status = "completed";
+          else if (item.status === "cancelled") status = "delayed"; // Mapping cancelled to delayed for now as catch-all
+          
+          return {
+            id: `T-${item.id.slice(0, 4).toUpperCase()}`,
+            vehicleId: item.vehicle_id.slice(0, 8),
+            driverName: "Professional Driver",
+            startTime: new Date(item.start_time).toLocaleString(),
+            status,
+          };
+        });
         setTrips(mapped);
       } catch (err) {
         console.error("Failed to load trips:", err);

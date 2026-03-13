@@ -7,7 +7,7 @@ import { ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
 import { TruckIcon, ActivityIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { entitiesApi } from "@/lib/api";
+import { entitiesApi, BackendVehicle } from "@/lib/api";
 
 type Vehicle = {
   id: string;
@@ -80,7 +80,7 @@ export default function FleetPage() {
       try {
         setLoading(true);
         const data = await entitiesApi.getFleet();
-        const mapped: Vehicle[] = data.items.map((item: any) => ({
+        const mapped: Vehicle[] = data.items.map((item: BackendVehicle) => ({
           id: item.id,
           vin: item.vin,
           plate: item.license_plate,

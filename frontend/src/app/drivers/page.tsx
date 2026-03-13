@@ -115,7 +115,7 @@ const columns: ColumnDef<Driver>[] = [
 ];
 
 import { useEffect, useState } from "react";
-import { entitiesApi } from "@/lib/api";
+import { entitiesApi, BackendDriver } from "@/lib/api";
 
 export default function DriversPage() {
   const [drivers, setDrivers] = useState<Driver[]>([]);
@@ -129,7 +129,7 @@ export default function DriversPage() {
         const data = await entitiesApi.getDrivers();
         
         // Map backend schema to frontend domain object
-        const mappedDrivers: Driver[] = data.items.map((item: any) => ({
+        const mappedDrivers: Driver[] = data.items.map((item: BackendDriver) => ({
           id: item.id,
           name: `${item.first_name} ${item.last_name}`,
           license: item.license_number,

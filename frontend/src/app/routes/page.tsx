@@ -132,7 +132,7 @@ const data: Route[] = [
 ];
 
 import { useEffect, useState } from "react";
-import { entitiesApi } from "@/lib/api";
+import { entitiesApi, BackendRoute } from "@/lib/api";
 
 export default function RoutesPage() {
   const [routes, setRoutes] = useState<Route[]>([]);
@@ -144,7 +144,7 @@ export default function RoutesPage() {
       try {
         setLoading(true);
         const data = await entitiesApi.getRoutes();
-        const mapped: Route[] = data.items.map((item: any) => ({
+        const mapped: Route[] = data.items.map((item: BackendRoute) => ({
           id: item.id,
           name: item.name,
           startPoint: item.start_location,

@@ -139,7 +139,7 @@ const data: Issue[] = [
 ];
 
 import { useEffect, useState } from "react";
-import { entitiesApi } from "@/lib/api";
+import { entitiesApi, BackendIssue } from "@/lib/api";
 
 export default function IssuesPage() {
   const [issues, setIssues] = useState<Issue[]>([]);
@@ -151,13 +151,34 @@ export default function IssuesPage() {
       try {
         setLoading(true);
         const data = await entitiesApi.getIssues();
-        const mapped: Issue[] = data.items.map((item: any) => ({
-          id: `ISS-${item.id.slice(0, 4).toUpperCase()}`,
-          type: item.issue_type.toLowerCase(),
-          description: item.description,
-          severity: item.severity,
-          status: item.status,
-        }));
+        const mapped: Issue[] = data.items.map((item: BackendIssue) => {
+          // Safe type mapping for severity
+          let severity: Issue["severity"] = "low";
+          if (["low", "medium", "high", "critical"].includes(item.severity)) {
+            severity = item.severity as Issue["severity"];
+          }
+
+          // Safe type mapping for status
+          let status: Issue["status"] = "open";
+          if (["open", "resolved"].includes(item.status)) {
+            status = item.status as Issue["status"];
+          }
+
+          // Safe type mapping for issue type
+          let type: Issue["type"] = "maintenance";
+          const lowerType = item.issue_type.toLowerCase();
+          if (["maintenance", "safety", "delay"].includes(lowerType)) {
+            type = lowerType as Issue["type"];
+          }
+
+          return {
+            id: `ISS-${item.id.slice(0, 4).toUpperCase()}`,
+            type,
+            description: item.description,
+            severity,
+            status,
+          };
+        });
         setIssues(mapped);
       } catch (err) {
         console.error("Failed to load issues:", err);

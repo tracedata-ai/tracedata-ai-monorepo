@@ -7,6 +7,63 @@
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
 
+/**
+ * Shared Entity Interfaces
+ */
+/**
+ * Shared Backend Entity Interfaces (Matching Python models)
+ */
+export interface BackendDriver {
+  id: string;
+  first_name: string;
+  last_name: string;
+  license_number: string;
+  phone_number: string;
+  status: string;
+  avatar?: string;
+}
+
+export interface BackendVehicle {
+  id: string;
+  vin: string;
+  license_plate: string;
+  make: string;
+  model: string;
+  year: string;
+  status: string;
+}
+
+export interface BackendRoute {
+  id: string;
+  name: string;
+  start_location: string;
+  end_location: string;
+  estimated_distance: number;
+  estimated_duration: number;
+}
+
+export interface BackendTrip {
+  id: string;
+  vehicle_id: string;
+  driver_id: string;
+  route_id: string;
+  status: string;
+  start_time: string;
+  end_time?: string;
+  actual_distance?: number;
+  safety_score?: number;
+}
+
+export interface BackendIssue {
+  id: string;
+  vehicle_id: string;
+  trip_id?: string;
+  issue_type: string;
+  severity: string;
+  description: string;
+  status: string;
+}
+
 export async function fetchApi<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const url = `${API_BASE_URL}${endpoint.startsWith("/") ? endpoint : `/${endpoint}`}`;
   
@@ -30,9 +87,9 @@ export async function fetchApi<T>(endpoint: string, options: RequestInit = {}): 
  * Entity-specific API calls
  */
 export const entitiesApi = {
-  getDrivers: () => fetchApi<{ items: any[]; total: number }>("/entities/drivers"),
-  getFleet: () => fetchApi<{ items: any[]; total: number }>("/entities/fleet"),
-  getRoutes: () => fetchApi<{ items: any[]; total: number }>("/entities/routes"),
-  getTrips: () => fetchApi<{ items: any[]; total: number }>("/entities/trips"),
-  getIssues: () => fetchApi<{ items: any[]; total: number }>("/entities/issues"),
+  getDrivers: () => fetchApi<{ items: BackendDriver[]; total: number }>("/entities/drivers"),
+  getFleet: () => fetchApi<{ items: BackendVehicle[]; total: number }>("/entities/fleet"),
+  getRoutes: () => fetchApi<{ items: BackendRoute[]; total: number }>("/entities/routes"),
+  getTrips: () => fetchApi<{ items: BackendTrip[]; total: number }>("/entities/trips"),
+  getIssues: () => fetchApi<{ items: BackendIssue[]; total: number }>("/entities/issues"),
 };
