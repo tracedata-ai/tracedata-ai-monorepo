@@ -32,7 +32,8 @@ When scaffolding or modifying code:
 7. **Traceability first**: Ensure all agent actions write to their respective Postgres tables with the `trip_id` identifier.
 8. **Explain the "why"**: Especially for scoring/predictions—use SHAP/LIME (XRAI).
 9. **Accessibility & Performance**: Include ARIA labels, keyboard nav, lazy loading, and sub-500ms websocket response for safety.
-10. **Maintainable Code**: Document all complex logic using JSDoc-style technical comments.
+10. **Maintainable Code**: Document all complex logic using JSDoc-style technical comments (Frontend) or Google-style docstrings (Backend).
+11. **Self-Documenting APIs**: Use Pydantic `Field` metadata descriptions to ensure Swagger/OpenAPI documentation is rich and actionable.
 
 ---
 

@@ -12,6 +12,15 @@ This module defines the core stack, data pipelines, and architectural boundaries
 - **Database**: PostgreSQL with pgvector (semantic search), Redis (caching), Celery (task queues)
 - **Messaging**: Kafka (telematics), MQTT (device ingestion), WebSocket (real-time safety alerts)
 
+## Backend Service Isolation (Python)
+
+The Agentic AI Middleware follows a strict **package-first modular monolith** structure:
+
+- **Root Directory**: `ai-agents/` (Contains build/CI config: `Dockerfile`, `requirements.txt`, `.github/`)
+- **App Package**: `ai-agents/app/` (The core executable package)
+- **Service Entry**: Always exposed via `app.main:app` for production-grade imports and containerization.
+- **Shared Modules**: Internal logic split into `agents/`, `api/`, `models/`, `schemas/`, and `services/`.
+
 ## Multi-Tenancy (MANDATORY)
 
 Every data layer must include and enforce `tenant_id`:

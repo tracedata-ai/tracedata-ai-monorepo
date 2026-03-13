@@ -21,3 +21,11 @@ Standardized templates for common development tasks.
 1. Add level-based UI logic (Urgency-based coloring).
 2. Hook into `useSafetyAlerts` WebSocket.
 3. Ensure sub-500ms notification display.
+
+## Task 4: Create a New Backend Module (Python)
+
+1. Place code within the correct `ai-agents/app/` subdirectory.
+2. Add a **Module Docstring** at the top of the file.
+3. Use **Pydantic Field Metadata** for all schema attributes.
+4. Add **Google-style Docstrings** to all functions and classes.
+5. Export components through `__init__.py` if part of a sub-package.

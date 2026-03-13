@@ -2,23 +2,34 @@
 
 This module defines the project structure, component standards, and integration patterns for AI agents.
 
-## Project Structure
-
 ```
-src/
-├── components/
-│   ├── agents/                      # Agent-aware components
-│   ├── explainability/              # XRAI rubric components
-│   ├── security/                    # Cybersecurity rubric components
-│   ├── shared/                      # Reusable templates & UI elements
-│   └── fleet-operator/              # Domain-specific UI
-├── pages/
-│   ├── api/                         # Backend proxies & agent endpoints
-│   └── fleet-operator/              # Page routes
-├── lib/
-│   ├── agent-client.ts              # Agent communication
-│   ├── hooks/                       # SWR & WebSocket hooks
-│   └── utils/                       # Security & A11y helpers
+d:/learning-projects/tracedata-ai-monorepo/
+├── frontend/                        # Next.js Application
+└── ai-agents/                       # Agentic AI Middleware
+    ├── app/                         # CORE PACKAGE
+    │   ├── agents/                  # LangGraph workflows
+    │   ├── api/                     # FastAPI Routers
+    │   ├── models/                  # SQLAlchemy Entities
+    │   ├── schemas/                 # Pydantic Schemas
+    │   └── main.py                  # Service Entry
+    ├── tests/                       # Pytest Smoke/Unit tests
+    ├── Dockerfile                   # Container config
+    └── requirements.txt             # Python deps
+```
+
+## Backend Anatomy
+
+Every Python module in the `app/` package must follow the self-documenting pattern:
+
+1. **Module Docstrings**: Clear explanation of the file's purpose at the top.
+2. **Standard Docstrings**: All classes and functions must have Google-style docstrings (`Args`, `Returns`).
+3. **Pydantic Field Metadata**: Use `Field(..., description="...")` for all API-facing schemas.
+
+```python
+# Example: app/schemas/telemetry.py
+class Telemetry(BaseModel):
+    """Schema for vehicle telemetry ingestion."""
+    event_id: str = Field(..., description="UUID for the event")
 ```
 
 ## Component Anatomy

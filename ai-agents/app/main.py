@@ -6,10 +6,12 @@ and integrates the LangGraph-based agentic workflows for telemetry and chat.
 """
 
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from typing import Optional, Dict, Any
 import os
 from app.agents.shell_pipe import get_shell_graph
+from app.api.v1.api import api_router
 
 app = FastAPI(
     title="TraceData AI Middleware",
@@ -22,6 +24,22 @@ app = FastAPI(
         {"name": "agents", "description": "Agentic shell interactions and orchestration"},
     ]
 )
+
+# Configure CORS
+origins = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.include_router(api_router, prefix="/api/v1")
 
 class TelemetryPayload(BaseModel):
     """
