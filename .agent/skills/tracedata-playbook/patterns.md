@@ -7,8 +7,8 @@ d:/learning-projects/tracedata-ai-monorepo/
 ├── frontend/                        # Next.js Application
 └── ai-agents/                       # Agentic AI Middleware
     ├── app/                         # CORE PACKAGE
-    │   ├── core/                    # Engine & Config (Celery, DB)
-    │   └── services/                # Logic (Kafka, Tasks)
+    │   ├── core/                    # Engine & Config (DB)
+    │   └── services/                # Business Logic
     ├── scripts/                     # Tooling (Simulator, Seeding)
     ├── pyproject.toml               # uv Project Manifest
     ├── uv.lock                      # Generated Lockfile
@@ -88,4 +88,4 @@ const { data, loading } = useAgentQuery('/api/agent-query');
 
 ## Real-Time Safety Alerts
 
-Uses WebSocket to bridge Kafka events to the UI with <500ms latency.
+Handled via direct triggers from the Telemetry Ingestion endpoint to the UI with <500ms latency.

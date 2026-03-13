@@ -9,8 +9,8 @@ This module defines the core stack, data pipelines, and architectural boundaries
 - **Styling**: **Tailwind CSS v4** + **Shadcn UI**
 - **Language**: **TypeScript 5** (Strict mode)
 - **Data Logic**: **TanStack Table (v8)** for data-heavy views, **Recharts** for telemetry charts
-- **Database**: PostgreSQL with pgvector (semantic search), Redis (caching), Celery (task queues)
-- **Messaging**: Kafka (telematics), MQTT (device ingestion), WebSocket (real-time safety alerts)
+- **Database**: PostgreSQL with pgvector (semantic search)
+- **Messaging**: WebSocket (real-time safety alerts)
 
 ## Backend Service Isolation (Python)
 
@@ -42,28 +42,25 @@ if (!tenantId)
 
 ## Ingestion & Data Pipelines
 
-### Telematics (High-Frequency)
+### Telematics (Direct Ingestion)
 
-TraceData uses a **Buffer & Branch Pipeline** to handle massive telemetry throughput:
+TraceData uses a **Direct Persistence & Agentic Reasoning** model for telemetry:
 
-1.  **Ingestion Buffer (Kafka)**: 
-    - All incoming telemetry from TCUs (Trucks) is published to the `vehicle.telemetry` Kafka topic.
-    - This decouples truck connectivity from backend database performance.
-2.  **Streaming Consumer (Kafka-Consumer)**:
-    - An asynchronous listener group reads from Kafka and performs lightning-fast routing.
-3.  **Asynchonous Processing (Celery & Redis)**:
-    - Heavy work (Agent reasoning, maintenance alerts, trip summarization) is dispatched to **Celery Workers**.
-    - **Redis** serves as the message broker for this internal hand-off.
-4.  **System of Record (PostgreSQL)**:
-    - Workers commit the final enriched state and safety alerts to the DB once processing is complete.
+1.  **Ingestion (FastAPI)**: 
+    - Telemetry from vehicles is POSTed directly to the `/api/v1/telemetry` endpoint.
+2.  **Persistence (PostgreSQL)**:
+    - The middleware immediately persists the raw event to the `telemetry_events` table for traceability.
+3.  **In-Process Reasoning (LangGraph)**:
+    - The event is passed directly to the Agentic Shell Orchestrator. 
+    - Reasoning (anomaly detection, coaching triggers) happens within the request lifecycle or as an internal async task.
+4.  **System of Record**:
+    - Final enriched state and safety alerts are committed to the DB.
 
 **Ping Types:**
 
 - `Emergency Ping` — Critical events (accidents, extreme braking)
 - `Normal Ping` — Standard telemetry (GPS, Speed, Fuel)
 - `Start/End of Trip` — Handled via state transitions in the Trip module
-
-**Critical Events Bypass**: High-severity anomalies bypass standard batching and trigger a specific `process_critical_event` task in Celery for sub-second safety analysis.
 
 ### Unstructured Driver Input
 
@@ -103,7 +100,6 @@ Evaluated by Safety Agent on Critical Events:
 
 - **PostgreSQL (`pgvector`)**: Mandatory for semantic search against historical profiles and text submissions.
 - **Table Segregation**: Each processing agent writes its outputs to distinct tables, correlated by `trip_id` and isolated by `tenant_id`.
-- **Redis + Celery**: Used for asynchronous task queuing and internal background processing (conversation state, agent context).
 
 ## AI Security & Guardrails
 

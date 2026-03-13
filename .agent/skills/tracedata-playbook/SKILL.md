@@ -1,5 +1,5 @@
 name: tracedata-playbook
-description: The single authoritative reference for TraceData—enforces architecture (FastAPI/LangGraph), ingestion (Kafka/MQTT), and premium Next.js standards.
+description: The single authoritative reference for TraceData—enforces architecture (FastAPI/LangGraph), direct telemetry ingestion, and premium Next.js standards.
 
 # TraceData Playbook: Master Index
 
