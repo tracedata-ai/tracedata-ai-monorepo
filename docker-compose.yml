@@ -45,12 +45,72 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    restart: always
 
   redis:
     image: redis:alpine
     container_name: tracedata-redis
     ports:
       - "6379:6379"
+    restart: always
+
+  zookeeper:
+    image: bitnami/zookeeper:latest
+    container_name: tracedata-zookeeper
+    environment:
+      - ALLOW_ANONYMOUS_LOGIN=yes
+    ports:
+      - "2181:2181"
+
+  kafka:
+    image: bitnami/kafka:latest
+    container_name: tracedata-kafka
+    ports:
+      - "9092:9092"
+    environment:
+      - KAFKA_CFG_ZOOKEEPER_CONNECT=zookeeper:2181
+      - ALLOW_PLAINTEXT_LISTENER=yes
+    depends_on:
+      - zookeeper
+
+  celery-worker:
+    build:
+      context: ./ai-agents
+    container_name: tracedata-celery-worker
+    environment:
+      - SERVICE_TYPE=worker
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/tracedata
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - db
+      - redis
+    restart: always
+
+  kafka-consumer:
+    build:
+      context: ./ai-agents
+    container_name: tracedata-kafka-consumer
+    environment:
+      - SERVICE_TYPE=consumer
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - kafka
+      - redis
+    restart: always
+
+  flower:
+    build:
+      context: ./ai-agents
+    container_name: tracedata-flower
+    command: celery -A app.core.celery_app flower --port=5555
+    ports:
+      - "5555:5555"
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - redis
+    restart: always
 
 volumes:
   postgres_data:
