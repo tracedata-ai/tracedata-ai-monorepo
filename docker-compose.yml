@@ -29,6 +29,7 @@ services:
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/tracedata
       - REDIS_URL=redis://redis:6379/0
       - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - RESET_DB=${RESET_DB:-false}
     depends_on:
       - db
       - redis

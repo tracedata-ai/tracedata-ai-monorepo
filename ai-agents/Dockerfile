@@ -24,8 +24,12 @@ RUN uv pip install -r pyproject.toml
 # Copy the rest of the application
 COPY . .
 
+# Copy and set up the entrypoint script
+# (We copy it again separately to ensure permissions in some environments)
+RUN chmod +x entrypoint.sh
+
 # Expose the FastAPI port
 EXPOSE 8000
 
-# Start the application
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Use the entrypoint script to handle seeding and startup
+ENTRYPOINT ["./entrypoint.sh"]
