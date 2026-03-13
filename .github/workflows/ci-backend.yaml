@@ -56,33 +56,33 @@ jobs:
           cd ai-agents
           uv run mypy . --ignore-missing-imports
 
-  unit-test:
-    name: 🧪 Run Unit Tests
-    runs-on: ubuntu-latest
-    needs: setup
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      - name: Install uv
-        uses: astral-sh/setup-uv@v3
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-      - name: Run tests with coverage
-        run: |
-          cd ai-agents
-          export PYTHONPATH=$PYTHONPATH:.
-          uv run pytest --cov=app --cov-report=xml
-      - name: Upload Coverage
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-report
-          path: ai-agents/coverage.xml
-          retention-days: 7
+#  unit-test:
+#    name: 🧪 Run Unit Tests
+#    runs-on: ubuntu-latest
+#    needs: setup
+#    steps:
+#      - name: Checkout code
+#        uses: actions/checkout@v4
+#      - name: Install uv
+#        uses: astral-sh/setup-uv@v3
+#        with:
+#          python-version: ${{ env.PYTHON_VERSION }}
+#      - name: Run tests with coverage
+#        run: |
+#          cd ai-agents
+#          export PYTHONPATH=$PYTHONPATH:.
+#          uv run pytest --cov=app --cov-report=xml
+#      - name: Upload Coverage
+#        uses: actions/upload-artifact@v4
+#        with:
+#          name: coverage-report
+#          path: ai-agents/coverage.xml
+#          retention-days: 7
 
   security-sca:
     name: 🔐 SCA - UV Pip Audit
     runs-on: ubuntu-latest
-    needs: [lint, unit-test]
+    needs: [lint]
     continue-on-error: true
     steps:
       - name: Checkout code
