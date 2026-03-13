@@ -98,3 +98,55 @@ class TripList(BaseModel):
 class IssueList(BaseModel):
     items: List[IssueSchema]
     total: int
+
+# --- New AI Agent Schemas ---
+
+class SentimentBase(BaseModel):
+    driver_id: UUID
+    risk_level: float
+    sentiment_score: float
+    raw_text: Optional[str] = None
+
+class SentimentSchema(SentimentBase):
+    id: UUID
+    reported_at: datetime
+    model_config = ConfigDict(from_attributes=True)
+
+class AppealBase(BaseModel):
+    driver_id: UUID
+    trip_id: UUID
+    reason: str
+    status: str = "open"
+    ai_reasoning: Optional[str] = None
+
+class AppealSchema(AppealBase):
+    id: UUID
+    created_at: datetime
+    model_config = ConfigDict(from_attributes=True)
+
+class CoachingBase(BaseModel):
+    driver_id: UUID
+    trip_id: UUID
+    coaching_text: str
+    tone: str
+
+class CoachingSchema(CoachingBase):
+    id: UUID
+    created_at: datetime
+    model_config = ConfigDict(from_attributes=True)
+
+class TelemetryBase(BaseModel):
+    trip_id: UUID
+    vehicle_id: UUID
+    driver_id: UUID
+    event_type: str
+    category: Optional[str] = None
+    priority: Optional[str] = None
+    timestamp: datetime
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    details: Optional[str] = None
+
+class TelemetrySchema(TelemetryBase):
+    id: UUID
+    model_config = ConfigDict(from_attributes=True)

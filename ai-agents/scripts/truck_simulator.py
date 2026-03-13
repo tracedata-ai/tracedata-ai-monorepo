@@ -32,9 +32,40 @@ async def simulate_trucks():
     try:
         while True:
             for truck in trucks:
+                # Use formal taxonomy from SRS 3.3.2
+                event_type = random.choice([
+                    "collision", "rollover", "harsh_brake", 
+                    "hard_accel", "harsh_corner", "speeding", 
+                    "excessive_idle", "normal_operation"
+                ])
+                
+                category_map = {
+                    "collision": "critical",
+                    "rollover": "critical",
+                    "harsh_brake": "harsh_event",
+                    "hard_accel": "harsh_event",
+                    "harsh_corner": "harsh_event",
+                    "speeding": "speed_compliance",
+                    "excessive_idle": "idle_fuel",
+                    "normal_operation": "normal_operation"
+                }
+
+                priority_map = {
+                    "collision": "critical",
+                    "rollover": "critical",
+                    "harsh_brake": "high",
+                    "hard_accel": "high",
+                    "harsh_corner": "high",
+                    "speeding": "medium",
+                    "excessive_idle": "low",
+                    "normal_operation": "low"
+                }
+
                 event = {
                     "event_id": str(uuid.uuid4()),
-                    "event_type": random.choice(["telemetry", "location_update", "ping"]),
+                    "event_type": event_type,
+                    "category": category_map[event_type],
+                    "priority": priority_map[event_type],
                     "vehicle_id": truck["id"],
                     "driver_id": truck["driver"],
                     "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
@@ -47,7 +78,7 @@ async def simulate_trucks():
                     }
                 }
                 
-                print(f"Simulator: Sending event for {truck['id']}...")
+                print(f"Simulator: Sending {event_type} event for {truck['id']}...")
                 await producer.send_and_wait(KAFKA_TOPIC, event)
                 await asyncio.sleep(random.uniform(1, 4))
                 

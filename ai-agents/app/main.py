@@ -12,6 +12,12 @@ from typing import Optional, Dict, Any
 import os
 from app.agents.shell_pipe import get_shell_graph
 from app.api.v1.api import api_router
+from app.database import get_db
+from sqlalchemy.orm import Session
+from fastapi import Depends
+from app.models import entities as models
+import uuid
+import json
 
 app = FastAPI(
     title="TraceData AI Middleware",
@@ -64,39 +70,59 @@ async def health_check():
     Performs a heartbeat check of the middleware and its dependencies.
     
     Returns:
-        dict: Status of the service, database, and cache connections.
+        dict: Status of the service and database.
     """
     return {
         "status": "OK",
         "database": "connected (mock)",
-        "redis": "connected (mock)",
         "environment": "Dockerized (Shell)"
     }
 
 @app.post("/api/v1/telemetry", tags=["telemetry"])
-async def ingest_telemetry(payload: TelemetryPayload):
+async def ingest_telemetry(payload: TelemetryPayload, db: Session = Depends(get_db)):
     """
     Ingests vehicle telemetry and triggers the agentic processing pipeline.
     
-    This endpoint handsoff the payload to the Shell Orchestrator (LangGraph) 
-    to validate the end-to-end connectivity.
-
-    Args:
-        payload (TelemetryPayload): The validated telemetry data.
-
-    Returns:
-        dict: Success status and the response from the agentic loop.
+    Now also persists the event to the database to support frontend testing 
+    and manual trigger buttons, bypassing Kafka for now.
     """
     try:
+        # 1. Persist to TelemetryEvent table (Manual Trigger / Button Support)
+        # Find numeric indices for relationships if needed, or just use UUIDs from payload
+        new_event = models.TelemetryEvent(
+            id=uuid.uuid4(),
+            trip_id=uuid.UUID(payload.trip_id),
+            vehicle_id=uuid.uuid4(), # Placeholder if not in payload, should ideally be in payload
+            driver_id=uuid.UUID(payload.driver_id),
+            event_type=payload.event_type,
+            category=payload.details.get("category", "manual_trigger"),
+            priority=payload.details.get("priority", "medium"),
+            latitude=payload.details.get("lat"),
+            longitude=payload.details.get("lon"),
+            details=json.dumps(payload.details)
+        )
+        
+        # Try to find the vehicle_id from the trip if not provided
+        trip = db.query(models.Trip).filter(models.Trip.id == new_event.trip_id).first()
+        if trip:
+            new_event.vehicle_id = trip.vehicle_id
+            
+        db.add(new_event)
+        db.commit()
+
+        # 2. Trigger Shell Graph
         graph = get_shell_graph()
         result = graph.invoke({"input_payload": payload.model_dump(), "response": "", "next_step": ""})
+        
         return {
             "status": "success",
-            "message": "Telemetry reached Dockerized Shell Orchestrator",
+            "message": "Telemetry persisted and reached Orchestrator",
+            "event_id": str(new_event.id),
             "agent_response": result.get("response")
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Pipeline Error: {str(e)}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Inversion Error: {str(e)}")
 
 @app.post("/api/v1/chat-shell", tags=["agents"])
 async def chat_shell(payload: ChatPayload):

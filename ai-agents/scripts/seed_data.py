@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 from app.database import Base, DATABASE_URL
-from app.models.entities import Fleet, Driver, Route, Trip, Issue
+from app.models.entities import Fleet, Driver, Route, Trip, Issue, SentimentRecord, Appeal, CoachingRecord, TelemetryEvent
 
 # Initialize the SQLAlchemy engine
 engine = create_engine(DATABASE_URL)
@@ -129,6 +129,89 @@ def seed_data():
             db.add_all(issues)
             db.commit()
             print(f"Added {len(issues)} fleet maintenance issues.")
+
+        # Re-fetch trips for relational seeding
+        all_t = db.query(Trip).all()
+
+        # 6. Seed Sentiment Records
+        if db.query(SentimentRecord).count() == 0 and "sentiment_data" in data:
+            print("Seeding Sentiment Records...")
+            sentiments = [
+                SentimentRecord(
+                    id=uuid.uuid4(),
+                    driver_id=all_d[s["driver_idx"]].id,
+                    risk_level=s["risk_level"],
+                    sentiment_score=s["sentiment_score"],
+                    raw_text=s["text"]
+                )
+                for s in data["sentiment_data"]
+            ]
+            db.add_all(sentiments)
+            db.commit()
+            print(f"Added {len(sentiments)} driver sentiment records.")
+
+        # 7. Seed Appeals
+        if db.query(Appeal).count() == 0 and "appeal_data" in data:
+            print("Seeding Appeals...")
+            appeals = [
+                Appeal(
+                    id=uuid.uuid4(),
+                    driver_id=all_d[a["driver_idx"]].id,
+                    trip_id=all_t[a["trip_idx"]].id,
+                    reason=a["reason"],
+                    status=a["status"],
+                    ai_reasoning=a["ai_reasoning"]
+                )
+                for a in data["appeal_data"]
+            ]
+            db.add_all(appeals)
+            db.commit()
+            print(f"Added {len(appeals)} driver appeals.")
+
+        # 8. Seed Coaching Records
+        if db.query(CoachingRecord).count() == 0 and "coaching_data" in data:
+            print("Seeding Coaching Records...")
+            coaching = [
+                CoachingRecord(
+                    id=uuid.uuid4(),
+                    driver_id=all_d[c["driver_idx"]].id,
+                    trip_id=all_t[c["trip_idx"]].id,
+                    coaching_text=c["text"],
+                    tone=c["tone"]
+                )
+                for c in data["coaching_data"]
+            ]
+            db.add_all(coaching)
+            db.commit()
+            print(f"Added {len(coaching)} personalized coaching records.")
+
+        # 9. Seed Telemetry Events (Incidents)
+        if db.query(TelemetryEvent).count() == 0 and "telemetry_event_data" in data:
+            print("Seeding Telemetry Events...")
+            events = [
+                TelemetryEvent(
+                    id=uuid.uuid4(),
+                    trip_id=all_t[e["trip_idx"]].id,
+                    vehicle_id=all_v[0].id, # Placeholder, will be corrected below
+                    driver_id=all_d[0].id, # Placeholder, will be corrected below
+                    event_type=e["type"],
+                    category=e["category"],
+                    priority=e["priority"],
+                    latitude=e["lat"],
+                    longitude=e["lon"],
+                    details=e["details"]
+                )
+                for e in data["telemetry_event_data"]
+            ]
+            # Fix vehicle/driver mapping for events properly
+            for i, e in enumerate(events):
+                trip = all_t[data["telemetry_event_data"][i]["trip_idx"]]
+                e.vehicle_id = trip.vehicle_id
+                e.driver_id = trip.driver_id
+
+            db.add_all(events)
+            db.commit()
+            print(f"Added {len(events)} telemetry incident events.")
 
     except Exception as e:
         print(f"Error seeding data: {e}")

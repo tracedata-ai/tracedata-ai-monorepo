@@ -260,51 +260,69 @@
       "hours_ago_end": 23,
       "dist": 28.5,
       "score": 90.0
+    }
+  ],
+  "sentiment_data": [
+    {
+      "driver_idx": 0,
+      "risk_level": 0.1,
+      "sentiment_score": 0.8,
+      "text": "Great week, the new route is much smoother."
     },
     {
-      "vehicle_idx": 5,
-      "driver_idx": 5,
-      "route_idx": 5,
-      "status": "completed",
-      "hours_ago_start": 2,
-      "hours_ago_end": 1,
-      "dist": 5.5,
-      "score": 98.0
+      "driver_idx": 1,
+      "risk_level": 0.4,
+      "sentiment_score": 0.2,
+      "text": "Traffic at Tuas is getting worse, feeling a bit tired."
     },
     {
-      "vehicle_idx": 6,
-      "driver_idx": 6,
-      "route_idx": 6,
-      "status": "in_progress",
-      "mins_ago_start": 45,
-      "dist": 10.2,
-      "score": 94.0
+      "driver_idx": 2,
+      "risk_level": 0.8,
+      "sentiment_score": -0.6,
+      "text": "The scoring system is unfair. I had to brake hard because a car cut me off!"
+    }
+  ],
+  "appeal_data": [
+    {
+      "driver_idx": 2,
+      "trip_idx": 2,
+      "reason": "Harsh braking occurred because 3rd party vehicle cut into my lane suddenly. Dashcam footage available.",
+      "status": "open",
+      "ai_reasoning": "Driver specifically mentions external intervention. Contextual enrichment confirms heavy traffic at the timestamp."
+    }
+  ],
+  "coaching_data": [
+    {
+      "driver_idx": 0,
+      "trip_idx": 0,
+      "tone": "Encouraging",
+      "text": "Excellent safety score on the Energy Loop! Your smooth acceleration is a great example for the team."
     },
     {
-      "vehicle_idx": 7,
-      "driver_idx": 7,
-      "route_idx": 7,
-      "status": "scheduled"
+      "driver_idx": 1,
+      "trip_idx": 1,
+      "tone": "Supportive",
+      "text": "We noticed a slight increase in engine idle time. Remember that reducing idle time saves fuel and reduces emissions."
+    }
+  ],
+  "telemetry_event_data": [
+    {
+      "trip_idx": 0,
+      "type": "normal_operation",
+      "category": "normal_operation",
+      "priority": "low",
+      "lat": 1.285,
+      "lon": 103.65,
+      "details": "{\"speed\": 60, \"rpm\": 1500}"
     },
     {
-      "vehicle_idx": 8,
-      "driver_idx": 8,
-      "route_idx": 8,
-      "status": "completed",
-      "hours_ago_start": 48,
-      "hours_ago_end": 47,
-      "dist": 10.0,
-      "score": 91.5
-    },
-    {
-      "vehicle_idx": 9,
-      "driver_idx": 9,
-      "route_idx": 9,
-      "status": "completed",
-      "hours_ago_start": 8,
-      "hours_ago_end": 7,
-      "dist": 3.8,
-      "score": 99.0
+      "trip_idx": 2,
+      "type": "harsh_brake",
+      "category": "harsh_event",
+      "priority": "high",
+      "lat": 1.32,
+      "lon": 103.7,
+      "details": "{\"g_force\": -0.85, \"speed_drop\": 30}"
     }
   ],
   "issue_data": [
@@ -314,69 +332,6 @@
       "severity": "low",
       "description": "Axle weight sensor intermittent signal",
       "status": "open"
-    },
-    {
-      "vehicle_idx": 1,
-      "type": "Mechanical",
-      "severity": "medium",
-      "description": "Brake air pressure warning low in front-right",
-      "status": "open"
-    },
-    {
-      "vehicle_idx": 6,
-      "type": "Safety",
-      "severity": "high",
-      "description": "Unexpected rapid deceleration detected via G-sensor",
-      "status": "investigating"
-    },
-    {
-      "vehicle_idx": 0,
-      "type": "Mechanical",
-      "severity": "low",
-      "description": "AdBlue level sensor triggered warning",
-      "status": "resolved"
-    },
-    {
-      "vehicle_idx": 8,
-      "type": "Telemetry",
-      "severity": "medium",
-      "description": "GPS drift exceeding 50m in industrial zone",
-      "status": "open"
-    },
-    {
-      "vehicle_idx": 2,
-      "type": "Mechanical",
-      "severity": "high",
-      "description": "Engine coolant temperature spike during heavy load",
-      "status": "open"
-    },
-    {
-      "vehicle_idx": 5,
-      "type": "Safety",
-      "severity": "low",
-      "description": "Driver fatigue alert triggered (secondary camera)",
-      "status": "closed"
-    },
-    {
-      "vehicle_idx": 4,
-      "type": "Mechanical",
-      "severity": "medium",
-      "description": "Liftgate operation delayed",
-      "status": "open"
-    },
-    {
-      "vehicle_idx": 7,
-      "type": "Telemetry",
-      "severity": "low",
-      "description": "Odometer mismatch with GPS distance",
-      "status": "open"
-    },
-    {
-      "vehicle_idx": 9,
-      "type": "Mechanical",
-      "severity": "low",
-      "description": "Washer fluid level low",
-      "status": "resolved"
     }
   ]
 }
