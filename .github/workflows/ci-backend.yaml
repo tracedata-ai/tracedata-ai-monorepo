@@ -6,6 +6,9 @@ on:
       - main
       - "feature/**"
       - "hotfix/**"
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
 
 concurrency:
