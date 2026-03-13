@@ -37,7 +37,7 @@ jobs:
       - name: Install dependencies
         run: |
           cd ai-agents
-          uv sync --frozen
+          uv sync --frozen --python ${{ env.PYTHON_VERSION }}
 
   lint:
     name: 🧪 Lint Code (Ruff & Mypy)
