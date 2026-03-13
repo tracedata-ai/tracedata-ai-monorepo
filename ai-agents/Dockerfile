@@ -8,15 +8,28 @@ RUN apt-get update && apt-get install -y \
     libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements and install
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Install uv
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
+# ENV variables for uv
+ENV UV_SYSTEM_PYTHON=1
+ENV UV_COMPILE_BYTECODE=1
+
+# Copy dependencies first to leverage Docker cache
+COPY pyproject.toml .
+
+# Install dependencies
+RUN uv pip install -r pyproject.toml
 
 # Copy the rest of the application
 COPY . .
 
+# Copy and set up the entrypoint script
+# (We copy it again separately to ensure permissions in some environments)
+RUN chmod +x entrypoint.sh
+
 # Expose the FastAPI port
 EXPOSE 8000
 
-# Start the application using uvicorn
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+# Use the entrypoint script to handle seeding and startup
+ENTRYPOINT ["./entrypoint.sh"]

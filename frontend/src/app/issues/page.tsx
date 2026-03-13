@@ -138,12 +138,75 @@ const data: Issue[] = [
   },
 ];
 
+import { useEffect, useState } from "react";
+import { entitiesApi, BackendIssue } from "@/lib/api";
+
 export default function IssuesPage() {
+  const [issues, setIssues] = useState<Issue[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function loadIssues() {
+      try {
+        setLoading(true);
+        const data = await entitiesApi.getIssues();
+        const mapped: Issue[] = data.items.map((item: BackendIssue) => {
+          // Safe type mapping for severity
+          let severity: Issue["severity"] = "low";
+          if (["low", "medium", "high", "critical"].includes(item.severity)) {
+            severity = item.severity as Issue["severity"];
+          }
+
+          // Safe type mapping for status
+          let status: Issue["status"] = "open";
+          if (["open", "resolved"].includes(item.status)) {
+            status = item.status as Issue["status"];
+          }
+
+          // Safe type mapping for issue type
+          let type: Issue["type"] = "maintenance";
+          const lowerType = item.issue_type.toLowerCase();
+          if (["maintenance", "safety", "delay"].includes(lowerType)) {
+            type = lowerType as Issue["type"];
+          }
+
+          return {
+            id: `ISS-${item.id.slice(0, 4).toUpperCase()}`,
+            type,
+            description: item.description,
+            severity,
+            status,
+          };
+        });
+        setIssues(mapped);
+      } catch (err) {
+        console.error("Failed to load issues:", err);
+        setError("Could not connect to the TraceData network.");
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadIssues();
+  }, []);
+
+  if (loading) {
+    return <div className="p-8 text-center text-slate-500 animate-pulse">Synchronizing with TraceData network...</div>;
+  }
+
+  if (error) {
+    return (
+      <div className="p-8 text-center text-red-500">
+        {error}
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-1">
         <h2 className="text-2xl font-bold text-slate-900">Incident Logs</h2>
-        <p className="text-slate-500">
+        <p className="text-slate-500 font-medium">
           Critical monitoring of fleet anomalies and driver safety events.
         </p>
       </div>
@@ -151,7 +214,7 @@ export default function IssuesPage() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <StatCard
           title="Active Alerts"
-          value={data.filter((i) => i.status === "open").length}
+          value={issues.filter((i) => i.status === "open").length}
           icon={ShieldAlertIcon}
           className="border-t-2 border-red-500"
           valueClassName="text-red-500"
@@ -160,14 +223,14 @@ export default function IssuesPage() {
 
         <StatCard
           title="Resolved"
-          value={data.filter((i) => i.status === "resolved").length}
+          value={issues.filter((i) => i.status === "resolved").length}
           icon={CheckCircle2Icon}
         />
       </div>
 
       {/* Main Data Table */}
       <div className="">
-        <DataTable columns={columns} data={data} filterKey="description" />
+        <DataTable columns={columns} data={issues} filterKey="description" />
       </div>
     </div>
   );

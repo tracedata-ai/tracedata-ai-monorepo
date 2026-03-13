@@ -131,7 +131,50 @@ const data: Route[] = [
   },
 ];
 
+import { useEffect, useState } from "react";
+import { entitiesApi, BackendRoute } from "@/lib/api";
+
 export default function RoutesPage() {
+  const [routes, setRoutes] = useState<Route[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function loadRoutes() {
+      try {
+        setLoading(true);
+        const data = await entitiesApi.getRoutes();
+        const mapped: Route[] = data.items.map((item: BackendRoute) => ({
+          id: item.id,
+          name: item.name,
+          startPoint: item.start_location,
+          endPoint: item.end_location,
+          distance: `${item.estimated_distance}km`,
+          status: "active", // Default since schema doesn't have status yet
+        }));
+        setRoutes(mapped);
+      } catch (err) {
+        console.error("Failed to load routes:", err);
+        setError("Could not connect to the TraceData network.");
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadRoutes();
+  }, []);
+
+  if (loading) {
+    return <div className="p-8 text-center text-slate-500 animate-pulse">Synchronizing with TraceData network...</div>;
+  }
+
+  if (error) {
+    return (
+      <div className="p-8 text-center text-red-500">
+        {error}
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
@@ -146,14 +189,14 @@ export default function RoutesPage() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <StatCard
           title="Total Sectors"
-          value={data.length}
+          value={routes.length}
           icon={NetworkIcon}
           iconClassName="text-slate-500"
         />
 
         <StatCard
           title="Active Paths"
-          value={data.filter((r) => r.status === "active").length}
+          value={routes.filter((r) => r.status === "active").length}
           icon={ZapIcon}
           iconClassName="text-slate-500"
         />
@@ -161,7 +204,7 @@ export default function RoutesPage() {
 
       {/* Main Data Table */}
       <div className="">
-        <DataTable columns={columns} data={data} filterKey="name" />
+        <DataTable columns={columns} data={routes} filterKey="name" />
       </div>
     </div>
   );

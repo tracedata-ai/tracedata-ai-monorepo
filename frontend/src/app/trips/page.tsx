@@ -125,14 +125,53 @@ const data: Trip[] = [
   },
 ];
 
+import { useEffect, useState } from "react";
+import { entitiesApi, BackendTrip } from "@/lib/api";
+
 export default function TripsPage() {
+  const [trips, setTrips] = useState<Trip[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadTrips() {
+      try {
+        setLoading(true);
+        const data = await entitiesApi.getTrips();
+        const mapped: Trip[] = data.items.map((item: BackendTrip) => {
+          // Map backend status to frontend literal types
+          let status: Trip["status"] = "ongoing";
+          if (item.status === "completed") status = "completed";
+          else if (item.status === "cancelled") status = "delayed"; // Mapping cancelled to delayed for now as catch-all
+          
+          return {
+            id: `T-${item.id.slice(0, 4).toUpperCase()}`,
+            vehicleId: item.vehicle_id.slice(0, 8),
+            driverName: "Professional Driver",
+            startTime: new Date(item.start_time).toLocaleString(),
+            status,
+          };
+        });
+        setTrips(mapped);
+      } catch (err) {
+        console.error("Failed to load trips:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadTrips();
+  }, []);
+
+  if (loading) {
+    return <div className="p-8 text-center text-slate-500 animate-pulse">Synchronizing with TraceData network...</div>;
+  }
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
       <div className="flex flex-col gap-1">
-        <h2 className="text-2xl font-bold text-slate-900">Transit</h2>
+        <h2 className="text-2xl font-bold text-slate-900">Transit Tracking</h2>
         <p className="text-slate-500 font-medium">
-          Real-time tracking of active and completed trips.
+          Real-time monitoring of active expeditions and completed paths.
         </p>
       </div>
 
@@ -140,14 +179,14 @@ export default function TripsPage() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <StatCard
           title="Active Now"
-          value={data.filter((t) => t.status === "ongoing").length}
+          value={trips.filter((t) => t.status === "ongoing").length}
           icon={TimerIcon}
           iconClassName="text-slate-500"
         />
 
         <StatCard
           title="Completed"
-          value={data.filter((t) => t.status === "completed").length}
+          value={trips.filter((t) => t.status === "completed").length}
           icon={CheckCircle2Icon}
           iconClassName="text-slate-500"
         />
@@ -155,7 +194,7 @@ export default function TripsPage() {
 
       {/* Main Data Table */}
       <div className="">
-        <DataTable columns={columns} data={data} filterKey="driverName" />
+        <DataTable columns={columns} data={trips} filterKey="id" />
       </div>
     </div>
   );

@@ -19,13 +19,14 @@ import { UsersIcon, UserCheckIcon } from "lucide-react";
 /**
  * Driver Domain Object
  * Represents a registered driver in the TraceData ecosystem.
+ * Aligned with backend schema but maintains UI-specific fields.
  */
 type Driver = {
-  id: string; // Unique identifier (e.g., D-501)
+  id: string;
   name: string;
-  license: string; // Statutory license number
-  rating: number; // Aggregated performance score (0-5)
-  status: "available" | "on-trip" | "offline"; // Real-time telemetry status
+  license: string;
+  rating: number;
+  status: string;
   avatar?: string;
 };
 
@@ -101,9 +102,9 @@ const columns: ColumnDef<Driver>[] = [
           }
           className={cn(
             "capitalize font-semibold text-xs px-2 py-0",
-            status === "available" && "bg-slate-700 text-white",
+            (status === "available" || status === "active") && "bg-slate-700 text-white",
             status === "on-trip" && "bg-slate-100 text-slate-700",
-            status === "offline" && "text-slate-400 bg-slate-50",
+            (status === "offline" || status === "inactive") && "text-slate-400 bg-slate-50",
           )}
         >
           {status}
@@ -113,48 +114,55 @@ const columns: ColumnDef<Driver>[] = [
   },
 ];
 
-/**
- * Mock Data - Integration point for backend API
- */
-const data: Driver[] = [
-  {
-    id: "D-501",
-    name: "Alex Chen",
-    license: "S1234567A",
-    rating: 4.8,
-    status: "on-trip",
-  },
-  {
-    id: "D-502",
-    name: "Sarah Lim",
-    license: "S7654321B",
-    rating: 4.9,
-    status: "on-trip",
-  },
-  {
-    id: "D-503",
-    name: "Michael Tan",
-    license: "S9876543C",
-    rating: 4.5,
-    status: "available",
-  },
-  {
-    id: "D-504",
-    name: "Priya Singh",
-    license: "S1122334D",
-    rating: 4.7,
-    status: "available",
-  },
-  {
-    id: "D-505",
-    name: "David Wong",
-    license: "S4433221E",
-    rating: 4.2,
-    status: "offline",
-  },
-];
+import { useEffect, useState } from "react";
+import { entitiesApi, BackendDriver } from "@/lib/api";
 
 export default function DriversPage() {
+  const [drivers, setDrivers] = useState<Driver[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function loadDrivers() {
+      try {
+        setLoading(true);
+        const data = await entitiesApi.getDrivers();
+        
+        // Map backend schema to frontend domain object
+        const mappedDrivers: Driver[] = data.items.map((item: BackendDriver) => ({
+          id: item.id,
+          name: `${item.first_name} ${item.last_name}`,
+          license: item.license_number,
+          rating: 4.5, // Mock rating as it's not in the backend yet
+          status: item.status,
+          avatar: item.avatar,
+        }));
+        
+        setDrivers(mappedDrivers);
+      } catch (err) {
+        console.error("Failed to load drivers:", err);
+        setError("Could not connect to the TraceData network.");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadDrivers();
+  }, []);
+
+  if (loading) {
+    return <div className="p-8 text-center text-slate-500 animate-pulse">Synchronizing with TraceData network...</div>;
+  }
+
+  if (error) {
+    return (
+      <div className="p-8 text-center">
+        <div className="text-red-500 font-bold mb-2">Network Error</div>
+        <div className="text-slate-500">{error}</div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
@@ -169,14 +177,14 @@ export default function DriversPage() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <StatCard
           title="Total Workforce"
-          value={data.length}
+          value={drivers.length}
           icon={UsersIcon}
           iconClassName="text-slate-500"
         />
 
         <StatCard
           title="Available Now"
-          value={data.filter((d) => d.status === "available").length}
+          value={drivers.filter((d) => d.status === "available" || d.status === "active").length}
           icon={UserCheckIcon}
           iconClassName="text-slate-500"
         />
@@ -184,7 +192,7 @@ export default function DriversPage() {
 
       {/* Main Data Table */}
       <div className="">
-        <DataTable columns={columns} data={data} filterKey="name" />
+        <DataTable columns={columns} data={drivers} filterKey="name" />
       </div>
     </div>
   );

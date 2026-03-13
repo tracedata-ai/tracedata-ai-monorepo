@@ -6,10 +6,22 @@ and integrates the LangGraph-based agentic workflows for telemetry and chat.
 """
 
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
-from typing import Optional, Dict, Any
-import os
+from typing import Dict, Any
 from app.agents.shell_pipe import get_shell_graph
+from app.api.v1.api import api_router
+from app.database import get_db
+from sqlalchemy.orm import Session
+from fastapi import Depends
+from app.models import entities as models
+from app.core.logging import setup_logging, get_logger
+import uuid
+import json
+
+# Initialize structured logging
+setup_logging()
+logger = get_logger("app.main")
 
 app = FastAPI(
     title="TraceData AI Middleware",
@@ -22,6 +34,22 @@ app = FastAPI(
         {"name": "agents", "description": "Agentic shell interactions and orchestration"},
     ]
 )
+
+# Configure CORS
+origins = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.include_router(api_router, prefix="/api/v1")
 
 class TelemetryPayload(BaseModel):
     """
@@ -46,39 +74,71 @@ async def health_check():
     Performs a heartbeat check of the middleware and its dependencies.
     
     Returns:
-        dict: Status of the service, database, and cache connections.
+        dict: Status of the service and database.
     """
     return {
         "status": "OK",
         "database": "connected (mock)",
-        "redis": "connected (mock)",
         "environment": "Dockerized (Shell)"
     }
 
 @app.post("/api/v1/telemetry", tags=["telemetry"])
-async def ingest_telemetry(payload: TelemetryPayload):
+async def ingest_telemetry(payload: TelemetryPayload, db: Session = Depends(get_db)):
     """
     Ingests vehicle telemetry and triggers the agentic processing pipeline.
     
-    This endpoint handsoff the payload to the Shell Orchestrator (LangGraph) 
-    to validate the end-to-end connectivity.
-
-    Args:
-        payload (TelemetryPayload): The validated telemetry data.
-
-    Returns:
-        dict: Success status and the response from the agentic loop.
+    Now also persists the event to the database to support frontend testing 
+    and manual trigger buttons, bypassing Kafka for now.
     """
+    log = logger.bind(
+        event_type=payload.event_type, 
+        trip_id=payload.trip_id, 
+        driver_id=payload.driver_id
+    )
+    
     try:
+        log.info("Ingesting telemetry event", details=payload.details)
+        
+        # 1. Persist to TelemetryEvent table (Manual Trigger / Button Support)
+        new_event = models.TelemetryEvent(
+            id=uuid.uuid4(),
+            trip_id=uuid.UUID(payload.trip_id),
+            vehicle_id=uuid.uuid4(), # Placeholder if not in payload
+            driver_id=uuid.UUID(payload.driver_id),
+            event_type=payload.event_type,
+            category=payload.details.get("category", "manual_trigger"),
+            priority=payload.details.get("priority", "medium"),
+            latitude=payload.details.get("lat"),
+            longitude=payload.details.get("lon"),
+            details=json.dumps(payload.details)
+        )
+        
+        # Try to find the vehicle_id from the trip if not provided
+        trip = db.query(models.Trip).filter(models.Trip.id == new_event.trip_id).first()
+        if trip:
+            new_event.vehicle_id = trip.vehicle_id
+            log = log.bind(vehicle_id=str(trip.vehicle_id))
+            
+        db.add(new_event)
+        db.commit()
+        log.info("Telemetry event persisted to database", event_id=str(new_event.id))
+
+        # 2. Trigger Shell Graph
         graph = get_shell_graph()
         result = graph.invoke({"input_payload": payload.model_dump(), "response": "", "next_step": ""})
+        
+        log.info("Agentic processing complete", agent_response=result.get("response"))
+        
         return {
             "status": "success",
-            "message": "Telemetry reached Dockerized Shell Orchestrator",
+            "message": "Telemetry persisted and reached Orchestrator",
+            "event_id": str(new_event.id),
             "agent_response": result.get("response")
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Pipeline Error: {str(e)}")
+        db.rollback()
+        log.error("Telemetry ingestion failed", error=str(e), exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Inversion Error: {str(e)}")
 
 @app.post("/api/v1/chat-shell", tags=["agents"])
 async def chat_shell(payload: ChatPayload):

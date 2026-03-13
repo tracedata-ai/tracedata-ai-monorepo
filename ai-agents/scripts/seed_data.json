@@ -1,0 +1,337 @@
+{
+  "fleet_data": [
+    {
+      "vin": "ISUZU1XXXXXXXXXXX",
+      "plate": "GBA1234A",
+      "make": "Isuzu",
+      "model": "Giga Heavy Duty",
+      "year": "2023"
+    },
+    {
+      "vin": "HINO2XXXXXXXXXXXX",
+      "plate": "XW5678B",
+      "make": "Hino",
+      "model": "500 Series",
+      "year": "2022"
+    },
+    {
+      "vin": "FUSO3XXXXXXXXXXXX",
+      "plate": "YV9011C",
+      "make": "Mitsubishi Fuso",
+      "model": "Canter",
+      "year": "2023"
+    },
+    {
+      "vin": "SCANIA4XXXXXXXXXX",
+      "plate": "TR2233D",
+      "make": "Scania",
+      "model": "R500 Prime Mover",
+      "year": "2021"
+    },
+    {
+      "vin": "VOLVO5XXXXXXXXXXX",
+      "plate": "PZ4455E",
+      "make": "Volvo",
+      "model": "FH16",
+      "year": "2024"
+    },
+    {
+      "vin": "UD6XXXXXXXXXXXXXX",
+      "plate": "GBB1122F",
+      "make": "UD Trucks",
+      "model": "Quon",
+      "year": "2022"
+    },
+    {
+      "vin": "MAN7XXXXXXXXXXXXX",
+      "plate": "XW3344G",
+      "make": "MAN",
+      "model": "TGX",
+      "year": "2023"
+    },
+    {
+      "vin": "MERC8XXXXXXXXXXXX",
+      "plate": "SB5566H",
+      "make": "Mercedes-Benz",
+      "model": "Actros",
+      "year": "2024"
+    },
+    {
+      "vin": "DAF9XXXXXXXXXXXXX",
+      "plate": "YT7788I",
+      "make": "DAF",
+      "model": "XF",
+      "year": "2021"
+    },
+    {
+      "vin": "KEN10XXXXXXXXXXXX",
+      "plate": "ZA9900J",
+      "make": "Kenworth",
+      "model": "T680",
+      "year": "2023"
+    }
+  ],
+  "driver_data": [
+    {
+      "first": "Wei Ming",
+      "last": "Tan",
+      "license": "S1234567A",
+      "phone": "+65 91234567",
+      "email": "wm.tan@tracedata.ai"
+    },
+    {
+      "first": "Siti",
+      "last": "Aisha",
+      "license": "S7654321B",
+      "phone": "+65 82345678",
+      "email": "siti.a@tracedata.ai"
+    },
+    {
+      "first": "Rajan",
+      "last": "Sivan",
+      "license": "S9876543C",
+      "phone": "+65 93456789",
+      "email": "rajan.s@tracedata.ai"
+    },
+    {
+      "first": "Michael",
+      "last": "Wong",
+      "license": "S1122334D",
+      "phone": "+65 84567890",
+      "email": "m.wong@tracedata.ai"
+    },
+    {
+      "first": "Chloe",
+      "last": "Lim",
+      "license": "S4433221E",
+      "phone": "+65 95678901",
+      "email": "chloe.lim@tracedata.ai"
+    },
+    {
+      "first": "Ahmad",
+      "last": "Hassan",
+      "license": "S5566778F",
+      "phone": "+65 96789012",
+      "email": "ahmad.h@tracedata.ai"
+    },
+    {
+      "first": "Priya",
+      "last": "Nair",
+      "license": "S8899001G",
+      "phone": "+65 87890123",
+      "email": "priya.n@tracedata.ai"
+    },
+    {
+      "first": "David",
+      "last": "Lee",
+      "license": "S2233445H",
+      "phone": "+65 98901234",
+      "email": "david.l@tracedata.ai"
+    },
+    {
+      "first": "Nur",
+      "last": "Aziz",
+      "license": "S3344556I",
+      "phone": "+65 89012345",
+      "email": "nur.a@tracedata.ai"
+    },
+    {
+      "first": "Kevin",
+      "last": "Tan",
+      "license": "S6677889J",
+      "phone": "+65 90123456",
+      "email": "kevin.t@tracedata.ai"
+    }
+  ],
+  "route_data": [
+    {
+      "name": "Energy Loop (Jurong Island - Tuas)",
+      "start": "Jurong Island Checkpoint",
+      "end": "Tuas Mega Port",
+      "dist": 25.5,
+      "dur": 0.8
+    },
+    {
+      "name": "Airfreight Hub (CAC - Keppel)",
+      "start": "Changi Airfreight Centre",
+      "end": "Keppel Distripark",
+      "dist": 22.2,
+      "dur": 0.6
+    },
+    {
+      "name": "North-South Corridor (Woodlands - Senoko)",
+      "start": "Woodlands Checkpoint",
+      "end": "Senoko Industrial Estate",
+      "dist": 12.5,
+      "dur": 0.4
+    },
+    {
+      "name": "Container Link (Pasir Panjang - Cogent)",
+      "start": "Pasir Panjang Terminal",
+      "end": "Cogent Logistics Hub",
+      "dist": 15.8,
+      "dur": 0.5
+    },
+    {
+      "name": "Supply Chain Route (Sungei Kadut - Tampines)",
+      "start": "Sungei Kadut Industrial",
+      "end": "Tampines Logistics Park",
+      "dist": 28.0,
+      "dur": 1.0
+    },
+    {
+      "name": "Clementi Logistics Run",
+      "start": "Clementi West",
+      "end": "Pandan Loop",
+      "dist": 5.2,
+      "dur": 0.2
+    },
+    {
+      "name": "Seletar Aerospace Link",
+      "start": "Seletar Aerospace Park",
+      "end": "Northpoint Bizhub",
+      "dist": 18.5,
+      "dur": 0.7
+    },
+    {
+      "name": "Bedok Distribution Circuit",
+      "start": "Bedok South",
+      "end": "Loyang Offshore Base",
+      "dist": 14.2,
+      "dur": 0.4
+    },
+    {
+      "name": "Kranji Agri-Logistics",
+      "start": "Kranji Way",
+      "end": "Lim Chu Kang",
+      "dist": 9.5,
+      "dur": 0.3
+    },
+    {
+      "name": "Alexandra Tech Route",
+      "start": "Alexandra Technopark",
+      "end": "Mapletree Business City",
+      "dist": 3.5,
+      "dur": 0.1
+    }
+  ],
+  "trip_data": [
+    {
+      "vehicle_idx": 0,
+      "driver_idx": 0,
+      "route_idx": 0,
+      "status": "completed",
+      "hours_ago_start": 5,
+      "hours_ago_end": 4,
+      "dist": 26.1,
+      "score": 92.5
+    },
+    {
+      "vehicle_idx": 1,
+      "driver_idx": 1,
+      "route_idx": 1,
+      "status": "in_progress",
+      "mins_ago_start": 30,
+      "dist": 5.2,
+      "score": 88.0
+    },
+    {
+      "vehicle_idx": 2,
+      "driver_idx": 2,
+      "route_idx": 2,
+      "status": "completed",
+      "hours_ago_start": 10,
+      "hours_ago_end": 9,
+      "dist": 12.8,
+      "score": 95.5
+    },
+    {
+      "vehicle_idx": 3,
+      "driver_idx": 3,
+      "route_idx": 3,
+      "status": "scheduled"
+    },
+    {
+      "vehicle_idx": 4,
+      "driver_idx": 4,
+      "route_idx": 4,
+      "status": "completed",
+      "hours_ago_start": 24,
+      "hours_ago_end": 23,
+      "dist": 28.5,
+      "score": 90.0
+    }
+  ],
+  "sentiment_data": [
+    {
+      "driver_idx": 0,
+      "risk_level": 0.1,
+      "sentiment_score": 0.8,
+      "text": "Great week, the new route is much smoother."
+    },
+    {
+      "driver_idx": 1,
+      "risk_level": 0.4,
+      "sentiment_score": 0.2,
+      "text": "Traffic at Tuas is getting worse, feeling a bit tired."
+    },
+    {
+      "driver_idx": 2,
+      "risk_level": 0.8,
+      "sentiment_score": -0.6,
+      "text": "The scoring system is unfair. I had to brake hard because a car cut me off!"
+    }
+  ],
+  "appeal_data": [
+    {
+      "driver_idx": 2,
+      "trip_idx": 2,
+      "reason": "Harsh braking occurred because 3rd party vehicle cut into my lane suddenly. Dashcam footage available.",
+      "status": "open",
+      "ai_reasoning": "Driver specifically mentions external intervention. Contextual enrichment confirms heavy traffic at the timestamp."
+    }
+  ],
+  "coaching_data": [
+    {
+      "driver_idx": 0,
+      "trip_idx": 0,
+      "tone": "Encouraging",
+      "text": "Excellent safety score on the Energy Loop! Your smooth acceleration is a great example for the team."
+    },
+    {
+      "driver_idx": 1,
+      "trip_idx": 1,
+      "tone": "Supportive",
+      "text": "We noticed a slight increase in engine idle time. Remember that reducing idle time saves fuel and reduces emissions."
+    }
+  ],
+  "telemetry_event_data": [
+    {
+      "trip_idx": 0,
+      "type": "normal_operation",
+      "category": "normal_operation",
+      "priority": "low",
+      "lat": 1.285,
+      "lon": 103.65,
+      "details": "{\"speed\": 60, \"rpm\": 1500}"
+    },
+    {
+      "trip_idx": 2,
+      "type": "harsh_brake",
+      "category": "harsh_event",
+      "priority": "high",
+      "lat": 1.32,
+      "lon": 103.7,
+      "details": "{\"g_force\": -0.85, \"speed_drop\": 30}"
+    }
+  ],
+  "issue_data": [
+    {
+      "vehicle_idx": 3,
+      "type": "Telemetry",
+      "severity": "low",
+      "description": "Axle weight sensor intermittent signal",
+      "status": "open"
+    }
+  ]
+}

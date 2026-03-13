@@ -24,8 +24,8 @@ env:
   NODE_VERSION: "20"
 
 jobs:
-  setup:
-    name: 📐 Setup Environment
+  ci:
+    name: 🏗️ Frontend CI
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -42,88 +42,26 @@ jobs:
         working-directory: frontend
         run: npm ci
 
-  lint:
-    name: 🧪 Lint Code
-    runs-on: ubuntu-latest
-    needs: setup
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: "npm"
-          cache-dependency-path: frontend/package-lock.json
-
-      - name: Install dependencies
-        working-directory: frontend
-        run: npm ci
-
-      - name: Run ESLint
+      - name: 🧪 Lint Code
         working-directory: frontend
         run: npm run lint
 
-  typecheck:
-    name: 🔍 TypeScript Type Check
-    runs-on: ubuntu-latest
-    needs: setup
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: "npm"
-          cache-dependency-path: frontend/package-lock.json
-
-      - name: Install dependencies
-        working-directory: frontend
-        run: npm ci
-
-      - name: Run TypeScript type check
+      - name: 🔍 TypeScript Type Check
         working-directory: frontend
         run: npx tsc --noEmit
 
-  build:
-    name: 🏗️ Build Frontend
-    runs-on: ubuntu-latest
-    needs: setup
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: "npm"
-          cache-dependency-path: frontend/package-lock.json
-
-      - name: Install dependencies
-        working-directory: frontend
-        run: npm ci
-
-      - name: Cache Next.js build
-        uses: actions/cache@v4
-        with:
-          path: frontend/.next/cache
-          # Generate a new cache whenever packages or source files change.
-          key: ${{ runner.os }}-nextjs-${{ hashFiles('frontend/package-lock.json') }}-${{ hashFiles('frontend/src/**.[jt]s', 'frontend/src/**.[jt]sx') }}
-          restore-keys: |
-            ${{ runner.os }}-nextjs-${{ hashFiles('frontend/package-lock.json') }}-
-
-      - name: Build production bundle
+      - name: 🏗️ Build Production Bundle
         working-directory: frontend
         run: npm run build
+
+      - name: 🔐 Security Audit
+        working-directory: frontend
+        run: npm audit --audit-level=high
 
   summary:
     name: 📊 CI Summary
     runs-on: ubuntu-latest
-    needs: [lint, typecheck, build]
+    needs: ci
     if: always()
     steps:
       - name: Check CI Status
@@ -132,9 +70,7 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
           echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Lint | ${{ needs.lint.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| TypeCheck | ${{ needs.typecheck.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Build | ${{ needs.build.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Build & Quality | ${{ needs.ci.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Component:** Frontend (Next.js 16 + React 19 + TypeScript)" >> $GITHUB_STEP_SUMMARY
           echo "**Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY

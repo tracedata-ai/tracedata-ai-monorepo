@@ -9,8 +9,17 @@ This module defines the core stack, data pipelines, and architectural boundaries
 - **Styling**: **Tailwind CSS v4** + **Shadcn UI**
 - **Language**: **TypeScript 5** (Strict mode)
 - **Data Logic**: **TanStack Table (v8)** for data-heavy views, **Recharts** for telemetry charts
-- **Database**: PostgreSQL with pgvector (semantic search), Redis (caching), Celery (task queues)
-- **Messaging**: Kafka (telematics), MQTT (device ingestion), WebSocket (real-time safety alerts)
+- **Database**: PostgreSQL with pgvector (semantic search)
+- **Messaging**: WebSocket (real-time safety alerts)
+
+## Backend Service Isolation (Python)
+
+The Agentic AI Middleware follows a strict **package-first modular monolith** structure:
+
+- **Root Directory**: `ai-agents/` (Contains build/CI config: `Dockerfile`, `requirements.txt`, `.github/`)
+- **App Package**: `ai-agents/app/` (The core executable package)
+- **Service Entry**: Always exposed via `app.main:app` for production-grade imports and containerization.
+- **Shared Modules**: Internal logic split into `agents/`, `api/`, `models/`, `schemas/`, and `services/`.
 
 ## Multi-Tenancy (MANDATORY)
 
@@ -33,24 +42,25 @@ if (!tenantId)
 
 ## Ingestion & Data Pipelines
 
-### Telematics (High-Frequency)
+### Telematics (Direct Ingestion)
 
-- **Source**: Onboard Telematic Control Unit (TCU)
-- **Frequency**: 10–30 second pings (GPS, speed, RPM, harsh events)
-- **Batching**: Collated every 4–10 minutes (Normal Pipe)
-- **Schema**: Flattened, sparse JSON (omit irrelevant fields to save bandwidth)
-- **XAI Optimization**: Uniform `details` dictionary for downstream ML
+TraceData uses a **Direct Persistence & Agentic Reasoning** model for telemetry:
+
+1.  **Ingestion (FastAPI)**: 
+    - Telemetry from vehicles is POSTed directly to the `/api/v1/telemetry` endpoint.
+2.  **Persistence (PostgreSQL)**:
+    - The middleware immediately persists the raw event to the `telemetry_events` table for traceability.
+3.  **In-Process Reasoning (LangGraph)**:
+    - The event is passed directly to the Agentic Shell Orchestrator. 
+    - Reasoning (anomaly detection, coaching triggers) happens within the request lifecycle or as an internal async task.
+4.  **System of Record**:
+    - Final enriched state and safety alerts are committed to the DB.
 
 **Ping Types:**
 
 - `Emergency Ping` — Critical events (accidents, extreme braking)
-- `Normal Ping` — Standard telemetry
-- `Start of Trip Ping` — Trip initialization
-- `End of Trip Ping` — Trip completion
-
-**Critical Events Bypass**: High-severity anomalies (harsh braking, accidents) bypass batching and go immediately via Critical Events pipe.
-
-**Incident Media**: AWS S3 URLs appended to critical event telemetry.
+- `Normal Ping` — Standard telemetry (GPS, Speed, Fuel)
+- `Start/End of Trip` — Handled via state transitions in the Trip module
 
 ### Unstructured Driver Input
 
@@ -90,7 +100,6 @@ Evaluated by Safety Agent on Critical Events:
 
 - **PostgreSQL (`pgvector`)**: Mandatory for semantic search against historical profiles and text submissions.
 - **Table Segregation**: Each processing agent writes its outputs to distinct tables, correlated by `trip_id` and isolated by `tenant_id`.
-- **Redis + Celery**: Used for asynchronous task queuing and internal background processing (conversation state, agent context).
 
 ## AI Security & Guardrails
 

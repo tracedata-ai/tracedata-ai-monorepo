@@ -6,7 +6,7 @@ end-to-end connectivity of the agentic system. It uses a simple linear
 progression: Ingestion -> Orchestrator -> Behavior.
 """
 
-from typing import Annotated, TypedDict
+from typing import TypedDict
 from langgraph.graph import StateGraph, END
 
 class AgentState(TypedDict):
