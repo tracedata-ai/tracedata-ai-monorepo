@@ -173,6 +173,14 @@ export default function IssuesPage() {
     return <div className="p-8 text-center text-slate-500 animate-pulse">Synchronizing with TraceData network...</div>;
   }
 
+  if (error) {
+    return (
+      <div className="p-8 text-center text-red-500">
+        {error}
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-1">
