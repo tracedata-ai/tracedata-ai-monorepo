@@ -6,9 +6,14 @@ on:
       - main
       - "feature/**"
       - "hotfix/**"
+    paths:
+      - "ai-agents/**"
+      - ".github/workflows/ci-backend.yaml"
   pull_request:
     branches:
       - main
+    paths:
+      - "ai-agents/**"
   workflow_dispatch:
 
 concurrency:
