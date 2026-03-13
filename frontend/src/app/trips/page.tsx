@@ -131,7 +131,6 @@ import { entitiesApi } from "@/lib/api";
 export default function TripsPage() {
   const [trips, setTrips] = useState<Trip[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadTrips() {
@@ -148,7 +147,6 @@ export default function TripsPage() {
         setTrips(mapped);
       } catch (err) {
         console.error("Failed to load trips:", err);
-        setError("Could not connect to the TraceData network.");
       } finally {
         setLoading(false);
       }
