@@ -5,7 +5,6 @@ Validates the basic connectivity and core logic of the shell pipe
 using the FastAPI TestClient.
 """
 
-import pytest
 from fastapi.testclient import TestClient
 from app.main import app
 

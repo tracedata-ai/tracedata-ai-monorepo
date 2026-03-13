@@ -10,8 +10,14 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 from app.database import Base, DATABASE_URL
 from app.models.entities import Fleet, Driver, Route, Trip, Issue, SentimentRecord, Appeal, CoachingRecord, TelemetryEvent
+from app.core.logging import setup_logging, get_logger
+
+# Initialize logging
+setup_logging()
+logger = get_logger("scripts.seed_data")
 
 # Initialize the SQLAlchemy engine
+# ...
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
@@ -22,7 +28,7 @@ def load_seed_data():
         with open(json_path, "r") as f:
             return json.load(f)
     except Exception as e:
-        print(f"Error loading seed_data.json: {e}")
+        logger.error("Error loading seed_data.json", error=str(e))
         return None
 
 def create_schemas(drop_existing=False):
@@ -35,7 +41,7 @@ def create_schemas(drop_existing=False):
         
         conn.execute(text("CREATE SCHEMA IF NOT EXISTS fleet_schema;"))
         conn.commit()
-    print("Schemas initialized.")
+    logger.info("Schemas initialized.")
 
 def seed_data():
     """Seed the database with data from external JSON."""
@@ -47,14 +53,14 @@ def seed_data():
     try:
         # 1. Seed Fleet
         if db.query(Fleet).count() == 0:
-            print("Seeding Fleet...")
+            logger.info("Seeding Fleet...")
             vehicles = [
                 Fleet(id=uuid.uuid4(), vin=f["vin"], license_plate=f["plate"], make=f["make"], model=f["model"], year=str(f["year"]), status="active") 
                 for f in data["fleet_data"]
             ]
             db.add_all(vehicles)
             db.commit()
-            print(f"Added {len(vehicles)} commercial trucks.")
+            logger.info("Fleet seeding complete", count=len(vehicles))
 
         # 2. Seed Drivers
         if db.query(Driver).count() == 0:
@@ -211,24 +217,24 @@ def seed_data():
 
             db.add_all(events)
             db.commit()
-            print(f"Added {len(events)} telemetry incident events.")
+            logger.info("Telemetry incident events seeding complete", count=len(events))
 
     except Exception as e:
-        print(f"Error seeding data: {e}")
+        logger.error("Error seeding data", error=str(e), exc_info=True)
         db.rollback()
     finally:
         db.close()
 
 if __name__ == "__main__":
-    print("Initializing Database...")
+    logger.info("Initializing Database...")
     reset_requested = os.getenv("RESET_DB", "false").lower() == "true"
     
     create_schemas(drop_existing=reset_requested)
     
     # Re-create tables if they don't exist (or were dropped)
-    print("Ensuring tables exist...")
+    logger.info("Ensuring tables exist...")
     Base.metadata.create_all(bind=engine)
     
-    print("Seeding data...")
+    logger.info("Seeding data...")
     seed_data()
-    print("Database initialization complete.")
+    logger.info("Database initialization complete.")

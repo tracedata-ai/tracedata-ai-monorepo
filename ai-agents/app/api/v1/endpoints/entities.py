@@ -2,7 +2,7 @@
 API endpoints for managing core entities (Fleet, Drivers, Routes, Trips, Issues).
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from typing import List
 from app.database import get_db

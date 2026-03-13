@@ -2,7 +2,7 @@
 SQLAlchemy ORM models for core entities in the TraceData AI Middleware.
 """
 
-from sqlalchemy import Column, String, Float, DateTime, ForeignKey, Text, Enum
+from sqlalchemy import Column, String, Float, DateTime, ForeignKey, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 import uuid

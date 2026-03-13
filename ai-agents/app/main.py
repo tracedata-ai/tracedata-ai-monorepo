@@ -8,16 +8,20 @@ and integrates the LangGraph-based agentic workflows for telemetry and chat.
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
-from typing import Optional, Dict, Any
-import os
+from typing import Dict, Any
 from app.agents.shell_pipe import get_shell_graph
 from app.api.v1.api import api_router
 from app.database import get_db
 from sqlalchemy.orm import Session
 from fastapi import Depends
 from app.models import entities as models
+from app.core.logging import setup_logging, get_logger
 import uuid
 import json
+
+# Initialize structured logging
+setup_logging()
+logger = get_logger("app.main")
 
 app = FastAPI(
     title="TraceData AI Middleware",
@@ -86,13 +90,20 @@ async def ingest_telemetry(payload: TelemetryPayload, db: Session = Depends(get_
     Now also persists the event to the database to support frontend testing 
     and manual trigger buttons, bypassing Kafka for now.
     """
+    log = logger.bind(
+        event_type=payload.event_type, 
+        trip_id=payload.trip_id, 
+        driver_id=payload.driver_id
+    )
+    
     try:
+        log.info("Ingesting telemetry event", details=payload.details)
+        
         # 1. Persist to TelemetryEvent table (Manual Trigger / Button Support)
-        # Find numeric indices for relationships if needed, or just use UUIDs from payload
         new_event = models.TelemetryEvent(
             id=uuid.uuid4(),
             trip_id=uuid.UUID(payload.trip_id),
-            vehicle_id=uuid.uuid4(), # Placeholder if not in payload, should ideally be in payload
+            vehicle_id=uuid.uuid4(), # Placeholder if not in payload
             driver_id=uuid.UUID(payload.driver_id),
             event_type=payload.event_type,
             category=payload.details.get("category", "manual_trigger"),
@@ -106,13 +117,17 @@ async def ingest_telemetry(payload: TelemetryPayload, db: Session = Depends(get_
         trip = db.query(models.Trip).filter(models.Trip.id == new_event.trip_id).first()
         if trip:
             new_event.vehicle_id = trip.vehicle_id
+            log = log.bind(vehicle_id=str(trip.vehicle_id))
             
         db.add(new_event)
         db.commit()
+        log.info("Telemetry event persisted to database", event_id=str(new_event.id))
 
         # 2. Trigger Shell Graph
         graph = get_shell_graph()
         result = graph.invoke({"input_payload": payload.model_dump(), "response": "", "next_step": ""})
+        
+        log.info("Agentic processing complete", agent_response=result.get("response"))
         
         return {
             "status": "success",
@@ -122,6 +137,7 @@ async def ingest_telemetry(payload: TelemetryPayload, db: Session = Depends(get_
         }
     except Exception as e:
         db.rollback()
+        log.error("Telemetry ingestion failed", error=str(e), exc_info=True)
         raise HTTPException(status_code=500, detail=f"Inversion Error: {str(e)}")
 
 @app.post("/api/v1/chat-shell", tags=["agents"])

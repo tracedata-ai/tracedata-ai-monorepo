@@ -5,6 +5,11 @@ import uuid
 import time
 import os
 from aiokafka import AIOKafkaProducer
+from app.core.logging import setup_logging, get_logger
+
+# Initialize logging
+setup_logging()
+logger = get_logger("scripts.truck_simulator")
 
 # Configuration
 KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
@@ -14,14 +19,14 @@ async def simulate_trucks():
     """
     Simulates telemetry data from multiple trucks and publishes it to Kafka.
     """
-    print(f"Simulator: Connecting to Kafka at {KAFKA_BOOTSTRAP_SERVERS}...")
+    logger.info("Connecting to Kafka", broker=KAFKA_BOOTSTRAP_SERVERS)
     producer = AIOKafkaProducer(
         bootstrap_servers=KAFKA_BOOTSTRAP_SERVERS,
         value_serializer=lambda v: json.dumps(v).encode('utf-8')
     )
     
     await producer.start()
-    print("Simulator: Started. Press Ctrl+C to stop.")
+    logger.info("Simulator started. Press Ctrl+C to stop.")
 
     trucks = [
         {"id": "TRUCK-001", "driver": "Wei Ming Tan"},
@@ -78,12 +83,15 @@ async def simulate_trucks():
                     }
                 }
                 
-                print(f"Simulator: Sending {event_type} event for {truck['id']}...")
+                logger.info("Sending telemetry event", 
+                            event_type=event_type, 
+                            vehicle_id=truck['id'],
+                            priority=priority_map[event_type])
                 await producer.send_and_wait(KAFKA_TOPIC, event)
                 await asyncio.sleep(random.uniform(1, 4))
                 
     except Exception as e:
-        print(f"Simulator error: {e}")
+        logger.error("Simulator execution error", error=str(e), exc_info=True)
     finally:
         await producer.stop()
 
