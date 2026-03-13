@@ -5,7 +5,7 @@ import { DataTable } from "@/components/shared/DataTable";
 import { StatCard } from "@/components/shared/StatCard";
 import { ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
-import { TruckIcon, ActivityIcon, WrenchIcon } from "lucide-react";
+import { TruckIcon, ActivityIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { entitiesApi } from "@/lib/api";
 
