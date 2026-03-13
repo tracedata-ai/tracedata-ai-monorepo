@@ -44,22 +44,26 @@ if (!tenantId)
 
 ### Telematics (High-Frequency)
 
-- **Source**: Onboard Telematic Control Unit (TCU)
-- **Frequency**: 10–30 second pings (GPS, speed, RPM, harsh events)
-- **Batching**: Collated every 4–10 minutes (Normal Pipe)
-- **Schema**: Flattened, sparse JSON (omit irrelevant fields to save bandwidth)
-- **XAI Optimization**: Uniform `details` dictionary for downstream ML
+TraceData uses a **Buffer & Branch Pipeline** to handle massive telemetry throughput:
+
+1.  **Ingestion Buffer (Kafka)**: 
+    - All incoming telemetry from TCUs (Trucks) is published to the `vehicle.telemetry` Kafka topic.
+    - This decouples truck connectivity from backend database performance.
+2.  **Streaming Consumer (Kafka-Consumer)**:
+    - An asynchronous listener group reads from Kafka and performs lightning-fast routing.
+3.  **Asynchonous Processing (Celery & Redis)**:
+    - Heavy work (Agent reasoning, maintenance alerts, trip summarization) is dispatched to **Celery Workers**.
+    - **Redis** serves as the message broker for this internal hand-off.
+4.  **System of Record (PostgreSQL)**:
+    - Workers commit the final enriched state and safety alerts to the DB once processing is complete.
 
 **Ping Types:**
 
 - `Emergency Ping` — Critical events (accidents, extreme braking)
-- `Normal Ping` — Standard telemetry
-- `Start of Trip Ping` — Trip initialization
-- `End of Trip Ping` — Trip completion
+- `Normal Ping` — Standard telemetry (GPS, Speed, Fuel)
+- `Start/End of Trip` — Handled via state transitions in the Trip module
 
-**Critical Events Bypass**: High-severity anomalies (harsh braking, accidents) bypass batching and go immediately via Critical Events pipe.
-
-**Incident Media**: AWS S3 URLs appended to critical event telemetry.
+**Critical Events Bypass**: High-severity anomalies bypass standard batching and trigger a specific `process_critical_event` task in Celery for sub-second safety analysis.
 
 ### Unstructured Driver Input
 

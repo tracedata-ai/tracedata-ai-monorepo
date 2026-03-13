@@ -28,4 +28,17 @@ Standardized templates for common development tasks.
 2. Add a **Module Docstring** at the top of the file.
 3. Use **Pydantic Field Metadata** for all schema attributes.
 4. Add **Google-style Docstrings** to all functions and classes.
-5. Export components through `__init__.py` if part of a sub-package.
+## Task 5: Reset and Re-seed Environment
+
+1. Stop existing containers: `docker compose down`.
+2. Start with reset flag: `RESET_DB=true docker compose up`.
+3. Verify seeding logs in `tracedata-ai-agents`.
+4. Check [Flower Dashboard](http://localhost:5555) for worker readiness.
+
+## Task 6: Run Truck Simulator for Pipeline Testing
+
+1. Ensure the stack is running: `docker compose up -d`.
+2. Start the simulator: `uv run scripts/truck_simulator.py`.
+3. Monitor the **Kafka Consumer** logs for ingestion events.
+4. Monitor the **Celery Worker** logs for task completion.
+5. Verify data updates in the Dashboard or Database.

@@ -7,17 +7,31 @@ d:/learning-projects/tracedata-ai-monorepo/
 ├── frontend/                        # Next.js Application
 └── ai-agents/                       # Agentic AI Middleware
     ├── app/                         # CORE PACKAGE
-    │   ├── agents/                  # LangGraph workflows
-    │   ├── api/                     # FastAPI Routers
-    │   ├── models/                  # SQLAlchemy Entities
-    │   ├── schemas/                 # Pydantic Schemas
-    │   └── main.py                  # Service Entry
-    ├── tests/                       # Pytest Smoke/Unit tests
-    ├── Dockerfile                   # Container config
-    └── requirements.txt             # Python deps
+    │   ├── core/                    # Engine & Config (Celery, DB)
+    │   └── services/                # Logic (Kafka, Tasks)
+    ├── scripts/                     # Tooling (Simulator, Seeding)
+    ├── pyproject.toml               # uv Project Manifest
+    ├── uv.lock                      # Generated Lockfile
+    └── entrypoint.sh                # Container Orchestrator
 ```
 
-## Backend Anatomy
+## Dependency Management (uv)
+
+TraceData uses **uv** for lightning-fast, reproducible builds.
+
+1.  **Strict Locking**: Never run without `uv.lock`. This ensures every developer uses the exact same package version.
+2.  **Explicit Scopes**: Use `uv add` to manage the `pyproject.toml`.
+3.  **Container Optimization**: Our `Dockerfile` uses staged builds to pull the `uv` binary, ensuring zero-overhead installations.
+
+## Database Seeding (Nuke & Pave)
+
+To maintain a clean state during development, we use the **Nuke & Pave** pattern:
+
+1.  **Idempotency**: Seeding scripts must check `if count == 0` for all tables.
+2.  **RESET_DB Toggle**: Controlled via environment variable. 
+    - `RESET_DB=true`: Drops the schema and re-seeds from `seed_data.json`.
+    - `RESET_DB=false`: Skips seeding if data exists (Safe for prod).
+3.  **External Data**: All mock data must reside in JSON files, never hardcoded in Python logic.
 
 Every Python module in the `app/` package must follow the self-documenting pattern:
 
