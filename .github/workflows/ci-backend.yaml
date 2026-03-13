@@ -94,5 +94,4 @@ jobs:
       - name: Run UV Pip Audit
         run: |
           cd ai-agents
-          uv run pip install pip-audit
-          uv run pip-audit
+          uvx pip-audit
