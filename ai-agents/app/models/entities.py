@@ -42,7 +42,7 @@ class Driver(Base):
 
 class Route(Base):
     __tablename__ = "routes"
-    __table_args__ = {"schema": "booking_schema"}
+    __table_args__ = {"schema": "fleet_schema"}
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name = Column(String(100), nullable=False)
@@ -56,12 +56,12 @@ class Route(Base):
 
 class Trip(Base):
     __tablename__ = "trips"
-    __table_args__ = {"schema": "booking_schema"}
+    __table_args__ = {"schema": "fleet_schema"}
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     vehicle_id = Column(UUID(as_uuid=True), ForeignKey("fleet_schema.fleet.id"), nullable=False)
     driver_id = Column(UUID(as_uuid=True), ForeignKey("fleet_schema.drivers.id"), nullable=False)
-    route_id = Column(UUID(as_uuid=True), ForeignKey("booking_schema.routes.id"), nullable=False)
+    route_id = Column(UUID(as_uuid=True), ForeignKey("fleet_schema.routes.id"), nullable=False)
     
     status = Column(String(20), default="scheduled") # scheduled, in_progress, completed, cancelled
     start_time = Column(DateTime)
@@ -81,7 +81,7 @@ class Issue(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     vehicle_id = Column(UUID(as_uuid=True), ForeignKey("fleet_schema.fleet.id"), nullable=False)
-    trip_id = Column(UUID(as_uuid=True), ForeignKey("booking_schema.trips.id"), nullable=True)
+    trip_id = Column(UUID(as_uuid=True), ForeignKey("fleet_schema.trips.id"), nullable=True)
     
     issue_type = Column(String(50), nullable=False) # mechanical, safety, telemetry, other
     severity = Column(String(20), default="low") # low, medium, high, critical

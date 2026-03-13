@@ -29,10 +29,11 @@ import {
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboardIcon },
-  { name: "Routes", href: "/routes", icon: MapIcon },
-  { name: "Trips", href: "/trips", icon: TruckIcon },
-  { name: "Drivers", href: "/drivers", icon: UsersIcon },
-  { name: "Issues", href: "/issues", icon: AlertCircleIcon },
+  { name: "Fleet", href: "/fleet", icon: TruckIcon },
+  { name: "Personnel", href: "/drivers", icon: UsersIcon },
+  { name: "Network", href: "/routes", icon: MapIcon },
+  { name: "Transit", href: "/trips", icon: TruckIcon },
+  { name: "Incidents", href: "/issues", icon: AlertCircleIcon },
   { name: "System Map", href: "/system-map", icon: NetworkIcon },
 ];
 
