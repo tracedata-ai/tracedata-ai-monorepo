@@ -15,36 +15,32 @@ This module defines the core stack, data pipelines, and architectural boundaries
 
 ### High-Level Architecture
 
-```plantuml
-@startuml
-!include <cloudinsight/redis>
-!include <cloudinsight/postgresql>
+```mermaid
+graph TD
+    subgraph Ingestion["Ingestion Layer"]
+        API[FastAPI]
+        Gateway[Data Cleaner Gateway]
+    end
 
-package "Ingestion Layer" {
-    [FastAPI] as API
-    [Data Cleaner Gateway] as Gateway
-}
+    subgraph Broker["Message Broker"]
+        Redis[(Redis Pub/Sub)]
+    end
 
-package "Message Broker" {
-    queue "Redis Pub/Sub" as Redis
-}
+    subgraph Workers["Worker Layer"]
+        WorkerB[Celery Worker - Behavior]
+        WorkerW[Celery Worker - Wellness]
+    end
 
-package "Worker Layer" {
-    [Celery Worker (Behavior)] as WorkerB
-    [Celery Worker (Wellness)] as WorkerW
-}
+    DB[(PostgreSQL)]
 
-database "PostgreSQL" as DB
-
-[Vehicle Telemetry] --> API
-API --> Gateway : Synchronous Scrub
-Gateway --> Redis : Publish Event
-Redis --> WorkerB : Trigger
-Redis --> WorkerW : Trigger
-WorkerB --> DB : Persist Score
-WorkerW --> DB : Persist Insight
-API --> DB : Read Store
-@enduml
+    Vehicle[Vehicle Telemetry] --> API
+    API --> Gateway
+    Gateway --> Redis
+    Redis --> WorkerB
+    Redis --> WorkerW
+    WorkerB --> DB
+    WorkerW --> DB
+    API --> DB
 ```
 
 ## Monorepo & Service Isolation
@@ -100,32 +96,32 @@ TraceData uses a **Redis-backed EDA** for decoupling and asynchronous processing
 
 ### Ingestion Sequence (Fast-Path vs Background)
 
-```plantuml
-@startuml
-actor Vehicle
-participant "FastAPI API" as API
-participant "Data Cleaner" as Gateway
-participant "Safety Agent" as Safety
-queue "Redis/Celery" as Redis
-participant "ML/GenAI Workers" as Workers
-database Postgres
+```mermaid
+sequenceDiagram
+    autonumber
+    participant V as Vehicle
+    participant A as FastAPI API
+    participant G as Data Cleaner
+    participant S as Safety Agent
+    participant R as Redis/Celery
+    participant W as ML/GenAI Workers
+    participant P as Postgres
 
-Vehicle -> API : POST /telemetry (Emergency)
-API -> Gateway : Validate & Scrub
-API -> Safety : Immediate Routing
-Safety -> Postgres : Commit Alert
-API -> Vehicle : 201 Created (Alert Sent)
+    Note over V, P: Emergency Flow
+    V->>A: POST /telemetry (Emergency)
+    A->>G: Validate & Scrub
+    A->>S: Immediate Routing
+    S->>P: Commit Alert
+    A->>V: 201 Created (Alert Sent)
 
-newpage
-
-Vehicle -> API : POST /telemetry (Normal)
-API -> Gateway : Validate & Scrub
-API -> Redis : Publish TripEnded
-API -> Vehicle : 202 Accepted
-Redis -> Workers : Pickup Event
-Workers -> Workers : Heavy ML (XGBoost/GenAI)
-Workers -> Postgres : Commit Enriched State
-@enduml
+    Note over V, P: Normal Background Flow
+    V->>A: POST /telemetry (Normal)
+    A->>G: Validate & Scrub
+    A->>R: Publish TripEnded
+    A->>V: 202 Accepted
+    R->>W: Pickup Event
+    W->>W: Heavy ML (XGBoost/GenAI)
+    W->>P: Commit Enriched State
 ```
 
 **Optimized 5-Agent Architecture**

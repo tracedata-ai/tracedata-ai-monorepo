@@ -32,72 +32,43 @@ TraceData relies on a **Multi-Agent AI Middleware Layer** (built with Python, Fa
 
 The topology is designed to prevent runaway token costs and execution bottlenecks by strictly distinguishing between deterministic routers, fast-evaluation loops, and heavy generative AI agents.
 
-### 2.1 Ingestion & Pre-Processing Agents
+### 2.1 Ingestion & Pre-Processing (ACL)
 
-#### 2.1.1 Ingestion Quality Agent (Deterministic Router)
+#### 2.1.1 Data Cleaner Gateway (1 Agent)
 
-- **Type**: Deterministic Python Service (Not LLM-based)
-- **Role**: Sits between Kafka consumers and the database. Receives dual sources: structured telemetry and unstructured driver inputs. Handles 4-10 minute batch pings and real-time critical bypass pings.
-- **Execution**: Scrubs standard structured telemetry (GPS, Speed, RPM) deterministically and routes it directly to PostgreSQL.
-- **Handoff**: Extracts any free-text `user_input` and forwards it exclusively to the PII Scrubber Agent.
+- **Type**: Deterministic Python Service (Anti-Corruption Layer)
+- **Role**: Sits at the edge of the Telemetry Context. Receives structured telemetry and unstructured driver inputs. 
+- **Action**: Synchronously validates schemas and scrubs PII (Regex/NLP) before internal routing.
+- **Handoff**: Protects downstream agents from malformed data. Publishes `TripEnded` or `FeedbackSubmitted` events to the Redis message bus.
 
-#### 2.1.2 PII Scrubber Agent
+### 2.2 Core Orchestration & Safety
 
-- **Type**: Generative AI / NLP
-- **Role**: Sanitizes user-generated text (Appeals, Feedback) to remove Personally Identifiable Information (PII) before it is committed to the database.
-- **Constraints**: Only invoked when the Ingestion Quality Agent detects text payloads, preserving system throughput.
+#### 2.2.1 Deterministic Orchestrator (1 Agent)
 
-### 2.2 Core Orchestration
+- **Type**: LangGraph State Machine (Deterministic Decision Tree)
+- **Role**: The passive coordinator for complex Sagas. Uses deterministic logic rather than open-ended LLM reasoning to route events based on payload types.
+- **Optimization**: Reduces latency by 200-500ms and eliminates redundant orchestration token costs.
 
-#### 2.2.1 Orchestrator Agent
+#### 2.2.2 Safety Agent (1 Agent)
 
-- **Type**: LangGraph State Machine (Router/Evaluator)
-- **Role**: The central dispatcher for the system. Once data is pre-processed, the Orchestrator evaluates the event type to determine the execution path.
-- **4-Minute Batch Handling**: Runs a fast, low-cost evaluation node ("Are critical actions needed?"). If no, execution terminates (persists to DB). If yes, routes to appropriate sub-agents. Aggregates data to build an encouragement profile.
-- **End-of-Trip Handling**: Routes the payload to the Behavior Agent to initiate scoring.
-- **Feedback/Appeals**: Uses LLM-based reasoning on unstructured text to route to the Sentiment and Advocacy agents.
+- **Type**: Deterministic Evaluator (Fast-Path)
+- **Role**: Triggered by `Emergency Pings`. Bypasses the asynchronous background queue for sub-500ms response.
+- **Action**: Executes a multi-level intervention strategy: Level 1 (App Notification), Level 2 (Formal Message), or Level 3 (Fleet Manager Escalation).
 
-### 2.3 Analytical & Action Agents
+### 2.3 Evaluation & Wellness Agents
 
-#### 2.3.1 Behavior Agent
+#### 2.3.1 Behavior Evaluation Agent (1 Agent)
 
 - **Type**: Predictive ML (XGBoost) + XAI (AIF360, SHAP)
-- **Role**: Triggered at the end of a trip. Calculates the safety score (0-100) using XGBoost.
-- **Fairness Loop**: Applies AIF360 Reweighting to ensure the Statistical Parity Difference (SPD) remains < 0.5. Generates SHAP/LIME feature importance values.
-- **Handoff**: Passes the raw score and explanation context to the Coaching Agent.
+- **Role**: Independent Bounded Context owner for `TripScore`. Subscribes to `TripEnded` events.
+- **Action**: Calculates the safety score (0-100) and runs the AIF360 fairness loop to ensure the Statistical Parity Difference (SPD) remains < 0.2.
 
-#### 2.3.2 Safety Agent
+#### 2.3.2 Driver Wellness Analyst Agent (1 Agent)
 
-- **Type**: Deterministic Evaluator + Tool Caller
-- **Role**: Triggered by an `Emergency Ping` from the dedicated Critical Events pipe.
-- **Action**: Quickly analyzes the critical event (e.g., hard brake > 0.6g) against enriched context (via Context Agent).
-- **Output**: Executes a multi-level intervention strategy: Level 1 (App Notification), Level 2 (Formal Message), or Level 3 (Direct Call/Escalation to FM).
+- **Type**: Generative AI / NLP (Support & Advocacy)
+- **Role**: High-cohesion analyst for the Driver Profile context. Handles Sentiment, Advocacy, and Coaching tasks within a single LLM context window.
+- **Output**: Generates personalized coaching based on both numerical safety trends and emotional trajectory, reducing redundant state-passing between fragmented agents.
 
-#### 2.3.3 Sentiment Agent
-
-- **Type**: Generative AI / NLP
-- **Role**: Analyzes the emotional trajectory of a driver based on a rolling window of their last 5 feedback submissions.
-- **Output**: Calculates a `risk_level` (0-1). If > 0.7, flags the driver for imminent burnout, alerting the Fleet Manager and updating the `sentiment_trends` table.
-
-#### 2.3.4 Advocacy Agent
-
-- **Type**: Generative AI (Reasoning Loop)
-- **Role**: Processes formal driver appeals. Can access historical trip logs, LIME explanations, and rules of conduct.
-- **Output**: Drafts an initial response to the driver's dispute. For high-complexity disputes, it pauses and escalates the graph to a human Fleet Manager for review.
-
-#### 2.3.5 Coaching Agent
-
-- **Type**: Generative AI (Content Creator)
-- **Role**: Synthesizes the trip score from the Behavior Agent and the driver's current emotional state from the Sentiment Agent.
-- **Output**: Generates highly personalized, actionable coaching points tailored to the driver's emotional context (Encouraging, Supportive, Directive) ensuring no two coaching outputs are identical.
-
-### 2.4 Tooling Layer
-
-#### 2.4.1 Context Enrichment Agent (MCP Tool)
-
-- **Type**: Model Context Protocol (MCP) Service
-- **Role**: A shared, high-speed Tool Node used by the other agents (primarily Behavior, Safety, and Orchestrator).
-- **Action**: Translates coordinates and timestamps into rich contextual metadata (road type, legal speed limit, hotspot risk, weather).
 - **Constraints**: Must return payloads in < 2 seconds. Fails over gracefully to default mappings to prevent blocking the graph.
 
 ---
@@ -238,13 +209,11 @@ _Complete summary initiating ML scoring and Agentic evaluation_
 
 | Component           | Technology                     | Rationale                                                 |
 | ------------------- | ------------------------------ | --------------------------------------------------------- |
-| API & Orchestration | FastAPI + LangGraph            | Async-first, agent-friendly, production-ready             |
-| Streaming           | Apache Kafka                   | Reliable event buffering, handles 10K trucks              |
-| Task Queue          | Celery + Redis                 | Async agents, priority queuing, retry logic               |
-| Database            | PostgreSQL + pgvector + JSONB  | Flexible schema for sparse data, vector search for future |
-| ML/XAI              | XGBoost + AIF360 + SHAP + LIME | Industry standard fairness + explainability               |
-| LLM Integration     | OpenAI API / Local LLM         | Optional, for semantic routing + coaching tone            |
-| Deployment          | Docker + AWS EC2/RDS/ALB       | Managed services for reliability                          |
+| API & Orchestration | FastAPI + LangGraph            | Async-first, deterministic routing                        |
+| Messaging           | Redis 7 + Celery               | Event-Driven Architecture (See ADR 001)                   |
+| Database            | PostgreSQL + pgvector + JSONB  | Multi-schema context isolation, vector search for profile |
+| ML/XAI              | XGBoost + AIF360 + SHAP + LIME | Fairness-first scoring + audit-grade explanations         |
+| Infrastructure      | Docker + uv workspaces         | Reproducible local/CI environments (See ADR 002)          |
 
 ## 5. AI Security Risk Register
 
@@ -452,42 +421,33 @@ circuit_breaker.half_open() # Try again
 ## 6. System Architecture & Detailed Dataflow
 
 ### 6.1 Architecture Overview
-TraceData is an **Agentic AI Middleware Monolith** built with Python, FastAPI, and LangGraph. It orchestrates specialized agents to process telemetry and provide driver-centric insights.
 
 ```mermaid
 graph TD
-    subgraph "External Streams"
-        T[10K+ Trucks] -- "HTTPS / MQTT" --> K[Apache Kafka]
+    subgraph Ingestion["Ingestion Layer"]
+        API[FastAPI]
+        Gateway[Data Cleaner Gateway]
     end
 
-    subgraph "AI Middleware (FastAPI)"
-        K --> I[Ingestion Quality Agent]
-        I -- "Standard Telemetry" --> DB[(PostgreSQL)]
-        I -- "Driver Text" --> PII[PII Scrubber Agent]
-        PII --> DB
-        
-        DB --> O[Orchestrator Agent - LangGraph]
-        
-        subgraph "Specialized Agents"
-            O --> B[Behavior Agent - XGBoost/AIF360]
-            O --> S[Safety Agent - Cyclical]
-            O --> C[Coaching Agent]
-            O --> SA[Sentiment Agent]
-            O --> AD[Advocacy Agent]
-        end
-        
-        subgraph "Tools"
-            B & S & O --> EN[Context Enrichment - MCP]
-        end
+    subgraph Broker["Message Broker"]
+        Redis[(Redis Pub/Sub)]
     end
 
-    subgraph "State Management"
-        O & S <--> R[(Redis - Trip State)]
+    subgraph Workers["Worker Layer"]
+        WorkerB[Celery Worker - Behavior]
+        WorkerW[Celery Worker - Wellness]
     end
 
-    subgraph "Frontend"
-        FE[Next.js Dashboard] <--> FastAPI
-    end
+    DB[(PostgreSQL)]
+
+    Vehicle[Vehicle Telemetry] --> API
+    API --> Gateway
+    Gateway --> Redis
+    Redis --> WorkerB
+    Redis --> WorkerW
+    WorkerB --> DB
+    WorkerW --> DB
+    API --> DB
 ```
 
 ### 6.2 The 4-Ping Telematics Lifecycle
@@ -528,6 +488,52 @@ TraceData implementation follows a phased, incremental approach to ensure reliab
 - **Behavior Agent**: Integration of XGBoost, AIF360 (Fairness), and SHAP (Explainability).
 - **Context Agent**: Implementation of the Model Context Protocol (MCP) for real-time traffic/weather lookups.
 - **Safety Agent**: Cyclical LangGraph flow for multi-level escalation.
+
+---
+
+## 8. Domain-Driven Design (DDD)
+
+TraceData applies DDD principles to ensure clear boundaries between agent workloads and data state.
+
+### 8.1 Strategic Design: Context Map
+
+```mermaid
+graph TB
+    subgraph TelemetryContext["Telemetry & Safety Context"]
+        ACL[Data Cleaner Gateway<br/><< ACL >>]
+        Safety[Safety Agent<br/><< Command / Fast Path >>]
+        Agg1[(Trip & Incident Aggregates)]
+    end
+
+    subgraph EventBus["Event Bus (Redis/Celery)"]
+        E1((TripEnded))
+        E2((IncidentDetected))
+        E3((TripScored))
+        E4((FeedbackSubmitted))
+    end
+
+    subgraph EvaluationContext["Driver Evaluation Context"]
+        Behavior[Behavior Evaluation Agent<br/><< ML / XGBoost >>]
+        Agg2[(TripScore Aggregate)]
+    end
+
+    subgraph WellnessContext["Driver Wellness Context"]
+        Wellness[Driver Wellness Analyst<br/><< GenAI / NLP >>]
+        Agg3[(DriverProfile & Appeal Aggregates)]
+    end
+
+    ACL -- Publishes --> E1
+    ACL -- Publishes --> E4
+    Behavior -- Publishes --> E3
+    E1 -. Subscribes .-> Behavior
+    E3 -. Subscribes .-> Wellness
+```
+
+### 8.2 Tactical Design: Aggregates
+
+- **Trip Aggregate**: Owned by Telemetry context; manages trip boundaries.
+- **TripScore Aggregate**: Owned by Evaluation context; isolates heavy ML scoring.
+- **DriverProfile Aggregate**: Owned by Wellness context; tracks long-term sentiment and coaching history.
 
 ---
 

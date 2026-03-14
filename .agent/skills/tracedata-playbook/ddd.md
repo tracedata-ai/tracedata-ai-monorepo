@@ -8,61 +8,55 @@ The TraceData system is divided into four primary Bounded Contexts, coordinated 
 
 ### Context Map Diagram
 
-```plantuml
-@startuml
-skinparam componentStyle rectangle
+```mermaid
+graph TB
+    subgraph External["External Environment"]
+        IoT[Vehicle IoT Telemetry]
+        App[Driver App / Feedback]
+    end
 
-package "External Environment" {
-    [Vehicle IoT Telemetry] as IoT
-    [Driver App / Feedback] as App
-}
+    subgraph TelemetryContext["Telemetry & Safety Context"]
+        ACL[Data Cleaner Gateway<br/><< ACL >>]
+        Safety[Safety Agent<br/><< Command / Fast Path >>]
+        Agg1[(Trip & Incident Aggregates)]
+        
+        ACL --> Safety
+        Safety --> Agg1
+    end
 
-package "Telemetry & Safety Context" {
-    [Data Cleaner Gateway] <<Anti-Corruption Layer>> as ACL
-    [Safety Agent] <<Command / Fast Path>> as Safety
-    database "Trip & Incident Aggregates" as Agg1
-}
+    subgraph EventBus["Event Bus (Redis/Celery)"]
+        E1((TripEnded))
+        E2((IncidentDetected))
+        E3((TripScored))
+        E4((FeedbackSubmitted))
+    end
 
-package "Event Bus (Redis/Celery)" {
-    () "TripEnded" as E1
-    () "IncidentDetected" as E2
-    () "TripScored" as E3
-    () "FeedbackSubmitted" as E4
-}
+    subgraph EvaluationContext["Driver Evaluation Context"]
+        Behavior[Behavior Evaluation Agent<br/><< ML / XGBoost >>]
+        Agg2[(TripScore Aggregate)]
+    end
 
-package "Driver Evaluation Context" {
-    [Behavior Evaluation Agent] <<ML / XGBoost>> as Behavior
-    database "TripScore Aggregate" as Agg2
-}
+    subgraph WellnessContext["Driver Wellness Context"]
+        Wellness[Driver Wellness Analyst<br/><< GenAI / NLP >>]
+        Agg3[(DriverProfile & Appeal Aggregates)]
+    end
 
-package "Driver Wellness Context" {
-    [Driver Wellness Analyst] <<Generative AI / NLP>> as Wellness
-    database "DriverProfile & Appeal Aggregates" as Agg3
-}
+    subgraph OrchestrationContext["Orchestration Context"]
+        Orch[Deterministic Orchestrator<br/><< Saga Manager >>]
+    end
 
-package "Orchestration Context" {
-    [Deterministic Orchestrator] <<Saga Manager>> as Orch
-}
-
-IoT --> ACL : Raw Data
-App --> ACL : Raw Text
-
-ACL --> Safety
-Safety --> Agg1
-
-ACL ..> E1 : Publishes
-ACL ..> E4 : Publishes
-Safety ..> E2 : Publishes
-Behavior ..> E3 : Publishes
-
-E1 ..> Behavior : Subscribes
-E3 ..> Wellness : Subscribes
-E4 ..> Wellness : Subscribes
-E2 ..> Orch : Subscribes
-
-Orch ..> E1 : Coordinates Saga
-Orch ..> E2 : Coordinates Saga
-@enduml
+    IoT --> ACL
+    App --> ACL
+    
+    ACL -- Publishes --> E1
+    ACL -- Publishes --> E4
+    Safety -- Publishes --> E2
+    Behavior -- Publishes --> E3
+    
+    E1 -. Subscribes .-> Behavior
+    E3 -. Subscribes .-> Wellness
+    E4 -. Subscribes .-> Wellness
+    E2 -. Subscribes .-> Orch
 ```
 
 ### Strategic Patterns Applied
@@ -83,91 +77,93 @@ Tactical DDD focuses on the internal structure of each context, defining the lif
 
 ### Tactical Schema Diagram
 
-```plantuml
-@startuml
-package "Telemetry & Safety Context" <<Rectangle>> {
-    class Trip <<Aggregate Root>> {
-        +String tripId
-        +String driverId
-        +DateTime startOfTrip
-        +DateTime endOfTrip
-        +startTrip()
-        +endTrip()
+```mermaid
+classDiagram
+    namespace TelemetryAndSafety {
+        class Trip {
+            <<Aggregate Root>>
+            +tripId string
+            +driverId string
+            +startOfTrip DateTime
+            +endOfTrip DateTime
+            +startTrip()
+            +endTrip()
+        }
+        class TelemetryEvent {
+            <<Entity>>
+            +eventId string
+            +category string
+            +timestamp DateTime
+            +validatePayload()
+        }
+        class RawTelemetry {
+            <<Value Object>>
+            +gpsLatitude float
+            +gpsLongitude float
+            +speed float
+            +rpm float
+        }
+        class EnrichedContext {
+            <<Value Object>>
+            +weatherConditions string
+            +roadType string
+            +hazardWarnings string
+        }
     }
-    
-    class TelemetryEvent <<Entity>> {
-        +String eventId
-        +String category
-        +DateTime timestamp
-        +validatePayload()
-    }
-    
-    class RawTelemetry <<Value Object>> {
-        +Float gpsLatitude
-        +Float gpsLongitude
-        +Float speed
-        +Float rpm
-    }
-    
-    class EnrichedContext <<Value Object>> {
-        +String weatherConditions
-        +String roadType
-        +String hazardWarnings
-    }
-    
+
     Trip "1" *-- "*" TelemetryEvent
     TelemetryEvent "1" *-- "1" RawTelemetry
     TelemetryEvent "1" *-- "1" EnrichedContext
-}
 
-package "Driver Evaluation Context" <<Rectangle>> {
-    class TripScore <<Aggregate Root>> {
-        +String scoreId
-        +String tripId
-        +Float safetyScore
-        +calculateScore()
+    namespace DriverEvaluation {
+        class TripScore {
+            <<Aggregate Root>>
+            +scoreId string
+            +tripId string
+            +safetyScore float
+            +calculateScore()
+        }
+        class ExplainabilityContext {
+            <<Value Object>>
+            +shapValues Map
+            +limeExplanations Map
+        }
+        class FairnessMetrics {
+            <<Value Object>>
+            +spdValue float
+            +applyAIF360Reweighting()
+        }
     }
-    
-    class ExplainabilityContext <<Value Object>> {
-        +Map shapValues
-        +Map limeExplanations
-    }
-    
-    class FairnessMetrics <<Value Object>> {
-        +Float spdValue
-        +applyAIF360Reweighting()
-    }
-    
+
     TripScore "1" *-- "1" ExplainabilityContext
     TripScore "1" *-- "1" FairnessMetrics
-}
 
-package "Driver Wellness Context" <<Rectangle>> {
-    class DriverProfile <<Aggregate Root>> {
-        +String driverId
-        +Float burnoutRiskLevel
-        +updateSentiment()
+    namespace DriverWellness {
+        class DriverProfile {
+            <<Aggregate Root>>
+            +driverId string
+            +burnoutRiskLevel float
+            +updateSentiment()
+        }
+        class Appeal {
+            <<Entity>>
+            +appealId string
+            +rawUserInput string
+            +sanitizedInput string
+            +status string
+            +processDispute()
+        }
+        class CoachingSession {
+            <<Entity>>
+            +coachingId string
+            +emotionalTone string
+            +actionablePoints string
+            +generatePersonalizedCoaching()
+        }
     }
-    
-    class Appeal <<Entity>> {
-        +String appealId
-        +String rawUserInput
-        +String sanitizedInput
-        +String status
-        +processDispute()
-    }
-    
-    class CoachingSession <<Entity>> {
-        +String coachingId
-        +String emotionalTone
-        +String actionablePoints
-        +generatePersonalizedCoaching()
-    }
-    
+
     DriverProfile "1" *-- "*" Appeal
     DriverProfile "1" *-- "*" CoachingSession
-}
-@enduml
 ```
 
 ### Tactical Patterns Applied

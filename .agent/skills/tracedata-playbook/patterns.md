@@ -101,25 +101,22 @@ TraceData implements a decoupled, asynchronous EDA pattern for heavy AI workload
 
 Routing is handled via **LangGraph State Machines** rather than open-ended LLM reasoning:
 
-```plantuml
-@startuml
-start
-:Receive Cleaned Event;
-if (Event Type?) then (Emergency)
-    :Route to Safety Agent;
-    :Trigger Real-time WebSocket;
-else (Normal)
-    :Route to Domain Worker;
-    if (Requires Scoring?) then (Yes)
-        :Trigger Behavior Agent;
-    endif
-    if (Requires Coaching?) then (Yes)
-        :Trigger Wellness Analyst;
-    endif
-endif
-:Update LangGraph State;
-stop
-@enduml
+```mermaid
+graph TD
+    Start([Start]) --> Receive[Receive Cleaned Event]
+    Receive --> Type{Event Type?}
+    Type -- Emergency --> Safety[Route to Safety Agent]
+    Safety --> WebSocket[Trigger Real-time WebSocket]
+    Type -- Normal --> Domain[Route to Domain Worker]
+    Domain --> Scoring{Requires Scoring?}
+    Scoring -- Yes --> Behavior[Trigger Behavior Agent]
+    Scoring -- No --> Coaching
+    Behavior --> Coaching{Requires Coaching?}
+    Coaching -- Yes --> Wellness[Trigger Wellness Analyst]
+    Coaching -- No --> Finish
+    Wellness --> Finish[Update LangGraph State]
+    WebSocket --> Finish
+    Finish --> Stop([Stop])
 ```
 
 - **Phase 1**: In-graph decision tree routes to appropriate tools or workers.
