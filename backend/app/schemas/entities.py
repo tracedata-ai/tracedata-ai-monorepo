@@ -150,3 +150,19 @@ class TelemetryBase(BaseModel):
 class TelemetrySchema(TelemetryBase):
     id: UUID
     model_config = ConfigDict(from_attributes=True)
+# --- API Payloads ---
+
+class TelemetryPayload(BaseModel):
+    """
+    Schema for incoming telemetry data from vehicles.
+    """
+    event_id: str = Field(..., description="Universally unique identifier for the event")
+    event_type: str = Field(..., description="The kind of event (e.g., end_of_trip, harsh_brake)")
+    trip_id: str = Field(..., description="Identifier for the current active trip")
+    driver_id: str = Field(..., description="Identifier for the driver generating the event")
+    timestamp: str = Field(..., description="ISO8601 UTC timestamp of the event")
+    details: dict = Field(default={}, description="Type-specific dynamic fields")
+
+class ChatPayload(BaseModel):
+    """Schema for direct chat interactions with the agentic middleware."""
+    message: str = Field(..., description="The user's message to the agent")

@@ -14,23 +14,48 @@ services:
       - NODE_ENV=production
       - NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
     depends_on:
-      - ai-agents
+      - backend
 
-  ai-agents:
+  backend:
     build:
-      context: ./ai-agents
+      context: ./backend
       dockerfile: Dockerfile
-    container_name: tracedata-ai-agents
+    container_name: tracedata-backend
     ports:
       - "8000:8000"
     volumes:
-      - ./ai-agents:/app
+      - ./backend:/app
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/tracedata
+      - REDIS_URL=redis://redis:6379/0
       - GOOGLE_API_KEY=${GOOGLE_API_KEY}
       - RESET_DB=${RESET_DB:-false}
+      - RUN_SEEDER=true
     depends_on:
       - db
+      - redis
+
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: tracedata-worker
+    command: celery -A core.celery_app worker --loglevel=info
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/tracedata
+      - REDIS_URL=redis://redis:6379/0
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+    depends_on:
+      - db
+      - redis
+    restart: always
+
+  redis:
+    image: redis:7-alpine
+    container_name: tracedata-redis
+    ports:
+      - "6379:6379"
+    restart: always
 
   db:
     image: ankane/pgvector:latest

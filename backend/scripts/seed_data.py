@@ -1,5 +1,5 @@
 """
-Seed script to initialize database tables and populate them with sample data.
+Seed script to initialize database tables and populate them with sample data for DDD structure.
 """
 
 import uuid
@@ -8,16 +8,21 @@ import os
 from datetime import datetime, timedelta
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
-from app.database import Base, DATABASE_URL
-from app.models.entities import Fleet, Driver, Route, Trip, Issue, SentimentRecord, Appeal, CoachingRecord, TelemetryEvent
-from app.core.logging import setup_logging, get_logger
+
+# Import Core Infrastructure
+from core.database import Base, DATABASE_URL
+from core.logging import setup_logging, get_logger
+
+# Import Domain Models
+from domains.telemetry_safety.models import Fleet, Route, Trip, Issue, TelemetryEvent
+from domains.driver_wellness.models import Driver, CoachingSession
+from domains.driver_evaluation.models import TripScore
 
 # Initialize logging
 setup_logging()
 logger = get_logger("scripts.seed_data")
 
 # Initialize the SQLAlchemy engine
-# ...
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
@@ -35,7 +40,7 @@ def create_schemas(drop_existing=False):
     """Create the necessary database schemas. Optionally drop them first."""
     with engine.connect() as conn:
         if drop_existing:
-            print("RESET_DB=true: Dropping existing schema...")
+            logger.info("RESET_DB=true: Dropping existing schema...")
             conn.execute(text("DROP SCHEMA IF EXISTS fleet_schema CASCADE;"))
             conn.commit()
         
@@ -55,7 +60,15 @@ def seed_data():
         if db.query(Fleet).count() == 0:
             logger.info("Seeding Fleet...")
             vehicles = [
-                Fleet(id=uuid.uuid4(), vin=f["vin"], license_plate=f["plate"], make=f["make"], model=f["model"], year=str(f["year"]), status="active") 
+                Fleet(
+                    id=uuid.uuid4(), 
+                    vin=f["vin"], 
+                    license_plate=f["plate"], 
+                    make=f["make"], 
+                    model=f["model"], 
+                    year=str(f["year"]), 
+                    status="active"
+                ) 
                 for f in data["fleet_data"]
             ]
             db.add_all(vehicles)
@@ -64,25 +77,40 @@ def seed_data():
 
         # 2. Seed Drivers
         if db.query(Driver).count() == 0:
-            print("Seeding Drivers...")
+            logger.info("Seeding Drivers...")
             drivers = [
-                Driver(id=uuid.uuid4(), first_name=d["first"], last_name=d["last"], license_number=d["license"], phone=d["phone"], email=d["email"], status="active") 
+                Driver(
+                    id=uuid.uuid4(), 
+                    first_name=d["first"], 
+                    last_name=d["last"], 
+                    license_number=d["license"], 
+                    phone=d["phone"], 
+                    email=d["email"], 
+                    status="active"
+                ) 
                 for d in data["driver_data"]
             ]
             db.add_all(drivers)
             db.commit()
-            print(f"Added {len(drivers)} logistics drivers.")
+            logger.info("Drivers seeding complete", count=len(drivers))
 
         # 3. Seed Routes
         if db.query(Route).count() == 0:
-            print("Seeding Routes...")
+            logger.info("Seeding Routes...")
             routes = [
-                Route(id=uuid.uuid4(), name=r["name"], start_location=r["start"], end_location=r["end"], estimated_distance=r["dist"], estimated_duration=r["dur"]) 
+                Route(
+                    id=uuid.uuid4(), 
+                    name=r["name"], 
+                    start_location=r["start"], 
+                    end_location=r["end"], 
+                    estimated_distance=r["dist"], 
+                    estimated_duration=r["dur"]
+                ) 
                 for r in data["route_data"]
             ]
             db.add_all(routes)
             db.commit()
-            print(f"Added {len(routes)} logistics routes.")
+            logger.info("Routes seeding complete", count=len(routes))
 
         # Re-fetch for relational seeding
         all_v = db.query(Fleet).all()
@@ -91,7 +119,7 @@ def seed_data():
 
         # 4. Seed Trips
         if db.query(Trip).count() == 0:
-            print("Seeding Trips...")
+            logger.info("Seeding Trips...")
             trips = []
             for t in data["trip_data"]:
                 start_time = None
@@ -116,11 +144,11 @@ def seed_data():
                 ))
             db.add_all(trips)
             db.commit()
-            print(f"Added {len(trips)} production trips.")
+            logger.info("Trips seeding complete", count=len(trips))
 
         # 5. Seed Issues
         if db.query(Issue).count() == 0:
-            print("Seeding Issues...")
+            logger.info("Seeding Issues...")
             issues = [
                 Issue(
                     id=uuid.uuid4(), 
@@ -134,51 +162,16 @@ def seed_data():
             ]
             db.add_all(issues)
             db.commit()
-            print(f"Added {len(issues)} fleet maintenance issues.")
+            logger.info("Issues seeding complete", count=len(issues))
 
         # Re-fetch trips for relational seeding
         all_t = db.query(Trip).all()
 
-        # 6. Seed Sentiment Records
-        if db.query(SentimentRecord).count() == 0 and "sentiment_data" in data:
-            print("Seeding Sentiment Records...")
-            sentiments = [
-                SentimentRecord(
-                    id=uuid.uuid4(),
-                    driver_id=all_d[s["driver_idx"]].id,
-                    risk_level=s["risk_level"],
-                    sentiment_score=s["sentiment_score"],
-                    raw_text=s["text"]
-                )
-                for s in data["sentiment_data"]
-            ]
-            db.add_all(sentiments)
-            db.commit()
-            print(f"Added {len(sentiments)} driver sentiment records.")
-
-        # 7. Seed Appeals
-        if db.query(Appeal).count() == 0 and "appeal_data" in data:
-            print("Seeding Appeals...")
-            appeals = [
-                Appeal(
-                    id=uuid.uuid4(),
-                    driver_id=all_d[a["driver_idx"]].id,
-                    trip_id=all_t[a["trip_idx"]].id,
-                    reason=a["reason"],
-                    status=a["status"],
-                    ai_reasoning=a["ai_reasoning"]
-                )
-                for a in data["appeal_data"]
-            ]
-            db.add_all(appeals)
-            db.commit()
-            print(f"Added {len(appeals)} driver appeals.")
-
-        # 8. Seed Coaching Records
-        if db.query(CoachingRecord).count() == 0 and "coaching_data" in data:
-            print("Seeding Coaching Records...")
+        # 6. Seed Coaching Records
+        if db.query(CoachingSession).count() == 0 and "coaching_data" in data:
+            logger.info("Seeding Coaching Records...")
             coaching = [
-                CoachingRecord(
+                CoachingSession(
                     id=uuid.uuid4(),
                     driver_id=all_d[c["driver_idx"]].id,
                     trip_id=all_t[c["trip_idx"]].id,
@@ -189,35 +182,46 @@ def seed_data():
             ]
             db.add_all(coaching)
             db.commit()
-            print(f"Added {len(coaching)} personalized coaching records.")
+            logger.info("Coaching records seeding complete", count=len(coaching))
 
-        # 9. Seed Telemetry Events (Incidents)
+        # 7. Seed Telemetry Events
         if db.query(TelemetryEvent).count() == 0 and "telemetry_event_data" in data:
-            print("Seeding Telemetry Events...")
-            events = [
-                TelemetryEvent(
+            logger.info("Seeding Telemetry Events...")
+            events = []
+            for e_data in data["telemetry_event_data"]:
+                trip = all_t[e_data["trip_idx"]]
+                events.append(TelemetryEvent(
                     id=uuid.uuid4(),
-                    trip_id=all_t[e["trip_idx"]].id,
-                    vehicle_id=all_v[0].id, # Placeholder, will be corrected below
-                    driver_id=all_d[0].id, # Placeholder, will be corrected below
-                    event_type=e["type"],
-                    category=e["category"],
-                    priority=e["priority"],
-                    latitude=e["lat"],
-                    longitude=e["lon"],
-                    details=e["details"]
-                )
-                for e in data["telemetry_event_data"]
-            ]
-            # Fix vehicle/driver mapping for events properly
-            for i, e in enumerate(events):
-                trip = all_t[data["telemetry_event_data"][i]["trip_idx"]]
-                e.vehicle_id = trip.vehicle_id
-                e.driver_id = trip.driver_id
-
+                    trip_id=trip.id,
+                    vehicle_id=trip.vehicle_id,
+                    driver_id=trip.driver_id,
+                    event_type=e_data["type"],
+                    category=e_data["category"],
+                    priority=e_data["priority"],
+                    latitude=e_data["lat"],
+                    longitude=e_data["lon"],
+                    details=e_data["details"]
+                ))
             db.add_all(events)
             db.commit()
-            logger.info("Telemetry incident events seeding complete", count=len(events))
+            logger.info("Telemetry events seeding complete", count=len(events))
+
+        # 8. Seed Trip Scores (Evaluation Context)
+        if db.query(TripScore).count() == 0:
+            logger.info("Seeding Trip Scores...")
+            scores = []
+            for t in all_t:
+                if t.status == "completed" and t.safety_score is not None:
+                    scores.append(TripScore(
+                        id=uuid.uuid4(),
+                        trip_id=t.id,
+                        driver_id=t.driver_id,
+                        overall_score=t.safety_score,
+                        fairness_audit_passed="passed"
+                    ))
+            db.add_all(scores)
+            db.commit()
+            logger.info("Trip scores seeding complete", count=len(scores))
 
     except Exception as e:
         logger.error("Error seeding data", error=str(e), exc_info=True)
@@ -231,8 +235,8 @@ if __name__ == "__main__":
     
     create_schemas(drop_existing=reset_requested)
     
-    # Re-create tables if they don't exist (or were dropped)
     logger.info("Ensuring tables exist...")
+    # This will use the Base where all models have been registered
     Base.metadata.create_all(bind=engine)
     
     logger.info("Seeding data...")

@@ -30,18 +30,18 @@ import {
 const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboardIcon },
   { name: "Fleet", href: "/fleet", icon: TruckIcon },
-  { name: "Personnel", href: "/drivers", icon: UsersIcon },
-  { name: "Network", href: "/routes", icon: MapIcon },
-  { name: "Transit", href: "/trips", icon: TruckIcon },
-  { name: "Incidents", href: "/issues", icon: AlertCircleIcon },
+  { name: "Routes", href: "/routes", icon: MapIcon },
+  { name: "Drivers", href: "/drivers", icon: UsersIcon },
+  { name: "Trips", href: "/trips", icon: TruckIcon },
+  { name: "Incidents", icon: AlertCircleIcon, href: "/issues" },
   { name: "System Map", href: "/system-map", icon: NetworkIcon },
 ];
 
 /**
  * Global Sidebar Navigation
- * 
+ *
  * Provides top-level navigation for the TraceData management platform.
- * Features a collapsible structure, active route highlighting, and 
+ * Features a collapsible structure, active route highlighting, and
  * high-level branding.
  */
 export function Sidebar() {
@@ -52,15 +52,15 @@ export function Sidebar() {
       {/* Sidebar Branding / Logo Header */}
       <SidebarHeader className="p-4">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded bg-slate-200 flex items-center justify-center text-slate-700 font-bold shrink-0">
-            D
+          <div className="w-8 h-8 rounded bg-slate-900 flex items-center justify-center text-white font-bold shrink-0">
+            T
           </div>
           <div className="flex flex-col group-data-[collapsible=icon]:hidden">
             <h1 className="text-lg font-bold text-slate-900 leading-none">
-              Dashboard
+              TraceData
             </h1>
             <span className="text-[10px] uppercase font-medium text-slate-400">
-              Management System
+              Intelligence OS
             </span>
           </div>
         </div>

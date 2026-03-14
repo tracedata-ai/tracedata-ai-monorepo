@@ -64,6 +64,19 @@ export interface BackendIssue {
   status: string;
 }
 
+export interface TelemetryPayload {
+  event_id: string;
+  event_type: string;
+  trip_id: string;
+  driver_id: string;
+  timestamp: string;
+  details: Record<string, any>;
+}
+
+export interface ChatPayload {
+  message: string;
+}
+
 export async function fetchApi<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const url = `${API_BASE_URL}${endpoint.startsWith("/") ? endpoint : `/${endpoint}`}`;
   
@@ -87,9 +100,23 @@ export async function fetchApi<T>(endpoint: string, options: RequestInit = {}): 
  * Entity-specific API calls
  */
 export const entitiesApi = {
-  getDrivers: () => fetchApi<{ items: BackendDriver[]; total: number }>("/entities/drivers"),
-  getFleet: () => fetchApi<{ items: BackendVehicle[]; total: number }>("/entities/fleet"),
-  getRoutes: () => fetchApi<{ items: BackendRoute[]; total: number }>("/entities/routes"),
-  getTrips: () => fetchApi<{ items: BackendTrip[]; total: number }>("/entities/trips"),
-  getIssues: () => fetchApi<{ items: BackendIssue[]; total: number }>("/entities/issues"),
+  getDrivers: () => fetchApi<{ items: BackendDriver[]; total: number }>("/driver-wellness/drivers"),
+  getFleet: () => fetchApi<{ items: BackendVehicle[]; total: number }>("/telemetry-safety/fleet"),
+  getRoutes: () => fetchApi<{ items: BackendRoute[]; total: number }>("/telemetry-safety/routes"),
+  getTrips: () => fetchApi<{ items: BackendTrip[]; total: number }>("/telemetry-safety/trips"),
+  getIssues: () => fetchApi<{ items: BackendIssue[]; total: number }>("/telemetry-safety/issues"),
+};
+
+export const telemetryApi = {
+  ingest: (payload: TelemetryPayload) => fetchApi("/telemetry-safety/telemetry", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  }),
+};
+
+export const agentsApi = {
+  chat: (payload: ChatPayload) => fetchApi("/orchestration/chat-shell", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  }),
 };

@@ -46,15 +46,15 @@ def list_issues(db: Session = Depends(get_db), skip: int = 0, limit: int = 100):
     items = query.offset(skip).limit(limit).all()
     return {"items": items, "total": total}
 
-@router.get("/sentiment", response_model=List[schemas.SentimentSchema], tags=["ai-agents"])
+@router.get("/sentiment", response_model=List[schemas.SentimentSchema], tags=["backend"])
 def list_sentiment(db: Session = Depends(get_db)):
     return db.query(models.SentimentRecord).all()
 
-@router.get("/appeals", response_model=List[schemas.AppealSchema], tags=["ai-agents"])
+@router.get("/appeals", response_model=List[schemas.AppealSchema], tags=["backend"])
 def list_appeals(db: Session = Depends(get_db)):
     return db.query(models.Appeal).all()
 
-@router.get("/coaching", response_model=List[schemas.CoachingSchema], tags=["ai-agents"])
+@router.get("/coaching", response_model=List[schemas.CoachingSchema], tags=["backend"])
 def list_coaching(db: Session = Depends(get_db)):
     return db.query(models.CoachingRecord).all()
 

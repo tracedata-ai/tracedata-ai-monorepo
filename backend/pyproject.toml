@@ -1,5 +1,5 @@
 [project]
-name = "ai-agents"
+name = "backend"
 version = "0.1.0"
 description = "TraceData AI Middleware"
 readme = "README.md"
@@ -22,6 +22,8 @@ dependencies = [
     "mypy==1.9.0",
     "pytest-cov==4.1.0",
     "structlog==24.1.0",
+    "celery==5.4.0",
+    "redis==5.0.8",
 ]
 
 [tool.uv]
