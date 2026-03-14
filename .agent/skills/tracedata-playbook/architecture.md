@@ -10,7 +10,42 @@ This module defines the core stack, data pipelines, and architectural boundaries
 - **Language**: **TypeScript 5** (Strict mode)
 - **Data Logic**: **TanStack Table (v8)** for data-heavy views, **Recharts** for telemetry charts
 - **Database**: PostgreSQL with pgvector (semantic search)
-- **Messaging**: WebSocket (real-time safety alerts)
+- **Messaging**: Redis 7 (Pub/Sub) + Celery (Async Task Queue)
+- **Real-time**: WebSocket (Critical safety alerts)
+
+### High-Level Architecture
+
+```plantuml
+@startuml
+!include <cloudinsight/redis>
+!include <cloudinsight/postgresql>
+
+package "Ingestion Layer" {
+    [FastAPI] as API
+    [Data Cleaner Gateway] as Gateway
+}
+
+package "Message Broker" {
+    queue "Redis Pub/Sub" as Redis
+}
+
+package "Worker Layer" {
+    [Celery Worker (Behavior)] as WorkerB
+    [Celery Worker (Wellness)] as WorkerW
+}
+
+database "PostgreSQL" as DB
+
+[Vehicle Telemetry] --> API
+API --> Gateway : Synchronous Scrub
+Gateway --> Redis : Publish Event
+Redis --> WorkerB : Trigger
+Redis --> WorkerW : Trigger
+WorkerB --> DB : Persist Score
+WorkerW --> DB : Persist Insight
+API --> DB : Read Store
+@enduml
+```
 
 ## Monorepo & Service Isolation
 
@@ -42,27 +77,66 @@ if (!tenantId)
 // Query with WHERE tenant_id = tenantId
 ```
 
-## Ingestion & Data Pipelines
+### Telematics (Event-Driven Architecture)
 
-### Telematics (Direct Ingestion)
-
-TraceData uses a **Direct Persistence & Agentic Reasoning** model for telemetry:
+TraceData uses a **Redis-backed EDA** for decoupling and asynchronous processing:
 
 1.  **Ingestion (FastAPI)**: 
-    - Telemetry from vehicles is POSTed directly to the `/api/v1/telemetry` endpoint.
-2.  **Persistence (PostgreSQL)**:
-    - The middleware immediately persists the raw event to the `telemetry_events` table for traceability.
-3.  **In-Process Reasoning (LangGraph)**:
-    - The event is passed directly to the Agentic Shell Orchestrator. 
-    - Reasoning (anomaly detection, coaching triggers) happens within the request lifecycle or as an internal async task.
-4.  **System of Record**:
-    - Final enriched state and safety alerts are committed to the DB.
+    - Telemetry is POSTed to `/api/v1/telemetry`.
+    - **Data Cleaner Gateway** (Agent 1) synchronously validates and scrubs PII (ACL pattern).
+2.  **Event Handoff**:
+    - FastAPI publishes an event (e.g., `TripEnded`) to **Redis**.
+    - FastAPI returns `HTTP 202 Accepted` immediately (Asynchronous Request-Reply).
+3.  **Background Processing (Celery)**:
+    - **Behavior Evaluation Agent** (Agent 4) and **Driver Wellness Analyst** (Agent 5) consume events.
+    - Heavy ML (XGBoost) and Generative AI tasks run in background workers.
+4.  **Persistence**:
+    - All agents write final enriched state (Trip Scores, Coaching) to PostgreSQL.
 
-**Ping Types:**
+**Execution Paths:**
 
-- `Emergency Ping` — Critical events (accidents, extreme braking)
-- `Normal Ping` — Standard telemetry (GPS, Speed, Fuel)
-- `Start/End of Trip` — Handled via state transitions in the Trip module
+- **Background Path**: Routine telemetry processed via Redis/Celery queue.
+- **Safety Fast-Path**: Critical events (Emergency Pings) bypass the queue for direct execution by the **Safety Agent**.
+
+### Ingestion Sequence (Fast-Path vs Background)
+
+```plantuml
+@startuml
+actor Vehicle
+participant "FastAPI API" as API
+participant "Data Cleaner" as Gateway
+participant "Safety Agent" as Safety
+queue "Redis/Celery" as Redis
+participant "ML/GenAI Workers" as Workers
+database Postgres
+
+Vehicle -> API : POST /telemetry (Emergency)
+API -> Gateway : Validate & Scrub
+API -> Safety : Immediate Routing
+Safety -> Postgres : Commit Alert
+API -> Vehicle : 201 Created (Alert Sent)
+
+newpage
+
+Vehicle -> API : POST /telemetry (Normal)
+API -> Gateway : Validate & Scrub
+API -> Redis : Publish TripEnded
+API -> Vehicle : 202 Accepted
+Redis -> Workers : Pickup Event
+Workers -> Workers : Heavy ML (XGBoost/GenAI)
+Workers -> Postgres : Commit Enriched State
+@enduml
+```
+
+**Optimized 5-Agent Architecture**
+
+| Agent | Responsibility | DDD Context |
+| :--- | :--- | :--- |
+| **Data Cleaner Gateway** | Schema validation, PII scrubbing | Anti-Corruption Layer (ACL) |
+| **Deterministic Orchestrator** | Event routing & state management | LangGraph State Machine |
+| **Safety Agent** | Real-time accident/emergency response | Fast-Path (Low Latency) |
+| **Behavior Evaluation Agent** | XGBoost scoring, AIF360 fairness | `TripScore` Bounded Context |
+| **Driver Wellness Analyst** | GenAI coaching & sentiment analysis | Driver Profile Context |
 
 ### Unstructured Driver Input
 

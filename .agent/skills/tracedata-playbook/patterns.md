@@ -85,6 +85,54 @@ Components interacting with agents must have clear boundaries.
 const { data, loading } = useAgentQuery('/api/agent-query');
 ```
 
+## Event-Driven Architecture (Redis + Celery)
+
+TraceData implements a decoupled, asynchronous EDA pattern for heavy AI workloads.
+
+1.  **Publisher (FastAPI)**: 
+    - Validates data through the **Data Cleaner Gateway**.
+    - Dispatches tasks: `behavior_evaluation_task.delay(trip_data)`.
+2.  **Broker (Redis)**: Manages task queues and delivery.
+3.  **Consumer (Celery Workers)**: 
+    - Isolated agents (Behavior, Wellness) execute complex models.
+    - Write results directly to PostgreSQL `Score` and `Insight` aggregates.
+
+## Deterministic Orchestration (LangGraph)
+
+Routing is handled via **LangGraph State Machines** rather than open-ended LLM reasoning:
+
+```plantuml
+@startuml
+start
+:Receive Cleaned Event;
+if (Event Type?) then (Emergency)
+    :Route to Safety Agent;
+    :Trigger Real-time WebSocket;
+else (Normal)
+    :Route to Domain Worker;
+    if (Requires Scoring?) then (Yes)
+        :Trigger Behavior Agent;
+    endif
+    if (Requires Coaching?) then (Yes)
+        :Trigger Wellness Analyst;
+    endif
+endif
+:Update LangGraph State;
+stop
+@enduml
+```
+
+- **Phase 1**: In-graph decision tree routes to appropriate tools or workers.
+- **Phase 2**: Conditional edges monitor state transitions (e.g., `if safety_risk -> notify_manager`).
+- **Benefit**: Reduces latency by 200-500ms and eliminates redundant token costs.
+
+## Anti-Corruption Layer (ACL)
+
+The **Data Cleaner Gateway** acts as an ACL between external telemetry and the core domain:
+- **Sanitization**: Regex-based PII masking.
+- **Contract Enforcement**: Enforces Pydantic schema before internal processing.
+- **Independence**: Downstream agents can assume clean, trusted data.
+
 ## CI & Linting Standards
 
 To maintain a green pipeline, every contribution must satisfy:

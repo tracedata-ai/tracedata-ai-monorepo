@@ -12,8 +12,10 @@ This is the **Skill Hub** for the TraceData capstone. Detailed specifications ar
 | Module | Description | Location |
 | :--- | :--- | :--- |
 | **Architecture** | Core Stack, Multi-tenancy, Pipelines, MCP, Safety Intervention | [architecture.md](file:///d:/learning-projects/tracedata-ai-monorepo/.agent/skills/tracedata-playbook/architecture.md) |
+| **DDD** | Strategic & Tactical Domain-Driven Design, Context Maps, Aggregates | [ddd.md](file:///d:/learning-projects/tracedata-ai-monorepo/.agent/skills/tracedata-playbook/ddd.md) |
 | **Design System** | Philosophy, Colors, Typography, Page Templates, Component Rules | [design-system.md](file:///d:/learning-projects/tracedata-ai-monorepo/.agent/skills/tracedata-playbook/design-system.md) |
 | **Implementation** | Project Structure, Component Anatomy, Agent Integration Patterns | [patterns.md](file:///d:/learning-projects/tracedata-ai-monorepo/.agent/skills/tracedata-playbook/patterns.md) |
+| **Governance** | ADRs: [Redis vs Kafka](file:///d:/learning-projects/tracedata-ai-monorepo/.agent/skills/tracedata-playbook/adr/001-redis-eda-for-mvp.md), [uv Workspaces](file:///d:/learning-projects/tracedata-ai-monorepo/.agent/skills/tracedata-playbook/adr/002-uv-workspaces.md) | [adr/](file:///d:/learning-projects/tracedata-ai-monorepo/.agent/skills/tracedata-playbook/adr/) |
 | **Compliance** | Rubric Alignment: XRAI, Cybersecurity, Performance, A11y | [compliance.md](file:///d:/learning-projects/tracedata-ai-monorepo/.agent/skills/tracedata-playbook/compliance.md) |
 | **Workflows** | Task Templates for common development flows | [workflows.md](file:///d:/learning-projects/tracedata-ai-monorepo/.agent/skills/tracedata-playbook/workflows.md) |
 
