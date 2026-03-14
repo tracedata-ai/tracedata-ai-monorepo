@@ -93,44 +93,6 @@ const columns: ColumnDef<Route>[] = [
   },
 ];
 
-/**
- * Mock Data
- */
-const data: Route[] = [
-  {
-    id: "1",
-    name: "North-South Express",
-    startPoint: "Woodlands",
-    endPoint: "HarbourFront",
-    distance: "25km",
-    status: "active",
-  },
-  {
-    id: "2",
-    name: "East Coast Loop",
-    startPoint: "Changi",
-    endPoint: "Marina Bay",
-    distance: "18km",
-    status: "active",
-  },
-  {
-    id: "3",
-    name: "Western Industrial",
-    startPoint: "Tuas",
-    endPoint: "Jurong East",
-    distance: "12km",
-    status: "planned",
-  },
-  {
-    id: "4",
-    name: "Central Orbit",
-    startPoint: "Orchard",
-    endPoint: "Ang Mo Kio",
-    distance: "10km",
-    status: "inactive",
-  },
-];
-
 import { useEffect, useState } from "react";
 import { entitiesApi, BackendRoute } from "@/lib/api";
 

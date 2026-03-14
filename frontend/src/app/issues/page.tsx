@@ -104,40 +104,6 @@ const columns: ColumnDef<Issue>[] = [
   },
 ];
 
-/**
- * Mock Data
- */
-const data: Issue[] = [
-  {
-    id: "ISS-001",
-    type: "safety",
-    description: "Harsh braking detected - Route 5",
-    severity: "high",
-    status: "open",
-  },
-  {
-    id: "ISS-002",
-    type: "maintenance",
-    description: "Low tire pressure - Vehicle V-902",
-    severity: "medium",
-    status: "open",
-  },
-  {
-    id: "ISS-003",
-    type: "delay",
-    description: "Traffic congestion on East Coast Pkwy",
-    severity: "low",
-    status: "resolved",
-  },
-  {
-    id: "ISS-004",
-    type: "safety",
-    description: "Potential collision near-miss",
-    severity: "critical",
-    status: "open",
-  },
-];
-
 import { useEffect, useState } from "react";
 import { entitiesApi, BackendIssue } from "@/lib/api";
 

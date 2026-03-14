@@ -7,13 +7,13 @@ on:
       - "feature/**"
       - "hotfix/**"
     paths:
-      - "ai-agents/**"
+      - "backend/**"
       - ".github/workflows/ci-backend.yaml"
   pull_request:
     branches:
       - main
     paths:
-      - "ai-agents/**"
+      - "backend/**"
   workflow_dispatch:
 
 concurrency:
@@ -41,7 +41,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          cd ai-agents
+          cd backend
           uv sync --frozen
 
   lint:
@@ -57,11 +57,11 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
       - name: Run Ruff Check
         run: |
-          cd ai-agents
+          cd backend
           uv run ruff check .
       - name: Run MyPy
         run: |
-          cd ai-agents
+          cd backend
           uv run mypy . --ignore-missing-imports
 
   #  unit-test:
@@ -77,14 +77,14 @@ jobs:
   #          python-version: ${{ env.PYTHON_VERSION }}
   #      - name: Run tests with coverage
   #        run: |
-  #          cd ai-agents
+  #          cd backend
   #          export PYTHONPATH=$PYTHONPATH:.
   #          uv run pytest --cov=app --cov-report=xml
   #      - name: Upload Coverage
   #        uses: actions/upload-artifact@v4
   #        with:
   #          name: coverage-report
-  #          path: ai-agents/coverage.xml
+  #          path: backend/coverage.xml
   #          retention-days: 7
 
   security-sca:
@@ -101,5 +101,5 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
       - name: Run UV Pip Audit
         run: |
-          cd ai-agents
+          cd backend
           uvx pip-audit

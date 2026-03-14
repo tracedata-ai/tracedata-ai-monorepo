@@ -70,7 +70,7 @@ export interface TelemetryPayload {
   trip_id: string;
   driver_id: string;
   timestamp: string;
-  details: Record<string, any>;
+  details: Record<string, string | number | boolean | null>;
 }
 
 export interface ChatPayload {

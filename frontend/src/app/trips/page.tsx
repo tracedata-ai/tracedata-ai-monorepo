@@ -91,40 +91,6 @@ const columns: ColumnDef<Trip>[] = [
   },
 ];
 
-/**
- * Mock Data
- */
-const data: Trip[] = [
-  {
-    id: "T-1001",
-    vehicleId: "V-901",
-    driverName: "Alex Chen",
-    startTime: "2026-03-12 08:30",
-    status: "ongoing",
-  },
-  {
-    id: "T-1002",
-    vehicleId: "V-902",
-    driverName: "Sarah Lim",
-    startTime: "2026-03-12 09:15",
-    status: "ongoing",
-  },
-  {
-    id: "T-1003",
-    vehicleId: "V-903",
-    driverName: "John Doe",
-    startTime: "2026-03-11 14:00",
-    status: "completed",
-  },
-  {
-    id: "T-1004",
-    vehicleId: "V-904",
-    driverName: "Jane Smith",
-    startTime: "2026-03-12 10:00",
-    status: "delayed",
-  },
-];
-
 import { useEffect, useState } from "react";
 import { entitiesApi, BackendTrip } from "@/lib/api";
 
