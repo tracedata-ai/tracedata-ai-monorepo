@@ -4,24 +4,23 @@ This module defines the project structure, component standards, and integration 
 
 ```
 d:/learning-projects/tracedata-ai-monorepo/
-├── frontend/                        # Next.js Application
-└── ai-agents/                       # Agentic AI Middleware
-    ├── app/                         # CORE PACKAGE
-    │   ├── core/                    # Engine & Config (DB)
-    │   └── services/                # Business Logic
-    ├── scripts/                     # Tooling (Simulator, Seeding)
-    ├── pyproject.toml               # uv Project Manifest
-    ├── uv.lock                      # Generated Lockfile
-    └── entrypoint.sh                # Container Orchestrator
+├── pyproject.toml                   # Root Workspace Manifest (uv)
+├── uv.lock                          # Consolidated Workspace Lockfile
+├── backend/                         # Agentic AI Middleware (formerly ai-agents)
+│   ├── app/                         # CORE PACKAGE
+│   ├── core/                        # Engine & Config (DB)
+│   ├── domains/                     # Bounded Contexts (Fleet, Safety, etc.)
+│   └── scripts/                     # Tooling (Simulator, Seeding)
+└── frontend/                        # Next.js Application
 ```
 
-## Dependency Management (uv)
+## Dependency Management (uv Workspace)
 
-TraceData uses **uv** for lightning-fast, reproducible builds.
+TraceData uses **uv workspaces** for lightning-fast, monorepo-wide dependency management.
 
-1.  **Strict Locking**: Never run without `uv.lock`. This ensures every developer uses the exact same package version.
-2.  **Explicit Scopes**: Use `uv add` to manage the `pyproject.toml`.
-3.  **Container Optimization**: Our `Dockerfile` uses staged builds to pull the `uv` binary, ensuring zero-overhead installations.
+1.  **Unified Locking**: The `uv.lock` at the **root** is the single source of truth for the entire monorepo. Never maintain separate lockfiles in sub-services.
+2.  **Explicit Scopes**: Manage dependencies from the root using `uv add --package <name>`.
+3.  **CI Synchronization**: Always use `uv sync --frozen` in CI to ensure bit-perfect environment reproduction.
 
 ## Database Seeding (Nuke & Pave)
 
@@ -86,6 +85,18 @@ Components interacting with agents must have clear boundaries.
 const { data, loading } = useAgentQuery('/api/agent-query');
 ```
 
-## Real-Time Safety Alerts
+## CI & Linting Standards
 
-Handled via direct triggers from the Telemetry Ingestion endpoint to the UI with <500ms latency.
+To maintain a green pipeline, every contribution must satisfy:
+
+1.  **Zero Unused Imports (F401)**: Ruff strictly enforces unused import removal.
+2.  **Missing Component Safety (F821)**: Ensure all active dependencies (like SQLAlchemy `Text`) are imported.
+3.  **Variable Shadowing (Frontend)**: In API fetch hooks/effects, avoid using the generic variable name `data`. Use `response` to prevent shadowing with Pydantic-mapped props or local state.
+
+```typescript
+// ✅ RECOMMENDED: Clear naming
+const response = await entitiesApi.getFleet();
+setFleet(response.items);
+```
+
+4.  **Type Safety**: Mandatory MyPy and TypeScript strict checks. No `any`.

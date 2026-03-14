@@ -24,7 +24,7 @@ Standardized templates for common development tasks.
 
 ## Task 4: Create a New Backend Module (Python)
 
-1. Place code within the correct `ai-agents/app/` subdirectory.
+1. Place code within the correct `backend/app/` subdirectory.
 2. Add a **Module Docstring** at the top of the file.
 3. Use **Pydantic Field Metadata** for all schema attributes.
 4. Add **Google-style Docstrings** to all functions and classes.
@@ -42,3 +42,19 @@ Standardized templates for common development tasks.
 3. Monitor the **Kafka Consumer** logs for ingestion events.
 4. Monitor the **Celery Worker** logs for task completion.
 5. Verify data updates in the Dashboard or Database.
+
+## Task 7: Pre-push Backend Verification
+
+Always run this from the monorepo **root** to ensure CI passes:
+
+1.  Sync environment: `uv sync`.
+2.  Run Ruff: `uv run ruff check backend`.
+3.  Run MyPy: `uv run mypy backend --ignore-missing-imports`.
+
+## Task 8: Sync Workspace Metadata
+
+If sub-service dependencies change or workspace structure is modified:
+
+1.  Remove old lockfiles (if any): `rm backend/uv.lock`.
+2.  Regenerate root lock: `uv lock`.
+3.  Commit both `pyproject.toml` and `uv.lock` at the root.

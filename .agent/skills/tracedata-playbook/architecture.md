@@ -12,14 +12,16 @@ This module defines the core stack, data pipelines, and architectural boundaries
 - **Database**: PostgreSQL with pgvector (semantic search)
 - **Messaging**: WebSocket (real-time safety alerts)
 
-## Backend Service Isolation (Python)
+## Monorepo & Service Isolation
 
-The Agentic AI Middleware follows a strict **package-first modular monolith** structure:
+TraceData is structured as a **Monorepo** managed by `uv` workspaces:
 
-- **Root Directory**: `ai-agents/` (Contains build/CI config: `Dockerfile`, `requirements.txt`, `.github/`)
-- **App Package**: `ai-agents/app/` (The core executable package)
-- **Service Entry**: Always exposed via `app.main:app` for production-grade imports and containerization.
-- **Shared Modules**: Internal logic split into `agents/`, `api/`, `models/`, `schemas/`, and `services/`.
+- **Root Directory**: Contains the workspace definition (`pyproject.toml`) and the consolidated lockfile (`uv.lock`).
+- **Backend Service**: `backend/` (formerly `ai-agents/`)
+  - Follows a strict **package-first modular monolith** structure.
+  - Service Entry: Always exposed via `app.main:app`.
+  - Shared Modules: Internal logic split into `agents/`, `api/`, `models/`, `schemas/`, and `services/`.
+- **Frontend Service**: `frontend/` (Next.js Application)
 
 ## Multi-Tenancy (MANDATORY)
 
