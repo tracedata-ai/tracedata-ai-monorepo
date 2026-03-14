@@ -42,10 +42,10 @@ TraceData is an academic capstone project focusing primarily on advanced AI orch
     *   **End-of-Trip Ping:** Marks trip completion, encapsulates the full summary, and triggers backend ML scoring.
     *   **Emergency Ping:** Out-of-band transmission for critical events (e.g., collisions, panic button) requiring immediate response.
     *(See [03-project-report.md](./03-project-report.md) for the detailed Flat Schema JSON structure and trigger conditions).*
-*   **Data Integrity:** The system SHALL ingest telemetry via **Apache Kafka** streams, organized by ping type, to ensure durability, high-throughput handling, and full event replayability. All payloads SHALL be persisted using Time-Series optimized storage, handling out-of-order or duplicate messages idempotently.
-*   **Ingestion Processing:** An **Ingestion Quality Agent** SHALL selectively handle incoming data based on its payload type. Standard telemetry (e.g., GPS, speed) is scrubbed deterministically. User-generated content (e.g., driver text, appeals) is handed over to a dedicated **PII Scrubber Agent** for complex cleaning.
-*   **Orchestrator Handoff:** After PII cleaning and deterministic scrubbing, the data is written to the database and then passed to the Orchestrator. The Orchestrator evaluates `4-Minute Batch Pings` for immediate actions; if none are found, the execution terminates (discarded from active processing).
-*   **State Management:** The system SHALL actively track "Active Trips" and handle "Zombie Trips" (missing End-of-Trip pings). Internal asynchronous task queuing and state management SHALL be orchestrated using **Redis** and **Celery**.
+*   **Data Integrity:** The system SHALL ingest telemetry via **Redis 7** message bus, organized by ping type, to ensure durability, high-throughput handling, and full event replayability. All payloads SHALL be persisted using Time-Series optimized storage, handling out-of-order or duplicate messages idempotently.
+*   **Ingestion Processing:** A **Data Cleaner Gateway (ACL)** SHALL selectively handle incoming data based on its payload type. It SHALL synchronously validate schemas and scrub PII (PII Scrubber logic) to protect the core domain from malformed or sensitive data.
+*   **Orchestrator Handoff:** After cleaning, the data is published to the Redis bus. The **Deterministic Orchestrator** evaluates events for complex saga coordination.
+*   **State Management:** The system SHALL actively track "Active Trips" and handle "Zombie Trips" (missing End-of-Trip pings). Internal asynchronous task queuing and state management SHALL be orchestrated using **Redis 7** and **Celery**.
 
 ### **3.2 Trip Scoring & Fairness Audit (FR-2)**
 **Requirement:** The system SHALL calculate a safety score (0-100) for completed trips using an XGBoost model, subject to automated fairness bias correction.
@@ -96,7 +96,7 @@ TraceData is an academic capstone project focusing primarily on advanced AI orch
 ### **4.1 Performance & Scalability (NFR-1)**
 *   **Throughput:** The system SHALL comfortably ingest batches from 10,000 concurrent vehicles without backpressure exhaustion.
 *   **Latency:** Critical ML scoring (FR-2) SHALL complete in < 3 seconds; standard API responses SHALL be < 500ms. Context Enrichment (via MCP) SHALL complete in < 2 seconds.
-*   **Scalability:** The architecture SHALL scale horizontally (compute, Kafka brokers, Redis clusters, and read-replicas) to accommodate 50,000 vehicles.
+*   **Scalability:** The architecture SHALL scale horizontally (compute, Redis clusters, and read-replicas) to accommodate 50,000 vehicles.
 
 ### **4.2 Reliability & Availability (NFR-2)**
 *   **Uptime:** The system SHALL maintain 99.9% availability.
@@ -113,7 +113,7 @@ TraceData is an academic capstone project focusing primarily on advanced AI orch
 ## **5. Technical & Domain Constraints**
 
 *   **Architecture Pattern:** Agentic AI Middleware Monolith (Python) + Next.js Frontend. As an academic project, the scope is deliberately constrained to exclude a full-featured traditional fleet management backend.
-*   **Stream Ingestion:** Apache Kafka SHALL be used for all external telemetry ingestion to mirror industry standards and provide event replayability across different topic pipes.
+*   **Stream Ingestion:** **Redis 7** SHALL be used for all external telemetry ingestion and internal event distribution, providing the primary backbone for the Event-Driven Architecture (EDA).
 *   **Internal Queueing & State:** Redis and Celery SHALL be used for all asynchronous task queueing, state management (e.g., tracking active vs. zombie trips), and background processing within the AI middleware.
 *   **Data Storage:** A single organizational PostgreSQL database SHALL be used. While schemas for fleet data (e.g., vehicles, drivers) will exist, they are nominal and designed strictly to provide the necessary state and context for the AI agents.
 *   **AI Agents:** LangGraph SHALL be used for orchestrating cyclical agent workflows (e.g., Context loops, Refinement). Refer to [03-project-report.md](./03-project-report.md) for detailed agent topologies and responsibilities.

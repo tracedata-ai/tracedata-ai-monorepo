@@ -50,76 +50,36 @@ Small-to-medium truck fleet operators (50-200 vehicles) currently use basic tele
 
 #### Agents and Scope
 
-**Agent 1: Ingestion Quality Agent**
+**Agent 1: Data Cleaner Gateway (ACL)**
 
-- **Role:** Validates dual data sources: structured telemetry (GPS/speed) and unstructured text (appeals). Handles batched pings (4-10 min) vs real-time critical bypass.
-- **Assurance:** Schema validation, range checks, offline detection
-- **Fairness:** Equal treatment of all vehicles (no bias in ingestion)
-- **Security:** SQL injection prevention, malicious payload rejection. Selectively routes only text to the PII Scrubber Agent.
-- **Governance:** Data retention policy enforced
+- **Role:** Synchronously validates dual data sources: structured telemetry (GPS/speed) and unstructured text (appeals). Acts as an Anti-Corruption Layer (ACL).
+- **Assurance:** Schema validation, range checks, offline detection.
+- **Security:** SQL injection prevention, malicious payload rejection. Synchronously scrubs PII before domain routing.
 
-**Agent 2: Orchestrator Agent (Central Router)**
+**Agent 2: Deterministic Orchestrator (Central Router)**
 
-- **Powered by:** Hybrid (Deterministic Router + Small LLM)
-- **Role:** Central dispatcher. Evaluates 4-minute batches quickly (discard/persist) or uses LLM reasoning to route unstructured text and manage driver encouragement profiles.
-- **Trust & Accountability:** full audit trail for decisions made
-- **Fairness:** Ensures fair agent utilization
-- **Explainability:** Reasoning for every routing decision logged
-- **Security:** Deterministic (90%) + semantic (10%) routing with fallbacks
-- **Autonomy:** Autonomous decision-making for routing
+- **Role:** Central dispatcher for complex Sagas. Uses deterministic logic (LangGraph decision trees) rather than open-ended LLM reasoning to route events based on payload types.
+- **Autonomy:** Autonomous coordination of multi-step agent workflows.
+- **Accountability:** Full audit trail for every routing decision and state transition.
 
-**Agent 3: Behavior Agent**
+**Agent 3: Behavior Evaluation Agent**
 
-- **Powered by:** XGBoost to rate the drivers trips out of 100, Fairness and XAI applied.
-- **Role:** Scores trips (0-100), audits fairness
-- **Fairness:** AIF360 bias detection + mitigation
-- **Explainability:** LIME/SHAP explanations for every score
-- **Accountability:** Feature importance tracked, bias correction logged
-- **Security:** Adversarial input testing (data injection)
-- **Ethical:** Fairness audit monthly
+- **Role:** Scores trips (0-100) using predictive ML (XGBoost) and ensures fairness.
+- **Fairness:** AIF360 bias detection + mitigation (Statistical Parity Difference < 0.2).
+- **Explainability:** SHAP/LIME explanations for 100% of generated scores.
+- **Accountability:** Feature importance tracked, bias correction logged.
 
-**Agent 4: Feedback and Advocacy Agent**
+**Agent 4: Driver Wellness Analyst Agent**
 
-- **Powered by:** Embeds the feedback and appeals so that we can semantically search the data and enrich context (if needed) via LLM (Context Enrichment Agent)
-- **Role:** Processes driver appeals, listens to feedback
-- **Trust:** Appeals mechanism builds driver trust
-- **Fairness:** Ensures drivers can contest unfair scores
-- **Accountability:** All appeals logged with FM decisions
-- **Explainability:** Provides reasoning for appeal responses
-- **Ethics:** Driver-centric support, not surveillance
+- **Role:** High-cohesion analyst for the Driver Profile context. Handles Sentiment, Advocacy, and Coaching within a single context window.
+- **Personalization:** Coaching tone adapted based on emotional trajectory and safety performance.
+- **Trust:** Processes driver appeals and listens to feedback to build advocacy.
 
-**Agent 5: Sentiment Agent**
+**Agent 5: Safety Agent (Fast-Path)**
 
-- **Powered by:** Sentiment analysis on the written content (Fleet manager as well as Driver)
-- **Role:** Tracks emotional trajectory, detects burnout
-- **Accountability:** Burnout alerts logged, enables wellness interventions
-- **Ethical:** Proactive driver support (not punitive)
-- **Security:** Private emotional data encrypted, access controlled
-- **Governance:** Burnout alerts escalate to FM with recommendations
-
-**Agent 6: Coaching Agent**
-
-- **Role:** Generates personalized coaching
-- **Fairness:** Coaching tone matched to emotional state (not biased)
-- **Explainability:** Coaching focuses on specific, addressable issues
-- **Ethics:** Supportive, encouraging (not punitive)
-- **Personalization:** Tone + content adapted per driver
-
-**Agent 7: Safety Agent**
-
-- **Powered by:** Dedicated high-priority Critical Events pipe from Kafka. Enriched via Context Agent.
-- **Role:** Detects critical incidents and executes a multi-level intervention strategy: Level 1 (App Notification), Level 2 (Formal Message), Level 3 (Direct Call).
-- **Assurance:** Real-time (< 5 sec) incident detection
-- **Security:** Verification that critical event is real (not false alarm)
-- **Accountability:** Incident log + FM action tracking
-- **Governance:** Insurance compliance, regulatory reporting
-
-**Agent 8: Context Enrichment Agent**
-
-- **Powered by:** Model Context Protocol (MCP) to access external mapping and weather APIs deterministically within < 2 seconds.
-- **Role:** Shared high-speed Tool providing road/weather context for decisions.
-- **Fairness:** Context ensures fair comparisons (night vs day, urban vs highway)
-- **Security:** Lookup integrity, no data leakage
+- **Role:** Detects critical incidents from Emergency Pings and executes multi-level interventions.
+- **Assurance:** Real-time (< 500ms) incident detection bypassing background queues.
+- **Accountability:** Incident logs + Fleet Manager escalation tracking.
 
 #### Events and Categories
 
@@ -136,7 +96,7 @@ Small-to-medium truck fleet operators (50-200 vehicles) currently use basic tele
 
 ##### Priority Levels (4 Operational Levels)
 
-| Priority     | Kafka Topic            | Response                         | Examples                         |
+| Priority     | Redis Channel          | Response                         | Examples                         |
 | :----------- | :--------------------- | :------------------------------- | :------------------------------- |
 | **critical** | emergency-critical     | Immediate Fleet Manager dispatch | collision, rollover              |
 | **high**     | safety-high            | Real-time alert + coaching       | harsh_brake, vehicle_offline     |
@@ -147,16 +107,15 @@ Small-to-medium truck fleet operators (50-200 vehicles) currently use basic tele
 
 | Component               | Framework/Library     | Rationale                                             |
 | :---------------------- | :-------------------- | :---------------------------------------------------- |
-| **Agent Orchestration** | LangGraph             | Autonomous agents as nodes, conditional routing       |
+| **Agent Orchestration** | LangGraph             | Deterministic state machine, cyclical routing         |
 | **Fairness & Bias**     | AIF360 (IBM)          | Industry-standard fairness auditing, reweighting      |
 | **Explainability**      | SHAP + LIME           | Feature importance (global + local)                   |
-| **ML Model**            | XGBoost               | Fast, interpretable, handles missing data             |
+| **ML Model**            | XGBoost               | High-performance predictive modeling                  |
 | **Async Framework**     | FastAPI               | Production-grade async Python framework               |
-| **Task Queue**          | Celery + Redis        | Distributed task execution, priority queuing          |
-| **Database**            | PostgreSQL + pgvector | ACID compliance, JSONB, schema segregation per agent, vector search   |
-| **Streaming**           | Apache Kafka          | High-throughput event bus, durability                 |
-| **ML Tracking**         | MLflow                | Model versioning, metrics logging                     |
-| **LLM Integration**     | OpenAI API            | Enrichment and Reasoning                              |
+| **Task Queue**          | Celery + Redis 7      | Distributed task execution, priority queuing          |
+| **Database**            | PostgreSQL + pgvector | Multi-schema context isolation, vector search         |
+| **Messaging**           | Redis 7 Pub/Sub       | Event-Driven Architecture backbone (ADR 001)          |
+| **LLM Integration**     | OpenAI / Google Gemini| Strategic reasoning + generative coaching             |
 | **Type Safety**         | Pydantic              | Input validation, schema enforcement                  |
 | **Testing**             | pytest                | Unit + integration tests, fixtures                    |
 | **Monitoring**          | CloudWatch            | Metrics, logs, alarms                                 |

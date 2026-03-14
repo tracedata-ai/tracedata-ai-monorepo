@@ -6,11 +6,20 @@ AI-powered platform for tracing, auditing, and governing machine-learning pipeli
 
 ```
 tracedata-ai-monorepo/
-├── frontend/        # Next.js 16 (React 19, Tailwind CSS)
-├── backend/         # FastAPI (Python)
-├── core-platform/   # Java 17 + Spring Boot (modular monolith)
+├── frontend/        # Next.js 14+ (React 18/19, Tailwind, shadcn/ui)
+├── backend/         # FastAPI (Python 3.11+, LangGraph, XGBoost)
+├── docs/            # Project Documentation & Architecture
 └── docker-compose.yml
 ```
+
+## Technology Stack
+
+- **Core Engine**: Python 3.11, FastAPI, Celery
+- **Agent Orchestration**: LangGraph
+- **Machine Learning**: XGBoost, AIF360, SHAP/LIME
+- **Data Persistence**: PostgreSQL 17 + pgvector
+- **Event Bus**: Redis 7 (Pub/Sub + Task Queue)
+- **Frontend**: Next.js (TypeScript), Tailwind CSS
 
 ## Prerequisites
 
