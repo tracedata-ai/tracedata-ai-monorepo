@@ -1,7 +1,6 @@
 from pydantic import BaseModel, ConfigDict
 from uuid import UUID
 from datetime import datetime
-from typing import Optional, List
 
 class TripScoreBase(BaseModel):
     trip_id: UUID
