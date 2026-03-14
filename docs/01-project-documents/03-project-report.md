@@ -499,10 +499,18 @@ TraceData applies DDD principles to ensure clear boundaries between agent worklo
 
 ```mermaid
 graph TB
+    subgraph External["External Environment"]
+        IoT[Vehicle IoT Telemetry]
+        App[Driver App / Feedback]
+    end
+
     subgraph TelemetryContext["Telemetry & Safety Context"]
         ACL[Data Cleaner Gateway<br/><< ACL >>]
         Safety[Safety Agent<br/><< Command / Fast Path >>]
         Agg1[(Trip & Incident Aggregates)]
+        
+        ACL --> Safety
+        Safety --> Agg1
     end
 
     subgraph EventBus["Event Bus (Redis/Celery)"]
@@ -522,18 +530,127 @@ graph TB
         Agg3[(DriverProfile & Appeal Aggregates)]
     end
 
+    subgraph OrchestrationContext["Orchestration Context"]
+        Orch[Deterministic Orchestrator<br/><< Saga Manager >>]
+    end
+
+    IoT --> ACL
+    App --> ACL
+    
     ACL -- Publishes --> E1
     ACL -- Publishes --> E4
+    Safety -- Publishes --> E2
     Behavior -- Publishes --> E3
+    
     E1 -. Subscribes .-> Behavior
     E3 -. Subscribes .-> Wellness
+    E4 -. Subscribes .-> Wellness
+    E2 -. Subscribes .-> Orch
 ```
 
-### 8.2 Tactical Design: Aggregates
+### 8.2 Tactical Design: Domain Schema
 
-- **Trip Aggregate**: Owned by Telemetry context; manages trip boundaries.
-- **TripScore Aggregate**: Owned by Evaluation context; isolates heavy ML scoring.
-- **DriverProfile Aggregate**: Owned by Wellness context; tracks long-term sentiment and coaching history.
+Tactical DDD focuses on the internal structure of each context, defining the lifecycle of data through Aggregates, Entities, and Value Objects.
+
+#### 8.2.1 Tactical Schema Diagram
+
+```mermaid
+classDiagram
+    namespace TelemetryAndSafety {
+        class Trip {
+            <<Aggregate Root>>
+            +tripId string
+            +driverId string
+            +startOfTrip DateTime
+            +endOfTrip DateTime
+            +startTrip()
+            +endTrip()
+        }
+        class TelemetryEvent {
+            <<Entity>>
+            +eventId string
+            +category string
+            +timestamp DateTime
+            +validatePayload()
+        }
+        class RawTelemetry {
+            <<Value Object>>
+            +gpsLatitude float
+            +gpsLongitude float
+            +speed float
+            +rpm float
+        }
+        class EnrichedContext {
+            <<Value Object>>
+            +weatherConditions string
+            +roadType string
+            +hazardWarnings string
+        }
+    }
+
+    Trip "1" *-- "*" TelemetryEvent
+    TelemetryEvent "1" *-- "1" RawTelemetry
+    TelemetryEvent "1" *-- "1" EnrichedContext
+
+    namespace DriverEvaluation {
+        class TripScore {
+            <<Aggregate Root>>
+            +scoreId string
+            +tripId string
+            +safetyScore float
+            +calculateScore()
+        }
+        class ExplainabilityContext {
+            <<Value Object>>
+            +shapValues Map
+            +limeExplanations Map
+        }
+        class FairnessMetrics {
+            <<Value Object>>
+            +spdValue float
+            +applyAIF360Reweighting()
+        }
+    }
+
+    TripScore "1" *-- "1" ExplainabilityContext
+    TripScore "1" *-- "1" FairnessMetrics
+
+    namespace DriverWellness {
+        class DriverProfile {
+            <<Aggregate Root>>
+            +driverId string
+            +burnoutRiskLevel float
+            +updateSentiment()
+        }
+        class Appeal {
+            <<Entity>>
+            +appealId string
+            +rawUserInput string
+            +sanitizedInput string
+            +status string
+            +processDispute()
+        }
+        class CoachingSession {
+            <<Entity>>
+            +coachingId string
+            +emotionalTone string
+            +actionablePoints string
+            +generatePersonalizedCoaching()
+        }
+    }
+
+    DriverProfile "1" *-- "*" Appeal
+    DriverProfile "1" *-- "*" CoachingSession
+```
+
+#### 8.2.2 Tactical Patterns Applied
+
+- **Aggregate Roots**: 
+    - `Trip`: Controls the telemetry lifecycle.
+    - `TripScore`: Separates heavy ML scoring from ingestion to prevent database lock contention.
+    - `DriverProfile`: Central hub for historical driver state and sentiment.
+- **Entities**: Objects with identity and state transitions (e.g., `Appeal`, `TelemetryEvent`).
+- **Value Objects**: Immutable attributes attached to entities (e.g., `RawTelemetry`, `FairnessMetrics`).
 
 ---
 
