@@ -105,8 +105,8 @@ export default function RoutesPage() {
     async function loadRoutes() {
       try {
         setLoading(true);
-        const data = await entitiesApi.getRoutes();
-        const mapped: Route[] = data.items.map((item: BackendRoute) => ({
+        const response = await entitiesApi.getRoutes();
+        const mapped: Route[] = response.items.map((item: BackendRoute) => ({
           id: item.id,
           name: item.name,
           startPoint: item.start_location,

@@ -126,10 +126,10 @@ export default function DriversPage() {
     async function loadDrivers() {
       try {
         setLoading(true);
-        const data = await entitiesApi.getDrivers();
+        const response = await entitiesApi.getDrivers();
         
         // Map backend schema to frontend domain object
-        const mappedDrivers: Driver[] = data.items.map((item: BackendDriver) => ({
+        const mappedDrivers: Driver[] = response.items.map((item: BackendDriver) => ({
           id: item.id,
           name: `${item.first_name} ${item.last_name}`,
           license: item.license_number,

@@ -116,8 +116,8 @@ export default function IssuesPage() {
     async function loadIssues() {
       try {
         setLoading(true);
-        const data = await entitiesApi.getIssues();
-        const mapped: Issue[] = data.items.map((item: BackendIssue) => {
+        const response = await entitiesApi.getIssues();
+        const mapped: Issue[] = response.items.map((item: BackendIssue) => {
           // Safe type mapping for severity
           let severity: Issue["severity"] = "low";
           if (["low", "medium", "high", "critical"].includes(item.severity)) {

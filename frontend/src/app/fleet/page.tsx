@@ -79,8 +79,8 @@ export default function FleetPage() {
     async function loadFleet() {
       try {
         setLoading(true);
-        const data = await entitiesApi.getFleet();
-        const mapped: Vehicle[] = data.items.map((item: BackendVehicle) => ({
+        const response = await entitiesApi.getFleet();
+        const mapped: Vehicle[] = response.items.map((item: BackendVehicle) => ({
           id: item.id,
           vin: item.vin,
           plate: item.license_plate,

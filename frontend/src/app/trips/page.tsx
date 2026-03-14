@@ -102,8 +102,8 @@ export default function TripsPage() {
     async function loadTrips() {
       try {
         setLoading(true);
-        const data = await entitiesApi.getTrips();
-        const mapped: Trip[] = data.items.map((item: BackendTrip) => {
+        const response = await entitiesApi.getTrips();
+        const mapped: Trip[] = response.items.map((item: BackendTrip) => {
           // Map backend status to frontend literal types
           let status: Trip["status"] = "ongoing";
           if (item.status === "completed") status = "completed";
