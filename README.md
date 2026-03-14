@@ -2,6 +2,9 @@
 
 AI-powered platform for tracing, auditing, and governing machine-learning pipelines.
 
+JIRA : [link](https://tracelogic.atlassian.net/jira/software/projects/TDATA/boards/34)
+CONFLUENCE : [link](https://tracelogic.atlassian.net/wiki/spaces/Tracedata/database/18972704?atl_f=PAGETREE)
+
 ## Project Structure
 
 ```
@@ -26,7 +29,6 @@ tracedata-ai-monorepo/
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) (Engine ≥ 24)
 - Docker Compose v2 (`docker compose` — note: no hyphen)
 
-
 ## Running with Docker Compose
 
 ### Frontend only (standalone)
@@ -46,7 +48,6 @@ Open → [http://localhost:3000](http://localhost:3000)
 > NEXT_PUBLIC_API_URL=http://my-backend docker compose up frontend --build
 > ```
 
-
 ### Full stack (frontend + backend + database)
 
 Starts all services using the `full` profile.
@@ -60,7 +61,6 @@ docker compose --profile full up --build
 | Frontend | http://localhost:3000       |
 | Backend  | http://localhost:8000       |
 | Postgres | `localhost:5432` (internal) |
-
 
 ### Useful commands
 
@@ -78,7 +78,6 @@ docker compose logs -f frontend
 docker compose build --no-cache frontend
 ```
 
-
 ## Local Development (without Docker)
 
 ```bash
@@ -92,7 +91,6 @@ cd backend
 pip install -r requirements.txt
 uvicorn main:app --reload   # http://localhost:8000
 ```
-
 
 ## Environment Variables
 
