@@ -282,7 +282,7 @@ function HeroSection() {
             </span>
           </div>
           <h1
-            className={`mb-8 text-5xl font-black tracking-tighter text-[#dfe0ff] md:text-7xl lg:text-8xl ${displayFont.className}`}
+            className={`mb-8 text-5xl font-black leading-[0.94] tracking-[-0.03em] text-[#dfe0ff] md:text-7xl lg:text-8xl ${displayFont.className}`}
           >
             {homepageCopy.hero.titleLine1}
             <br />
@@ -290,7 +290,7 @@ function HeroSection() {
               {homepageCopy.hero.titleAccent}
             </span>
           </h1>
-          <p className="mb-12 max-w-2xl text-lg font-light leading-relaxed text-[#bdc8d0] md:text-2xl">
+          <p className="mb-12 max-w-2xl text-base font-medium leading-8 text-[#bdc8d0] md:text-xl">
             {homepageCopy.hero.description}
           </p>
           <div
@@ -339,12 +339,12 @@ function EcosystemSection() {
               {homepageCopy.ecosystem.eyebrow}
             </span>
             <h2
-              className={`text-5xl font-extrabold tracking-tight text-[#dfe0ff] ${displayFont.className}`}
+              className={`text-4xl font-extrabold leading-[1.02] tracking-[-0.02em] text-[#dfe0ff] md:text-5xl ${displayFont.className}`}
             >
               {homepageCopy.ecosystem.title}
             </h2>
           </div>
-          <p className="max-w-sm text-lg font-light text-[#bdc8d0] md:text-right">
+          <p className="max-w-sm text-base font-medium leading-7 text-[#bdc8d0] md:text-right">
             {homepageCopy.ecosystem.description}
           </p>
         </div>
@@ -359,7 +359,7 @@ function EcosystemSection() {
             >
               {homepageCopy.ecosystem.cards.safety.title}
             </h3>
-            <p className="leading-relaxed text-[#bdc8d0]">
+            <p className="leading-8 text-[#bdc8d0]">
               {homepageCopy.ecosystem.cards.safety.body}
             </p>
             <div
@@ -376,7 +376,7 @@ function EcosystemSection() {
             <h3 className={`mb-3 text-xl font-bold ${displayFont.className}`}>
               {homepageCopy.ecosystem.cards.behavior.title}
             </h3>
-            <p className="text-sm text-[#bdc8d0]">
+            <p className="text-sm leading-7 text-[#bdc8d0]">
               {homepageCopy.ecosystem.cards.behavior.body}
             </p>
           </div>
@@ -385,7 +385,7 @@ function EcosystemSection() {
             <h3 className={`mb-3 text-xl font-bold ${displayFont.className}`}>
               {homepageCopy.ecosystem.cards.orchestrator.title}
             </h3>
-            <p className="text-sm text-[#bdc8d0]">
+            <p className="text-sm leading-7 text-[#bdc8d0]">
               {homepageCopy.ecosystem.cards.orchestrator.body}
             </p>
           </div>
@@ -394,7 +394,7 @@ function EcosystemSection() {
             <h3 className={`mb-3 text-xl font-bold ${displayFont.className}`}>
               {homepageCopy.ecosystem.cards.feedback.title}
             </h3>
-            <p className="text-sm text-[#bdc8d0]">
+            <p className="text-sm leading-7 text-[#bdc8d0]">
               {homepageCopy.ecosystem.cards.feedback.body}
             </p>
           </div>
@@ -403,7 +403,7 @@ function EcosystemSection() {
             <h3 className={`mb-3 text-xl font-bold ${displayFont.className}`}>
               {homepageCopy.ecosystem.cards.sentiment.title}
             </h3>
-            <p className="text-sm text-[#bdc8d0]">
+            <p className="text-sm leading-7 text-[#bdc8d0]">
               {homepageCopy.ecosystem.cards.sentiment.body}
             </p>
           </div>
@@ -430,7 +430,7 @@ function EcosystemSection() {
                 <h3 className={`text-lg font-bold ${displayFont.className}`}>
                   {homepageCopy.ecosystem.cards.ingestion.title}
                 </h3>
-                <p className="text-sm text-[#bdc8d0]">
+                <p className="text-sm leading-7 text-[#bdc8d0]">
                   {homepageCopy.ecosystem.cards.ingestion.body}
                 </p>
               </div>
@@ -455,13 +455,13 @@ function ExplainabilitySection() {
             {homepageCopy.explainability.eyebrow}
           </span>
           <h2
-            className={`mb-8 text-5xl font-black tracking-tighter leading-none ${displayFont.className}`}
+            className={`mb-8 text-4xl font-black leading-[1.02] tracking-[-0.02em] md:text-5xl ${displayFont.className}`}
           >
             {homepageCopy.explainability.titleLine1}
             <br />
             {homepageCopy.explainability.titleLine2}
           </h2>
-          <p className="mb-8 text-lg leading-relaxed text-[#bdc8d0]">
+          <p className="mb-8 text-base leading-8 text-[#bdc8d0] md:text-lg">
             {homepageCopy.explainability.description}
           </p>
           <ul className="space-y-5">
@@ -473,7 +473,7 @@ function ExplainabilitySection() {
                 <p className={`font-bold ${displayFont.className}`}>
                   {homepageCopy.explainability.points[0].title}
                 </p>
-                <p className="text-sm text-[#bdc8d0]">
+                <p className="text-sm leading-7 text-[#bdc8d0]">
                   {homepageCopy.explainability.points[0].body}
                 </p>
               </div>
@@ -486,7 +486,7 @@ function ExplainabilitySection() {
                 <p className={`font-bold ${displayFont.className}`}>
                   {homepageCopy.explainability.points[1].title}
                 </p>
-                <p className="text-sm text-[#bdc8d0]">
+                <p className="text-sm leading-7 text-[#bdc8d0]">
                   {homepageCopy.explainability.points[1].body}
                 </p>
               </div>
@@ -594,11 +594,11 @@ function IntegritySection() {
             </span>
           </div>
           <h2
-            className={`mb-8 text-5xl font-black tracking-tighter ${displayFont.className}`}
+            className={`mb-8 text-4xl font-black leading-[1.02] tracking-[-0.02em] md:text-5xl ${displayFont.className}`}
           >
             {homepageCopy.integrity.title}
           </h2>
-          <p className="text-lg text-[#bdc8d0]">
+          <p className="text-base leading-8 text-[#bdc8d0] md:text-lg">
             {homepageCopy.integrity.description}
           </p>
           <div className="mt-8 flex items-center gap-4">
@@ -630,7 +630,7 @@ function TechnicalSpecsSection() {
       <div className="mx-auto max-w-7xl">
         <div className="mb-20 text-center">
           <h2
-            className={`mb-4 text-4xl font-black uppercase tracking-[0.12em] ${displayFont.className}`}
+            className={`mb-4 text-4xl font-black uppercase tracking-[0.08em] ${displayFont.className}`}
           >
             {homepageCopy.technicalSpecs.title}
           </h2>
@@ -650,9 +650,7 @@ function TechnicalSpecsSection() {
               <h4 className={`mb-4 text-xl font-bold ${displayFont.className}`}>
                 {column.title}
               </h4>
-              <p className="text-sm leading-relaxed text-[#bdc8d0]">
-                {column.body}
-              </p>
+              <p className="text-sm leading-7 text-[#bdc8d0]">{column.body}</p>
             </div>
           ))}
         </div>
@@ -667,7 +665,7 @@ function FinalCtaSection() {
       <div className="absolute inset-0 bg-gradient-to-br from-[#70d2ff]/10 via-transparent to-[#ddb7ff]/10" />
       <div className="relative mx-auto w-full max-w-4xl text-center">
         <h2
-          className={`mb-12 text-5xl font-black tracking-tighter md:text-6xl ${displayFont.className}`}
+          className={`mb-10 text-4xl font-black leading-[1.05] tracking-[-0.02em] md:text-6xl ${displayFont.className}`}
         >
           {homepageCopy.finalCta.title}
         </h2>
