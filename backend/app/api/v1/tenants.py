@@ -1,5 +1,4 @@
-"""TraceData Backend — Tenants API Router.
-"""
+"""TraceData Backend — Tenants API Router."""
 
 from fastapi import APIRouter, Depends
 from sqlalchemy import select

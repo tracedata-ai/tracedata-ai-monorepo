@@ -9,6 +9,7 @@ from pydantic import BaseModel, ConfigDict
 
 class TenantBase(BaseModel):
     """Shared fields for Tenant."""
+
     name: str
     contact_email: str | None = None
     status: str = "active"
@@ -16,11 +17,13 @@ class TenantBase(BaseModel):
 
 class TenantCreate(TenantBase):
     """Schema for creating a Tenant."""
+
     pass
 
 
 class TenantRead(TenantBase):
     """Schema for reading a Tenant."""
+
     id: uuid.UUID
     created_at: datetime
     updated_at: datetime
