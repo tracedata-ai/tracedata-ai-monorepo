@@ -107,7 +107,7 @@ Small-to-medium truck fleet operators (50-200 vehicles) currently use basic tele
 
 **Agent 7: Safety Agent**
 
-- **Powered by:** Dedicated high-priority Critical Events pipe from Kafka. Enriched via Context Agent.
+- **Powered by:** Dedicated high-priority Celery queue (Redis-backed) for Critical Events. Enriched via Context Agent.
 - **Role:** Detects critical incidents and executes a multi-level intervention strategy: Level 1 (App Notification), Level 2 (Formal Message), Level 3 (Direct Call).
 - **Assurance:** Real-time (< 5 sec) incident detection
 - **Security:** Verification that critical event is real (not false alarm)
@@ -136,12 +136,12 @@ Small-to-medium truck fleet operators (50-200 vehicles) currently use basic tele
 
 ##### Priority Levels (4 Operational Levels)
 
-| Priority     | Kafka Topic            | Response                         | Examples                         |
-| :----------- | :--------------------- | :------------------------------- | :------------------------------- |
-| **critical** | emergency-critical     | Immediate Fleet Manager dispatch | collision, rollover              |
-| **high**     | safety-high            | Real-time alert + coaching       | harsh_brake, vehicle_offline     |
-| **medium**   | general-events         | Batched coaching                 | speeding                         |
-| **low**      | analytics-low-priority | Analytics only                   | excessive_idle, normal_operation |
+| Priority     | Celery Queue   | Response                         | Examples                         |
+| :----------- | :------------- | :------------------------------- | :------------------------------- |
+| **critical** | queue.critical | Immediate Fleet Manager dispatch | collision, rollover              |
+| **high**     | queue.high     | Real-time alert + coaching       | harsh_brake, vehicle_offline     |
+| **medium**   | queue.medium   | Batched coaching                 | speeding                         |
+| **low**      | queue.low      | Analytics only                   | excessive_idle, normal_operation |
 
 #### Technology Stack
 
@@ -151,11 +151,10 @@ Small-to-medium truck fleet operators (50-200 vehicles) currently use basic tele
 | **Fairness & Bias**     | AIF360 (IBM)          | Industry-standard fairness auditing, reweighting      |
 | **Explainability**      | SHAP + LIME           | Feature importance (global + local)                   |
 | **ML Model**            | XGBoost               | Fast, interpretable, handles missing data             |
-| **Async Framework**     | FastAPI               | Production-grade async Python framework               |
-| **Task Queue**          | Celery + Redis        | Distributed task execution, priority queuing          |
-| **Database**            | PostgreSQL + pgvector | ACID compliance, JSONB, schema segregation per agent, vector search   |
-| **Streaming**           | Apache Kafka          | High-throughput event bus, durability                 |
-| **ML Tracking**         | MLflow                | Model versioning, metrics logging                     |
+| **Async Framework**     | FastAPI               | Production-grade async Python framework                                     |
+| **Task Queue & Events** | Celery + Redis        | Priority queuing, event routing, async task execution, Redis Streams replay |
+| **Database**            | PostgreSQL + pgvector | ACID compliance, JSONB, schema segregation per agent, vector search         |
+| **ML Tracking**         | MLflow                | Model versioning, metrics logging                                           |
 | **LLM Integration**     | OpenAI API            | Enrichment and Reasoning                              |
 | **Type Safety**         | Pydantic              | Input validation, schema enforcement                  |
 | **Testing**             | pytest                | Unit + integration tests, fixtures                    |

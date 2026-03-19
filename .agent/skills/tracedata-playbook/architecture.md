@@ -72,7 +72,7 @@ TraceData uses a **Direct Persistence & Agentic Reasoning** model for telemetry:
 
 - Never assume data is immediately available; handle async loading states
 - Telematics batches arrive every 4–10 minutes; refresh metrics accordingly
-- Safety-critical alerts come via WebSocket from Kafka; display immediately with sub-500ms latency
+- Safety-critical alerts come via WebSocket, pushed by the Celery `queue.critical` worker upon event processing; display immediately with sub-500ms latency
 
 ## Context Enrichment (MCP)
 
