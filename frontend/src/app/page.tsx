@@ -1,95 +1,64 @@
+"use client";
+
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import {
   ArrowRight,
-  BarChart3,
-  Gauge,
+  Bolt,
   GitBranch,
+  Lock,
   Network,
+  PlayCircle,
   Scale,
+  Settings2,
   Shield,
-  Siren,
-  Sparkles,
   Workflow,
 } from "lucide-react";
 
-const agents = [
-  {
-    title: "Safety Agent",
-    description:
-      "Monitors hard braking, overspeed, and collision proximity in real-time.",
-    icon: Shield,
-  },
-  {
-    title: "Fairness Agent",
-    description: "Audits assignment logic for equitable workload distribution.",
-    icon: Scale,
-  },
-  {
-    title: "Context Agent",
-    description:
-      "Correlates traffic, weather, and route context with driving behavior.",
-    icon: Workflow,
-  },
-  {
-    title: "Performance Agent",
-    description:
-      "Optimizes route execution, fuel efficiency, and fleet throughput.",
-    icon: Gauge,
-  },
-  {
-    title: "Compliance Agent",
-    description:
-      "Automates audit trails and policy-grade reporting for each trip.",
-    icon: Siren,
-  },
-  {
-    title: "Integrity Agent",
-    description:
-      "Detects telemetry anomalies and potential data tampering patterns.",
-    icon: Sparkles,
-  },
-  {
-    title: "Network Agent",
-    description:
-      "Maintains resilient edge-to-cloud synchronization for connected fleets.",
-    icon: Network,
-  },
-  {
-    title: "Analytics Agent",
-    description:
-      "Synthesizes fleet-wide trends for operational and strategic insights.",
-    icon: BarChart3,
-  },
-];
-
 export default function HomePage() {
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 100);
+    onScroll();
+    window.addEventListener("scroll", onScroll);
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   return (
-    <div className="min-h-screen bg-[#0c1030] text-[#dfe0ff]">
+    <div className="min-h-screen overflow-x-hidden bg-[#0c1030] text-[#dfe0ff]">
       <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_15%_20%,rgba(112,210,255,0.18),transparent_28%),radial-gradient(circle_at_80%_0%,rgba(192,128,255,0.14),transparent_30%)]" />
 
-      <nav className="sticky top-0 z-50 border-b border-[#3d484f]/30 bg-[#0c1030]/90 backdrop-blur">
+      <nav
+        className={`fixed top-0 z-50 w-full border-b border-[#3d484f]/30 bg-[#0c1030]/85 shadow-[0_20px_40px_rgba(7,10,43,0.4)] backdrop-blur-xl transition-transform duration-500 ${
+          scrolled ? "translate-y-0" : "-translate-y-full"
+        }`}
+      >
         <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between px-6">
-          <div className="flex items-center gap-6">
-            <p className="text-xl font-bold tracking-tighter text-[#70d2ff]">
+          <div className="flex items-center gap-8">
+            <p className="bg-gradient-to-r from-[#70d2ff] to-[#00aadd] bg-clip-text text-xl font-bold tracking-tighter text-transparent">
               TraceData
             </p>
-            <div className="hidden gap-6 text-sm md:flex">
+            <div className="hidden items-center gap-6 text-sm font-medium md:flex">
               <a className="border-b-2 border-[#70d2ff] pb-1 text-[#70d2ff]">
-                Platform
+                Explorer
               </a>
-              <a className="text-[#bdc8d0] hover:text-white">Docs</a>
+              <a className="text-[#bdc8d0] hover:text-[#70d2ff]">Metrics</a>
+              <a className="text-[#bdc8d0] hover:text-[#70d2ff]">Logs</a>
+              <a className="text-[#bdc8d0] hover:text-[#70d2ff]">Traces</a>
+              <a className="text-[#bdc8d0] hover:text-[#70d2ff]">Docs</a>
             </div>
           </div>
           <div className="flex items-center gap-3">
             <Link
               href="/login"
-              className="rounded-lg px-4 py-2 text-sm text-[#bdc8d0] transition-colors hover:text-white"
+              className="rounded-md px-4 py-2 text-sm font-bold text-[#70d2ff] transition-colors hover:bg-[#191d3d]/50"
             >
-              Login
+              Sign In
             </Link>
             <Link
               href="/login"
-              className="rounded-lg bg-gradient-to-br from-[#70d2ff] to-[#00aadd] px-5 py-2 text-sm font-semibold text-[#003547] transition-opacity hover:opacity-90"
+              className="rounded-md bg-gradient-to-r from-[#70d2ff] to-[#00aadd] px-5 py-2 text-sm font-bold text-[#003547] transition active:scale-95"
             >
               Get Started
             </Link>
@@ -97,306 +66,423 @@ export default function HomePage() {
         </div>
       </nav>
 
-      <header className="relative overflow-hidden pt-14">
-        <div className="mx-auto grid w-full max-w-7xl grid-cols-1 gap-12 px-6 pb-24 pt-10 lg:grid-cols-2 lg:items-center">
-          <div className="space-y-8">
-            <div className="inline-flex items-center gap-2 rounded-full border border-[#70d2ff]/25 bg-[#2792ff]/15 px-3 py-1 text-xs uppercase tracking-[0.18em] text-[#70d2ff]">
-              <span className="relative flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#70d2ff] opacity-75" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-[#70d2ff]" />
-              </span>
-              Live Deployment v4.2.0
-            </div>
+      <header className="relative flex h-screen w-full items-center justify-center overflow-hidden">
+        <div className="absolute inset-0 z-0">
+          <img
+            className="h-full w-full object-cover"
+            src="https://lh3.googleusercontent.com/aida-public/AB6AXuDmkACo10rop2Bl4ilYFrSJhEvf8ASFWs6diqb_3PL9TT3J9Rt-5uDzF4fVJfr16v8uoMwSTbt3OiyTQO_t9tjkhXu_br3ON7HMle5cpwzPysXChfdMxtnwOsM5rU1cRsA-Yzv_S7wrfjcKQhRRq9q1XQok-VyVTRMxx4iCpLqEnM9h8hH-LLUKeoisv3fu2NgtbkbNUDMWTPr3Zv28EU5ns8WYpwsfhV99FINgpWI-heh5QTXUO-ziO_wJAmby7F1JtANcBAiPvY7F"
+            alt="Cinematic wide shot of a high-tech semi-truck on highway with glowing data beam"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#0c1030] via-[#0c1030]/60 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#0c1030]" />
+        </div>
 
-            <h1 className="text-5xl font-black leading-[0.95] tracking-tight text-white md:text-7xl">
-              Intelligent
-              <br />
-              <span className="bg-gradient-to-r from-[#70d2ff] via-[#70d2ff] to-[#a5c8ff] bg-clip-text text-transparent">
-                Fleet Orchestration
-              </span>
-            </h1>
-
-            <p className="max-w-xl text-base leading-relaxed text-[#bdc8d0] md:text-lg">
-              Decentralized, agent-driven observability for logistics. Real-time
-              event streams meet explainable analytics to automate fleet safety,
-              fairness, and performance.
-            </p>
-
-            <div className="flex flex-wrap gap-4 pt-2">
-              <Link
-                href="/fleet-manager"
-                className="inline-flex items-center gap-2 rounded-xl bg-[#70d2ff] px-7 py-4 font-bold text-[#003547] transition hover:brightness-110"
-              >
-                Launch Dashboard
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-              <Link
-                href="/login"
-                className="rounded-xl border border-[#3d484f]/40 bg-[#2e3253] px-7 py-4 font-bold text-[#dfe0ff] transition hover:bg-[#333758]"
-              >
-                Open Login
-              </Link>
-            </div>
+        <div className="relative z-10 mx-auto max-w-5xl px-6 text-center">
+          <div className="mb-6 inline-block rounded-full border border-[#70d2ff]/30 bg-[#70d2ff]/10 px-4 py-1">
+            <span className="text-xs uppercase tracking-[0.2em] text-[#70d2ff]">
+              Mission Control Alpha v2.4
+            </span>
           </div>
-
-          <div className="hidden lg:block">
-            <div className="rounded-xl border border-[#3d484f]/40 bg-[#191d3d]/70 p-6 shadow-2xl backdrop-blur">
-              <div className="mb-4 flex items-center justify-between border-b border-[#3d484f]/35 pb-4">
-                <span className="text-xs uppercase tracking-[0.16em] text-[#70d2ff]">
-                  system_status: stable
-                </span>
-                <div className="flex gap-1">
-                  <div className="h-2 w-2 rounded-full bg-[#ffb4ab]" />
-                  <div className="h-2 w-2 rounded-full bg-[#ddb7ff]" />
-                  <div className="h-2 w-2 rounded-full bg-[#70d2ff]" />
-                </div>
-              </div>
-              <div className="space-y-3">
-                <div className="h-4 w-3/4 rounded-full bg-[#151939]" />
-                <div className="h-4 w-full rounded-full bg-[#151939]" />
-                <div className="h-4 w-1/2 rounded-full bg-[#151939]" />
-                <div className="grid grid-cols-3 gap-2 pt-4">
-                  <div className="rounded-lg border border-[#70d2ff]/25 bg-[#70d2ff]/10 p-3 text-center">
-                    <p className="text-xl font-bold text-[#70d2ff]">99.9%</p>
-                    <p className="text-[10px] uppercase text-[#bdc8d0]">
-                      Uptime
-                    </p>
-                  </div>
-                  <div className="rounded-lg border border-[#a5c8ff]/25 bg-[#2792ff]/15 p-3 text-center">
-                    <p className="text-xl font-bold text-[#a5c8ff]">12ms</p>
-                    <p className="text-[10px] uppercase text-[#bdc8d0]">
-                      Latency
-                    </p>
-                  </div>
-                  <div className="rounded-lg border border-[#ddb7ff]/25 bg-[#c080ff]/15 p-3 text-center">
-                    <p className="text-xl font-bold text-[#ddb7ff]">2.4k</p>
-                    <p className="text-[10px] uppercase text-[#bdc8d0]">
-                      Agents
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
+          <h1 className="mb-8 text-5xl font-black tracking-tighter text-[#dfe0ff] md:text-7xl lg:text-8xl">
+            Intelligent Fleet
+            <br />
+            <span className="bg-gradient-to-r from-[#70d2ff] via-[#a5c8ff] to-[#00aadd] bg-clip-text text-transparent">
+              Orchestration
+            </span>
+          </h1>
+          <p className="mx-auto mb-12 max-w-3xl text-lg font-light leading-relaxed text-[#bdc8d0] md:text-2xl">
+            The architectural lens for autonomous logistics. Real-time
+            decisioning, 8-agent neural integrity, and Kafka-driven scale.
+          </p>
+          <div className="flex flex-col items-center justify-center gap-4 md:flex-row">
+            <Link
+              href="/login"
+              className="group inline-flex items-center rounded-lg bg-gradient-to-r from-[#70d2ff] to-[#00aadd] px-8 py-4 text-lg font-bold text-[#003547] shadow-xl transition hover:shadow-[#70d2ff]/20"
+            >
+              Get Started
+              <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
+            </Link>
+            <Link
+              href="/fleet-manager"
+              className="inline-flex items-center rounded-lg border border-[#3d484f]/40 px-8 py-4 text-lg font-bold text-[#bdc8d0] transition hover:bg-[#232748]"
+            >
+              <PlayCircle className="mr-2 h-5 w-5" />
+              Watch Demo
+            </Link>
           </div>
+        </div>
+
+        <div className="absolute bottom-12 left-1/2 z-10 -translate-x-1/2 opacity-40">
+          <p className="mb-4 text-[10px] uppercase tracking-[0.3em]">
+            Scroll to Discover
+          </p>
+          <div className="mx-auto h-12 w-px bg-gradient-to-b from-[#70d2ff] to-transparent" />
         </div>
       </header>
 
-      <section className="bg-[#151939] py-24">
-        <div className="mx-auto w-full max-w-7xl px-6">
-          <h2 className="mb-4 text-4xl font-bold tracking-tight text-white">
-            8-Agent Ecosystem
-          </h2>
-          <p className="mb-14 max-w-2xl text-[#bdc8d0]">
-            The architectural lens into your fleet&apos;s cognitive structure.
-            Each agent monitors a critical dimension of operational performance.
-          </p>
-          <div className="grid grid-cols-1 gap-px bg-[#3d484f]/25 md:grid-cols-2 lg:grid-cols-4">
-            {agents.map((agent) => (
-              <div
-                key={agent.title}
-                className="border border-[#3d484f]/10 bg-[#191d3d] p-7 transition-colors hover:bg-[#232748]"
-              >
-                <agent.icon className="mb-4 h-5 w-5 text-[#70d2ff]" />
-                <h3 className="mb-2 text-lg font-bold text-white">
-                  {agent.title}
-                </h3>
-                <p className="text-sm text-[#bdc8d0]">{agent.description}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="py-28">
-        <div className="mx-auto grid w-full max-w-7xl grid-cols-1 gap-16 px-6 lg:grid-cols-2 lg:items-center">
-          <div className="rounded-2xl border border-[#3d484f]/35 bg-[#191d3d]/70 p-8 backdrop-blur">
-            <div className="mb-8 flex items-center justify-between">
-              <p className="text-xs uppercase tracking-[0.18em] text-[#70d2ff]">
-                Model Explanation: SHAP Deep Dive
-              </p>
-              <GitBranch className="h-5 w-5 text-[#bdc8d0]" />
+      <section className="bg-[#0c1030] px-6 py-28 md:px-12">
+        <div className="mx-auto max-w-7xl">
+          <div className="mb-16 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+            <div className="max-w-xl">
+              <span className="mb-4 block text-sm uppercase tracking-[0.2em] text-[#70d2ff]">
+                The Neural Backbone
+              </span>
+              <h2 className="text-5xl font-extrabold tracking-tight text-[#dfe0ff]">
+                The 8-Agent Ecosystem
+              </h2>
             </div>
-            <div className="space-y-6">
-              <div className="flex items-end gap-3">
-                <div className="h-28 w-10 rounded-t bg-[#70d2ff]/30" />
-                <div className="h-44 w-10 rounded-t bg-[#70d2ff]" />
-                <div className="h-24 w-10 rounded-t bg-[#ddb7ff]" />
-                <div className="h-36 w-10 rounded-t bg-[#70d2ff]/55" />
-              </div>
-              <div className="space-y-3 border-t border-[#3d484f]/35 pt-4 text-sm">
-                <div className="flex items-center justify-between">
-                  <span className="text-[#bdc8d0]">Speed Deviation</span>
-                  <span className="font-semibold text-[#70d2ff]">
-                    HIGH IMPACT
-                  </span>
-                </div>
-                <div className="h-2 overflow-hidden rounded-full bg-[#070a2b]">
-                  <div className="h-full w-3/4 bg-[#70d2ff]" />
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-[#bdc8d0]">Weather Context</span>
-                  <span className="font-semibold text-[#a5c8ff]">NEUTRAL</span>
-                </div>
-                <div className="h-2 overflow-hidden rounded-full bg-[#070a2b]">
-                  <div className="h-full w-1/4 bg-[#a5c8ff]/60" />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="space-y-6">
-            <h2 className="text-4xl font-extrabold leading-tight text-white md:text-5xl">
-              Meet the Brain:
-              <br />
-              <span className="text-[#70d2ff]">Predictive Orchestration.</span>
-            </h2>
-            <p className="text-lg text-[#bdc8d0]">
-              TraceData does not just collect logs. It explains why outcomes are
-              produced through a streaming intelligence pipeline.
+            <p className="max-w-sm text-lg font-light text-[#bdc8d0] md:text-right">
+              Distributed intelligence modules working in synchronicity for
+              fleet-wide safety and efficiency.
             </p>
-            <div className="space-y-4">
-              <div className="rounded-xl border border-[#3d484f]/25 bg-[#191d3d]/70 p-4">
-                <p className="font-bold text-white">SHAP-based Metrics</p>
-                <p className="text-sm text-[#bdc8d0]">
-                  Understand exact feature weights behind every safety score.
-                </p>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+            <div className="rounded-xl bg-[#151939] p-8 transition hover:bg-[#191d3d] md:col-span-2 md:row-span-2">
+              <div className="mb-6 inline-flex h-12 w-12 items-center justify-center rounded-full bg-[#70d2ff]/10">
+                <Shield className="h-5 w-5 text-[#70d2ff]" />
               </div>
-              <div className="rounded-xl border border-[#3d484f]/25 bg-[#191d3d]/70 p-4">
-                <p className="font-bold text-white">Real-time Processing</p>
-                <p className="text-sm text-[#bdc8d0]">
-                  Sub-millisecond event detection and automated escalation.
-                </p>
+              <h3 className="mb-4 text-2xl font-bold text-[#dfe0ff]">
+                Safety Agent
+              </h3>
+              <p className="leading-relaxed text-[#bdc8d0]">
+                Continuous risk assessment using multi-modal sensor fusion.
+                Predictive braking and collision avoidance run at the edge.
+              </p>
+              <div className="mt-10 rounded-lg bg-[#070a2b] p-4 text-xs text-[#70d2ff]/80">
+                &gt; PROCESS: assess_gradient_vector()
+                <br />
+                &gt; STATUS: ACTIVE_PROTECTION_ENABLED
+              </div>
+            </div>
+
+            <div className="rounded-xl bg-[#151939] p-7 transition hover:bg-[#191d3d]">
+              <Scale className="mb-5 h-7 w-7 text-[#a5c8ff]" />
+              <h3 className="mb-3 text-xl font-bold">Fairness</h3>
+              <p className="text-sm text-[#bdc8d0]">
+                Algorithmic load balancing to prevent bias and operator burnout.
+              </p>
+            </div>
+            <div className="rounded-xl bg-[#151939] p-7 transition hover:bg-[#191d3d]">
+              <Network className="mb-5 h-7 w-7 text-[#ddb7ff]" />
+              <h3 className="mb-3 text-xl font-bold">Context</h3>
+              <p className="text-sm text-[#bdc8d0]">
+                Dynamic awareness mapping weather, traffic, and route
+                conditions.
+              </p>
+            </div>
+            <div className="rounded-xl bg-[#151939] p-7 transition hover:bg-[#191d3d]">
+              <Bolt className="mb-5 h-7 w-7 text-[#00aadd]" />
+              <h3 className="mb-3 text-xl font-bold">Efficiency</h3>
+              <p className="text-sm text-[#bdc8d0]">
+                Fuel and route optimization with fleet-aware orchestration.
+              </p>
+            </div>
+            <div className="rounded-xl bg-[#151939] p-7 transition hover:bg-[#191d3d]">
+              <Lock className="mb-5 h-7 w-7 text-[#ddb7ff]" />
+              <h3 className="mb-3 text-xl font-bold">Security</h3>
+              <p className="text-sm text-[#bdc8d0]">
+                Secure edge communication and trusted execution guarantees.
+              </p>
+            </div>
+
+            <div className="md:col-span-2 grid grid-cols-2 gap-4">
+              <div className="rounded-xl bg-[#151939] p-7 transition hover:bg-[#191d3d]">
+                <h3 className="mb-2 text-lg font-bold">Ethics</h3>
+                <div className="mt-4 h-1 w-full overflow-hidden rounded-full bg-[#3d484f]/40">
+                  <div className="h-full w-full bg-[#a5c8ff]" />
+                </div>
+              </div>
+              <div className="rounded-xl bg-[#151939] p-7 transition hover:bg-[#191d3d]">
+                <h3 className="mb-2 text-lg font-bold">Resilience</h3>
+                <div className="mt-4 h-1 w-full overflow-hidden rounded-full bg-[#3d484f]/40">
+                  <div className="h-full w-full bg-[#00aadd]" />
+                </div>
+              </div>
+              <div className="col-span-2 flex items-center justify-between rounded-xl bg-[#151939] p-7 transition hover:bg-[#191d3d]">
+                <div>
+                  <h3 className="text-lg font-bold">Diagnostics Agent</h3>
+                  <p className="text-sm text-[#bdc8d0]">
+                    Self-healing predictive maintenance.
+                  </p>
+                </div>
+                <Settings2 className="h-5 w-5 text-[#bdc8d0]" />
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      <section className="border-y border-[#3d484f]/20 bg-[#151939] py-24">
-        <div className="mx-auto grid w-full max-w-7xl grid-cols-1 gap-10 px-6 lg:grid-cols-3">
-          <div>
-            <h2 className="mb-4 text-4xl font-bold text-white">
+      <section className="overflow-hidden bg-[#070a2b] px-6 py-32 md:px-12">
+        <div className="mx-auto grid max-w-7xl grid-cols-1 items-center gap-16 lg:grid-cols-12">
+          <div className="relative lg:col-span-5">
+            <div className="absolute -left-16 -top-16 h-64 w-64 rounded-full bg-[#70d2ff]/10 blur-[100px]" />
+            <span className="mb-4 block text-sm uppercase tracking-[0.2em] text-[#70d2ff]">
+              Deep Tech Stack
+            </span>
+            <h2 className="mb-8 text-5xl font-black tracking-tighter leading-none">
+              Mission Control
+              <br />
+              Explainability
+            </h2>
+            <p className="mb-8 text-lg leading-relaxed text-[#bdc8d0]">
+              TraceData does not just act. It explains every outcome using
+              SHAP-driven interpretability and event-stream intelligence.
+            </p>
+            <ul className="space-y-5">
+              <li className="flex items-start gap-4">
+                <div className="rounded-md bg-[#70d2ff]/20 p-2">
+                  <Workflow className="h-4 w-4 text-[#70d2ff]" />
+                </div>
+                <div>
+                  <p className="font-bold">Kafka-Driven Orchestration</p>
+                  <p className="text-sm text-[#bdc8d0]">
+                    Sub-millisecond event latency for live fleet updates.
+                  </p>
+                </div>
+              </li>
+              <li className="flex items-start gap-4">
+                <div className="rounded-md bg-[#a5c8ff]/20 p-2">
+                  <GitBranch className="h-4 w-4 text-[#a5c8ff]" />
+                </div>
+                <div>
+                  <p className="font-bold">SHAP Value Attribution</p>
+                  <p className="text-sm text-[#bdc8d0]">
+                    Transparent feature influence for each decision path.
+                  </p>
+                </div>
+              </li>
+            </ul>
+          </div>
+
+          <div className="lg:col-span-7">
+            <div className="rounded-2xl border border-[#3d484f]/20 bg-[#232748] p-4 shadow-2xl">
+              <div className="mb-4 flex items-center justify-between px-2">
+                <div className="flex gap-1.5">
+                  <div className="h-3 w-3 rounded-full bg-[#ffb4ab]/40" />
+                  <div className="h-3 w-3 rounded-full bg-[#a5c8ff]/40" />
+                  <div className="h-3 w-3 rounded-full bg-[#70d2ff]/40" />
+                </div>
+                <p className="text-[10px] uppercase tracking-[0.2em] text-[#bdc8d0]/70">
+                  Live Explainability Feed
+                </p>
+              </div>
+              <div className="relative aspect-video overflow-hidden rounded-xl bg-[#151939]">
+                <img
+                  className="h-full w-full object-cover opacity-55 grayscale transition duration-700 hover:grayscale-0"
+                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuCWFnGNuyZQNfXMSZnEr5350Lej79-PItNK_hVzMWatAmrOOytEvLa6CuyD7t1R_deSXI66vMIwQO4ivD5x6PmvFj7yJad97HQ8ouLXRZAbkWeiMRUpPX9Pp5T955VTBUdltb5p8kxvcshJmtVB5qD2sgtOrFPDezhpB9PYyXrOOPsrLTK3FJa0bKJECQ1igM910LQFO_vvb_uWTSRF_CIr_NiBlAqJ4f9ac1UOURWfglbVzGnlBJQ7muupLiTbpaH9BCezIEfaYaEF"
+                  alt="Technical data visualization dashboard with SHAP graphs and fleet status"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#070a2b] via-transparent to-transparent" />
+                <div className="absolute bottom-6 left-6 right-6 flex items-end justify-between">
+                  <div className="space-y-1 text-[10px] text-[#70d2ff]">
+                    <p>LATENCY: 12ms</p>
+                    <p>JITTER: 0.02ms</p>
+                    <p>NODE_ID: TR-808</p>
+                  </div>
+                  <div className="rounded-lg border border-[#70d2ff]/30 bg-[#70d2ff]/20 p-4 backdrop-blur-md">
+                    <p className="mb-2 text-[10px] uppercase text-[#70d2ff]">
+                      SHAP Influence
+                    </p>
+                    <div className="flex h-8 items-end gap-2">
+                      <div className="h-full w-2 bg-[#70d2ff]" />
+                      <div className="h-4 w-2 bg-[#70d2ff]" />
+                      <div className="h-6 w-2 bg-[#70d2ff]" />
+                      <div className="h-2 w-2 bg-[#70d2ff]" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="bg-[#0c1030] px-6 py-28 md:px-12">
+        <div className="mx-auto flex max-w-7xl flex-col items-center gap-16 md:flex-row">
+          <div className="order-2 w-full md:order-1 md:w-1/2">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="rounded-xl border-l-4 border-[#a5c8ff] bg-[#151939] p-6">
+                <h4 className="mb-2 font-bold">Direct Appeals</h4>
+                <p className="text-xs text-[#bdc8d0]">
+                  Instant override capability for human operators in edge cases.
+                </p>
+              </div>
+              <div className="rounded-xl border-l-4 border-[#ddb7ff] bg-[#151939] p-6">
+                <h4 className="mb-2 font-bold">Post-Action Coaching</h4>
+                <p className="text-xs text-[#bdc8d0]">
+                  Intervention data continuously improves agent logic.
+                </p>
+              </div>
+              <div className="col-span-2 flex items-center justify-between rounded-xl bg-[#151939] p-8">
+                <div>
+                  <h3 className="text-xl font-bold">Operator Dashboard</h3>
+                  <p className="mt-2 text-sm text-[#bdc8d0]">
+                    Machines ask for permission, not forgiveness.
+                  </p>
+                </div>
+                <button className="rounded bg-[#3d484f]/30 px-4 py-2 text-xs uppercase tracking-[0.16em] transition hover:bg-[#3d484f]/45">
+                  Launch Shell
+                </button>
+              </div>
+            </div>
+          </div>
+          <div className="order-1 w-full md:order-2 md:w-1/2">
+            <div className="mb-8 flex items-center justify-between">
+              <span className="text-sm uppercase tracking-[0.2em] text-[#70d2ff]">
+                The Integrity Layer
+              </span>
+            </div>
+            <h2 className="mb-8 text-5xl font-black tracking-tighter">
               Human-in-the-Loop
             </h2>
-            <p className="mb-8 text-[#bdc8d0]">
-              Keep human expertise in every critical decision pathway.
+            <p className="text-lg text-[#bdc8d0]">
+              Complex maneuvers are flagged for human oversight in real-time to
+              preserve accountability and control.
             </p>
-            <div className="inline-flex flex-col gap-2 rounded-xl border border-[#ddb7ff]/25 bg-[#c080ff]/10 p-4">
-              <span className="text-xs font-bold uppercase tracking-[0.14em] text-[#ddb7ff]">
-                Active Interventions
+            <div className="mt-8 flex items-center gap-4">
+              <div className="flex -space-x-3">
+                <img
+                  className="h-10 w-10 rounded-full border-2 border-[#0c1030] object-cover"
+                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuAVpEexdcfJyIwB0ipJOiqAj-NulcQDxstVnkNO7Mmxu-Zo933WVl5y7-OvNqqKMmn6TOvEzgAmDIOlTYvppBDSgkC9VoBibB-yUB8IgmD-Xrmi88scdtbEBt72WV0Y-2FOCJGxFYwdgBFSHTb1G87as-ou0_g_U8_KvnioDPCLu3b4ZjAUy1_YoabpBapNrtcQuUklxlDndERkHbxmRWOPet3Ku2jK5MifsR15xWhZfrWpzkwjY4CEHpUyZusHh1KRuVfdr5ckovy7"
+                  alt="Operator 1"
+                />
+                <img
+                  className="h-10 w-10 rounded-full border-2 border-[#0c1030] object-cover"
+                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuCox4zHJkZyBu2N9ha09xeXdRRLEM_Mt9PgOfVORU3tubHE_IRe12t4a-bWt5XxWTjVNdvsk24zfttDTJ5UA0MZYs0RZ5mwFAa2l5qvSYDhA3GGXSFP6k_FPZMAjPOOZRMljAB9PNWBCt_oluHzrcpSwMSOsXH0c3IWcVn4kwXzOm3msM7icj7vNubucSIJ0lm2NNJFpVsgQA7Rg9Ds--K3M8n-A9-wpDIUTeXZ7ptUI8DQECRr9AD3l9jXvuToxZaIbDuJn10OIucg"
+                  alt="Operator 2"
+                />
+                <img
+                  className="h-10 w-10 rounded-full border-2 border-[#0c1030] object-cover"
+                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuAUGO6nGpl5zz34QxqpMGCqD506uFz34LeVIjiUzUW5k3qSDJW_3gonqac5AZ9QbgLxo7eak4ch-6wHYbXvODjRKoGu_qPJ5uDU44jK7D4sermunGaMceglqS737-eXFCVbndkSYAuOSS4K8MO-RX08UX13Ec-X6kaT4D8QsnezekGtOaYhpATvxOK5Ik3BH-8EQgm_iRcINqQxK2L0-6q4P7YRoXiCfF5GHxjye6Td0Q_gHOBEaZxtlosTjnZRWordk3WS4R9mz4xH"
+                  alt="Operator 3"
+                />
+              </div>
+              <p className="text-sm text-[#bdc8d0]">
+                Trusted by 2,000+ logistics supervisors worldwide.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="bg-[#070a2b] px-6 py-28 md:px-12">
+        <div className="mx-auto max-w-7xl">
+          <div className="mb-20 text-center">
+            <h2 className="mb-4 text-4xl font-black uppercase tracking-[0.12em]">
+              Technical Specifications
+            </h2>
+            <div className="mx-auto h-1 w-24 bg-[#70d2ff]" />
+          </div>
+          <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
+            <div className="border-t border-[#3d484f]/20 p-8">
+              <span className="mb-4 block text-xs uppercase tracking-[0.18em] text-[#70d2ff]">
+                Ingress
               </span>
-              <span className="text-3xl font-black text-white">482</span>
+              <h4 className="mb-4 text-xl font-bold">Scalable Data Flows</h4>
+              <p className="text-sm leading-relaxed text-[#bdc8d0]">
+                Built on Kafka foundations, handling millions of telemetry
+                events per second.
+              </p>
             </div>
-          </div>
-          <div className="rounded-2xl border border-[#3d484f]/20 bg-[#191d3d] p-8">
-            <h3 className="mb-3 text-xl font-bold text-white">
-              Appeals Workflow
-            </h3>
-            <p className="text-sm leading-relaxed text-[#bdc8d0]">
-              Drivers can challenge automated scores through an auditable,
-              context-rich review flow.
-            </p>
-          </div>
-          <div className="rounded-2xl border border-[#3d484f]/20 bg-[#191d3d] p-8">
-            <h3 className="mb-3 text-xl font-bold text-white">
-              Expert Interventions
-            </h3>
-            <p className="text-sm leading-relaxed text-[#bdc8d0]">
-              Override route decisions for edge cases while preserving full
-              traceability.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      <section className="py-28">
-        <div className="mx-auto w-full max-w-7xl px-6">
-          <p className="mb-3 text-center text-xs uppercase tracking-[0.22em] text-[#70d2ff]">
-            Architecture and Integration
-          </p>
-          <h2 className="mb-12 text-center text-4xl font-extrabold text-white">
-            Built for Scalable Data Flows
-          </h2>
-          <div className="grid grid-cols-1 overflow-hidden rounded-2xl border border-[#3d484f]/25 bg-[#3d484f]/20 lg:grid-cols-2">
-            <div className="bg-[#0c1030] p-10">
-              <h3 className="mb-6 flex items-center gap-3 text-2xl font-bold text-white">
-                <Workflow className="h-6 w-6 text-[#70d2ff]" />
-                Data Flow
-              </h3>
-              <div className="space-y-3 text-sm">
-                <div className="rounded border border-[#3d484f]/25 bg-[#070a2b] p-3 text-[#dfe0ff]">
-                  01 Ingest: Edge telemetry and sensors
-                </div>
-                <div className="rounded border border-[#3d484f]/25 bg-[#070a2b] p-3 text-[#dfe0ff]">
-                  02 Process: Agent cognitive layer
-                </div>
-                <div className="rounded border border-[#3d484f]/25 bg-[#070a2b] p-3 text-[#dfe0ff]">
-                  03 Egress: Kafka, webhook, and data warehouse
-                </div>
-              </div>
+            <div className="border-t border-[#3d484f]/20 p-8">
+              <span className="mb-4 block text-xs uppercase tracking-[0.18em] text-[#70d2ff]">
+                Compute
+              </span>
+              <h4 className="mb-4 text-xl font-bold">Edge Orchestration</h4>
+              <p className="text-sm leading-relaxed text-[#bdc8d0]">
+                Decisions happen on-vehicle through edge-native deployment.
+              </p>
             </div>
-            <div className="bg-[#0c1030] p-10">
-              <h3 className="mb-6 flex items-center gap-3 text-2xl font-bold text-white">
-                <Network className="h-6 w-6 text-[#a5c8ff]" />
-                System Integration
-              </h3>
-              <div className="space-y-3 text-sm text-[#bdc8d0]">
-                <div className="flex items-center justify-between border-b border-[#3d484f]/25 py-2">
-                  <span>API Version</span>
-                  <span className="text-[#a5c8ff]">v2.1.0-stable</span>
-                </div>
-                <div className="flex items-center justify-between border-b border-[#3d484f]/25 py-2">
-                  <span>Auth Method</span>
-                  <span className="text-[#a5c8ff]">OAuth2 / PKI</span>
-                </div>
-                <div className="flex items-center justify-between border-b border-[#3d484f]/25 py-2">
-                  <span>Cloud Support</span>
-                  <span className="text-[#a5c8ff]">AWS, GCP, Azure</span>
-                </div>
-              </div>
+            <div className="border-t border-[#3d484f]/20 p-8">
+              <span className="mb-4 block text-xs uppercase tracking-[0.18em] text-[#70d2ff]">
+                Interop
+              </span>
+              <h4 className="mb-4 text-xl font-bold">gRPC Native</h4>
+              <p className="text-sm leading-relaxed text-[#bdc8d0]">
+                Strongly typed low-latency communication across stack layers.
+              </p>
             </div>
           </div>
         </div>
       </section>
 
-      <section className="relative overflow-hidden py-24">
+      <section className="relative overflow-hidden bg-[#070a2b] px-6 py-36 md:px-12">
         <div className="absolute inset-0 bg-gradient-to-br from-[#70d2ff]/10 via-transparent to-[#ddb7ff]/10" />
-        <div className="relative mx-auto w-full max-w-4xl px-6 text-center">
-          <h2 className="mb-6 text-5xl font-black tracking-tight text-white">
-            Ready to orchestrate?
+        <div className="relative mx-auto w-full max-w-4xl text-center">
+          <h2 className="mb-12 text-5xl font-black tracking-tighter md:text-6xl">
+            Ready to Orchestrate?
           </h2>
-          <p className="mb-10 text-lg text-[#bdc8d0]">
-            Join modern fleet operators using TraceData to build safer, fairer,
-            and more efficient logistics networks.
-          </p>
           <div className="flex flex-col justify-center gap-4 sm:flex-row">
             <Link
               href="/login"
-              className="rounded-xl bg-[#70d2ff] px-10 py-5 font-bold text-[#003547] transition hover:scale-[1.01]"
+              className="rounded-md bg-gradient-to-r from-[#70d2ff] to-[#00aadd] px-12 py-5 text-xl font-black uppercase tracking-tight text-[#003547]"
             >
-              Get Started Today
+              Deploy Now
             </Link>
             <Link
               href="/login"
-              className="rounded-xl border border-[#3d484f]/30 bg-[#2e3253] px-10 py-5 font-bold text-white transition hover:bg-[#333758]"
+              className="rounded-md border border-[#3d484f] bg-transparent px-12 py-5 text-xl font-black uppercase tracking-tight text-[#dfe0ff] transition hover:bg-[#151939]"
             >
-              Talk to Engineering
+              Request Specs
             </Link>
           </div>
         </div>
       </section>
 
-      <footer className="border-t border-[#3d484f]/20 bg-[#070a2b]">
-        <div className="mx-auto flex w-full max-w-7xl flex-col items-center justify-between gap-6 px-6 py-10 text-sm text-[#bdc8d0] md:flex-row">
-          <p>
-            <span className="font-bold text-[#70d2ff]">TraceData</span> | 2026
-            TraceData Command Center. The Architectural Lens.
-          </p>
-          <div className="flex gap-6">
-            <a className="transition-colors hover:text-white">Documentation</a>
-            <a className="transition-colors hover:text-white">System Status</a>
-            <a className="transition-colors hover:text-white">Security</a>
+      <footer className="border-t border-[#3d484f]/20 bg-[#070a2b] px-6 py-12 md:px-12">
+        <div className="mx-auto grid max-w-7xl grid-cols-2 gap-8 md:grid-cols-5">
+          <div className="col-span-2">
+            <p className="mb-4 text-lg font-black text-[#70d2ff]">TraceData</p>
+            <p className="max-w-xs text-xs uppercase tracking-[0.2em] text-[#bdc8d0]">
+              Built for the Architectural Lens. High-integrity fleet
+              intelligence.
+            </p>
           </div>
+          <div className="flex flex-col gap-4">
+            <span className="text-[10px] uppercase tracking-[0.2em] text-[#70d2ff]/60">
+              Platform
+            </span>
+            <a className="text-xs uppercase tracking-[0.16em] text-[#bdc8d0] hover:text-[#70d2ff]">
+              Explorer
+            </a>
+            <a className="text-xs uppercase tracking-[0.16em] text-[#bdc8d0] hover:text-[#70d2ff]">
+              Metrics
+            </a>
+            <a className="text-xs uppercase tracking-[0.16em] text-[#bdc8d0] hover:text-[#70d2ff]">
+              Status
+            </a>
+          </div>
+          <div className="flex flex-col gap-4">
+            <span className="text-[10px] uppercase tracking-[0.2em] text-[#70d2ff]/60">
+              Resources
+            </span>
+            <a className="text-xs uppercase tracking-[0.16em] text-[#bdc8d0] hover:text-[#70d2ff]">
+              Docs
+            </a>
+            <a className="text-xs uppercase tracking-[0.16em] text-[#bdc8d0] hover:text-[#70d2ff]">
+              Changelog
+            </a>
+            <a className="text-xs uppercase tracking-[0.16em] text-[#bdc8d0] hover:text-[#70d2ff]">
+              Security
+            </a>
+          </div>
+          <div className="flex flex-col gap-4">
+            <span className="text-[10px] uppercase tracking-[0.2em] text-[#70d2ff]/60">
+              Legal
+            </span>
+            <a className="text-xs uppercase tracking-[0.16em] text-[#bdc8d0] hover:text-[#70d2ff]">
+              Privacy
+            </a>
+            <a className="text-xs uppercase tracking-[0.16em] text-[#bdc8d0] hover:text-[#70d2ff]">
+              Terms
+            </a>
+          </div>
+        </div>
+        <div className="mx-auto mt-12 max-w-7xl border-t border-[#3d484f]/20 pt-8 text-center">
+          <p className="text-[10px] uppercase tracking-[0.3em] text-[#bdc8d0]">
+            2026 TraceData. All rights reserved.
+          </p>
         </div>
       </footer>
     </div>
