@@ -1,11 +1,12 @@
 ---
 name: reference-repos
 description: >
-  Permanent reference library of 6 GitHub repositories that MUST be consulted for every technical question.
+  Permanent reference library of 7 GitHub repositories that MUST be consulted for every technical question.
   These repos represent working reference implementations of LLM apps, multi-model routing, LLM evaluation
   (DeepEval, promptfoo), CI pipelines, observability, agentic AI course material (NUS-ISS), Docker/Kubernetes
-  deployment patterns, and multi-agent workflows. Always read relevant files from these repos before answering
-  coding questions, choosing patterns, or recommending approaches for the TraceData project.
+  deployment patterns, multi-agent workflows, and 734+ cybersecurity skills mapped to MITRE ATT&CK, OWASP,
+  and NIST CSF. Always read relevant files from these repos before answering coding questions, choosing
+  patterns, or recommending approaches for the TraceData project.
 ---
 
 # Reference Repository Library
@@ -149,23 +150,50 @@ Whenever you receive a question about code, architecture, testing, CI/CD, agents
   - `main.py`, `utils.py` — Entry point and utilities
 **Use for:** Canonical patterns for LangGraph state/nodes, orchestrator agent, MCP tools, Singapore-specific tool integration. Always prefer these patterns over generic tutorials.
 
+### 7. `sree-r-one/Anthropic-Cybersecurity-Skills` — 734+ Cybersecurity Skills Library
+**URL:** https://github.com/sree-r-one/Anthropic-Cybersecurity-Skills
+**What it is:** A curated library of **734+ cybersecurity skills** built to the [agentskills.io](https://agentskills.io) open standard. Each skill covers a specific security technique or threat analysis procedure, with MITRE ATT&CK, OWASP, and NIST CSF mappings. This is the user's own repo.
+**Structure:**
+- `skills/<skill-name>/SKILL.md` — Step-by-step skill instructions
+- `skills/<skill-name>/scripts/agent.py` — Python agent that executes the skill
+- `skills/<skill-name>/references/` — API references, standards, workflows for the skill
+- `mappings/mitre-attack/coverage-summary.md` — MITRE ATT&CK coverage across all skills
+- `mappings/owasp/README.md` — OWASP mapping
+- `mappings/nist-csf/csf-alignment.md` — NIST CSF alignment
+- `index.json` — Machine-readable index of all 734+ skills
+**Relevant skill categories for TraceData:**
+- **Log analysis**: `analyzing-api-gateway-access-logs`, `analyzing-security-logs-with-splunk`, `analyzing-linux-audit-logs-for-intrusion`, `analyzing-kubernetes-audit-logs`
+- **Network forensics**: `analyzing-network-traffic-for-incidents`, `analyzing-dns-logs-for-exfiltration`, `analyzing-network-flow-data-with-netflow`
+- **Container security**: `analyzing-docker-container-forensics`
+- **Threat intelligence**: `analyzing-threat-intelligence-feeds`, `analyzing-indicators-of-compromise`, `analyzing-apt-group-with-mitre-navigator`
+- **Cloud security**: `analyzing-azure-activity-logs-for-threats`, `analyzing-cloud-storage-access-patterns`
+**Use for:** Security incident analysis procedures, threat detection patterns, MITRE ATT&CK lookup, OWASP vulnerability reference, NIST CSF compliance. Fetch any skill with:
+`https://raw.githubusercontent.com/sree-r-one/Anthropic-Cybersecurity-Skills/main/skills/<skill-name>/SKILL.md`
+
 ---
 
 ## Quick Lookup Table
 
-| I need to...                         | Primary Repo          | Key File(s)                                      |
-| :----------------------------------- | :-------------------- | :----------------------------------------------- |
-| Build a FastAPI LLM service          | `llmapp`              | `llm-python/app/service/ai_service.py`           |
-| Route requests to different models   | `llmapp04`            | `llm-multiroute/app/router/model_router.py`      |
-| Write DeepEval LLM tests             | `llmapp04/05`         | `deepeval-tests/test_sentiment.py` (pattern)     |
-| Set up promptfoo prompt tests        | `llmapp04/05`         | `promptfoo-tests/sentiment.yaml`                 |
-| Set up GitHub Actions CI for Python  | `llmapp05`            | `.github/workflows/llm-multiroute-ci.yml`        |
-| Containerise a FastAPI service       | `llmapp05`            | `llm-multiroute/Dockerfile`                      |
-| Add observability/metrics to FastAPI | `llmapp06`            | `app/monitoring/metrics_store.py`                |
-| Add safety checking                  | `llmapp06`            | `app/monitoring/safety_checker.py`               |
-| Build multi-agent orchestration      | `gradingapp`          | `platform-backend/services/agent_client.py`      |
-| Stream LLM responses to frontend     | `gradingapp`          | `frontend/src/hooks/useEssayStream.js`           |
-| Implement MCP tool (Singapore)       | `agentic-ai-course`   | `3-module/d2l-mcp-demo-stdio.ipynb`              |
-| Build LangGraph orchestrator         | `agentic-ai-course`   | `3-workshop/agents/orchestrator.py`              |
-| Define LangGraph state               | `agentic-ai-course`   | `3-workshop/state.py`                            |
-| Get Singapore-specific tools         | `agentic-ai-course`   | `3-workshop/tools/singapore_weather.py`          |
+| I need to...                                  | Primary Repo                        | Key File(s)                                                       |
+| :-------------------------------------------- | :---------------------------------- | :---------------------------------------------------------------- |
+| Build a FastAPI LLM service                   | `llmapp`                            | `llm-python/app/service/ai_service.py`                            |
+| Route requests to different models            | `llmapp04`                          | `llm-multiroute/app/router/model_router.py`                       |
+| Write DeepEval LLM tests                      | `llmapp04/05`                       | `deepeval-tests/test_sentiment.py` (pattern)                      |
+| Set up promptfoo prompt tests                 | `llmapp04/05`                       | `promptfoo-tests/sentiment.yaml`                                  |
+| Set up GitHub Actions CI for Python           | `llmapp05`                          | `.github/workflows/llm-multiroute-ci.yml`                         |
+| Containerise a FastAPI service                | `llmapp05`                          | `llm-multiroute/Dockerfile`                                       |
+| Add observability/metrics to FastAPI          | `llmapp06`                          | `app/monitoring/metrics_store.py`                                 |
+| Add safety checking                           | `llmapp06`                          | `app/monitoring/safety_checker.py`                                |
+| Build multi-agent orchestration               | `gradingapp`                        | `platform-backend/services/agent_client.py`                       |
+| Stream LLM responses to frontend              | `gradingapp`                        | `frontend/src/hooks/useEssayStream.js`                            |
+| Implement MCP tool (Singapore)                | `agentic-ai-course`                 | `3-module/d2l-mcp-demo-stdio.ipynb`                               |
+| Build LangGraph orchestrator                  | `agentic-ai-course`                 | `3-workshop/agents/orchestrator.py`                               |
+| Define LangGraph state                        | `agentic-ai-course`                 | `3-workshop/state.py`                                             |
+| Get Singapore-specific tools                  | `agentic-ai-course`                 | `3-workshop/tools/singapore_weather.py`                           |
+| Analyse API/log security incidents            | `Anthropic-Cybersecurity-Skills`    | `skills/analyzing-api-gateway-access-logs/SKILL.md`               |
+| Detect DNS exfiltration                       | `Anthropic-Cybersecurity-Skills`    | `skills/analyzing-dns-logs-for-exfiltration/SKILL.md`             |
+| Analyse network traffic for threats           | `Anthropic-Cybersecurity-Skills`    | `skills/analyzing-network-traffic-for-incidents/SKILL.md`         |
+| Look up MITRE ATT&CK technique coverage       | `Anthropic-Cybersecurity-Skills`    | `mappings/mitre-attack/coverage-summary.md`                       |
+| Look up OWASP vulnerability mapping           | `Anthropic-Cybersecurity-Skills`    | `mappings/owasp/README.md`                                        |
+| Check NIST CSF alignment                      | `Anthropic-Cybersecurity-Skills`    | `mappings/nist-csf/csf-alignment.md`                              |
+| Analyse container/Docker security             | `Anthropic-Cybersecurity-Skills`    | `skills/analyzing-docker-container-forensics/SKILL.md`            |
