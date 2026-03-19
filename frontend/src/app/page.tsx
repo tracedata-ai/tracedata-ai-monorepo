@@ -5,10 +5,11 @@ import Link from "next/link";
 import { JetBrains_Mono, Manrope, Sora } from "next/font/google";
 import { useEffect, useState } from "react";
 import {
+  Activity,
   ArrowRight,
   Bolt,
+  Database,
   GitBranch,
-  Lock,
   Network,
   PlayCircle,
   Scale,
@@ -50,7 +51,7 @@ const homepageCopy = {
     titleLine1: "Fair, Explainable",
     titleAccent: "Fleet Intelligence",
     description:
-      "Built for SMB fleets, TraceData addresses 7 critical telematics gaps and address them with people first philosophy.",
+      "Built for SMB fleets, TraceData addresses 7 critical telematics gaps with a people-first philosophy.",
     primaryCta: "Get Started",
     secondaryCta: "View Fleet Manager",
     scrollHint: "Scroll for Architecture",
@@ -83,8 +84,14 @@ const homepageCopy = {
         title: "Sentiment Agent",
         body: "Tracks emotional trajectory using a rolling event window and escalates burnout risk alerts to fleet managers with recommended interventions.",
       },
-      coaching: "Tool Gateway: Context Enrichment",
-      context: "Tool Gateway: Ingestion Validation",
+      coaching: {
+        title: "Tool Gateway: Context Enrichment",
+        body: "Enriches every inbound event with driver history, route context, and environmental data before agent dispatch.",
+      },
+      context: {
+        title: "Tool Gateway: Ingestion Validation",
+        body: "Validates all incoming telemetry schema and filters malformed events before they reach the agent layer.",
+      },
       ingestion: {
         title: "Fairness-First Operations",
         body: "Core philosophy: fairness first, driver-centric design, and transparent contestable outcomes with auditable governance.",
@@ -161,16 +168,19 @@ const homepageCopy = {
         label: "Agent Orchestration",
         title: "LangGraph + Orchestrator Router",
         body: "Agents execute as graph nodes with deterministic and semantic routing, plus full routing audit trails.",
+        icon: "workflow" as const,
       },
       {
         label: "Fairness & Bias",
         title: "AIF360 + SHAP + LIME",
         body: "Bias detection and mitigation are integrated into scoring; SHAP/LIME provides local and global feature explainability.",
+        icon: "scale" as const,
       },
       {
         label: "Runtime + Data",
         title: "FastAPI + Celery/Redis + PostgreSQL/pgvector",
         body: "Async APIs, priority queues, ACID event storage, JSONB support, and semantic vector search for appeal consistency.",
+        icon: "database" as const,
       },
     ],
   },
@@ -200,6 +210,13 @@ const homepageCopy = {
   },
 };
 
+const navAnchors: Record<string, string> = {
+  "7 Gaps": "#ecosystem",
+  "Agent Scope": "#explainability",
+  "Tech Stack": "#tech-specs",
+  Governance: "#integrity",
+};
+
 function TopNav({ scrolled }: { scrolled: boolean }) {
   return (
     <nav
@@ -227,11 +244,18 @@ function TopNav({ scrolled }: { scrolled: boolean }) {
           <div
             className={`hidden items-center gap-6 text-sm font-medium md:flex ${monoFont.className}`}
           >
-            <a className="border-b-2 border-[#70d2ff] pb-1 text-[#70d2ff]">
+            <a
+              href="#"
+              className="border-b-2 border-[#70d2ff] pb-1 text-[#70d2ff]"
+            >
               {homepageCopy.nav.active}
             </a>
             {homepageCopy.nav.items.map((item) => (
-              <a key={item} className="text-[#bdc8d0] hover:text-[#70d2ff]">
+              <a
+                key={item}
+                href={navAnchors[item] ?? "#"}
+                className="text-[#bdc8d0] transition-colors hover:text-[#70d2ff]"
+              >
                 {item}
               </a>
             ))}
@@ -305,7 +329,7 @@ function HeroSection() {
             </Link>
             <Link
               href="/fleet-manager"
-              className="inline-flex items-center rounded-lg border border-[#3d484f]/40 px-8 py-4 text-lg font-bold text-[#bdc8d0] transition hover:bg-[#232748]"
+              className="inline-flex items-center rounded-lg border border-[#3d484f]/40 px-8 py-4 text-lg font-bold text-[#bdc8d0] transition-colors duration-200 hover:bg-[#232748]"
             >
               <PlayCircle className="mr-2 h-5 w-5" />
               {homepageCopy.hero.secondaryCta}
@@ -315,13 +339,13 @@ function HeroSection() {
         <div className="hidden lg:col-span-6 lg:block" />
       </div>
 
-      <div className="absolute bottom-12 left-1/2 z-10 -translate-x-1/2 opacity-40">
+      <div className="absolute bottom-12 left-1/2 z-10 -translate-x-1/2 opacity-50">
         <p
           className={`mb-4 text-[10px] uppercase tracking-[0.3em] ${monoFont.className}`}
         >
           {homepageCopy.hero.scrollHint}
         </p>
-        <div className="mx-auto h-12 w-px bg-gradient-to-b from-[#70d2ff] to-transparent" />
+        <div className="mx-auto h-12 w-px animate-bounce bg-gradient-to-b from-[#70d2ff] to-transparent" />
       </div>
     </header>
   );
@@ -329,7 +353,7 @@ function HeroSection() {
 
 function EcosystemSection() {
   return (
-    <section className="bg-[#0c1030] px-6 py-28 md:px-12">
+    <section id="ecosystem" className="bg-[#0c1030] px-6 py-28 md:px-12">
       <div className="mx-auto max-w-7xl">
         <div className="mb-16 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
           <div className="max-w-xl">
@@ -350,7 +374,7 @@ function EcosystemSection() {
         </div>
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-          <div className="rounded-xl bg-[#151939] p-8 transition hover:bg-[#191d3d] md:col-span-2 md:row-span-2">
+          <div className="flex flex-col rounded-xl bg-[#151939] p-8 transition hover:bg-[#191d3d] md:col-span-2 md:row-span-2">
             <div className="mb-6 inline-flex h-12 w-12 items-center justify-center rounded-full bg-[#70d2ff]/10">
               <Shield className="h-5 w-5 text-[#70d2ff]" />
             </div>
@@ -363,7 +387,7 @@ function EcosystemSection() {
               {homepageCopy.ecosystem.cards.safety.body}
             </p>
             <div
-              className={`mt-10 rounded-lg bg-[#070a2b] p-4 text-xs text-[#70d2ff]/80 ${monoFont.className}`}
+              className={`mt-auto rounded-lg bg-[#070a2b] p-4 text-xs text-[#70d2ff]/80 ${monoFont.className}`}
             >
               {homepageCopy.ecosystem.cards.safety.queue}
               <br />
@@ -399,7 +423,7 @@ function EcosystemSection() {
             </p>
           </div>
           <div className="rounded-xl bg-[#151939] p-7 transition hover:bg-[#191d3d]">
-            <Lock className="mb-5 h-7 w-7 text-[#ddb7ff]" />
+            <Activity className="mb-5 h-7 w-7 text-[#ddb7ff]" />
             <h3 className={`mb-3 text-xl font-bold ${displayFont.className}`}>
               {homepageCopy.ecosystem.cards.sentiment.title}
             </h3>
@@ -411,16 +435,22 @@ function EcosystemSection() {
           <div className="md:col-span-2 grid grid-cols-2 gap-4">
             <div className="rounded-xl bg-[#151939] p-7 transition hover:bg-[#191d3d]">
               <h3 className={`mb-2 text-lg font-bold ${displayFont.className}`}>
-                {homepageCopy.ecosystem.cards.coaching}
+                {homepageCopy.ecosystem.cards.coaching.title}
               </h3>
+              <p className="mt-2 text-sm leading-6 text-[#bdc8d0]">
+                {homepageCopy.ecosystem.cards.coaching.body}
+              </p>
               <div className="mt-4 h-1 w-full overflow-hidden rounded-full bg-[#3d484f]/40">
                 <div className="h-full w-full bg-[#a5c8ff]" />
               </div>
             </div>
             <div className="rounded-xl bg-[#151939] p-7 transition hover:bg-[#191d3d]">
               <h3 className={`mb-2 text-lg font-bold ${displayFont.className}`}>
-                {homepageCopy.ecosystem.cards.context}
+                {homepageCopy.ecosystem.cards.context.title}
               </h3>
+              <p className="mt-2 text-sm leading-6 text-[#bdc8d0]">
+                {homepageCopy.ecosystem.cards.context.body}
+              </p>
               <div className="mt-4 h-1 w-full overflow-hidden rounded-full bg-[#3d484f]/40">
                 <div className="h-full w-full bg-[#00aadd]" />
               </div>
@@ -445,7 +475,10 @@ function EcosystemSection() {
 
 function ExplainabilitySection() {
   return (
-    <section className="overflow-hidden bg-[#070a2b] px-6 py-32 md:px-12">
+    <section
+      id="explainability"
+      className="overflow-hidden bg-[#070a2b] px-6 py-32 md:px-12"
+    >
       <div className="mx-auto grid max-w-7xl grid-cols-1 items-center gap-16 lg:grid-cols-12">
         <div className="relative lg:col-span-5">
           <div className="absolute -left-16 -top-16 h-64 w-64 rounded-full bg-[#70d2ff]/10 blur-[100px]" />
@@ -508,13 +541,20 @@ function ExplainabilitySection() {
                 {homepageCopy.explainability.liveFeed.title}
               </p>
             </div>
-            <div className="relative aspect-video overflow-hidden rounded-xl bg-[#151939]">
+            <div className="group relative aspect-video overflow-hidden rounded-xl bg-[#151939]">
               <Image
                 fill
-                className="object-cover opacity-55 grayscale transition duration-700 hover:grayscale-0"
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuCWFnGNuyZQNfXMSZnEr5350Lej79-PItNK_hVzMWatAmrOOytEvLa6CuyD7t1R_deSXI66vMIwQO4ivD5x6PmvFj7yJad97HQ8ouLXRZAbkWeiMRUpPX9Pp5T955VTBUdltb5p8kxvcshJmtVB5qD2sgtOrFPDezhpB9PYyXrOOPsrLTK3FJa0bKJECQ1igM910LQFO_vvb_uWTSRF_CIr_NiBlAqJ4f9ac1UOURWfglbVzGnlBJQ7muupLiTbpaH9BCezIEfaYaEF"
+                className="object-cover opacity-75 grayscale-[60%] transition duration-700 group-hover:grayscale-0 group-hover:opacity-100"
+                src="/hero-graph.png"
                 alt={homepageCopy.explainability.liveFeed.dashboardAlt}
               />
+              <div className="pointer-events-none absolute right-4 top-4 rounded-md border border-[#70d2ff]/20 bg-[#070a2b]/70 px-2 py-1 opacity-100 transition duration-500 group-hover:opacity-0">
+                <p
+                  className={`text-[9px] uppercase tracking-[0.15em] text-[#70d2ff]/70 ${monoFont.className}`}
+                >
+                  hover to reveal
+                </p>
+              </div>
               <div className="absolute inset-0 bg-gradient-to-t from-[#070a2b] via-transparent to-transparent" />
               <div className="absolute bottom-6 left-6 right-6 flex items-end justify-between">
                 <div
@@ -548,7 +588,7 @@ function ExplainabilitySection() {
 
 function IntegritySection() {
   return (
-    <section className="bg-[#0c1030] px-6 py-28 md:px-12">
+    <section id="integrity" className="bg-[#0c1030] px-6 py-28 md:px-12">
       <div className="mx-auto flex max-w-7xl flex-col items-center gap-16 md:flex-row">
         <div className="order-2 w-full md:order-1 md:w-1/2">
           <div className="grid grid-cols-2 gap-4">
@@ -578,7 +618,7 @@ function IntegritySection() {
                 </p>
               </div>
               <button
-                className={`rounded bg-[#3d484f]/30 px-4 py-2 text-xs uppercase tracking-[0.16em] transition hover:bg-[#3d484f]/45 ${monoFont.className}`}
+                className={`rounded-lg border border-[#3d484f]/40 px-5 py-2.5 text-xs font-bold uppercase tracking-[0.12em] text-[#bdc8d0] transition-colors duration-200 hover:bg-[#232748] hover:text-[#dfe0ff] ${monoFont.className}`}
               >
                 {homepageCopy.integrity.dashboard.cta}
               </button>
@@ -624,9 +664,15 @@ function IntegritySection() {
   );
 }
 
+const specIcons: Record<string, React.ReactNode> = {
+  workflow: <Workflow className="h-5 w-5 text-[#70d2ff]" />,
+  scale: <Scale className="h-5 w-5 text-[#a5c8ff]" />,
+  database: <Database className="h-5 w-5 text-[#ddb7ff]" />,
+};
+
 function TechnicalSpecsSection() {
   return (
-    <section className="bg-[#070a2b] px-6 py-28 md:px-12">
+    <section id="tech-specs" className="bg-[#070a2b] px-6 py-28 md:px-12">
       <div className="mx-auto max-w-7xl">
         <div className="mb-20 text-center">
           <h2
@@ -642,8 +688,11 @@ function TechnicalSpecsSection() {
               key={column.title}
               className="border-t border-[#3d484f]/20 p-8"
             >
+              <div className="mb-4 inline-flex h-9 w-9 items-center justify-center rounded-lg bg-[#151939]">
+                {specIcons[column.icon]}
+              </div>
               <span
-                className={`mb-4 block text-xs uppercase tracking-[0.18em] text-[#70d2ff] ${monoFont.className}`}
+                className={`mb-3 block text-xs uppercase tracking-[0.18em] text-[#70d2ff] ${monoFont.className}`}
               >
                 {column.label}
               </span>
@@ -690,6 +739,23 @@ function FinalCtaSection() {
   );
 }
 
+const footerAnchors: Record<string, Record<string, string>> = {
+  platform: {
+    Overview: "#",
+    "Agent Scope": "#explainability",
+    "Operational Queues": "#ecosystem",
+  },
+  resources: {
+    "Project Proposal": "#",
+    "Project Report": "#",
+    "Risk Register": "#",
+  },
+  legal: {
+    "Fairness Audit": "#",
+    "Appeals Policy": "#",
+  },
+};
+
 function FooterSection() {
   return (
     <footer className="border-t border-[#3d484f]/20 bg-[#070a2b] px-6 py-12 md:px-12">
@@ -726,7 +792,8 @@ function FooterSection() {
           {homepageCopy.footer.groups.platform.links.map((item) => (
             <a
               key={item}
-              className={`text-xs uppercase tracking-[0.16em] text-[#bdc8d0] hover:text-[#70d2ff] ${monoFont.className}`}
+              href={footerAnchors.platform[item] ?? "#"}
+              className={`text-xs uppercase tracking-[0.16em] text-[#bdc8d0] transition-colors hover:text-[#70d2ff] ${monoFont.className}`}
             >
               {item}
             </a>
@@ -741,7 +808,8 @@ function FooterSection() {
           {homepageCopy.footer.groups.resources.links.map((item) => (
             <a
               key={item}
-              className={`text-xs uppercase tracking-[0.16em] text-[#bdc8d0] hover:text-[#70d2ff] ${monoFont.className}`}
+              href={footerAnchors.resources[item] ?? "#"}
+              className={`text-xs uppercase tracking-[0.16em] text-[#bdc8d0] transition-colors hover:text-[#70d2ff] ${monoFont.className}`}
             >
               {item}
             </a>
@@ -756,7 +824,8 @@ function FooterSection() {
           {homepageCopy.footer.groups.legal.links.map((item) => (
             <a
               key={item}
-              className={`text-xs uppercase tracking-[0.16em] text-[#bdc8d0] hover:text-[#70d2ff] ${monoFont.className}`}
+              href={footerAnchors.legal[item] ?? "#"}
+              className={`text-xs uppercase tracking-[0.16em] text-[#bdc8d0] transition-colors hover:text-[#70d2ff] ${monoFont.className}`}
             >
               {item}
             </a>
