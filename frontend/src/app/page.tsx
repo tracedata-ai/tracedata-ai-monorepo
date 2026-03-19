@@ -260,8 +260,10 @@ function HeroSection() {
   return (
     <header className="relative flex min-h-screen w-full items-center overflow-hidden">
       <div className="absolute inset-0 z-0">
-        <img
-          className="h-full w-full object-cover object-[62%_50%] md:object-[60%_46%]"
+        <Image
+          fill
+          priority
+          className="object-cover object-[62%_50%] md:object-[60%_46%]"
           src="/hero-uw.png"
           alt={homepageCopy.hero.imageAlt}
         />
@@ -507,8 +509,9 @@ function ExplainabilitySection() {
               </p>
             </div>
             <div className="relative aspect-video overflow-hidden rounded-xl bg-[#151939]">
-              <img
-                className="h-full w-full object-cover opacity-55 grayscale transition duration-700 hover:grayscale-0"
+              <Image
+                fill
+                className="object-cover opacity-55 grayscale transition duration-700 hover:grayscale-0"
                 src="https://lh3.googleusercontent.com/aida-public/AB6AXuCWFnGNuyZQNfXMSZnEr5350Lej79-PItNK_hVzMWatAmrOOytEvLa6CuyD7t1R_deSXI66vMIwQO4ivD5x6PmvFj7yJad97HQ8ouLXRZAbkWeiMRUpPX9Pp5T955VTBUdltb5p8kxvcshJmtVB5qD2sgtOrFPDezhpB9PYyXrOOPsrLTK3FJa0bKJECQ1igM910LQFO_vvb_uWTSRF_CIr_NiBlAqJ4f9ac1UOURWfglbVzGnlBJQ7muupLiTbpaH9BCezIEfaYaEF"
                 alt={homepageCopy.explainability.liveFeed.dashboardAlt}
               />
@@ -601,9 +604,11 @@ function IntegritySection() {
           <div className="mt-8 flex items-center gap-4">
             <div className="flex -space-x-3">
               {homepageCopy.integrity.people.images.map((person) => (
-                <img
+                <Image
                   key={person.alt}
-                  className="h-10 w-10 rounded-full border-2 border-[#0c1030] object-cover"
+                  width={40}
+                  height={40}
+                  className="rounded-full border-2 border-[#0c1030] object-cover"
                   src={person.src}
                   alt={person.alt}
                 />
