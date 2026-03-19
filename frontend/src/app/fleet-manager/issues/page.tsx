@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getIssues } from "@/lib/api";
+import { getIssues, type Issue } from "@/lib/api";
 import { DashboardPageTemplate } from "@/components/shared/DashboardPageTemplate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DataTable } from "@/components/data-table";
@@ -9,7 +9,7 @@ import { ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 
-const columns: ColumnDef<any>[] = [
+const columns: ColumnDef<Issue>[] = [
   {
     accessorKey: "event_type",
     header: "Type",
@@ -41,7 +41,7 @@ const columns: ColumnDef<any>[] = [
 ];
 
 export default function IssuesPage() {
-  const [issues, setIssues] = useState<any[]>([]);
+  const [issues, setIssues] = useState<Issue[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getDrivers } from "@/lib/api";
+import { getDrivers, type Driver } from "@/lib/api";
 import { DashboardPageTemplate } from "@/components/shared/DashboardPageTemplate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DataTable } from "@/components/data-table";
@@ -46,7 +46,7 @@ const columns: ColumnDef<DriverRow>[] = [
 ];
 
 export default function DriversPage() {
-  const [drivers, setDrivers] = useState<any[]>([]);
+  const [drivers, setDrivers] = useState<DriverRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -54,7 +54,7 @@ export default function DriversPage() {
       try {
         const data = await getDrivers();
         // Map backend Driver to frontend DriverRow
-        const mapped = data.map((d) => ({
+        const mapped: DriverRow[] = data.map((d: Driver) => ({
           id: d.id,
           name: `${d.first_name} ${d.last_name}`,
           assignedRoute: "Active Route", // Mock/Placeholder for now

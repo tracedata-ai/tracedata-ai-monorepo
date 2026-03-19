@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getTrips } from "@/lib/api";
+import { getTrips, type Trip } from "@/lib/api";
 import { DashboardPageTemplate } from "@/components/shared/DashboardPageTemplate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DataTable } from "@/components/data-table";
@@ -55,14 +55,14 @@ const columns: ColumnDef<TripRow>[] = [
 ];
 
 export default function TripsPage() {
-  const [trips, setTrips] = useState<any[]>([]);
+  const [trips, setTrips] = useState<TripRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function loadTrips() {
       try {
         const data = await getTrips();
-        const mapped = data.map((t) => ({
+        const mapped: TripRow[] = data.map((t: Trip) => ({
           id: t.id.substring(0, 8),
           routeName: "Singapore Hub Corridor", // Placeholder
           driver: "Assigned Driver", // Placeholder
