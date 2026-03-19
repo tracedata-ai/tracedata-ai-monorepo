@@ -4,7 +4,7 @@ TraceData Backend — Tenant Schemas.
 
 import uuid
 from datetime import datetime
-from pydantic import BaseModel, ConfigDict, EmailStr
+from pydantic import BaseModel, ConfigDict
 
 
 class TenantBase(BaseModel):

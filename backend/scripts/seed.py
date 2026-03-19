@@ -10,11 +10,9 @@ multi-tenancy, IoT simulation, and agent routing.
 
 import asyncio
 import logging
-import uuid
 from decimal import Decimal
 
-from sqlalchemy import select, delete
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import delete
 
 from app.core.database import AsyncSessionLocal, engine
 from app.models.base import Base
