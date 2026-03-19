@@ -29,20 +29,17 @@ router = APIRouter(prefix="/fleet", tags=["Fleet"])
 async def list_vehicles(
     skip: int = 0,
     limit: int = 50,
+    tenant_id: uuid.UUID | None = None,
     db: AsyncSession = Depends(get_db),
 ) -> list[Vehicle]:
     """
-    Returns a paginated list of all vehicles.
-
-    Args:
-        skip:  Number of records to skip (for pagination).
-        limit: Maximum records to return (capped at 50 for demo).
-        db:    Async DB session (injected by FastAPI).
-
-    Returns:
-        List of VehicleRead objects.
+    Returns a paginated list of vehicles.
+    Optional: ?tenant_id=<uuid> to filter by fleet operator.
     """
-    result = await db.execute(select(Vehicle).offset(skip).limit(limit))
+    query = select(Vehicle).offset(skip).limit(limit)
+    if tenant_id:
+        query = query.where(Vehicle.tenant_id == tenant_id)
+    result = await db.execute(query)
     return list(result.scalars().all())
 
 

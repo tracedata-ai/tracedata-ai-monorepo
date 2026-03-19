@@ -23,20 +23,23 @@ router = APIRouter(prefix="/trips", tags=["Trips"])
 async def list_trips(
     skip: int = 0,
     limit: int = 50,
+    tenant_id: uuid.UUID | None = None,
     status_filter: str | None = Query(
         None, alias="status", description="Filter by status: active | completed | zombie"
     ),
     db: AsyncSession = Depends(get_db),
 ) -> list[Trip]:
     """
-    Returns trips with optional status filtering.
+    Returns trips with optional status and tenant filtering.
 
     TIP: Try `?status=active` to see only live trips,
-    or `?status=zombie` to find trips missing an End-of-Trip ping.
+    or `?tenant_id=<uuid>` to see trips for a specific operator.
     """
     query = select(Trip).offset(skip).limit(limit)
     if status_filter:
         query = query.where(Trip.status == status_filter)
+    if tenant_id:
+        query = query.where(Trip.tenant_id == tenant_id)
     result = await db.execute(query)
     return list(result.scalars().all())
 

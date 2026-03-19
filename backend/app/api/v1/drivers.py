@@ -23,10 +23,17 @@ router = APIRouter(prefix="/drivers", tags=["Drivers"])
 async def list_drivers(
     skip: int = 0,
     limit: int = 50,
+    tenant_id: uuid.UUID | None = None,
     db: AsyncSession = Depends(get_db),
 ) -> list[Driver]:
-    """Returns a paginated list of all registered drivers."""
-    result = await db.execute(select(Driver).offset(skip).limit(limit))
+    """
+    Returns a paginated list of drivers.
+    Optional: ?tenant_id=<uuid> to filter by fleet operator.
+    """
+    query = select(Driver).offset(skip).limit(limit)
+    if tenant_id:
+        query = query.where(Driver.tenant_id == tenant_id)
+    result = await db.execute(query)
     return list(result.scalars().all())
 
 

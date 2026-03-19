@@ -23,18 +23,19 @@ router = APIRouter(prefix="/issues", tags=["Issues"])
 async def list_issues(
     skip: int = 0,
     limit: int = 50,
+    tenant_id: uuid.UUID | None = None,
     trip_id: uuid.UUID | None = Query(None, description="Filter by trip UUID"),
     db: AsyncSession = Depends(get_db),
 ) -> list[Issue]:
     """
     Returns driving issues.
-
-    TIP: Filter by `?trip_id=<uuid>` to see all incidents for a specific trip.
-    This is how the frontend dashboard loads the issue list for a trip detail page.
+    Optional: ?tenant_id=<uuid> or ?trip_id=<uuid> to filter results.
     """
     query = select(Issue).offset(skip).limit(limit)
     if trip_id:
         query = query.where(Issue.trip_id == trip_id)
+    if tenant_id:
+        query = query.where(Issue.tenant_id == tenant_id)
     result = await db.execute(query)
     return list(result.scalars().all())
 
