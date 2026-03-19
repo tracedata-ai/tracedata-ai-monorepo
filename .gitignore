@@ -1,0 +1,56 @@
+# ─── Python ──────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+*.egg
+dist/
+build/
+.eggs/
+
+# Virtual environments (uv creates .venv inside each service folder)
+.venv/
+venv/
+env/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# uv lockfile cache
+.uv/
+
+# ─── Node / Frontend ─────────────────────────────────────────────────────────
+node_modules/
+.next/
+out/
+.turbo/
+*.tsbuildinfo
+
+# ─── Docker ──────────────────────────────────────────────────────────────────
+docker-compose.override.yml
+
+# ─── IDE ─────────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.suo
+*.swp
+*.swo
+.DS_Store
+
+# ─── Testing ─────────────────────────────────────────────────────────────────
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# ─── Misc ────────────────────────────────────────────────────────────────────
+*.log
+*.sqlite
+
+# ─── Logs directory (keep the dir via .gitkeep, ignore actual log files) ─────
+backend/logs/*.log

@@ -150,6 +150,8 @@ Whenever you receive a question about code, architecture, testing, CI/CD, agents
   - `main.py`, `utils.py` — Entry point and utilities
 **Use for:** Canonical patterns for LangGraph state/nodes, orchestrator agent, MCP tools, Singapore-specific tool integration. Always prefer these patterns over generic tutorials.
 
+---
+
 ### 7. `sree-r-one/Anthropic-Cybersecurity-Skills` — 734+ Cybersecurity Skills Library
 **URL:** https://github.com/sree-r-one/Anthropic-Cybersecurity-Skills
 **What it is:** A curated library of **734+ cybersecurity skills** built to the [agentskills.io](https://agentskills.io) open standard. Each skill covers a specific security technique or threat analysis procedure, with MITRE ATT&CK, OWASP, and NIST CSF mappings. This is the user's own repo.
