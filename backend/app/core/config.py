@@ -10,7 +10,6 @@ Pattern: Dependency Injection via FastAPI's `Depends(get_settings)`.
 
 from functools import lru_cache
 
-from pydantic import AnyUrl, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
