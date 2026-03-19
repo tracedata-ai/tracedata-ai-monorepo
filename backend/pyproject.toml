@@ -46,7 +46,7 @@ build-backend = "hatchling.build"
 
 # Tell hatchling which package to include in the wheel
 [tool.hatch.build.targets.wheel]
-packages = ["app", "agents"]
+packages = ["app", "agents", "core"]
 
 # ─── Tool Config ─────────────────────────────────────────────────────────────
 [tool.ruff]

@@ -21,9 +21,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1.router import api_router
-from app.core.config import get_settings
-from app.core.database import engine
-from app.core.logging import get_logger, setup_logging
+from core.config import get_settings
+from core.database import engine
+from core.logging import get_logger, setup_logging
 from app.core.middleware import RequestIdMiddleware
 
 # Import all models so their metadata is registered with Base.

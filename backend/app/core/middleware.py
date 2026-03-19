@@ -23,26 +23,16 @@ How it works:
 """
 
 import uuid
-from contextvars import ContextVar
 
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.types import ASGIApp
 
+from core.logging import reset_request_id, set_request_id
+
 # ── ContextVar ────────────────────────────────────────────────────────────────
-# ContextVar is safe in async code — each coroutine gets its own copy.
-# This avoids the thread-local pitfalls of synchronous middleware.
-_request_id_var: ContextVar[str] = ContextVar("request_id", default="-")
-
-
-def get_request_id() -> str:
-    """
-    Returns the request ID for the current coroutine context.
-
-    Called by the logging Filter to stamp every log record.
-    Returns '-' if called outside a request context (e.g. startup tasks).
-    """
-    return _request_id_var.get()
+# DEPRECATED: The ContextVar has been moved to `core.logging` so it can be 
+# shared between the API and the Agents.
 
 
 class RequestIdMiddleware(BaseHTTPMiddleware):
@@ -66,12 +56,12 @@ class RequestIdMiddleware(BaseHTTPMiddleware):
         request_id = request.headers.get(self.header_name) or str(uuid.uuid4())
 
         # Store in ContextVar — visible to all log lines in this request
-        token = _request_id_var.set(request_id)
+        token = set_request_id(request_id)
         try:
             response: Response = await call_next(request)  # type: ignore[operator]
         finally:
             # Reset the ContextVar after the request completes (good hygiene)
-            _request_id_var.reset(token)
+            reset_request_id(token)
 
         # Echo the ID back so clients/frontend can reference it
         response.headers[self.header_name] = request_id

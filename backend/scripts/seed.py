@@ -14,7 +14,7 @@ from decimal import Decimal
 
 from sqlalchemy import delete
 
-from app.core.database import AsyncSessionLocal, engine
+from core.database import AsyncSessionLocal, engine
 from app.models.base import Base
 from app.models.tenant import Tenant
 from app.models.driver import Driver

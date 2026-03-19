@@ -20,15 +20,37 @@ Usage in any module:
 import logging
 import logging.config
 import logging.handlers
+from contextvars import ContextVar, Token
 from pathlib import Path
 
 import yaml
 
 # Path to the logging configuration file at the backend root
-_CONFIG_PATH = Path(__file__).parents[3] / "logging.yaml"
+_CONFIG_PATH = Path(__file__).parents[1] / "logging.yaml"
 
 # Directory where rotating log files are written
-_LOGS_DIR = Path(__file__).parents[3] / "logs"
+_LOGS_DIR = Path(__file__).parents[1] / "logs"
+
+# ── ContextVar ────────────────────────────────────────────────────────────────
+# ContextVar is safe in async code — each coroutine gets its own copy.
+# We define it here in core.logging so that any module (API or Agent) can
+# set a correlation ID without depending on FastAPI middleware.
+_request_id_var: ContextVar[str] = ContextVar("request_id", default="-")
+
+
+def set_request_id(request_id: str) -> Token[str]:
+    """Sets the request ID and returns a token for resetting the context."""
+    return _request_id_var.set(request_id)
+
+
+def reset_request_id(token: Token[str]) -> None:
+    """Resets the request ID context using the provided token."""
+    _request_id_var.reset(token)
+
+
+def get_request_id() -> str:
+    """Returns the request ID for the current context."""
+    return _request_id_var.get()
 
 
 class _RequestIdFilter(logging.Filter):
@@ -37,19 +59,10 @@ class _RequestIdFilter(logging.Filter):
 
     If the request context has set a request ID (via contextvars), it shows
     up in the structured log line. Outside a request context, it shows '-'.
-
-    This makes it trivial to grep all log lines for a single HTTP request:
-        grep "req-abc123" logs/backend.log
     """
 
     def filter(self, record: logging.LogRecord) -> bool:
-        # Lazily import to avoid circular imports at module load time
-        try:
-            from app.core.middleware import get_request_id
-
-            record.request_id = get_request_id()
-        except Exception:
-            record.request_id = "-"
+        record.request_id = get_request_id()
         return True
 
 
