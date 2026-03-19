@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import {
@@ -36,9 +37,21 @@ export default function HomePage() {
       >
         <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between px-6">
           <div className="flex items-center gap-8">
-            <p className="bg-gradient-to-r from-[#70d2ff] to-[#00aadd] bg-clip-text text-xl font-bold tracking-tighter text-transparent">
-              TraceData
-            </p>
+            <div className="flex items-center gap-2">
+              <div className="rounded-md bg-white p-1.5 shadow-[0_4px_18px_rgba(0,0,0,0.25)]">
+                <Image
+                  src="/logo.png"
+                  alt="TraceData logo"
+                  width={28}
+                  height={28}
+                  className="rounded-sm"
+                  priority
+                />
+              </div>
+              <p className="bg-gradient-to-r from-[#70d2ff] to-[#00aadd] bg-clip-text text-xl font-bold tracking-tighter text-transparent">
+                TraceData
+              </p>
+            </div>
             <div className="hidden items-center gap-6 text-sm font-medium md:flex">
               <a className="border-b-2 border-[#70d2ff] pb-1 text-[#70d2ff]">
                 Explorer
@@ -66,50 +79,53 @@ export default function HomePage() {
         </div>
       </nav>
 
-      <header className="relative flex h-screen w-full items-center justify-center overflow-hidden">
+      <header className="relative flex min-h-screen w-full items-center overflow-hidden">
         <div className="absolute inset-0 z-0">
           <img
             className="h-full w-full object-cover"
-            src="https://lh3.googleusercontent.com/aida-public/AB6AXuDmkACo10rop2Bl4ilYFrSJhEvf8ASFWs6diqb_3PL9TT3J9Rt-5uDzF4fVJfr16v8uoMwSTbt3OiyTQO_t9tjkhXu_br3ON7HMle5cpwzPysXChfdMxtnwOsM5rU1cRsA-Yzv_S7wrfjcKQhRRq9q1XQok-VyVTRMxx4iCpLqEnM9h8hH-LLUKeoisv3fu2NgtbkbNUDMWTPr3Zv28EU5ns8WYpwsfhV99FINgpWI-heh5QTXUO-ziO_wJAmby7F1JtANcBAiPvY7F"
+            src="/hero.png"
             alt="Cinematic wide shot of a high-tech semi-truck on highway with glowing data beam"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#0c1030] via-[#0c1030]/60 to-transparent" />
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#0c1030]" />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#0c1030]/88 via-[#0c1030]/58 to-[#0c1030]/20" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#0c1030]/70 via-transparent to-[#0c1030]/10" />
         </div>
 
-        <div className="relative z-10 mx-auto max-w-5xl px-6 text-center">
-          <div className="mb-6 inline-block rounded-full border border-[#70d2ff]/30 bg-[#70d2ff]/10 px-4 py-1">
-            <span className="text-xs uppercase tracking-[0.2em] text-[#70d2ff]">
-              Mission Control Alpha v2.4
-            </span>
+        <div className="relative z-10 mx-auto grid w-full max-w-7xl grid-cols-1 items-center px-6 py-24 lg:grid-cols-12 lg:gap-8">
+          <div className="lg:col-span-6">
+            <div className="mb-6 inline-block rounded-full border border-[#70d2ff]/35 bg-[#70d2ff]/12 px-4 py-1">
+              <span className="text-xs uppercase tracking-[0.2em] text-[#70d2ff]">
+                Mission Control Alpha v2.4
+              </span>
+            </div>
+            <h1 className="mb-8 text-5xl font-black tracking-tighter text-[#dfe0ff] md:text-7xl lg:text-8xl">
+              Intelligent Fleet
+              <br />
+              <span className="bg-gradient-to-r from-[#70d2ff] via-[#a5c8ff] to-[#00aadd] bg-clip-text text-transparent">
+                Orchestration
+              </span>
+            </h1>
+            <p className="mb-12 max-w-2xl text-lg font-light leading-relaxed text-[#bdc8d0] md:text-2xl">
+              The architectural lens for autonomous logistics. Real-time
+              decisioning, 8-agent neural integrity, and Kafka-driven scale.
+            </p>
+            <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center">
+              <Link
+                href="/login"
+                className="group inline-flex items-center rounded-lg bg-gradient-to-r from-[#70d2ff] to-[#00aadd] px-8 py-4 text-lg font-bold text-[#003547] shadow-xl transition hover:shadow-[#70d2ff]/20"
+              >
+                Get Started
+                <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
+              </Link>
+              <Link
+                href="/fleet-manager"
+                className="inline-flex items-center rounded-lg border border-[#3d484f]/40 px-8 py-4 text-lg font-bold text-[#bdc8d0] transition hover:bg-[#232748]"
+              >
+                <PlayCircle className="mr-2 h-5 w-5" />
+                Watch Demo
+              </Link>
+            </div>
           </div>
-          <h1 className="mb-8 text-5xl font-black tracking-tighter text-[#dfe0ff] md:text-7xl lg:text-8xl">
-            Intelligent Fleet
-            <br />
-            <span className="bg-gradient-to-r from-[#70d2ff] via-[#a5c8ff] to-[#00aadd] bg-clip-text text-transparent">
-              Orchestration
-            </span>
-          </h1>
-          <p className="mx-auto mb-12 max-w-3xl text-lg font-light leading-relaxed text-[#bdc8d0] md:text-2xl">
-            The architectural lens for autonomous logistics. Real-time
-            decisioning, 8-agent neural integrity, and Kafka-driven scale.
-          </p>
-          <div className="flex flex-col items-center justify-center gap-4 md:flex-row">
-            <Link
-              href="/login"
-              className="group inline-flex items-center rounded-lg bg-gradient-to-r from-[#70d2ff] to-[#00aadd] px-8 py-4 text-lg font-bold text-[#003547] shadow-xl transition hover:shadow-[#70d2ff]/20"
-            >
-              Get Started
-              <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
-            </Link>
-            <Link
-              href="/fleet-manager"
-              className="inline-flex items-center rounded-lg border border-[#3d484f]/40 px-8 py-4 text-lg font-bold text-[#bdc8d0] transition hover:bg-[#232748]"
-            >
-              <PlayCircle className="mr-2 h-5 w-5" />
-              Watch Demo
-            </Link>
-          </div>
+          <div className="hidden lg:col-span-6 lg:block" />
         </div>
 
         <div className="absolute bottom-12 left-1/2 z-10 -translate-x-1/2 opacity-40">
@@ -433,7 +449,18 @@ export default function HomePage() {
       <footer className="border-t border-[#3d484f]/20 bg-[#070a2b] px-6 py-12 md:px-12">
         <div className="mx-auto grid max-w-7xl grid-cols-2 gap-8 md:grid-cols-5">
           <div className="col-span-2">
-            <p className="mb-4 text-lg font-black text-[#70d2ff]">TraceData</p>
+            <div className="mb-4 flex items-center gap-2">
+              <div className="rounded-md bg-white p-1 shadow-[0_4px_18px_rgba(0,0,0,0.25)]">
+                <Image
+                  src="/logo.png"
+                  alt="TraceData logo"
+                  width={24}
+                  height={24}
+                  className="rounded-sm"
+                />
+              </div>
+              <p className="text-lg font-black text-[#70d2ff]">TraceData</p>
+            </div>
             <p className="max-w-xs text-xs uppercase tracking-[0.2em] text-[#bdc8d0]">
               Built for the Architectural Lens. High-integrity fleet
               intelligence.
