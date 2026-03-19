@@ -34,7 +34,7 @@ const homepageCopy = {
     titleLine1: "Fair, Explainable",
     titleAccent: "Fleet Intelligence",
     description:
-      "Built for small-to-medium fleets (50-200 vehicles), TraceData addresses 7 critical telematics gaps: unfair scoring, no coaching, missed burnout, no appeals, missing context, surveillance-first systems, and isolated safety handling.",
+      "Built for SMB fleets, TraceData addresses 7 critical telematics gaps and address them with people first philosophy.",
     primaryCta: "Get Started",
     secondaryCta: "View Fleet Manager",
     scrollHint: "Scroll for Architecture",
