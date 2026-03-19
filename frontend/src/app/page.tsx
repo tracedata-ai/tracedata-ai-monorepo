@@ -22,102 +22,102 @@ const homepageCopy = {
     logoAlt: "TraceData logo",
   },
   nav: {
-    active: "Explorer",
-    items: ["Metrics", "Logs", "Traces", "Docs"],
+    active: "Overview",
+    items: ["7 Gaps", "Agent Scope", "Tech Stack", "Governance"],
     signIn: "Sign In",
     getStarted: "Get Started",
   },
   hero: {
     imageAlt:
       "Cinematic wide shot of a high-tech semi-truck on highway with glowing data beam",
-    badge: "Mission Control Alpha v2.4",
-    titleLine1: "Intelligent Fleet",
-    titleAccent: "Orchestration",
+    badge: "AI Intelligence Middleware for Fleet Management",
+    titleLine1: "Fair, Explainable",
+    titleAccent: "Fleet Intelligence",
     description:
-      "AI intelligence middleware for small-to-medium fleets. TraceData closes 7 critical gaps in telematics: fairness, coaching, burnout detection, appeals, contextual scoring, trust, and integrated safety-welfare response.",
+      "Built for small-to-medium fleets (50-200 vehicles), TraceData addresses 7 critical telematics gaps: unfair scoring, no coaching, missed burnout, no appeals, missing context, surveillance-first systems, and isolated safety handling.",
     primaryCta: "Get Started",
-    secondaryCta: "Watch Demo",
-    scrollHint: "Scroll to Discover",
+    secondaryCta: "View Fleet Manager",
+    scrollHint: "Scroll for Architecture",
   },
   ecosystem: {
-    eyebrow: "The Neural Backbone",
-    title: "The 8-Agent Ecosystem",
+    eyebrow: "Proposed High-Level Architecture",
+    title: "5 Agents + Shared Tool Gateway",
     description:
-      "Eight autonomous agents operating through a central orchestration graph to ensure fairness, accountability, explainability, and operational safety.",
+      "TraceData uses 5 autonomous agents and a shared Tool Gateway to deliver fairness, coaching, burnout detection, appeals, contextual enrichment, and integrated safety-welfare response.",
     cards: {
       safety: {
         title: "Safety Agent",
-        body: "Priority-queue critical incident response with multi-level intervention (app notification, formal message, direct call) under a sub-5-second response objective.",
+        body: "Processes critical events via queue.critical with a 3-level intervention flow: app notification, formal message, and direct fleet-manager call under a sub-5-second target.",
         queue: "> QUEUE: queue.critical",
         action: "> ACTION: emergency_services + fleet_manager_alert",
       },
       behavior: {
-        title: "Behavior Agent",
-        body: "XGBoost trip scoring (0-100) with AIF360 fairness audits and SHAP/LIME explainability for every score decision.",
+        title: "Scoring Agent",
+        body: "Scores trips and drivers (0-100) using XGBoost, then applies AIF360 fairness mitigation and SHAP/LIME explanations for every decision.",
       },
       orchestrator: {
         title: "Orchestrator Agent",
-        body: "Central router using deterministic rules plus semantic routing for unstructured text, with full audit logging.",
+        body: "Entry-point router using deterministic and semantic pathways; invokes ingestion validation sidecar and logs every routing decision for accountability.",
       },
       feedback: {
-        title: "Feedback & Advocacy Agent",
-        body: "Driver appeals and feedback ingestion with semantic retrieval, ensuring contestable and transparent outcomes.",
+        title: "Support Agent",
+        body: "Unifies appeals and coaching using pgvector semantic retrieval plus LLM guidance, ensuring contestability and consistent fleet-manager decisions.",
       },
       sentiment: {
         title: "Sentiment Agent",
-        body: "Emotional trajectory analysis to identify burnout risk early and trigger supportive fleet-manager interventions.",
+        body: "Tracks emotional trajectory using a rolling event window and escalates burnout risk alerts to fleet managers with recommended interventions.",
       },
-      coaching: "Coaching Agent",
-      context: "Context Enrichment Agent",
+      coaching: "Tool Gateway: Context Enrichment",
+      context: "Tool Gateway: Ingestion Validation",
       ingestion: {
-        title: "Ingestion Quality Agent",
-        body: "Validates telemetry plus unstructured appeal payloads, handles batched pings and critical bypass routing.",
+        title: "Fairness-First Operations",
+        body: "Core philosophy: fairness first, driver-centric design, and transparent contestable outcomes with auditable governance.",
       },
     },
   },
   explainability: {
-    eyebrow: "Deep Tech Stack",
-    titleLine1: "Mission Control",
-    titleLine2: "Explainability",
+    eyebrow: "Trust, Fairness, Accountability",
+    titleLine1: "Explainability",
+    titleLine2: "and Assurance Layer",
     description:
-      "TraceData does not just score events; it exposes decision logic. SHAP and LIME explainability are paired with fairness checks so every intervention is observable, reviewable, and contestable.",
+      "TraceData pairs fairness controls with explainability artifacts so every intervention is observable, reviewable, and contestable across operational and compliance workflows.",
     points: [
       {
-        title: "Kafka-Driven Orchestration",
-        body: "FastAPI + Celery + Redis priority queues route critical, high, medium, and low events with deterministic SLAs.",
+        title: "LangGraph + Priority Queue Execution",
+        body: "Agent flows run through LangGraph while Celery/Redis routes critical, high, medium, and low events with deterministic response paths.",
       },
       {
-        title: "Fairness + SHAP/LIME Attribution",
-        body: "Monthly bias audits (AIF360) and feature-level explanations for each behavioral score and appeal decision.",
+        title: "AIF360 Fairness + SHAP/LIME Attribution",
+        body: "Bias mitigation and feature-level explanations are generated for scoring decisions, with recurring fairness audits for drift control.",
       },
     ],
     liveFeed: {
-      title: "Live Explainability Feed",
+      title: "Governed Decision Stream",
       dashboardAlt:
         "Technical data visualization dashboard with SHAP graphs and fleet status",
-      stats: ["LATENCY: 12ms", "JITTER: 0.02ms", "NODE_ID: TR-808"],
+      stats: ["SLA: < 5s", "SPD TARGET: < 0.5", "QUEUE: queue.critical"],
       shapTitle: "SHAP Influence",
     },
   },
   integrity: {
-    eyebrow: "The Integrity Layer",
+    eyebrow: "Driver-Centric Governance",
     title: "Human-in-the-Loop",
     description:
-      "Drivers can appeal decisions and fleet managers can override with complete context. The goal is support over surveillance, with transparent intervention logs for governance.",
+      "Drivers can contest scores through structured appeals while fleet managers override with context and reasoning logs. The operating model is support over surveillance.",
     cards: [
       {
         title: "Direct Appeals",
-        body: "Instant override capability for human operators in edge cases.",
+        body: "Drivers contest unfair outcomes with semantic retrieval against precedent cases.",
       },
       {
-        title: "Post-Action Coaching",
-        body: "Intervention data continuously improves agent logic.",
+        title: "Tone-Calibrated Coaching",
+        body: "Support guidance adapts using sentiment context (encouraging, supportive, or directive).",
       },
     ],
     dashboard: {
       title: "Operator Dashboard",
-      body: "Machines ask for permission, not forgiveness.",
-      cta: "Launch Shell",
+      body: "Every intervention stores decision rationale, FM action, and AI reasoning for traceability.",
+      cta: "Review Cases",
     },
     people: {
       images: [
@@ -134,49 +134,50 @@ const homepageCopy = {
           alt: "Operator 3",
         },
       ],
-      trustLine: "Trusted by 2,000+ logistics supervisors worldwide.",
+      trustLine:
+        "Built for transparent, contestable, and accountable fleet operations.",
     },
   },
   technicalSpecs: {
     title: "Technical Specifications",
     columns: [
       {
-        label: "Orchestration",
-        title: "LangGraph + Router Core",
-        body: "Agent nodes execute through conditional routing with audited decisions from the central Orchestrator Agent.",
+        label: "Agent Orchestration",
+        title: "LangGraph + Orchestrator Router",
+        body: "Agents execute as graph nodes with deterministic and semantic routing, plus full routing audit trails.",
       },
       {
-        label: "Fairness & Explainability",
+        label: "Fairness & Bias",
         title: "AIF360 + SHAP + LIME",
-        body: "Bias detection, mitigation, and interpretable scoring are built directly into the Behavior Agent lifecycle.",
+        body: "Bias detection and mitigation are integrated into scoring; SHAP/LIME provides local and global feature explainability.",
       },
       {
-        label: "Runtime Stack",
+        label: "Runtime + Data",
         title: "FastAPI + Celery/Redis + PostgreSQL/pgvector",
-        body: "Production-ready async APIs, priority task queues, ACID event storage, and vector search for appeal context retrieval.",
+        body: "Async APIs, priority queues, ACID event storage, JSONB support, and semantic vector search for appeal consistency.",
       },
     ],
   },
   finalCta: {
-    title: "Ready to Orchestrate?",
-    primary: "Deploy Now",
-    secondary: "Request Specs",
+    title: "Ready for Fair Fleet Intelligence?",
+    primary: "Open Platform",
+    secondary: "Explore Architecture",
   },
   footer: {
     tagline:
-      "Built for the Architectural Lens. High-integrity fleet intelligence.",
+      "Fairness-first, driver-centric, and transparently explainable by design.",
     groups: {
       platform: {
         label: "Platform",
-        links: ["Explorer", "Metrics", "Status"],
+        links: ["Overview", "Agent Scope", "Operational Queues"],
       },
       resources: {
         label: "Resources",
-        links: ["Docs", "Changelog", "Security"],
+        links: ["Project Proposal", "Project Report", "Risk Register"],
       },
       legal: {
-        label: "Legal",
-        links: ["Privacy", "Terms"],
+        label: "Governance",
+        links: ["Fairness Audit", "Appeals Policy"],
       },
     },
     copyright: "2026 TraceData. All rights reserved.",
