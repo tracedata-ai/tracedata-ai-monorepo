@@ -62,7 +62,9 @@ async def get_vehicle(
     return vehicle
 
 
-@router.post("/", response_model=VehicleRead, status_code=status.HTTP_201_CREATED, summary="Create a vehicle")
+@router.post(
+    "/", response_model=VehicleRead, status_code=status.HTTP_201_CREATED, summary="Create a vehicle"
+)
 async def create_vehicle(
     payload: VehicleCreate,
     db: AsyncSession = Depends(get_db),
@@ -75,6 +77,6 @@ async def create_vehicle(
     """
     vehicle = Vehicle(**payload.model_dump())
     db.add(vehicle)
-    await db.flush()   # flush assigns the DB-generated id before we return it
+    await db.flush()  # flush assigns the DB-generated id before we return it
     await db.refresh(vehicle)
     return vehicle

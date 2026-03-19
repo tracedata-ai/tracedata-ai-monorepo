@@ -26,9 +26,9 @@ settings = get_settings()
 # to stdout — extremely useful for development, disable in production.
 engine = create_async_engine(
     settings.database_url,
-    echo=settings.debug,        # Set DEBUG=false in .env to silence SQL logs
-    pool_size=10,               # Max persistent connections in the pool
-    max_overflow=20,            # Extra connections allowed during traffic spikes
+    echo=settings.debug,  # Set DEBUG=false in .env to silence SQL logs
+    pool_size=10,  # Max persistent connections in the pool
+    max_overflow=20,  # Extra connections allowed during traffic spikes
 )
 
 # ── Session Factory ────────────────────────────────────────────────────────────

@@ -51,7 +51,12 @@ async def get_issue(
     return issue
 
 
-@router.post("/", response_model=IssueRead, status_code=status.HTTP_201_CREATED, summary="Log a driving issue")
+@router.post(
+    "/",
+    response_model=IssueRead,
+    status_code=status.HTTP_201_CREATED,
+    summary="Log a driving issue",
+)
 async def create_issue(
     payload: IssueCreate,
     db: AsyncSession = Depends(get_db),

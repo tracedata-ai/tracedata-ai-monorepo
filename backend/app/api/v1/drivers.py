@@ -42,7 +42,9 @@ async def get_driver(
     return driver
 
 
-@router.post("/", response_model=DriverRead, status_code=status.HTTP_201_CREATED, summary="Register a driver")
+@router.post(
+    "/", response_model=DriverRead, status_code=status.HTTP_201_CREATED, summary="Register a driver"
+)
 async def create_driver(
     payload: DriverCreate,
     db: AsyncSession = Depends(get_db),

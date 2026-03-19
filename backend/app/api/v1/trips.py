@@ -23,7 +23,9 @@ router = APIRouter(prefix="/trips", tags=["Trips"])
 async def list_trips(
     skip: int = 0,
     limit: int = 50,
-    status_filter: str | None = Query(None, alias="status", description="Filter by status: active | completed | zombie"),
+    status_filter: str | None = Query(
+        None, alias="status", description="Filter by status: active | completed | zombie"
+    ),
     db: AsyncSession = Depends(get_db),
 ) -> list[Trip]:
     """
@@ -56,7 +58,9 @@ async def get_trip(
     return trip
 
 
-@router.post("/", response_model=TripRead, status_code=status.HTTP_201_CREATED, summary="Start a new trip")
+@router.post(
+    "/", response_model=TripRead, status_code=status.HTTP_201_CREATED, summary="Start a new trip"
+)
 async def start_trip(
     payload: TripCreate,
     db: AsyncSession = Depends(get_db),

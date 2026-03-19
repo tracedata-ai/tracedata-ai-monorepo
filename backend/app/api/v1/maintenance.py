@@ -45,11 +45,18 @@ async def get_maintenance(
     """Fetches a single maintenance record. Returns 404 if not found."""
     record = await db.get(Maintenance, record_id)
     if not record:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Maintenance record not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Maintenance record not found"
+        )
     return record
 
 
-@router.post("/", response_model=MaintenanceRead, status_code=status.HTTP_201_CREATED, summary="Create maintenance record")
+@router.post(
+    "/",
+    response_model=MaintenanceRead,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create maintenance record",
+)
 async def create_maintenance(
     payload: MaintenanceCreate,
     db: AsyncSession = Depends(get_db),

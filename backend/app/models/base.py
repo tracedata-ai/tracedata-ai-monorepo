@@ -23,6 +23,7 @@ class Base(DeclarativeBase):
     When we call `Base.metadata.create_all(engine)` in main.py,
     it creates every table that inherits from this class.
     """
+
     pass
 
 

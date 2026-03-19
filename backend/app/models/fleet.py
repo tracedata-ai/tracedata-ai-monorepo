@@ -18,6 +18,7 @@ class VehicleStatus(str):
     """
     Allowed statuses for a vehicle
     """
+
     ACTIVE = "active"
     INACTIVE = "inactive"
     IN_MAINTENANCE = "in_maintenance"
@@ -47,8 +48,12 @@ class Vehicle(Base, UUIDPrimaryKeyMixin, TimestampMixin):
         unique=True,
         comment="Vehicle registration plate, e.g. SBA1234A",
     )
-    make: Mapped[str] = mapped_column(String(50), nullable=False, comment="Manufacturer, e.g. Isuzu")
-    model: Mapped[str] = mapped_column(String(50), nullable=False, comment="Model name, e.g. N-Series")
+    make: Mapped[str] = mapped_column(
+        String(50), nullable=False, comment="Manufacturer, e.g. Isuzu"
+    )
+    model: Mapped[str] = mapped_column(
+        String(50), nullable=False, comment="Model name, e.g. N-Series"
+    )
     year: Mapped[int] = mapped_column(Integer, nullable=False)
     vin: Mapped[str | None] = mapped_column(
         String(17),
@@ -69,7 +74,9 @@ class Vehicle(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     # back_populates keeps both sides in sync when you assign vehicle.drivers
     drivers: Mapped[list["Driver"]] = relationship("Driver", back_populates="vehicle")  # type: ignore[name-defined] # noqa: F821
     trips: Mapped[list["Trip"]] = relationship("Trip", back_populates="vehicle")  # type: ignore[name-defined] # noqa: F821
-    maintenance_records: Mapped[list["Maintenance"]] = relationship("Maintenance", back_populates="vehicle")  # type: ignore[name-defined] # noqa: F821
+    maintenance_records: Mapped[list["Maintenance"]] = relationship(
+        "Maintenance", back_populates="vehicle"
+    )  # type: ignore[name-defined] # noqa: F821
 
     def __repr__(self) -> str:
         return f"<Vehicle {self.license_plate} ({self.status})>"

@@ -53,7 +53,7 @@ async def lifespan(app: FastAPI):  # type: ignore[type-arg]
     In production, replace create_all with `alembic upgrade head` via entrypoint.sh.
     """
     # ── 1. Logging ─────────────────────────────────────────────────────────
-    setup_logging()   # Reads backend/logging.yaml and wires handlers
+    setup_logging()  # Reads backend/logging.yaml and wires handlers
     logger.info("TraceData Backend starting up...")
 
     # ── 2. Database ─────────────────────────────────────────────────────────
@@ -61,7 +61,7 @@ async def lifespan(app: FastAPI):  # type: ignore[type-arg]
         await conn.run_sync(Base.metadata.create_all)
     logger.info("Database tables created / verified.")
 
-    yield   # ← app is live and serving requests from here
+    yield  # ← app is live and serving requests from here
 
     # ── Shutdown ────────────────────────────────────────────────────────────
     await engine.dispose()

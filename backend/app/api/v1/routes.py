@@ -42,7 +42,9 @@ async def get_route(
     return route
 
 
-@router.post("/", response_model=RouteRead, status_code=status.HTTP_201_CREATED, summary="Create a route")
+@router.post(
+    "/", response_model=RouteRead, status_code=status.HTTP_201_CREATED, summary="Create a route"
+)
 async def create_route(
     payload: RouteCreate,
     db: AsyncSession = Depends(get_db),

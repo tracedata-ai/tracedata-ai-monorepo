@@ -74,4 +74,6 @@ class Maintenance(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     vehicle: Mapped["Vehicle"] = relationship("Vehicle", back_populates="maintenance_records")  # type: ignore[name-defined] # noqa: F821
 
     def __repr__(self) -> str:
-        return f"<Maintenance {self.maintenance_type} vehicle={self.vehicle_id} status={self.status}>"
+        return (
+            f"<Maintenance {self.maintenance_type} vehicle={self.vehicle_id} status={self.status}>"
+        )

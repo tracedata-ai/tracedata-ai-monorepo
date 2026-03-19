@@ -46,6 +46,7 @@ class _RequestIdFilter(logging.Filter):
         # Lazily import to avoid circular imports at module load time
         try:
             from app.core.middleware import get_request_id
+
             record.request_id = get_request_id()
         except Exception:
             record.request_id = "-"
