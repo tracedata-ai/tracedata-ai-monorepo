@@ -8,11 +8,12 @@ This document provides a comprehensive technical roadmap for implementing TraceD
 
 | Classroom Concept | TraceData Project Application | Benefit |
 | :--- | :--- | :--- |
-| **Agent Registry Pattern** | `Orchestrator Agent` (Router) | Configuration-driven scaling of the 8 agents. |
-| **Cafe Processor (JSON Extraction)** | `Ingestion Agency` & `Appeals Processing` | Standardizing unstructured driver text into actionable data. |
-| **LangGraph Cyclical Flows** | `Safety Agent` Interventions | Feedback loops for multi-level alerting (Level 1 $\rightarrow$ 3). |
-| **Model Context Protocol (MCP)** | `Context Enrichment Agent` | Low-latency weather/traffic data retrieval ($<$ 2 sec). |
-| **Memory/Profile persistence** | `Driver Encouragement Profiles` | Personalized sentiment and coaching history. |
+| **Agent Registry Pattern** | `Orchestrator Agent` (Router) | Configuration-driven routing across the 5-agent graph |
+| **Cafe Processor (JSON Extraction)** | `Ingestion Tool` (Tool Gateway) | Standardizing telemetry + unstructured driver text into actionable data |
+| **LangGraph Cyclical Flows** | `Safety Agent` Interventions | Feedback loops for multi-level alerting (Level 1 → 3) |
+| **Model Context Protocol (MCP)** | `Context Enrichment Tool` (Tool Gateway) | Low-latency weather/traffic data retrieval (< 2 sec) |
+| **Memory/Profile persistence** | `Driver Encouragement Profiles` | Personalized sentiment and coaching history |
+| **Embeddings + Vector Search** | `Support Agent` (Appeals) | Semantic search against resolved appeals for consistency |
 
 ---
 
@@ -60,47 +61,39 @@ Just like the Carbon agent remembers "Allowed Regions", TraceData must remember 
 
 ## 3. Per-Agent Implementation Manifest
 
-### 3.1 Ingestion Quality Agent (Agent 1)
-*   **Workshop Connection:** [Day 1: Cafe Processor](file:///d:/learning-projects/tracedata-ai-monorepo/refs/swe5008_archaais/day-1/cafe_processor.md)
-*   **Idea:** Use **Structured Extraction** for Driver Appeals.
-*   **Implementation:** 
-    *   Extract: `incident_id`, `reason_category`, `weather_context`, and `PII` using Pydantic schemas.
-    *   **Tool:** `PIIScrubberTool` using regex + small LLM to mask sensitive data.
+### Tool Gateway (Ingestion Tool + Context Enrichment Tool)
+*   **Workshop Connection:** [Day 1: Cafe Processor](file:///d:/learning-projects/tracedata-ai-monorepo/refs/swe5008_archaais/day-1/cafe_processor.md) + [Day 3: MCP Demo](file:///d:/learning-projects/tracedata-ai-monorepo/refs/swe5008_archaais/day3-workshop/d2l-mcp-demo-stdio.ipynb)
+*   **Idea:** Stateless utilities exposed as a shared gateway — not agents, but tools callable by any agent.
+*   **Implementation:**
+    *   **Ingestion Tool:** `tools/ingestion_tool.py` — schema validation, range checks, PII scrubbing via regex + small LLM. Called as sidecar by Orchestrator.
+    *   **Context Enrichment Tool:** `tools/context_tool.py` — MCP server wrapping `get_weather(lat, lon)` and `get_traffic_density(route_id)`. Called by Scoring and Safety agents.
 
-### 3.2 Orchestrator Agent (Agent 2)
+### 3.1 Orchestrator Agent (Agent 1)
 *   **Workshop Connection:** [Day 2: Agent Registry](file:///d:/learning-projects/tracedata-ai-monorepo/refs/swe5008_archaais/day-2/agent_registry_pattern.md)
-*   **Idea:** Use the **Configuration-Driven Registry** to manage the 7 specialist agents.
-*   **Implementation:** Initialize a `StateGraph` where the Orchestrator acts as the central router for both deterministic and semantic tasks.
+*   **Idea:** Use the **Configuration-Driven Registry** to manage the 4 specialist agents.
+*   **Implementation:** Initialize a `StateGraph` where the Orchestrator acts as the central router for both deterministic and semantic tasks. Ingestion Tool invoked before any routing logic.
 
-### 3.3 Behavior Agent (Agent 3)
+### 3.2 Scoring Agent (Agent 2)
 *   **Workshop Connection:** [Day 1: LLM Reasoning](file:///d:/learning-projects/tracedata-ai-monorepo/refs/swe5008_archaais/day-1/hello_world_llm.ipynb)
-*   **Idea:** Use LLMs to "Humanize" ML outputs.
-*   **Implementation:** Translate SHAP values from XGBoost into clear, fair explanations for drivers.
+*   **Idea:** Use LLMs to "Humanize" ML outputs. Context Tool enriches scoring with road/weather data.
+*   **Implementation:** XGBoost scores trip (0–100) + driver cumulative. SHAP values translated into clear, fair explanations. Calls Context Enrichment Tool for environmental context before committing score.
 
-### 3.4 Feedback & Advocacy Agent (Agent 4)
-*   **Workshop Connection:** [Day 1: Embeddings Demo](file:///d:/learning-projects/tracedata-ai-monorepo/refs/swe5008_archaais/day-1/SWE5008_ARCHAAS_Week1_Course_Materials_ArchitectingAgenticAISolutionsDay1-EmbeddingsDemo-v1.1.0.ipynb)
-*   **Idea:** Use **Vector Search** to ensure consistency in appeals.
-*   **Implementation:** Embed and search past resolved cases in `pgvector` to suggest unbiased resolutions.
-
-### 3.5 Sentiment Agent (Agent 5)
+### 3.3 Sentiment Agent (Agent 3)
 *   **Workshop Connection:** [Day 3: Memory Patterns](file:///d:/learning-projects/tracedata-ai-monorepo/refs/swe5008_archaais/day-3/day-3-exercise-explained.md)
 *   **Idea:** **Hierarchical Memory** for Burnout Detection.
-*   **Implementation:** Track daily sentiment scores in `driver_state.json` and trigger alerts on significant drops.
+*   **Implementation:** Track daily sentiment scores in `driver_state.json` (rolling 5-event window). Trigger alerts on risk_level > 0.7. Feeds emotional state to Support Agent for coaching tone calibration.
 
-### 3.6 Coaching Agent (Agent 6)
-*   **Workshop Connection:** [Day 3: smolagents Demo](file:///d:/learning-projects/tracedata-ai-monorepo/refs/swe5008_archaais/day3-workshop/d3-smolagents-demo.ipynb)
-*   **Idea:** Use **smolagents** for lightweight, localized coaching.
-*   **Implementation:** Deploy localized "Coach" instances to minimize feedback latency.
-
-### 3.7 Safety Agent (Agent 7)
+### 3.4 Safety Agent (Agent 4)
 *   **Workshop Connection:** [Day 2: LangGraph Cycles](file:///d:/learning-projects/tracedata-ai-monorepo/refs/swe5008_archaais/day-2/2_multi_agent_travel.md)
-*   **Idea:** **Cyclical Intervention Logic**.
-*   **Implementation:** Multi-level escalation (App $\rightarrow$ Message $\rightarrow$ Call) using LangGraph cycles.
+*   **Idea:** **Cyclical Intervention Logic** + Context enrichment for accurate incident assessment.
+*   **Implementation:** Consumed from `queue.critical`. Multi-level escalation (App → Message → Call) using LangGraph cycles. Context Tool called to verify conditions before escalation.
 
-### 3.8 Context Enrichment Agent (Agent 8)
-*   **Workshop Connection:** [Day 3: MCP Demo](file:///d:/learning-projects/tracedata-ai-monorepo/refs/swe5008_archaais/day3-workshop/d2l-mcp-demo-stdio.ipynb)
-*   **Idea:** **MCP as the "Universal Tool"**.
-*   **Implementation:** Build an MCP Server for Singapore-specific traffic and parking data.
+### 3.5 Support Agent (Agent 5)
+*   **Workshop Connection:** [Day 1: Embeddings Demo](file:///d:/learning-projects/tracedata-ai-monorepo/refs/swe5008_archaais/day-1/SWE5008_ARCHAAS_Week1_Course_Materials_ArchitectingAgenticAISolutionsDay1-EmbeddingsDemo-v1.1.0.ipynb) + [Day 3: smolagents Demo](file:///d:/learning-projects/tracedata-ai-monorepo/refs/swe5008_archaais/day3-workshop/d3-smolagents-demo.ipynb)
+*   **Idea:** Unified driver support — **Vector Search** for appeals consistency + **LLM** for personalized coaching in a single agent.
+*   **Implementation:**
+    *   **Advocacy path:** Embed appeal → pgvector semantic search against resolved cases → generate response → escalate if needed.
+    *   **Coaching path:** Receive Scoring Agent output + Sentiment Agent state → generate tone-matched coaching recommendation.
 
 ---
 
@@ -122,10 +115,14 @@ Just like the Carbon agent remembers "Allowed Regions", TraceData must remember 
 
 ### Summary Checklist for Implementation
 
-- [ ] **Registry:** Create `agents/registry.py`.
-- [ ] **Extraction:** Create `agents/ingestion/parser.py` using Pydantic.
-- [ ] **Context:** Create `tools/mcp_server.py`.
-- [ ] **Memory:** Setup `redis` for sentient-state tracking.
+- [ ] **Registry:** Create `agents/registry.py` with 5-agent config.
+- [ ] **Tool Gateway:** Create `tools/ingestion_tool.py` and `tools/context_tool.py`.
+- [ ] **Orchestrator:** `StateGraph` with Ingestion Tool sidecar.
+- [ ] **Scoring Agent:** XGBoost + SHAP/LIME + Context Tool integration.
+- [ ] **Sentiment Agent:** Rolling window burnout detection → notify Support Agent.
+- [ ] **Safety Agent:** LangGraph cyclical escalation from `queue.critical`.
+- [ ] **Support Agent:** pgvector appeals path + LLM coaching path, unified.
+- [ ] **Memory:** Setup `redis` for sentiment-state tracking.
 
 > [!IMPORTANT]
-> The **MCP integration** is the most critical technical leap from the classroom to the project. It ensures that Agent 8 (Context) can scale without clogging the LLM's context window.
+> The **Tool Gateway + MCP integration** is the most critical technical leap from the classroom to the project. It ensures that context data (road type, weather) is available to Scoring and Safety agents without clogging the LLM's context window, and that Ingestion remains stateless and reusable.
