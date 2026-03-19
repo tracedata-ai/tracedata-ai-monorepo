@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, Geist_Mono } from "next/font/google";
-import { AppShell } from "@/components/app-shell";
+import { RoleProvider } from "@/lib/role-context";
 import "./globals.css";
 
 const inter = Inter({
@@ -39,7 +39,7 @@ export default function RootLayout({
       className={`${inter.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full bg-muted/30">
-        <AppShell>{children}</AppShell>
+        <RoleProvider>{children}</RoleProvider>
       </body>
     </html>
   );

@@ -13,12 +13,14 @@ import {
 } from "@/components/ui/sidebar";
 
 const pageTitles: Record<string, string> = {
-  "/": "Dashboard",
-  "/routes": "Routes",
-  "/trips": "Trips",
-  "/drivers": "Drivers",
-  "/issues": "Issues",
-  "/telemetry-simulator": "Telemetry Simulator",
+  "/fleet-manager": "Fleet Dashboard",
+  "/fleet-manager/routes": "Routes",
+  "/fleet-manager/trips": "Trips",
+  "/fleet-manager/drivers": "Drivers",
+  "/fleet-manager/issues": "Issues & Incidents",
+  "/fleet-manager/telemetry-simulator": "Telemetry Simulator",
+  "/driver": "Driver Portal",
+  "/driver/trips": "My Trips",
 };
 
 export function AppShell({ children }: { children: React.ReactNode }) {

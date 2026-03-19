@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   AlertTriangle,
   LayoutDashboard,
@@ -9,9 +9,11 @@ import {
   CarFront,
   Users,
   Radar,
+  Home,
 } from "lucide-react";
 
 import { BrandMark } from "@/components/shared/BrandMark";
+import { Button } from "@/components/ui/button";
 import {
   Sidebar,
   SidebarContent,
@@ -25,17 +27,44 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 
-const navItems = [
-  { label: "Dashboard", href: "/", icon: LayoutDashboard },
-  { label: "Routes", href: "/routes", icon: Route },
-  { label: "Trips", href: "/trips", icon: CarFront },
-  { label: "Drivers", href: "/drivers", icon: Users },
-  { label: "Issues", href: "/issues", icon: AlertTriangle },
-  { label: "Telemetry Simulator", href: "/telemetry-simulator", icon: Radar },
+const fleetManagerItems = [
+  { label: "Dashboard", href: "/fleet-manager", icon: LayoutDashboard },
+  { label: "Routes", href: "/fleet-manager/routes", icon: Route },
+  { label: "Trips", href: "/fleet-manager/trips", icon: CarFront },
+  { label: "Drivers", href: "/fleet-manager/drivers", icon: Users },
+  { label: "Issues", href: "/fleet-manager/issues", icon: AlertTriangle },
+  {
+    label: "Telemetry Simulator",
+    href: "/fleet-manager/telemetry-simulator",
+    icon: Radar,
+  },
+] as const;
+
+const driverItems = [
+  { label: "Dashboard", href: "/driver", icon: LayoutDashboard },
+  { label: "Trips", href: "/driver/trips", icon: CarFront },
 ] as const;
 
 export function AppSidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+
+  // Determine role based on current pathname
+  const isFleetManager = pathname.startsWith("/fleet-manager");
+  const isDriver = pathname.startsWith("/driver");
+
+  const navItems = isFleetManager
+    ? fleetManagerItems
+    : isDriver
+      ? driverItems
+      : [];
+  const roleLabel = isFleetManager ? "Fleet Manager" : isDriver ? "Driver" : "";
+
+  const handleBack = () => {
+    router.push("/");
+  };
+
+  if (!navItems.length) return null;
 
   return (
     <Sidebar collapsible="icon" variant="inset">
@@ -47,7 +76,7 @@ export function AppSidebar() {
               <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--info)]">
                 TraceData
               </p>
-              <p className="text-sm font-bold tracking-tight">Fleet Console</p>
+              <p className="text-sm font-bold tracking-tight">{roleLabel}</p>
             </div>
           </div>
         </div>
@@ -79,7 +108,16 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter>
+      <SidebarFooter className="space-y-2">
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-full justify-start gap-2"
+          onClick={handleBack}
+        >
+          <Home className="h-4 w-4" />
+          <span>Back to Home</span>
+        </Button>
         <p className="px-2 text-xs font-medium text-sidebar-foreground/70">
           Ctrl/Cmd + B to toggle
         </p>

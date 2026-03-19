@@ -1,59 +1,113 @@
 "use client";
 
-import type { ColumnDef } from "@tanstack/react-table";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { BrandMark } from "@/components/shared/BrandMark";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
-import { DataTable } from "@/components/shared/DataTable";
-import { DashboardPageTemplate } from "@/components/shared/DashboardPageTemplate";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { dashboardRows, type DashboardRow } from "@/lib/sample-data";
+export default function HomePage() {
+  const router = useRouter();
+  const [selectedRole, setSelectedRole] = useState<string>("");
 
-const columns: ColumnDef<DashboardRow>[] = [
-  { accessorKey: "routeName", header: "Route" },
-  { accessorKey: "activeTrips", header: "Active Trips" },
-  {
-    accessorKey: "avgRiskScore",
-    header: "Avg Risk Score",
-    cell: ({ row }) => row.original.avgRiskScore.toFixed(2),
-  },
-  {
-    accessorKey: "status",
-    header: "Status",
-    cell: ({ row }) => {
-      const status = row.original.status;
-      const className =
-        status === "Critical"
-          ? "bg-red-600 hover:bg-red-700"
-          : status === "Watch"
-            ? "bg-amber-500 hover:bg-amber-600"
-            : "bg-emerald-600 hover:bg-emerald-700";
+  const handleNavigate = () => {
+    if (selectedRole === "fleet-manager") {
+      router.push("/fleet-manager");
+    } else if (selectedRole === "driver") {
+      router.push("/driver");
+    }
+  };
 
-      return <Badge className={className}>{status}</Badge>;
-    },
-  },
-];
-
-export default function DashboardPage() {
   return (
-    <DashboardPageTemplate
-      title="Dashboard"
-      subtitle="Live command center for fleet health, routing, and safety operations."
-      stats={[
-        { label: "Active Routes", value: 3, change: 8 },
-        { label: "Live Trips", value: 13, change: 5 },
-        { label: "Open Safety Issues", value: 7, change: -3 },
-      ]}
-    >
-      <Card className="glass rounded-xl">
-        <CardHeader>
-          <CardTitle className="text-base font-bold uppercase tracking-tight">
-            Route Health Overview
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <DataTable columns={columns} data={dashboardRows} />
-        </CardContent>
-      </Card>
-    </DashboardPageTemplate>
+    <div className="min-h-screen bg-gradient-to-br from-[var(--gray-50)] to-[var(--gray-100)] flex items-center justify-center p-4">
+      <div className="max-w-2xl w-full space-y-8">
+        <div className="text-center space-y-4">
+          <div className="flex justify-center">
+            <BrandMark size={64} priority />
+          </div>
+          <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-foreground">
+            TraceData Fleet Console
+          </h1>
+          <p className="text-lg text-muted-foreground">
+            Intelligent fleet operations, safety, and driver management
+            platform.
+          </p>
+        </div>
+
+        <Card className="glass rounded-xl p-8 space-y-6">
+          <div className="space-y-3">
+            <label className="text-sm font-semibold text-foreground">
+              Select Your Role
+            </label>
+            <Select
+              value={selectedRole || null}
+              onValueChange={(value) => setSelectedRole(value ?? "")}
+            >
+              <SelectTrigger className="bg-white/50 border-[var(--info)]/30 text-foreground">
+                <SelectValue placeholder="Choose role to continue..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="fleet-manager">
+                  Fleet Manager - View dashboards, routes, drivers, and issues
+                </SelectItem>
+                <SelectItem value="driver">
+                  Driver - View your trips, fatigue level, and safety alerts
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <Button
+            onClick={handleNavigate}
+            disabled={!selectedRole}
+            className="w-full bg-[var(--info)] text-white hover:bg-[hsl(210_100%_45%)] disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Continue to Portal
+          </Button>
+        </Card>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Card className="glass rounded-xl p-6">
+            <h2 className="text-lg font-bold text-foreground mb-2">
+              🚀 Fleet Managers
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              Monitor routes, trips, driver safety, and real-time telemetry.
+              Optimize operations with comprehensive analytics.
+            </p>
+          </Card>
+
+          <Card className="glass rounded-xl p-6">
+            <h2 className="text-lg font-bold text-foreground mb-2">
+              🚗 Drivers
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              View current trips, check fatigue levels, and access support. Stay
+              informed with real-time alerts.
+            </p>
+          </Card>
+        </div>
+
+        <div className="text-center text-sm text-muted-foreground pt-8">
+          <p>
+            © 2026 TraceData. All rights reserved. |{" "}
+            <a href="#" className="hover:text-foreground transition-colors">
+              Privacy
+            </a>{" "}
+            •{" "}
+            <a href="#" className="hover:text-foreground transition-colors">
+              Terms
+            </a>
+          </p>
+        </div>
+      </div>
+    </div>
   );
 }
