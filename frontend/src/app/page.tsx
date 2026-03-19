@@ -1,77 +1,77 @@
 "use client";
 
-import { useCallback, useState } from "react";
-import { AlertCircle, CheckCircle2, RefreshCw } from "lucide-react";
+import type { ColumnDef } from "@tanstack/react-table";
 
+import { DataTable } from "@/components/data-table";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { getBackendHealth, type BackendHealth } from "@/lib/api";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { dashboardRows, type DashboardRow } from "@/lib/sample-data";
 
-export default function Home() {
-  const [health, setHealth] = useState<BackendHealth | null>(null);
-  const [loading, setLoading] = useState(true);
+const columns: ColumnDef<DashboardRow>[] = [
+  { accessorKey: "routeName", header: "Route" },
+  { accessorKey: "activeTrips", header: "Active Trips" },
+  {
+    accessorKey: "avgRiskScore",
+    header: "Avg Risk Score",
+    cell: ({ row }) => row.original.avgRiskScore.toFixed(2),
+  },
+  {
+    accessorKey: "status",
+    header: "Status",
+    cell: ({ row }) => {
+      const status = row.original.status;
+      const className =
+        status === "Critical"
+          ? "bg-red-600 hover:bg-red-700"
+          : status === "Watch"
+            ? "bg-amber-500 hover:bg-amber-600"
+            : "bg-emerald-600 hover:bg-emerald-700";
 
-  const refreshHealth = useCallback(async () => {
-    setLoading(true);
-    const result = await getBackendHealth();
-    setHealth(result);
-    setLoading(false);
-  }, []);
+      return <Badge className={className}>{status}</Badge>;
+    },
+  },
+];
 
-  const connected = health?.status === "ok";
-
+export default function DashboardPage() {
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-4xl items-center px-4 py-10 sm:px-6 lg:px-8">
-      <Card className="w-full">
-        <CardHeader className="space-y-3">
-          <CardTitle className="text-2xl">TraceData Frontend</CardTitle>
-          <CardDescription>
-            Next.js + Shadcn baseline with a simple api.ts abstraction.
-          </CardDescription>
-          <div className="flex items-center gap-2">
-            {connected ? (
-              <>
-                <CheckCircle2 className="size-4 text-emerald-600" />
-                <Badge className="bg-emerald-600 hover:bg-emerald-700">
-                  Backend Connected
-                </Badge>
-              </>
-            ) : (
-              <>
-                <AlertCircle className="size-4 text-amber-600" />
-                <Badge variant="secondary">Mock Mode</Badge>
-              </>
-            )}
-          </div>
+    <div className="space-y-4">
+      <div className="grid gap-4 md:grid-cols-3">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm font-medium">Active Routes</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-semibold">3</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm font-medium">Live Trips</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-semibold">13</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm font-medium">
+              Open Safety Issues
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-semibold">7</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Route Health Overview</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="rounded-md border p-4">
-            <p className="text-sm text-muted-foreground">API base URL</p>
-            <p className="font-mono text-sm">
-              {health?.baseUrl ?? "(not set)"}
-            </p>
-          </div>
-
-          <div className="rounded-md border p-4">
-            <p className="text-sm text-muted-foreground">Status payload</p>
-            <pre className="mt-2 overflow-x-auto text-xs">
-              {JSON.stringify(health?.payload ?? {}, null, 2)}
-            </pre>
-          </div>
-
-          <Button onClick={refreshHealth} disabled={loading} className="gap-2">
-            <RefreshCw className={loading ? "size-4 animate-spin" : "size-4"} />
-            {loading ? "Checking..." : "Check Backend"}
-          </Button>
+        <CardContent>
+          <DataTable columns={columns} data={dashboardRows} />
         </CardContent>
       </Card>
-    </main>
+    </div>
   );
 }

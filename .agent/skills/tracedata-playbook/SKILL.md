@@ -9,13 +9,13 @@ This is the **Skill Hub** for the TraceData capstone. Detailed specifications ar
 
 ## 📂 Modular Sub-Files
 
-| Module | Description | Location |
-| :--- | :--- | :--- |
-| **Architecture** | Core Stack, Multi-tenancy, Pipelines, MCP, Safety Intervention | [architecture.md](file:///d:/learning-projects/tracedata-ai-monorepo/.agent/skills/tracedata-playbook/architecture.md) |
-| **Design System** | Philosophy, Colors, Typography, Page Templates, Component Rules | [design-system.md](file:///d:/learning-projects/tracedata-ai-monorepo/.agent/skills/tracedata-playbook/design-system.md) |
-| **Implementation** | Project Structure, Component Anatomy, Agent Integration Patterns | [patterns.md](file:///d:/learning-projects/tracedata-ai-monorepo/.agent/skills/tracedata-playbook/patterns.md) |
-| **Compliance** | Rubric Alignment: XRAI, Cybersecurity, Performance, A11y | [compliance.md](file:///d:/learning-projects/tracedata-ai-monorepo/.agent/skills/tracedata-playbook/compliance.md) |
-| **Workflows** | Task Templates for common development flows | [workflows.md](file:///d:/learning-projects/tracedata-ai-monorepo/.agent/skills/tracedata-playbook/workflows.md) |
+| Module             | Description                                                      | Location                                                                                                                 |
+| :----------------- | :--------------------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------- |
+| **Architecture**   | Core Stack, Multi-tenancy, Pipelines, MCP, Safety Intervention   | [architecture.md](file:///d:/learning-projects/tracedata-ai-monorepo/.agent/skills/tracedata-playbook/architecture.md)   |
+| **Design System**  | Philosophy, Colors, Typography, Page Templates, Component Rules  | [design-system.md](file:///d:/learning-projects/tracedata-ai-monorepo/.agent/skills/tracedata-playbook/design-system.md) |
+| **Implementation** | Project Structure, Component Anatomy, Agent Integration Patterns | [patterns.md](file:///d:/learning-projects/tracedata-ai-monorepo/.agent/skills/tracedata-playbook/patterns.md)           |
+| **Compliance**     | Rubric Alignment: XRAI, Cybersecurity, Performance, A11y         | [compliance.md](file:///d:/learning-projects/tracedata-ai-monorepo/.agent/skills/tracedata-playbook/compliance.md)       |
+| **Workflows**      | Task Templates for common development flows                      | [workflows.md](file:///d:/learning-projects/tracedata-ai-monorepo/.agent/skills/tracedata-playbook/workflows.md)         |
 
 ---
 
