@@ -82,12 +82,13 @@ export default function HomePage() {
       <header className="relative flex min-h-screen w-full items-center overflow-hidden">
         <div className="absolute inset-0 z-0">
           <img
-            className="h-full w-full object-cover"
-            src="/hero.png"
+            className="h-full w-full object-cover object-[62%_50%] md:object-[60%_46%]"
+            src="/hero-uw.png"
             alt="Cinematic wide shot of a high-tech semi-truck on highway with glowing data beam"
           />
-          <div className="absolute inset-0 bg-gradient-to-r from-[#0c1030]/88 via-[#0c1030]/58 to-[#0c1030]/20" />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#0c1030]/70 via-transparent to-[#0c1030]/10" />
+          <div className="absolute inset-0 bg-[linear-gradient(112deg,rgba(12,16,48,0.86)_0%,rgba(12,16,48,0.72)_32%,rgba(12,16,48,0.36)_55%,rgba(12,16,48,0.12)_78%,rgba(12,16,48,0.05)_100%)]" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#0c1030]/48 via-transparent to-transparent" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(12,16,48,0.40),transparent_42%)]" />
         </div>
 
         <div className="relative z-10 mx-auto grid w-full max-w-7xl grid-cols-1 items-center px-6 py-24 lg:grid-cols-12 lg:gap-8">
