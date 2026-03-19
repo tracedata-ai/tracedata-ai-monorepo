@@ -26,8 +26,10 @@ from app.core.database import engine
 from app.core.logging import get_logger, setup_logging
 from app.core.middleware import RequestIdMiddleware
 
-# Import all models so their metadata is registered with Base
-import app.models  # noqa: F401
+# Import all models so their metadata is registered with Base.
+# Aliased as _models to prevent `app` name from being bound to the package
+# module — which causes mypy to type `app = FastAPI(...)` as Module.
+import app.models as _models  # noqa: F401
 
 from app.models.base import Base
 
@@ -110,7 +112,7 @@ OPENAPI_TAGS = [
 ]
 
 # ── App Factory ────────────────────────────────────────────────────────────────
-app = FastAPI(
+app: FastAPI = FastAPI(
     title=settings.project_name,
     version=settings.project_version,
     description=settings.project_description,

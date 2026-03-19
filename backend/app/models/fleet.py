@@ -5,13 +5,23 @@ Represents a commercial truck in the fleet. Each vehicle belongs to one tenant
 and can be assigned to one driver at a time.
 """
 
+from __future__ import annotations
+
 import uuid
+from typing import TYPE_CHECKING
 
 from sqlalchemy import Integer, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
+
+if TYPE_CHECKING:
+    # Only imported during type-checking (not at runtime) — prevents circular imports.
+    # SQLAlchemy resolves these forward refs at runtime via its own registry.
+    from app.models.driver import Driver
+    from app.models.maintenance import Maintenance
+    from app.models.trip import Trip
 
 
 class VehicleStatus(str):
@@ -72,11 +82,11 @@ class Vehicle(Base, UUIDPrimaryKeyMixin, TimestampMixin):
 
     # ── Relationships ──────────────────────────────────────────────────────
     # back_populates keeps both sides in sync when you assign vehicle.drivers
-    drivers: Mapped[list["Driver"]] = relationship("Driver", back_populates="vehicle")  # type: ignore[name-defined] # noqa: F821
-    trips: Mapped[list["Trip"]] = relationship("Trip", back_populates="vehicle")  # type: ignore[name-defined] # noqa: F821
-    maintenance_records: Mapped[list["Maintenance"]] = relationship(  # noqa: F821
+    drivers: Mapped[list[Driver]] = relationship("Driver", back_populates="vehicle")
+    trips: Mapped[list[Trip]] = relationship("Trip", back_populates="vehicle")
+    maintenance_records: Mapped[list[Maintenance]] = relationship(
         "Maintenance", back_populates="vehicle"
-    )  # type: ignore[name-defined]
+    )
 
     def __repr__(self) -> str:
         return f"<Vehicle {self.license_plate} ({self.status})>"

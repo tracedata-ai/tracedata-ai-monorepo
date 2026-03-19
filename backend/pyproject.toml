@@ -36,6 +36,7 @@ dev = [
     "httpx>=0.28.0",              # Async test client for FastAPI
     "ruff>=0.8.0",                # Linter + formatter
     "mypy>=1.13.0",               # Static type checker
+    "types-PyYAML>=6.0.0",        # Stubs for PyYAML (needed by logging.py)
 ]
 
 # ─── Build System (required by uv / PEP 517) ─────────────────────────────────
