@@ -109,13 +109,15 @@ export function AppSidebar() {
         <Button
           variant="outline"
           size="sm"
-          className="w-full justify-start gap-2"
+          className="w-full justify-start gap-2 group-data-[collapsible=icon]:w-auto group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-2"
           onClick={handleBack}
         >
           <Home className="h-4 w-4" />
-          <span>Back to Home</span>
+          <span className="group-data-[collapsible=icon]:hidden">
+            Back to Home
+          </span>
         </Button>
-        <p className="px-2 text-xs font-medium text-sidebar-foreground/70">
+        <p className="px-2 text-xs font-medium text-sidebar-foreground/70 group-data-[collapsible=icon]:hidden">
           Ctrl/Cmd + B to toggle
         </p>
       </SidebarFooter>
