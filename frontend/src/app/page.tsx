@@ -106,8 +106,10 @@ export default function HomePage() {
               </span>
             </h1>
             <p className="mb-12 max-w-2xl text-lg font-light leading-relaxed text-[#bdc8d0] md:text-2xl">
-              The architectural lens for autonomous logistics. Real-time
-              decisioning, 8-agent neural integrity, and Kafka-driven scale.
+              AI intelligence middleware for small-to-medium fleets. TraceData
+              closes 7 critical gaps in telematics: fairness, coaching, burnout
+              detection, appeals, contextual scoring, trust, and integrated
+              safety-welfare response.
             </p>
             <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center">
               <Link
@@ -149,8 +151,9 @@ export default function HomePage() {
               </h2>
             </div>
             <p className="max-w-sm text-lg font-light text-[#bdc8d0] md:text-right">
-              Distributed intelligence modules working in synchronicity for
-              fleet-wide safety and efficiency.
+              Eight autonomous agents operating through a central orchestration
+              graph to ensure fairness, accountability, explainability, and
+              operational safety.
             </p>
           </div>
 
@@ -163,64 +166,73 @@ export default function HomePage() {
                 Safety Agent
               </h3>
               <p className="leading-relaxed text-[#bdc8d0]">
-                Continuous risk assessment using multi-modal sensor fusion.
-                Predictive braking and collision avoidance run at the edge.
+                Priority-queue critical incident response with multi-level
+                intervention (app notification, formal message, direct call)
+                under a sub-5-second response objective.
               </p>
               <div className="mt-10 rounded-lg bg-[#070a2b] p-4 text-xs text-[#70d2ff]/80">
-                &gt; PROCESS: assess_gradient_vector()
+                &gt; QUEUE: queue.critical
                 <br />
-                &gt; STATUS: ACTIVE_PROTECTION_ENABLED
+                &gt; ACTION: emergency_services + fleet_manager_alert
               </div>
             </div>
 
             <div className="rounded-xl bg-[#151939] p-7 transition hover:bg-[#191d3d]">
               <Scale className="mb-5 h-7 w-7 text-[#a5c8ff]" />
-              <h3 className="mb-3 text-xl font-bold">Fairness</h3>
+              <h3 className="mb-3 text-xl font-bold">Behavior Agent</h3>
               <p className="text-sm text-[#bdc8d0]">
-                Algorithmic load balancing to prevent bias and operator burnout.
+                XGBoost trip scoring (0-100) with AIF360 fairness audits and
+                SHAP/LIME explainability for every score decision.
               </p>
             </div>
             <div className="rounded-xl bg-[#151939] p-7 transition hover:bg-[#191d3d]">
               <Network className="mb-5 h-7 w-7 text-[#ddb7ff]" />
-              <h3 className="mb-3 text-xl font-bold">Context</h3>
+              <h3 className="mb-3 text-xl font-bold">Orchestrator Agent</h3>
               <p className="text-sm text-[#bdc8d0]">
-                Dynamic awareness mapping weather, traffic, and route
-                conditions.
+                Central router using deterministic rules plus semantic routing
+                for unstructured text, with full audit logging.
               </p>
             </div>
             <div className="rounded-xl bg-[#151939] p-7 transition hover:bg-[#191d3d]">
               <Bolt className="mb-5 h-7 w-7 text-[#00aadd]" />
-              <h3 className="mb-3 text-xl font-bold">Efficiency</h3>
+              <h3 className="mb-3 text-xl font-bold">
+                Feedback &amp; Advocacy Agent
+              </h3>
               <p className="text-sm text-[#bdc8d0]">
-                Fuel and route optimization with fleet-aware orchestration.
+                Driver appeals and feedback ingestion with semantic retrieval,
+                ensuring contestable and transparent outcomes.
               </p>
             </div>
             <div className="rounded-xl bg-[#151939] p-7 transition hover:bg-[#191d3d]">
               <Lock className="mb-5 h-7 w-7 text-[#ddb7ff]" />
-              <h3 className="mb-3 text-xl font-bold">Security</h3>
+              <h3 className="mb-3 text-xl font-bold">Sentiment Agent</h3>
               <p className="text-sm text-[#bdc8d0]">
-                Secure edge communication and trusted execution guarantees.
+                Emotional trajectory analysis to identify burnout risk early and
+                trigger supportive fleet-manager interventions.
               </p>
             </div>
 
             <div className="md:col-span-2 grid grid-cols-2 gap-4">
               <div className="rounded-xl bg-[#151939] p-7 transition hover:bg-[#191d3d]">
-                <h3 className="mb-2 text-lg font-bold">Ethics</h3>
+                <h3 className="mb-2 text-lg font-bold">Coaching Agent</h3>
                 <div className="mt-4 h-1 w-full overflow-hidden rounded-full bg-[#3d484f]/40">
                   <div className="h-full w-full bg-[#a5c8ff]" />
                 </div>
               </div>
               <div className="rounded-xl bg-[#151939] p-7 transition hover:bg-[#191d3d]">
-                <h3 className="mb-2 text-lg font-bold">Resilience</h3>
+                <h3 className="mb-2 text-lg font-bold">
+                  Context Enrichment Agent
+                </h3>
                 <div className="mt-4 h-1 w-full overflow-hidden rounded-full bg-[#3d484f]/40">
                   <div className="h-full w-full bg-[#00aadd]" />
                 </div>
               </div>
               <div className="col-span-2 flex items-center justify-between rounded-xl bg-[#151939] p-7 transition hover:bg-[#191d3d]">
                 <div>
-                  <h3 className="text-lg font-bold">Diagnostics Agent</h3>
+                  <h3 className="text-lg font-bold">Ingestion Quality Agent</h3>
                   <p className="text-sm text-[#bdc8d0]">
-                    Self-healing predictive maintenance.
+                    Validates telemetry plus unstructured appeal payloads,
+                    handles batched pings and critical bypass routing.
                   </p>
                 </div>
                 <Settings2 className="h-5 w-5 text-[#bdc8d0]" />
@@ -243,8 +255,9 @@ export default function HomePage() {
               Explainability
             </h2>
             <p className="mb-8 text-lg leading-relaxed text-[#bdc8d0]">
-              TraceData does not just act. It explains every outcome using
-              SHAP-driven interpretability and event-stream intelligence.
+              TraceData does not just score events; it exposes decision logic.
+              SHAP and LIME explainability are paired with fairness checks so
+              every intervention is observable, reviewable, and contestable.
             </p>
             <ul className="space-y-5">
               <li className="flex items-start gap-4">
@@ -254,7 +267,8 @@ export default function HomePage() {
                 <div>
                   <p className="font-bold">Kafka-Driven Orchestration</p>
                   <p className="text-sm text-[#bdc8d0]">
-                    Sub-millisecond event latency for live fleet updates.
+                    FastAPI + Celery + Redis priority queues route critical,
+                    high, medium, and low events with deterministic SLAs.
                   </p>
                 </div>
               </li>
@@ -263,9 +277,10 @@ export default function HomePage() {
                   <GitBranch className="h-4 w-4 text-[#a5c8ff]" />
                 </div>
                 <div>
-                  <p className="font-bold">SHAP Value Attribution</p>
+                  <p className="font-bold">Fairness + SHAP/LIME Attribution</p>
                   <p className="text-sm text-[#bdc8d0]">
-                    Transparent feature influence for each decision path.
+                    Monthly bias audits (AIF360) and feature-level explanations
+                    for each behavioral score and appeal decision.
                   </p>
                 </div>
               </li>
@@ -354,8 +369,9 @@ export default function HomePage() {
               Human-in-the-Loop
             </h2>
             <p className="text-lg text-[#bdc8d0]">
-              Complex maneuvers are flagged for human oversight in real-time to
-              preserve accountability and control.
+              Drivers can appeal decisions and fleet managers can override with
+              complete context. The goal is support over surveillance, with
+              transparent intervention logs for governance.
             </p>
             <div className="mt-8 flex items-center gap-4">
               <div className="flex -space-x-3">
@@ -394,30 +410,36 @@ export default function HomePage() {
           <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
             <div className="border-t border-[#3d484f]/20 p-8">
               <span className="mb-4 block text-xs uppercase tracking-[0.18em] text-[#70d2ff]">
-                Ingress
+                Orchestration
               </span>
-              <h4 className="mb-4 text-xl font-bold">Scalable Data Flows</h4>
+              <h4 className="mb-4 text-xl font-bold">
+                LangGraph + Router Core
+              </h4>
               <p className="text-sm leading-relaxed text-[#bdc8d0]">
-                Built on Kafka foundations, handling millions of telemetry
-                events per second.
+                Agent nodes execute through conditional routing with audited
+                decisions from the central Orchestrator Agent.
               </p>
             </div>
             <div className="border-t border-[#3d484f]/20 p-8">
               <span className="mb-4 block text-xs uppercase tracking-[0.18em] text-[#70d2ff]">
-                Compute
+                Fairness &amp; Explainability
               </span>
-              <h4 className="mb-4 text-xl font-bold">Edge Orchestration</h4>
+              <h4 className="mb-4 text-xl font-bold">AIF360 + SHAP + LIME</h4>
               <p className="text-sm leading-relaxed text-[#bdc8d0]">
-                Decisions happen on-vehicle through edge-native deployment.
+                Bias detection, mitigation, and interpretable scoring are built
+                directly into the Behavior Agent lifecycle.
               </p>
             </div>
             <div className="border-t border-[#3d484f]/20 p-8">
               <span className="mb-4 block text-xs uppercase tracking-[0.18em] text-[#70d2ff]">
-                Interop
+                Runtime Stack
               </span>
-              <h4 className="mb-4 text-xl font-bold">gRPC Native</h4>
+              <h4 className="mb-4 text-xl font-bold">
+                FastAPI + Celery/Redis + PostgreSQL/pgvector
+              </h4>
               <p className="text-sm leading-relaxed text-[#bdc8d0]">
-                Strongly typed low-latency communication across stack layers.
+                Production-ready async APIs, priority task queues, ACID event
+                storage, and vector search for appeal context retrieval.
               </p>
             </div>
           </div>
