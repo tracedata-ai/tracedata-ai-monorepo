@@ -1,0 +1,75 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# TraceData Backend — Logging Configuration
+#
+# Loaded at startup by app/core/logging.py via Python's dictConfig().
+# Changing this file restarts the logging behaviour WITHOUT touching app code.
+#
+# Handler map:
+#   console  → Human-readable, coloured (dev-friendly)
+#   file     → JSON-like lines written to logs/backend.log (ship to CloudWatch)
+#
+# Log level hierarchy (most → least verbose):
+#   DEBUG → INFO → WARNING → ERROR → CRITICAL
+# ─────────────────────────────────────────────────────────────────────────────
+
+version: 1
+disable_existing_loggers: false   # Keep uvicorn and SQLAlchemy loggers alive
+
+# ── Formatters ────────────────────────────────────────────────────────────────
+formatters:
+
+  # Human-readable: best for local development
+  console:
+    format: "%(asctime)s | %(levelname)-8s | %(name)s | %(message)s"
+    datefmt: "%H:%M:%S"
+
+  # Structured: one JSON-ish record per line — easy to grep and ship
+  # Format: timestamp LEVEL logger_name [request_id] message
+  structured:
+    format: "%(asctime)s %(levelname)s %(name)s [%(request_id)s] %(message)s"
+    datefmt: "%Y-%m-%dT%H:%M:%S"
+
+# ── Handlers ──────────────────────────────────────────────────────────────────
+handlers:
+
+  # Stdout — always on; use in all environments (Docker captures stdout)
+  console:
+    class: logging.StreamHandler
+    level: DEBUG
+    formatter: console
+    stream: ext://sys.stdout
+
+  # Rotating file — useful for local dev; in prod prefer stdout → log aggregator
+  file:
+    class: logging.handlers.RotatingFileHandler
+    level: INFO
+    formatter: structured
+    filename: logs/backend.log
+    maxBytes: 10485760   # 10 MB per file
+    backupCount: 5        # Keep 5 rotated files = max 50 MB on disk
+    encoding: utf8
+
+# ── Loggers ───────────────────────────────────────────────────────────────────
+loggers:
+
+  # Suppress SQLAlchemy's per-row echo in INFO; DEBUG will show full SQL
+  sqlalchemy.engine:
+    level: WARNING
+    propagate: false
+
+  # Uvicorn access logs — keep INFO to see HTTP request lines
+  uvicorn.access:
+    level: INFO
+    propagate: false
+
+  # Our app logger — root namespace for all app.* loggers
+  app:
+    level: DEBUG
+    propagate: true
+
+# ── Root Logger ───────────────────────────────────────────────────────────────
+root:
+  level: INFO
+  handlers:
+    - console
+    - file

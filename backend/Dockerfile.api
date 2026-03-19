@@ -1,0 +1,57 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# TraceData Backend — Dockerfile
+#
+# Staged build using uv (from the official uv Docker image):
+#
+#   Stage 1 (builder): Install uv, sync all dependencies into /app/.venv
+#   Stage 2 (runtime): Copy only the app + venv — no build tools in prod image
+#
+# Why staged builds?
+#   - Final image has NO uv, NO pip, NO compilers → smaller attack surface
+#   - Dev dependencies excluded from prod image automatically
+#   - Layer caching: pyproject.toml changes rebuild deps; code changes don't
+# ─────────────────────────────────────────────────────────────────────────────
+
+# ── Stage 1: Builder ──────────────────────────────────────────────────────────
+FROM python:3.11-slim AS builder
+
+# Install uv (the package manager)
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+
+WORKDIR /app
+
+# Copy dependency manifests first (for layer cache efficiency)
+COPY pyproject.toml .
+
+# Sync production dependencies only into a local .venv
+# --no-dev excludes dev extras (pytest, ruff, etc.)
+RUN uv sync --no-dev
+
+# ── Stage 2: Runtime ──────────────────────────────────────────────────────────
+FROM python:3.11-slim AS runtime
+
+WORKDIR /app
+
+# Copy the virtual environment from the builder stage
+COPY --from=builder /app/.venv /app/.venv
+
+# Prepend venv's bin directory to PATH so `python` and `uvicorn` resolve correctly
+ENV PATH="/app/.venv/bin:$PATH"
+
+# Copy application source
+COPY app/ ./app/
+COPY agents/ ./agents/
+COPY scripts/ ./scripts/
+COPY entrypoint.sh ./
+
+# Ensure the entrypoint script is executable
+RUN chmod +x entrypoint.sh
+
+# Expose the API port
+EXPOSE 8000
+
+# Docker healthcheck — hits /health every 30s
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+  CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"
+
+ENTRYPOINT ["./entrypoint.sh"]

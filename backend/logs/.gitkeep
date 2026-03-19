@@ -1,0 +1,3 @@
+# backend/logs/.gitkeep
+# This file keeps the logs/ directory tracked by git.
+# The actual .log files are gitignored (add *.log to .gitignore).

@@ -1,0 +1,56 @@
+[project]
+name = "tracedata-backend"
+version = "0.1.0"
+description = "TraceData AI Middleware — FastAPI REST API + LangGraph Agents"
+requires-python = ">=3.11"
+
+# ─── Runtime Dependencies ─────────────────────────────────────────────────────
+# Pin major versions; use `uv add <pkg>` to add new deps (never edit manually).
+dependencies = [
+    # Web framework — Swagger UI is bundled at /docs, ReDoc at /redoc
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.32.0",
+
+    # Database — async SQLAlchemy 2.0 + asyncpg driver for PostgreSQL
+    "sqlalchemy>=2.0.36",
+    "asyncpg>=0.30.0",
+    "greenlet>=3.1.1",          # Required by SQLAlchemy async internals
+
+    # Schema migration
+    "alembic>=1.14.0",
+
+    # Data validation & settings
+    "pydantic>=2.10.0",
+    "pydantic-settings>=2.7.0",
+
+    # Environment variables
+    "python-dotenv>=1.0.1",
+]
+
+[project.optional-dependencies]
+# Install with: uv add --optional dev <pkg>  OR  uv sync --extra dev
+dev = [
+    "pytest>=8.3.0",
+    "pytest-asyncio>=0.24.0",
+    "pytest-cov>=6.0.0",          # Coverage plugin used by CI --cov flag
+    "httpx>=0.28.0",              # Async test client for FastAPI
+    "ruff>=0.8.0",                # Linter + formatter
+    "mypy>=1.13.0",               # Static type checker
+]
+
+# ─── Build System (required by uv / PEP 517) ─────────────────────────────────
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+# Tell hatchling which package to include in the wheel
+[tool.hatch.build.targets.wheel]
+packages = ["app", "agents"]
+
+# ─── Tool Config ─────────────────────────────────────────────────────────────
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
