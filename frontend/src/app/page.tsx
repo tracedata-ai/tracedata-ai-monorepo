@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { JetBrains_Mono, Manrope, Sora } from "next/font/google";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Activity,
   ArrowRight,
@@ -217,6 +217,56 @@ const navAnchors: Record<string, string> = {
   Governance: "#integrity",
 };
 
+// ─── Animation Hooks ──────────────────────────────────────────────────
+
+function useScrollProgress() {
+  const [progress, setProgress] = useState(0);
+  useEffect(() => {
+    const onScroll = () => {
+      const el = document.documentElement;
+      const scrolled = el.scrollTop;
+      const total = el.scrollHeight - el.clientHeight;
+      setProgress(total > 0 ? (scrolled / total) * 100 : 0);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+  return progress;
+}
+
+function useInView(threshold = 0.18) {
+  const ref = useRef<HTMLElement | null>(null);
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    if (!ref.current) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setVisible(true);
+          observer.disconnect();
+        }
+      },
+      { threshold }
+    );
+    observer.observe(ref.current);
+    return () => observer.disconnect();
+  }, [threshold]);
+  return { ref, visible };
+}
+
+// ─── Scroll Progress Bar ──────────────────────────────────────────────
+
+function ScrollProgressBar({ progress }: { progress: number }) {
+  return (
+    <div className="pointer-events-none fixed left-0 top-0 z-[60] h-[2px] w-full">
+      <div
+        className="h-full bg-gradient-to-r from-[#70d2ff] via-[#a5c8ff] to-[#00aadd] transition-[width] duration-100 ease-out"
+        style={{ width: `${progress}%` }}
+      />
+    </div>
+  );
+}
+
 function TopNav({ scrolled }: { scrolled: boolean }) {
   return (
     <nav
@@ -294,11 +344,14 @@ function HeroSection() {
         <div className="absolute inset-0 bg-[linear-gradient(112deg,rgba(12,16,48,0.68)_0%,rgba(12,16,48,0.54)_30%,rgba(12,16,48,0.26)_52%,rgba(12,16,48,0.10)_72%,rgba(12,16,48,0.03)_100%)]" />
         <div className="absolute inset-0 bg-gradient-to-t from-[#0c1030]/36 via-transparent to-transparent" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(12,16,48,0.30),transparent_42%)]" />
+        {/* Floating ambient orbs */}
+        <div className="orb-float-a pointer-events-none absolute -left-24 top-1/4 h-80 w-80 rounded-full bg-[#70d2ff]/8 blur-[120px]" />
+        <div className="orb-float-b pointer-events-none absolute right-1/4 top-1/3 h-64 w-64 rounded-full bg-[#ddb7ff]/10 blur-[100px]" />
       </div>
 
       <div className="relative z-10 mx-auto grid w-full max-w-7xl grid-cols-1 items-center px-6 py-24 lg:grid-cols-12 lg:gap-8">
         <div className="lg:col-span-6">
-          <div className="mb-6 inline-block rounded-full border border-[#70d2ff]/35 bg-[#70d2ff]/12 px-4 py-1">
+          <div className="shimmer-badge mb-6 inline-block rounded-full border border-[#70d2ff]/35 px-4 py-1">
             <span
               className={`text-xs uppercase tracking-[0.2em] text-[#70d2ff] ${monoFont.className}`}
             >
@@ -351,11 +404,25 @@ function HeroSection() {
   );
 }
 
+const staggerClasses = [
+  "stagger-1", "stagger-2", "stagger-3", "stagger-4",
+  "stagger-5", "stagger-6", "stagger-7", "stagger-8",
+];
+
 function EcosystemSection() {
+  const { ref, visible } = useInView(0.1);
   return (
-    <section id="ecosystem" className="bg-[#0c1030] px-6 py-28 md:px-12">
+    <section
+      id="ecosystem"
+      ref={ref as React.RefObject<HTMLElement>}
+      className="bg-[#0c1030] px-6 py-28 md:px-12"
+    >
       <div className="mx-auto max-w-7xl">
-        <div className="mb-16 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+        <div
+          className={`fade-in-up mb-16 flex flex-col gap-6 md:flex-row md:items-end md:justify-between ${
+            visible ? "is-visible" : ""
+          }`}
+        >
           <div className="max-w-xl">
             <span
               className={`mb-4 block text-sm uppercase tracking-[0.2em] text-[#70d2ff] ${monoFont.className}`}
@@ -374,8 +441,13 @@ function EcosystemSection() {
         </div>
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-          <div className="flex flex-col rounded-xl bg-[#151939] p-8 transition hover:bg-[#191d3d] md:col-span-2 md:row-span-2">
-            <div className="mb-6 inline-flex h-12 w-12 items-center justify-center rounded-full bg-[#70d2ff]/10">
+          {/* Safety Agent — large featured card */}
+          <div
+            className={`card-glow fade-in-up stagger-1 flex flex-col rounded-xl bg-[#151939] p-8 transition hover:bg-[#191d3d] md:col-span-2 md:row-span-2 ${
+              visible ? "is-visible" : ""
+            }`}
+          >
+            <div className="pulse-ring mb-6 inline-flex h-12 w-12 items-center justify-center rounded-full bg-[#70d2ff]/10">
               <Shield className="h-5 w-5 text-[#70d2ff]" />
             </div>
             <h3
@@ -395,45 +467,32 @@ function EcosystemSection() {
             </div>
           </div>
 
-          <div className="rounded-xl bg-[#151939] p-7 transition hover:bg-[#191d3d]">
-            <Scale className="mb-5 h-7 w-7 text-[#a5c8ff]" />
-            <h3 className={`mb-3 text-xl font-bold ${displayFont.className}`}>
-              {homepageCopy.ecosystem.cards.behavior.title}
-            </h3>
-            <p className="text-sm leading-7 text-[#bdc8d0]">
-              {homepageCopy.ecosystem.cards.behavior.body}
-            </p>
-          </div>
-          <div className="rounded-xl bg-[#151939] p-7 transition hover:bg-[#191d3d]">
-            <Network className="mb-5 h-7 w-7 text-[#ddb7ff]" />
-            <h3 className={`mb-3 text-xl font-bold ${displayFont.className}`}>
-              {homepageCopy.ecosystem.cards.orchestrator.title}
-            </h3>
-            <p className="text-sm leading-7 text-[#bdc8d0]">
-              {homepageCopy.ecosystem.cards.orchestrator.body}
-            </p>
-          </div>
-          <div className="rounded-xl bg-[#151939] p-7 transition hover:bg-[#191d3d]">
-            <Bolt className="mb-5 h-7 w-7 text-[#00aadd]" />
-            <h3 className={`mb-3 text-xl font-bold ${displayFont.className}`}>
-              {homepageCopy.ecosystem.cards.feedback.title}
-            </h3>
-            <p className="text-sm leading-7 text-[#bdc8d0]">
-              {homepageCopy.ecosystem.cards.feedback.body}
-            </p>
-          </div>
-          <div className="rounded-xl bg-[#151939] p-7 transition hover:bg-[#191d3d]">
-            <Activity className="mb-5 h-7 w-7 text-[#ddb7ff]" />
-            <h3 className={`mb-3 text-xl font-bold ${displayFont.className}`}>
-              {homepageCopy.ecosystem.cards.sentiment.title}
-            </h3>
-            <p className="text-sm leading-7 text-[#bdc8d0]">
-              {homepageCopy.ecosystem.cards.sentiment.body}
-            </p>
-          </div>
+          {[
+            { icon: <Scale className="mb-5 h-7 w-7 text-[#a5c8ff]" />, card: homepageCopy.ecosystem.cards.behavior, idx: 2 },
+            { icon: <Network className="mb-5 h-7 w-7 text-[#ddb7ff]" />, card: homepageCopy.ecosystem.cards.orchestrator, idx: 3 },
+            { icon: <Bolt className="mb-5 h-7 w-7 text-[#00aadd]" />, card: homepageCopy.ecosystem.cards.feedback, idx: 4 },
+            { icon: <Activity className="mb-5 h-7 w-7 text-[#ddb7ff]" />, card: homepageCopy.ecosystem.cards.sentiment, idx: 5 },
+          ].map(({ icon, card, idx }) => (
+            <div
+              key={card.title}
+              className={`card-glow fade-in-up ${staggerClasses[idx - 1]} rounded-xl bg-[#151939] p-7 transition hover:bg-[#191d3d] ${
+                visible ? "is-visible" : ""
+              }`}
+            >
+              {icon}
+              <h3 className={`mb-3 text-xl font-bold ${displayFont.className}`}>
+                {card.title}
+              </h3>
+              <p className="text-sm leading-7 text-[#bdc8d0]">{card.body}</p>
+            </div>
+          ))}
 
-          <div className="md:col-span-2 grid grid-cols-2 gap-4">
-            <div className="rounded-xl bg-[#151939] p-7 transition hover:bg-[#191d3d]">
+          <div className={`md:col-span-2 grid grid-cols-2 gap-4`}>
+            <div
+              className={`card-glow fade-in-up stagger-6 rounded-xl bg-[#151939] p-7 transition hover:bg-[#191d3d] ${
+                visible ? "is-visible" : ""
+              }`}
+            >
               <h3 className={`mb-2 text-lg font-bold ${displayFont.className}`}>
                 {homepageCopy.ecosystem.cards.coaching.title}
               </h3>
@@ -444,7 +503,11 @@ function EcosystemSection() {
                 <div className="h-full w-full bg-[#a5c8ff]" />
               </div>
             </div>
-            <div className="rounded-xl bg-[#151939] p-7 transition hover:bg-[#191d3d]">
+            <div
+              className={`card-glow fade-in-up stagger-7 rounded-xl bg-[#151939] p-7 transition hover:bg-[#191d3d] ${
+                visible ? "is-visible" : ""
+              }`}
+            >
               <h3 className={`mb-2 text-lg font-bold ${displayFont.className}`}>
                 {homepageCopy.ecosystem.cards.context.title}
               </h3>
@@ -455,7 +518,11 @@ function EcosystemSection() {
                 <div className="h-full w-full bg-[#00aadd]" />
               </div>
             </div>
-            <div className="col-span-2 flex items-center justify-between rounded-xl bg-[#151939] p-7 transition hover:bg-[#191d3d]">
+            <div
+              className={`card-glow fade-in-up stagger-8 col-span-2 flex items-center justify-between rounded-xl bg-[#151939] p-7 transition hover:bg-[#191d3d] ${
+                visible ? "is-visible" : ""
+              }`}
+            >
               <div>
                 <h3 className={`text-lg font-bold ${displayFont.className}`}>
                   {homepageCopy.ecosystem.cards.ingestion.title}
@@ -474,13 +541,19 @@ function EcosystemSection() {
 }
 
 function ExplainabilitySection() {
+  const { ref, visible } = useInView(0.15);
   return (
     <section
       id="explainability"
+      ref={ref as React.RefObject<HTMLElement>}
       className="overflow-hidden bg-[#070a2b] px-6 py-32 md:px-12"
     >
       <div className="mx-auto grid max-w-7xl grid-cols-1 items-center gap-16 lg:grid-cols-12">
-        <div className="relative lg:col-span-5">
+        <div
+          className={`fade-in-up relative lg:col-span-5 ${
+            visible ? "is-visible" : ""
+          }`}
+        >
           <div className="absolute -left-16 -top-16 h-64 w-64 rounded-full bg-[#70d2ff]/10 blur-[100px]" />
           <span
             className={`mb-4 block text-sm uppercase tracking-[0.2em] text-[#70d2ff] ${monoFont.className}`}
@@ -527,7 +600,11 @@ function ExplainabilitySection() {
           </ul>
         </div>
 
-        <div className="lg:col-span-7">
+        <div
+          className={`fade-in-up stagger-3 lg:col-span-7 ${
+            visible ? "is-visible" : ""
+          }`}
+        >
           <div className="rounded-2xl border border-[#3d484f]/20 bg-[#232748] p-4 shadow-2xl">
             <div className="mb-4 flex items-center justify-between px-2">
               <div className="flex gap-1.5">
@@ -571,10 +648,10 @@ function ExplainabilitySection() {
                     {homepageCopy.explainability.liveFeed.shapTitle}
                   </p>
                   <div className="flex h-8 items-end gap-2">
-                    <div className="h-full w-2 bg-[#70d2ff]" />
-                    <div className="h-4 w-2 bg-[#70d2ff]" />
-                    <div className="h-6 w-2 bg-[#70d2ff]" />
-                    <div className="h-2 w-2 bg-[#70d2ff]" />
+                    <div className={`shap-bar w-2 self-stretch bg-[#70d2ff] ${visible ? "is-visible" : ""}`} style={{ transitionDelay: "0.4s", height: "100%" }} />
+                    <div className={`shap-bar w-2 bg-[#70d2ff] ${visible ? "is-visible" : ""}`} style={{ transitionDelay: "0.55s", height: "50%" }} />
+                    <div className={`shap-bar w-2 bg-[#70d2ff] ${visible ? "is-visible" : ""}`} style={{ transitionDelay: "0.7s", height: "75%" }} />
+                    <div className={`shap-bar w-2 bg-[#70d2ff] ${visible ? "is-visible" : ""}`} style={{ transitionDelay: "0.85s", height: "25%" }} />
                   </div>
                 </div>
               </div>
@@ -587,10 +664,19 @@ function ExplainabilitySection() {
 }
 
 function IntegritySection() {
+  const { ref, visible } = useInView();
   return (
-    <section id="integrity" className="bg-[#0c1030] px-6 py-28 md:px-12">
+    <section
+      id="integrity"
+      ref={ref as React.RefObject<HTMLElement>}
+      className="bg-[#0c1030] px-6 py-28 md:px-12"
+    >
       <div className="mx-auto flex max-w-7xl flex-col items-center gap-16 md:flex-row">
-        <div className="order-2 w-full md:order-1 md:w-1/2">
+        <div
+          className={`fade-in-up stagger-1 order-2 w-full md:order-1 md:w-1/2 ${
+            visible ? "is-visible" : ""
+          }`}
+        >
           <div className="grid grid-cols-2 gap-4">
             <div className="rounded-xl border-l-4 border-[#a5c8ff] bg-[#151939] p-6">
               <h4 className={`mb-2 font-bold ${displayFont.className}`}>
@@ -625,7 +711,11 @@ function IntegritySection() {
             </div>
           </div>
         </div>
-        <div className="order-1 w-full md:order-2 md:w-1/2">
+        <div
+          className={`fade-in-up stagger-3 order-1 w-full md:order-2 md:w-1/2 ${
+            visible ? "is-visible" : ""
+          }`}
+        >
           <div className="mb-8 flex items-center justify-between">
             <span
               className={`text-sm uppercase tracking-[0.2em] text-[#70d2ff] ${monoFont.className}`}
@@ -671,8 +761,13 @@ const specIcons: Record<string, React.ReactNode> = {
 };
 
 function TechnicalSpecsSection() {
+  const { ref, visible } = useInView();
   return (
-    <section id="tech-specs" className="bg-[#070a2b] px-6 py-28 md:px-12">
+    <section
+      id="tech-specs"
+      ref={ref as React.RefObject<HTMLElement>}
+      className="bg-[#070a2b] px-6 py-28 md:px-12"
+    >
       <div className="mx-auto max-w-7xl">
         <div className="mb-20 text-center">
           <h2
@@ -683,10 +778,12 @@ function TechnicalSpecsSection() {
           <div className="mx-auto h-1 w-24 bg-[#70d2ff]" />
         </div>
         <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
-          {homepageCopy.technicalSpecs.columns.map((column) => (
+          {homepageCopy.technicalSpecs.columns.map((column, i) => (
             <div
               key={column.title}
-              className="border-t border-[#3d484f]/20 p-8"
+              className={`fade-in-up ${staggerClasses[i]} border-t border-[#3d484f]/20 p-8 ${
+                visible ? "is-visible" : ""
+              }`}
             >
               <div className="mb-4 inline-flex h-9 w-9 items-center justify-center rounded-lg bg-[#151939]">
                 {specIcons[column.icon]}
@@ -709,10 +806,18 @@ function TechnicalSpecsSection() {
 }
 
 function FinalCtaSection() {
+  const { ref, visible } = useInView();
   return (
-    <section className="relative overflow-hidden bg-[#070a2b] px-6 py-36 md:px-12">
+    <section
+      ref={ref as React.RefObject<HTMLElement>}
+      className="relative overflow-hidden bg-[#070a2b] px-6 py-36 md:px-12"
+    >
       <div className="absolute inset-0 bg-gradient-to-br from-[#70d2ff]/10 via-transparent to-[#ddb7ff]/10" />
-      <div className="relative mx-auto w-full max-w-4xl text-center">
+      <div
+        className={`fade-in-up relative mx-auto w-full max-w-4xl text-center ${
+          visible ? "is-visible" : ""
+        }`}
+      >
         <h2
           className={`mb-10 text-4xl font-black leading-[1.05] tracking-[-0.02em] md:text-6xl ${displayFont.className}`}
         >
@@ -845,6 +950,7 @@ function FooterSection() {
 
 export default function HomePage() {
   const [scrolled, setScrolled] = useState(false);
+  const scrollProgress = useScrollProgress();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 100);
@@ -857,6 +963,7 @@ export default function HomePage() {
     <div
       className={`min-h-screen overflow-x-hidden bg-[#0c1030] text-[#dfe0ff] ${bodyFont.className}`}
     >
+      <ScrollProgressBar progress={scrollProgress} />
       <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_15%_20%,rgba(112,210,255,0.18),transparent_28%),radial-gradient(circle_at_80%_0%,rgba(192,128,255,0.14),transparent_30%)]" />
       <TopNav scrolled={scrolled} />
       <HeroSection />

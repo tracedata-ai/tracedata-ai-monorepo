@@ -167,3 +167,146 @@
   border: 1px solid rgba(255, 255, 255, 0.3);
   box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
 }
+
+/* ─── Homepage Animation System ────────────────────────────────────── */
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(28px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+@keyframes pulse-ring {
+  0% {
+    box-shadow: 0 0 0 0 rgba(112, 210, 255, 0.55);
+  }
+  70% {
+    box-shadow: 0 0 0 14px rgba(112, 210, 255, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(112, 210, 255, 0);
+  }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px) scale(1); }
+  33%       { transform: translateY(-18px) scale(1.04); }
+  66%       { transform: translateY(10px) scale(0.97); }
+}
+
+@keyframes float-slow {
+  0%, 100% { transform: translateY(0px) scale(1); }
+  50%       { transform: translateY(-24px) scale(1.06); }
+}
+
+@keyframes gradient-pan {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes bar-grow {
+  from { transform: scaleY(0); }
+  to   { transform: scaleY(1); }
+}
+
+/* Scroll-triggered fade-in-up */
+.fade-in-up {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.65s cubic-bezier(0.22, 1, 0.36, 1),
+              transform 0.65s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.fade-in-up.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Staggered delays for child cards */
+.stagger-1  { transition-delay: 0.05s; }
+.stagger-2  { transition-delay: 0.12s; }
+.stagger-3  { transition-delay: 0.19s; }
+.stagger-4  { transition-delay: 0.26s; }
+.stagger-5  { transition-delay: 0.33s; }
+.stagger-6  { transition-delay: 0.40s; }
+.stagger-7  { transition-delay: 0.47s; }
+.stagger-8  { transition-delay: 0.54s; }
+
+/* Card gradient border glow on hover */
+.card-glow {
+  position: relative;
+  isolation: isolate;
+}
+
+.card-glow::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, transparent 40%, rgba(112, 210, 255, 0), transparent);
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  background-size: 200% 200%;
+}
+
+.card-glow:hover::before {
+  opacity: 1;
+  background: linear-gradient(135deg, rgba(112, 210, 255, 0.5), rgba(165, 200, 255, 0.3), rgba(221, 183, 255, 0.4));
+}
+
+/* Hero badge shimmer sweep */
+.shimmer-badge {
+  background: linear-gradient(
+    90deg,
+    rgba(112, 210, 255, 0.12) 0%,
+    rgba(112, 210, 255, 0.12) 40%,
+    rgba(255, 255, 255, 0.24) 50%,
+    rgba(112, 210, 255, 0.12) 60%,
+    rgba(112, 210, 255, 0.12) 100%
+  );
+  background-size: 300% 100%;
+  animation: shimmer 3s ease-in-out 0.8s 1 forwards;
+}
+
+/* Safety agent pulse ring */
+.pulse-ring {
+  animation: pulse-ring 2.2s cubic-bezier(0.455, 0.03, 0.515, 0.955) infinite;
+}
+
+/* Floating orbs */
+.orb-float-a {
+  animation: float 9s ease-in-out infinite;
+}
+
+.orb-float-b {
+  animation: float-slow 12s ease-in-out infinite;
+  animation-delay: -4s;
+}
+
+/* Animated SHAP bars */
+.shap-bar {
+  transform-origin: bottom;
+  transform: scaleY(0);
+  transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.shap-bar.is-visible {
+  transform: scaleY(1);
+}
