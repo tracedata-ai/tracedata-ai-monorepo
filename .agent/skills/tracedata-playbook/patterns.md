@@ -89,3 +89,117 @@ const { data, loading } = useAgentQuery("/api/agent-query");
 ## Real-Time Safety Alerts
 
 Handled via direct triggers from the Telemetry Ingestion endpoint to the UI with <500ms latency.
+
+---
+
+## Homepage Component Patterns
+
+The homepage (`page.tsx`) follows these patterns. Keep them consistent when adding new sections.
+
+### `useInView` Hook — Scroll-triggered Animations
+
+```tsx
+function useInView(threshold = 0.18) {
+  const ref = useRef<HTMLElement | null>(null);
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    if (!ref.current) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) { setVisible(true); observer.disconnect(); }
+      },
+      { threshold }
+    );
+    observer.observe(ref.current);
+    return () => observer.disconnect();
+  }, [threshold]);
+  return { ref, visible };
+}
+
+// Usage — attach ref to the section element, toggle .is-visible on children
+const { ref, visible } = useInView(0.1);
+<section ref={ref as React.RefObject<HTMLElement>}>
+  <div className={`fade-in-up ${visible ? "is-visible" : ""}`}>...</div>
+</section>
+```
+
+> Use `observer.disconnect()` after first trigger — animations run **once**, not on every scroll.
+
+### `useScrollProgress` Hook — Progress Bar
+
+```tsx
+function useScrollProgress() {
+  const [progress, setProgress] = useState(0);
+  useEffect(() => {
+    const onScroll = () => {
+      const el = document.documentElement;
+      const total = el.scrollHeight - el.clientHeight;
+      setProgress(total > 0 ? (el.scrollTop / total) * 100 : 0);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+  return progress;
+}
+```
+
+### `homepageCopy` Data Shape Rules
+
+All homepage text must live in the top-level `homepageCopy` const — **never inline strings in JSX**.
+
+```tsx
+// ✅ Correct — all cards are objects with { title, body }
+const homepageCopy = {
+  ecosystem: {
+    cards: {
+      safety:    { title: "...", body: "...", queue: "...", action: "..." },
+      behavior:  { title: "...", body: "..." },
+      coaching:  { title: "...", body: "..." }, // Tool Gateway cards also objects
+    }
+  }
+}
+
+// ❌ Wrong — mixing plain strings and objects breaks TypeScript type inference
+coaching: "Tool Gateway: Context Enrichment",  // was a bug — fixed
+```
+
+### Section Anatomy
+
+Every homepage section should:
+
+1. Accept a `ref` from `useInView` on the `<section>` element
+2. Have a **section `id`** matching a `navAnchors` / `footerAnchors` entry
+3. Have a consistent **eyebrow → h2 → description** header structure
+4. Use `fade-in-up` + `stagger-N` on cards/columns for entrance animation
+5. Use `card-glow` on interactive cards
+
+```tsx
+function MySection() {
+  const { ref, visible } = useInView();
+  return (
+    <section id="my-section" ref={ref as React.RefObject<HTMLElement>} className="...">
+      <span className={`... ${monoFont.className}`}>eyebrow label</span>
+      <h2 className={`... ${displayFont.className}`}>Section Title</h2>
+      <p className="... text-[#bdc8d0]">Description text.</p>
+      <div className={`card-glow fade-in-up stagger-1 ... ${visible ? "is-visible" : ""}`}>
+        ...card content...
+      </div>
+    </section>
+  );
+}
+```
+
+### Nav & Footer Anchor Maps
+
+All nav and footer links must route through lookup maps — never hardcode `href` on link elements directly:
+
+```tsx
+const navAnchors: Record<string, string> = {
+  "7 Gaps": "#ecosystem",
+  "Agent Scope": "#explainability",
+  "Tech Stack": "#tech-specs",
+  "Governance": "#integrity",
+};
+// footerAnchors follows the same pattern, keyed by group then label
+```
+

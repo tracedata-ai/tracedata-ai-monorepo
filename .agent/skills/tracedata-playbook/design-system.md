@@ -163,3 +163,112 @@ Details must be shown in a `DetailSheet` (1/3 viewport width).
 ### Rule 4: No Native Buttons
 
 Always use `<Button />` from Shadcn.
+
+---
+
+## Homepage (Marketing / Landing Page) Design System
+
+The homepage (`frontend/src/app/page.tsx`) uses a **separate, dark-first design language** distinct from the dashboard. Do not mix dashboard Shadcn patterns with homepage styles.
+
+### Font Trio
+
+```tsx
+import { JetBrains_Mono, Manrope, Sora } from "next/font/google";
+
+const displayFont = Sora({ subsets: ["latin"], weight: ["600","700","800"] });  // headings
+const bodyFont   = Manrope({ subsets: ["latin"], weight: ["400","500","600","700"] }); // body
+const monoFont   = JetBrains_Mono({ subsets: ["latin"], weight: ["500","600"] }); // badges, code, labels
+```
+
+### Dark Navy Palette
+
+| Token | Hex | Usage |
+|---|---|---|
+| `--bg-base` | `#0c1030` | Page background, section bg alternating |
+| `--bg-deep` | `#070a2b` | Deeper sections (Explainability, TechSpecs, CTA) |
+| `--bg-card` | `#151939` | Card backgrounds |
+| `--bg-hover` | `#191d3d` | Card hover state |
+| `--bg-panel` | `#232748` | Dashboard mock panels |
+| `--accent-blue` | `#70d2ff` | Primary brand accent, borders, icons |
+| `--accent-sky` | `#00aadd` | Gradient end color |
+| `--accent-lavender` | `#a5c8ff` | Secondary icons, scale icons |
+| `--accent-purple` | `#ddb7ff` | Tertiary icons, sentiment/orchestrator |
+| `--text-primary` | `#dfe0ff` | Headings |
+| `--text-muted` | `#bdc8d0` | Body descriptions |
+| `--border-subtle` | `#3d484f` | Card borders, dividers |
+
+### Animation System (`globals.css`)
+
+**Philosophy:** Use CSS animations for the homepage (GPU compositor, zero JS bundle cost). Reserve Framer Motion for dashboard interactive UIs (modals, page transitions, AnimatePresence).
+
+#### Scroll-triggered Fade-In-Up
+
+```css
+/* Base state — invisible, shifted down */
+.fade-in-up {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.65s cubic-bezier(0.22, 1, 0.36, 1),
+              transform 0.65s cubic-bezier(0.22, 1, 0.36, 1);
+}
+/* Triggered by JS adding .is-visible via IntersectionObserver */
+.fade-in-up.is-visible { opacity: 1; transform: translateY(0); }
+```
+
+#### Stagger Delays
+
+```css
+/* Apply .stagger-N alongside .fade-in-up on each card (N = 1–8) */
+.stagger-1 { transition-delay: 0.05s; }
+.stagger-2 { transition-delay: 0.12s; }
+/* ... up to stagger-8 at 0.54s */
+```
+
+#### Key Keyframes
+
+| Keyframe | Class | Effect |
+|---|---|---|
+| `pulse-ring` | `.pulse-ring` | Ripple ring from element (Safety Agent icon) |
+| `float` | `.orb-float-a` | Slow vertical drift for ambient background orbs |
+| `float-slow` | `.orb-float-b` | Slower variant, offset `animation-delay: -4s` |
+| `shimmer` | `.shimmer-badge` | One-time left-to-right shine sweep (hero badge on load) |
+| `bar-grow` | `.shap-bar` + `.is-visible` | SHAP bars grow from `scaleY(0)→1` with spring easing |
+
+#### Card Gradient Glow (Hover)
+
+```css
+/* Add .card-glow to any dark card for a soft gradient border on hover */
+.card-glow::before {
+  content: ''; position: absolute; inset: 0; border-radius: inherit;
+  opacity: 0; transition: opacity 0.35s ease;
+}
+.card-glow:hover::before {
+  opacity: 1;
+  background: linear-gradient(135deg,
+    rgba(112,210,255,0.5), rgba(165,200,255,0.3), rgba(221,183,255,0.4));
+}
+```
+
+### Scroll Progress Bar
+
+Always present at `z-[60]` above the sticky nav, 2px tall gradient bar:
+
+```tsx
+<div className="pointer-events-none fixed left-0 top-0 z-[60] h-[2px] w-full">
+  <div
+    className="h-full bg-gradient-to-r from-[#70d2ff] via-[#a5c8ff] to-[#00aadd] transition-[width] duration-100"
+    style={{ width: `${scrollProgress}%` }}
+  />
+</div>
+```
+
+### Framer Motion Decision Rule
+
+| Scenario | Use |
+|---|---|
+| Homepage landing animations (fade-in, stagger, scroll-trigger) | ✅ CSS + IntersectionObserver |
+| Dashboard page transitions, route changes | ✅ Framer Motion (`AnimatePresence`) |
+| Modal / drawer enter/exit | ✅ Framer Motion |
+| Drag-to-reorder, spring physics | ✅ Framer Motion |
+| Static hover effects, gradient borders | ✅ CSS only |
+

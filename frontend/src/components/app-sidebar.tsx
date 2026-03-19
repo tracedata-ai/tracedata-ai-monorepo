@@ -10,6 +10,7 @@ import {
   Users,
   Radar,
   Home,
+  Workflow,
 } from "lucide-react";
 
 import { BrandMark } from "@/components/shared/BrandMark";
@@ -37,6 +38,11 @@ const fleetManagerItems = [
     label: "Telemetry Simulator",
     href: "/fleet-manager/telemetry-simulator",
     icon: Radar,
+  },
+  {
+    label: "Agent Flow",
+    href: "/fleet-manager/agent-flow",
+    icon: Workflow,
   },
 ] as const;
 
