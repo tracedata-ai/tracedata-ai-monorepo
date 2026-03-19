@@ -58,7 +58,7 @@ jobs:
         run: uv python install ${{ env.PYTHON_VERSION }}
 
       - name: Install dependencies (with dev extras for ruff + mypy)
-        run: uv sync --frozen
+        run: uv sync --frozen --extra dev
 
       - name: 🔍 Ruff — lint check
         # ruff check fails on any lint error; --output-format=github
@@ -121,7 +121,7 @@ jobs:
         run: uv python install ${{ env.PYTHON_VERSION }}
 
       - name: Install dependencies (all extras)
-        run: uv sync --frozen
+        run: uv sync --frozen --extra dev
 
       - name: 🧪 Run pytest with coverage
         run: |
