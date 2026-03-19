@@ -69,15 +69,12 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon" variant="inset">
       <SidebarHeader>
-        <div className="glass rounded-lg px-3 py-2">
-          <div className="flex items-center gap-2">
+        <div className="glass rounded-lg px-3 py-2 group-data-[collapsible=icon]:px-1 group-data-[collapsible=icon]:py-1">
+          <div className="flex items-center gap-2 group-data-[collapsible=icon]:gap-0">
             <BrandMark size={22} className="rounded-sm" priority />
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--info)]">
-                TraceData
-              </p>
-              <p className="text-sm font-bold tracking-tight">{roleLabel}</p>
-            </div>
+            <p className="text-sm font-bold tracking-tight whitespace-nowrap group-data-[collapsible=icon]:hidden">
+              {roleLabel}
+            </p>
           </div>
         </div>
       </SidebarHeader>
