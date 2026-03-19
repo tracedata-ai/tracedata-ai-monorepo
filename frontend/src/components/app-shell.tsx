@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { usePathname } from "next/navigation";
 
 import { AppSidebar } from "@/components/app-sidebar";
+import { BrandMark } from "@/components/shared/BrandMark";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import {
   SidebarInset,
@@ -42,6 +43,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <SidebarInset>
           <header className="glass sticky top-0 z-20 mx-2 mt-2 flex h-14 items-center gap-3 rounded-xl px-4">
             <SidebarTrigger />
+            <BrandMark size={24} className="rounded-sm" />
             <div>
               <p className="text-xs font-medium text-muted-foreground">
                 Operations

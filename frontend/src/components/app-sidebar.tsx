@@ -11,6 +11,7 @@ import {
   Radar,
 } from "lucide-react";
 
+import { BrandMark } from "@/components/shared/BrandMark";
 import {
   Sidebar,
   SidebarContent,
@@ -40,10 +41,15 @@ export function AppSidebar() {
     <Sidebar collapsible="icon" variant="inset">
       <SidebarHeader>
         <div className="glass rounded-lg px-3 py-2">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--info)]">
-            TraceData
-          </p>
-          <p className="text-sm font-bold tracking-tight">Fleet Console</p>
+          <div className="flex items-center gap-2">
+            <BrandMark size={22} className="rounded-sm" priority />
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--info)]">
+                TraceData
+              </p>
+              <p className="text-sm font-bold tracking-tight">Fleet Console</p>
+            </div>
+          </div>
         </div>
       </SidebarHeader>
       <SidebarContent>

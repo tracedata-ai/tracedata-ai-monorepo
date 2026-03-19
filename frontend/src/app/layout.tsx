@@ -17,6 +17,15 @@ export const metadata: Metadata = {
   title: "TraceData Fleet Console",
   description:
     "Operations dashboard for fleet routes, trips, drivers, and telemetry.",
+  icons: {
+    icon: [
+      { url: "/favicon.ico" },
+      { url: "/logo.png", type: "image/png" },
+      { url: "/icon.png", type: "image/png", sizes: "192x192" },
+    ],
+    apple: [{ url: "/apple-icon.png", type: "image/png" }],
+    shortcut: [{ url: "/favicon.ico" }],
+  },
 };
 
 export default function RootLayout({
