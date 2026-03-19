@@ -9,6 +9,7 @@ This module defines the core stack, data pipelines, and architectural boundaries
 - **Styling**: **Tailwind CSS v4** + **Shadcn UI**
 - **Language**: **TypeScript 5** (Strict mode)
 - **Data Logic**: **TanStack Table (v8)** for data-heavy views, **Recharts** for telemetry charts
+- **Flow Visualization**: **`@xyflow/react` (React Flow v12)** — agent pipeline and dataflow diagrams
 - **Database**: PostgreSQL with pgvector (semantic search)
 - **Messaging**: WebSocket (real-time safety alerts)
 
@@ -73,6 +74,7 @@ TraceData uses a **Direct Persistence & Agentic Reasoning** model for telemetry:
 - Never assume data is immediately available; handle async loading states
 - Telematics batches arrive every 4–10 minutes; refresh metrics accordingly
 - Safety-critical alerts come via WebSocket, pushed by the Celery `queue.critical` worker upon event processing; display immediately with sub-500ms latency
+- **Agent Flow page** (`/fleet-manager/agent-flow`): Currently uses frontend simulation. When the backend is ready, poll `/api/agents/status` and call `setNodes` to update status fields (`idle | running | success | warning | error`) for each agent node. Use `dynamic(() => import(...), { ssr: false })` for the React Flow canvas — it requires browser APIs.
 
 ## Context Enrichment (MCP)
 

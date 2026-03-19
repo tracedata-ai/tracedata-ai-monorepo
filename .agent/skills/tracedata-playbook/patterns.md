@@ -203,3 +203,87 @@ const navAnchors: Record<string, string> = {
 // footerAnchors follows the same pattern, keyed by group then label
 ```
 
+
+---
+
+## React Flow (Agent Dataflow) Patterns
+
+The Agent Flow page uses `@xyflow/react` for pipeline visualization. Key files:
+
+```
+frontend/src/
+├── components/agent-flow/
+│   ├── flow-data.ts          # Node + Edge definitions (placeholder data)
+│   ├── AgentNode.tsx         # Custom node component
+│   └── AgentFlowCanvas.tsx   # ReactFlow canvas + simulation hook
+└── app/fleet-manager/agent-flow/
+    └── page.tsx              # Page shell (top bar, legend, controls)
+```
+
+### Data Shape (`flow-data.ts`)
+
+```typescript
+export type AgentStatus = "idle" | "running" | "success" | "warning" | "error";
+
+export interface AgentNodeData {
+  label: string;       // Display name
+  subtitle: string;    // Role / tech note
+  status: AgentStatus;
+  elapsed?: string;    // e.g. "2.1s" or "—"
+  type: "source" | "tool" | "agent" | "queue" | "output";
+  [key: string]: unknown; // Required by @xyflow/react Node generic
+}
+```
+
+> **Critical**: the `[key: string]: unknown` index signature is required for `@xyflow/react` compatibility.
+
+### Custom Node Pattern (`AgentNode.tsx`)
+
+```tsx
+import { type NodeProps } from "@xyflow/react";
+
+// Use bare NodeProps — do NOT use NodeProps<AgentNodeData>
+function AgentNodeComponent(props: NodeProps) {
+  const data = props.data as AgentNodeData; // cast inside body
+  // ...
+}
+export const AgentNode = memo(AgentNodeComponent);
+```
+
+### Canvas Wrapper Pattern (`AgentFlowCanvas.tsx`)
+
+```tsx
+import { type NodeTypes } from "@xyflow/react";
+
+// Cast to satisfy @xyflow/react internal generic constraint
+const nodeTypes: NodeTypes = { agentNode: AgentNode as NodeTypes[string] };
+
+// Simulation: setInterval on agent nodes when simulating=true
+// Wire to real API: replace setInterval with polling or SSE
+```
+
+### Page Shell Pattern
+
+```tsx
+// Must be dynamic-imported with ssr:false — React Flow uses browser APIs
+const AgentFlowCanvas = dynamic(
+  () => import("@/components/agent-flow/AgentFlowCanvas").then((m) => m.AgentFlowCanvas),
+  { ssr: false }
+);
+
+// key={resetKey} re-mounts the canvas for a full reset
+<AgentFlowCanvas key={resetKey} simulating={simulating} />
+```
+
+### Connecting to Real Backend
+
+When the backend agent status endpoint is ready:
+
+1. Replace the `setInterval` simulation in `AgentFlowCanvas.tsx` with a `useEffect` that polls `/api/agents/status` every N seconds.
+2. Map each API response field to the corresponding node's `status` and `elapsed` fields via `setNodes`.
+3. Keep `simulating` as a fallback prop for offline/demo use.
+
+```typescript
+// Backend API shape to target:
+// GET /api/agents/status → { agents: { id: string, status: AgentStatus, elapsed: string }[] }
+```

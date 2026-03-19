@@ -272,3 +272,89 @@ Always present at `z-[60]` above the sticky nav, 2px tall gradient bar:
 | Drag-to-reorder, spring physics | ✅ Framer Motion |
 | Static hover effects, gradient borders | ✅ CSS only |
 
+---
+
+## Agent Flow Page Design System
+
+The Agent Flow page (`/fleet-manager/agent-flow`) uses a **light GitHub Actions aesthetic** completely distinct from the dark dashboard and dark homepage. Do NOT apply dark navy tokens here.
+
+### Palette
+
+| Token | Hex | Usage |
+|---|---|---|
+| Page/canvas bg | `#f9fafb` | All backgrounds |
+| Card bg | `#ffffff` | Node cards |
+| Border default | `#e5e7eb` | Cards, separators, Controls |
+| Border hover | `#d1d5db` | Node/button hover |
+| Text primary | `#111827` | Agent label |
+| Text muted | `#6b7280` | Subtitles, legend labels |
+| Text faint | `#9ca3af` | Footer, status timestamps |
+
+### Node Type — Left-Border Accent
+
+| Type | Colour | Hex |
+|---|---|---|
+| `source` | Blue | `#3b82f6` |
+| `tool` | Purple | `#8b5cf6` |
+| `agent` | Indigo | `#6366f1` |
+| `queue` | Amber | `#f59e0b` |
+| `output` | Green | `#22c55e` |
+
+### Status Badge Colours (Light)
+
+| Status | Text | Background | Ring |
+|---|---|---|---|
+| `idle` | `#6b7280` | `#f3f4f6` | `#d1d5db/60` |
+| `running` | `#d97706` | `#fef3c7` | `#f59e0b/40` |
+| `success` | `#16a34a` | `#dcfce7` | `#22c55e/40` |
+| `warning` | `#ea580c` | `#ffedd5` | `#fb923c/40` |
+| `error` | `#dc2626` | `#fee2e2` | `#ef4444/40` |
+
+### Edge Colours
+
+| Path | Stroke |
+|---|---|
+| Default | `#d1d5db` |
+| Orchestrator → Queue | `#6366f1` (indigo) |
+| Safety edges | `#fca5a5` (soft rose) |
+
+### React Flow Rules
+
+1. **Always `dynamic` import with `ssr: false`** — React Flow uses browser DOM APIs not available in SSR.
+2. **NodeTypes cast**: `const nodeTypes: NodeTypes = { agentNode: AgentNode as NodeTypes[string] }` — required to satisfy `@xyflow/react` v12's internal generic constraint.
+3. **Bare `NodeProps`** for custom nodes — cast `props.data as YourDataType` inside the component body instead of using the generic `NodeProps<T>`.
+4. **`proOptions={{ hideAttribution: true }}`** on `<ReactFlow>` to suppress the watermark in non-OSS usage.
+
+```tsx
+// Correct pattern for a custom node
+function MyNode(props: NodeProps) {
+  const data = props.data as MyNodeData;
+  // ... render
+}
+export const MyNode = memo(MyNodeComponent);
+```
+
+```tsx
+// Correct page-level dynamic import
+const AgentFlowCanvas = dynamic(
+  () => import("@/components/agent-flow/AgentFlowCanvas").then((m) => m.AgentFlowCanvas),
+  { ssr: false }
+);
+```
+
+### Simulation Pattern
+
+When live backend data is unavailable, use an `setInterval`-based simulation hook to cycle node statuses:
+
+```tsx
+useEffect(() => {
+  if (!simulating) return;
+  const id = setInterval(() => {
+    setNodes((prev) => /* pick a random agent node and advance its status */);
+  }, 2000);
+  return () => clearInterval(id);
+}, [simulating, setNodes]);
+```
+
+Expose a `simulating: boolean` prop from the page layer — toggle via a Pause/Simulate button in the top bar.
+
