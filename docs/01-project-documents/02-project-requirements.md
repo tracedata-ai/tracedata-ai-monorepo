@@ -43,21 +43,22 @@ TraceData is an academic capstone project focusing primarily on advanced AI orch
     *   **Emergency Ping:** Out-of-band transmission for critical events (e.g., collisions, panic button) requiring immediate response.
     *(See [03-project-report.md](./03-project-report.md) for the detailed Flat Schema JSON structure and trigger conditions).*
 *   **Data Integrity:** The system SHALL ingest telemetry via prioritised **Celery task queues** (Redis-backed), organized by ping type (`queue.critical`, `queue.high`, `queue.medium`, `queue.low`), to ensure reliable delivery and background processing. Event replayability SHALL be supported via **Redis Streams** (`XADD`/`XREAD`). All payloads SHALL be persisted to PostgreSQL idempotently, handling out-of-order or duplicate messages.
-*   **Ingestion Processing:** An **Ingestion Quality Agent** SHALL selectively handle incoming data based on its payload type. Standard telemetry (e.g., GPS, speed) is scrubbed deterministically. User-generated content (e.g., driver text, appeals) is handed over to a dedicated **PII Scrubber Agent** for complex cleaning.
-*   **Orchestrator Handoff:** After PII cleaning and deterministic scrubbing, the data is written to the database and then passed to the Orchestrator. The Orchestrator evaluates `4-Minute Batch Pings` for immediate actions; if none are found, the execution terminates (discarded from active processing).
-*   **State Management:** The system SHALL actively track "Active Trips" and handle "Zombie Trips" (missing End-of-Trip pings). Internal asynchronous task queuing and state management SHALL be orchestrated using **Redis** and **Celery**.
+    *   **Ingestion Processing:** A shared **Ingestion Tool** (Tool Gateway) SHALL validate all incoming data based on payload type. Standard telemetry (e.g., GPS, speed) is scrubbed deterministically. User-generated content (e.g., driver text, appeals) undergoes PII scrubbing. The Ingestion Tool acts as a stateless sidecar of the **Orchestrator Agent**.
+    *   **Orchestrator Handoff:** After Ingestion Tool processing, data is written to the database and passed to the Orchestrator Agent. The Orchestrator evaluates `4-Minute Batch Pings` for immediate actions; if none are warranted, execution terminates (discarded from active processing).
+    *   **State Management:** The system SHALL actively track "Active Trips" and handle "Zombie Trips" (missing End-of-Trip pings). Internal asynchronous task queuing and state management SHALL be orchestrated using **Redis** and **Celery**.
 
 ### **3.2 Trip Scoring & Fairness Audit (FR-2)**
 **Requirement:** The system SHALL calculate a safety score (0-100) for completed trips using an XGBoost model, subject to automated fairness bias correction.
 
-*   **Trigger:** Successful processing of the `End-of-Trip Ping` or a timeout-triggered synthetic trip closure.
-*   **Fairness Metric:** Statistical Parity Difference (SPD) SHALL be maintained below 0.5 (comparing predefined cohorts such as Novice vs. Expert drivers).
+*   **Trigger:** Successful processing of the `End-of-Trip Ping` or a timeout-triggered synthetic trip closure, handled by the **Scoring Agent**.
+*   **Fairness Metric:** Statistical Parity Difference (SPD) SHALL be maintained below 0.5 (comparing predefined cohorts such as Novice vs. Expert drivers). The **Scoring Agent** SHALL apply AIF360 reweighting to correct detected bias.
+*   **Context Enrichment:** The **Scoring Agent** SHALL invoke the **Context Enrichment Tool** (via Tool Gateway) to adjust scores for environmental conditions (night driving, adverse weather, road type).
 *   **Explainability:** The system SHALL generate feature importance logs (via SHAP/LIME) for 100% of generated scores to facilitate transparency.
 
 ### **3.3 Driver Appeals & Contestability (FR-3)**
 **Requirement:** The system SHALL provide a structured mechanism for drivers to dispute scores or raise safety/process concerns.
 
-*   **Processing:** Appeals SHALL be classified and routed to an AI Advocacy Agent for initial response generation, with automatic escalation to Fleet Managers for complex or high-severity cases.
+*   **Processing:** Appeals SHALL be classified and routed to the **Support Agent** for initial response generation, with automatic escalation to Fleet Managers for complex or high-severity cases. The Support Agent uses pgvector semantic search against historical resolved cases to ensure consistency.
 *   **Auditability:** A complete, tamper-evident audit trail of the appeal, AI reasoning, and final resolution SHALL be maintained.
 
 ### **3.4 Emotional Trajectory & Burnout Detection (FR-4)**
@@ -69,7 +70,7 @@ TraceData is an academic capstone project focusing primarily on advanced AI orch
 ### **3.5 Personalized Coaching (FR-5)**
 **Requirement:** The system SHALL dynamically generate actionable, personalized coaching recommendations.
 
-*   **Content Generation:** Coaching tone (Encouraging, Supportive, Directive) SHALL be adapted based on the driver's current emotional state and specific trip infractions.
+*   **Content Generation:** The **Support Agent** SHALL generate coaching recommendations. Tone (Encouraging, Supportive, Directive) SHALL be adapted based on the driver's current emotional state (sourced from the **Sentiment Agent**) and specific trip infractions.
 *   **Uniqueness:** No two coaching outputs for different drivers with different histories SHALL be identical.
 
 ### **3.6 Private Feedback & Driver Listening (FR-6)**
@@ -86,8 +87,8 @@ TraceData is an academic capstone project focusing primarily on advanced AI orch
 ### **3.8 Context Enrichment (FR-8)**
 **Requirement:** The system SHALL enrich raw telemetry with geospatial and environmental context (road type, speed limits, weather risk).
 
-*   **Mechanism:** Context Enrichment SHALL be implemented as a dedicated **Context Enrichment Agent** that leverages the **Model Context Protocol (MCP)** to retrieve information from external services (e.g., mapping servers, weather APIs).
-*   **Performance:** Context lookups SHALL return within realistic boundaries for an MCP agent (< 2 seconds). If external APIs time out, the system SHALL gracefully fallback to cached or default values without blocking downstream processing.
+*   **Mechanism:** Context enrichment SHALL be implemented via a dedicated **Context Enrichment Tool** within the shared **Tool Gateway**, which leverages the **Model Context Protocol (MCP)** to retrieve information from external services (e.g., mapping servers, weather APIs). The Tool is called by the Scoring and Safety agents.
+*   **Performance:** Context lookups SHALL return within realistic boundaries for an MCP tool (< 2 seconds). If external APIs time out, the system SHALL gracefully fallback to cached or default values without blocking downstream processing.
 
 ---
 
@@ -114,8 +115,9 @@ TraceData is an academic capstone project focusing primarily on advanced AI orch
 
 *   **Architecture Pattern:** Agentic AI Middleware Monolith (Python) + Next.js Frontend. As an academic project, the scope is deliberately constrained to exclude a full-featured traditional fleet management backend.
 *   **Event Ingestion & Queueing:** **Redis + Celery** SHALL be used for all telemetry ingestion routing, asynchronous task queueing, state management, and background processing within the AI middleware. Ping types are routed to priority queues (`queue.critical` → `queue.low`). Event replayability is provided via Redis Streams.
+*   **Tool Gateway:** A shared, stateless **Tool Gateway** SHALL expose the **Ingestion Tool** (validation + PII scrubbing) and **Context Enrichment Tool** (MCP-backed weather/traffic data) as callable utilities for any agent. Tools are not orchestrated agents; they are deterministic, synchronous utilities.
 *   **Data Storage:** A single organizational PostgreSQL database SHALL be used. While schemas for fleet data (e.g., vehicles, drivers) will exist, they are nominal and designed strictly to provide the necessary state and context for the AI agents.
-*   **AI Agents:** LangGraph SHALL be used for orchestrating cyclical agent workflows (e.g., Context loops, Refinement). Refer to [03-project-report.md](./03-project-report.md) for detailed agent topologies and responsibilities.
+*   **AI Agents:** LangGraph SHALL be used for orchestrating cyclical agent workflows across the 5 core agents (Orchestrator, Scoring, Sentiment, Safety, Support). Refer to [03-project-report.md](./03-project-report.md) for detailed agent topologies and responsibilities.
 
 ---
 
