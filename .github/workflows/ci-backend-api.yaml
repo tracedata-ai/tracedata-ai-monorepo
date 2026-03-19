@@ -167,7 +167,7 @@ jobs:
 
       - name: Run pip-audit
         # uvx pulls pip-audit from PyPI without polluting the project venv
-        run: uvx pip-audit --requirement <(uv export --format requirements-txt --no-dev)
+        run: uvx pip-audit --requirement <(uv export --format requirements-txt --no-dev --no-emit-project)
 
 # ─────────────────────────────────────────────────────────────────────────────
 # JOB 4: Docker Build Check
