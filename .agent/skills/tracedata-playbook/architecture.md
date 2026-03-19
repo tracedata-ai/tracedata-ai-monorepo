@@ -9,6 +9,7 @@ This module defines the core stack, data pipelines, and architectural boundaries
 - **Styling**: **Tailwind CSS v4** + **Shadcn UI**
 - **Language**: **TypeScript 5** (Strict mode)
 - **Data Logic**: **TanStack Table (v8)** for data-heavy views, **Recharts** for telemetry charts
+- **Flow Visualization**: **`@xyflow/react` (React Flow v12)** — agent pipeline and dataflow diagrams
 - **Database**: PostgreSQL with pgvector (semantic search)
 - **Messaging**: WebSocket (real-time safety alerts)
 
@@ -16,8 +17,8 @@ This module defines the core stack, data pipelines, and architectural boundaries
 
 The Agentic AI Middleware follows a strict **package-first modular monolith** structure:
 
-- **Root Directory**: `ai-agents/` (Contains build/CI config: `Dockerfile`, `requirements.txt`, `.github/`)
-- **App Package**: `ai-agents/app/` (The core executable package)
+- **Root Directory**: `backend/` (Contains build/CI config: `Dockerfile`, `requirements.txt`, `.github/`)
+- **App Package**: `backend/app/` (The core executable package)
 - **Service Entry**: Always exposed via `app.main:app` for production-grade imports and containerization.
 - **Shared Modules**: Internal logic split into `agents/`, `api/`, `models/`, `schemas/`, and `services/`.
 
@@ -46,12 +47,12 @@ if (!tenantId)
 
 TraceData uses a **Direct Persistence & Agentic Reasoning** model for telemetry:
 
-1.  **Ingestion (FastAPI)**: 
+1.  **Ingestion (FastAPI)**:
     - Telemetry from vehicles is POSTed directly to the `/api/v1/telemetry` endpoint.
 2.  **Persistence (PostgreSQL)**:
     - The middleware immediately persists the raw event to the `telemetry_events` table for traceability.
 3.  **In-Process Reasoning (LangGraph)**:
-    - The event is passed directly to the Agentic Shell Orchestrator. 
+    - The event is passed directly to the Agentic Shell Orchestrator.
     - Reasoning (anomaly detection, coaching triggers) happens within the request lifecycle or as an internal async task.
 4.  **System of Record**:
     - Final enriched state and safety alerts are committed to the DB.
@@ -72,7 +73,8 @@ TraceData uses a **Direct Persistence & Agentic Reasoning** model for telemetry:
 
 - Never assume data is immediately available; handle async loading states
 - Telematics batches arrive every 4–10 minutes; refresh metrics accordingly
-- Safety-critical alerts come via WebSocket from Kafka; display immediately with sub-500ms latency
+- Safety-critical alerts come via WebSocket, pushed by the Celery `queue.critical` worker upon event processing; display immediately with sub-500ms latency
+- **Agent Flow page** (`/fleet-manager/agent-flow`): Currently uses frontend simulation. When the backend is ready, poll `/api/agents/status` and call `setNodes` to update status fields (`idle | running | success | warning | error`) for each agent node. Use `dynamic(() => import(...), { ssr: false })` for the React Flow canvas — it requires browser APIs.
 
 ## Context Enrichment (MCP)
 

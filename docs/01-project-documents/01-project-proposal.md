@@ -35,7 +35,7 @@ Small-to-medium truck fleet operators (50-200 vehicles) currently use basic tele
 
 ### TraceData's Solution
 
-7 autonomous agents that address all 7 gaps—fair scoring (AIF360), personalized coaching, burnout detection, appeals, contextual enrichment, private feedback, and integrated safety-welfare management.
+5 autonomous agents and a shared Tool Gateway that address all 7 gaps—fair scoring (AIF360), personalized coaching, burnout detection, appeals, contextual enrichment, private feedback, and integrated safety-welfare management.
 
 ### Core Philosophy
 - **Fairness First**: Score adjustments should account for driver context, not penalize inexperience or unfortunate circumstances.
@@ -50,76 +50,66 @@ Small-to-medium truck fleet operators (50-200 vehicles) currently use basic tele
 
 #### Agents and Scope
 
-**Agent 1: Ingestion Quality Agent**
+##### Tool Gateway (Shared Infrastructure)
 
-- **Role:** Validates dual data sources: structured telemetry (GPS/speed) and unstructured text (appeals). Handles batched pings (4-10 min) vs real-time critical bypass.
-- **Assurance:** Schema validation, range checks, offline detection
-- **Fairness:** Equal treatment of all vehicles (no bias in ingestion)
-- **Security:** SQL injection prevention, malicious payload rejection. Selectively routes only text to the PII Scrubber Agent.
-- **Governance:** Data retention policy enforced
+Two capabilities that were originally separate agents are consolidated into a **shared Tool Gateway**, callable by any agent:
 
-**Agent 2: Orchestrator Agent (Central Router)**
+- **Ingestion Tool:** Validates dual data sources (structured telemetry + unstructured text). Performs schema validation, range checks, PII scrubbing, and SQL injection prevention. Acts as a sidecar of the Orchestrator Agent.
+- **Context Enrichment Tool:** Powered by **Model Context Protocol (MCP)**. Fetches road type, speed limits, and weather data from external APIs within < 2 seconds. Called by Scoring and Safety agents to ensure fair, context-aware decisions.
 
-- **Powered by:** Hybrid (Deterministic Router + Small LLM)
-- **Role:** Central dispatcher. Evaluates 4-minute batches quickly (discard/persist) or uses LLM reasoning to route unstructured text and manage driver encouragement profiles.
-- **Trust & Accountability:** full audit trail for decisions made
-- **Fairness:** Ensures fair agent utilization
-- **Explainability:** Reasoning for every routing decision logged
+**Design Rationale:** These are stateless, deterministic utilities — classifying them as agents would introduce unnecessary orchestration overhead. The Tool Gateway pattern keeps them composable and reusable across the 5-agent graph.
+
+---
+
+**Agent 1: Orchestrator Agent (Central Router)**
+
+- **Powered by:** Hybrid (Deterministic Router + Small LLM) + Ingestion Tool (sidecar)
+- **Role:** Entry point for all telemetry. Invokes the Ingestion Tool to validate and scrub payloads, then acts as central dispatcher — evaluating 4-minute batches (discard/persist) or routing unstructured text and managing driver encouragement profiles via LLM reasoning.
+- **Trust & Accountability:** Full audit trail for every routing decision
+- **Fairness:** Ensures fair agent utilization; no routing bias
+- **Explainability:** Reasoning logged for every non-deterministic routing choice
 - **Security:** Deterministic (90%) + semantic (10%) routing with fallbacks
 - **Autonomy:** Autonomous decision-making for routing
 
-**Agent 3: Behavior Agent**
+**Agent 2: Scoring Agent**
 
-- **Powered by:** XGBoost to rate the drivers trips out of 100, Fairness and XAI applied.
-- **Role:** Scores trips (0-100), audits fairness
-- **Fairness:** AIF360 bias detection + mitigation
-- **Explainability:** LIME/SHAP explanations for every score
-- **Accountability:** Feature importance tracked, bias correction logged
-- **Security:** Adversarial input testing (data injection)
-- **Ethical:** Fairness audit monthly
+- **Powered by:** XGBoost (trip scoring 0–100) + AIF360 (fairness auditing) + SHAP/LIME (explainability) + Context Enrichment Tool
+- **Role:** Scores completed trips and individual drivers on safety performance. Applies fairness bias detection and mitigation. Uses Context Enrichment Tool to adjust for environmental conditions (night driving, adverse weather, urban density).
+- **Fairness:** AIF360 bias detection + mitigation; SPD maintained below 0.5
+- **Explainability:** SHAP/LIME explanations generated for 100% of scores
+- **Accountability:** Feature importance tracked; bias corrections logged
+- **Security:** Adversarial input testing (data injection prevention)
+- **Ethical:** Monthly automated fairness audit
 
-**Agent 4: Feedback and Advocacy Agent**
+**Agent 3: Sentiment Agent**
 
-- **Powered by:** Embeds the feedback and appeals so that we can semantically search the data and enrich context (if needed) via LLM (Context Enrichment Agent)
-- **Role:** Processes driver appeals, listens to feedback
-- **Trust:** Appeals mechanism builds driver trust
-- **Fairness:** Ensures drivers can contest unfair scores
-- **Accountability:** All appeals logged with FM decisions
-- **Explainability:** Provides reasoning for appeal responses
-- **Ethics:** Driver-centric support, not surveillance
-
-**Agent 5: Sentiment Agent**
-
-- **Powered by:** Sentiment analysis on the written content (Fleet manager as well as Driver)
-- **Role:** Tracks emotional trajectory, detects burnout
-- **Accountability:** Burnout alerts logged, enables wellness interventions
-- **Ethical:** Proactive driver support (not punitive)
+- **Powered by:** Sentiment analysis on written content (driver + fleet manager submissions)
+- **Role:** Tracks emotional trajectory over time, detects burnout risk using a rolling 5-event window. Feeds emotional state context to the Support Agent for tone calibration.
+- **Accountability:** Burnout alerts logged; wellness interventions triggered
+- **Ethical:** Proactive driver support (not punitive surveillance)
 - **Security:** Private emotional data encrypted, access controlled
-- **Governance:** Burnout alerts escalate to FM with recommendations
+- **Governance:** Burnout alerts (risk_level > 0.7) escalate to Fleet Manager with recommendations
 
-**Agent 6: Coaching Agent**
+**Agent 4: Safety Agent**
 
-- **Role:** Generates personalized coaching
-- **Fairness:** Coaching tone matched to emotional state (not biased)
-- **Explainability:** Coaching focuses on specific, addressable issues
-- **Ethics:** Supportive, encouraging (not punitive)
-- **Personalization:** Tone + content adapted per driver
-
-**Agent 7: Safety Agent**
-
-- **Powered by:** Dedicated high-priority Critical Events pipe from Kafka. Enriched via Context Agent.
-- **Role:** Detects critical incidents and executes a multi-level intervention strategy: Level 1 (App Notification), Level 2 (Formal Message), Level 3 (Direct Call).
-- **Assurance:** Real-time (< 5 sec) incident detection
-- **Security:** Verification that critical event is real (not false alarm)
-- **Accountability:** Incident log + FM action tracking
+- **Powered by:** Dedicated `queue.critical` Celery worker (Redis-backed) + Context Enrichment Tool
+- **Role:** Detects critical incidents and executes a multi-level intervention strategy: Level 1 (App Notification), Level 2 (Formal Message), Level 3 (Direct Call to Fleet Manager). Uses LangGraph cyclical flows for escalation logic.
+- **Assurance:** Real-time (< 5 sec) incident detection SLA
+- **Security:** False-alarm verification before escalation
+- **Accountability:** Incident log + Fleet Manager action tracking
 - **Governance:** Insurance compliance, regulatory reporting
 
-**Agent 8: Context Enrichment Agent**
+**Agent 5: Support Agent**
 
-- **Powered by:** Model Context Protocol (MCP) to access external mapping and weather APIs deterministically within < 2 seconds.
-- **Role:** Shared high-speed Tool providing road/weather context for decisions.
-- **Fairness:** Context ensures fair comparisons (night vs day, urban vs highway)
-- **Security:** Lookup integrity, no data leakage
+- **Powered by:** pgvector semantic search (appeals history) + LLM (coaching generation)
+- **Role:** Unified driver support hub combining two previously separate concerns:
+  - **Advocacy:** Processes driver appeals against scores. Embeds appeals for semantic search against resolved cases to ensure consistency. Escalates complex cases to Fleet Managers.
+  - **Coaching:** Generates personalized, actionable coaching recommendations. Tone (Encouraging / Supportive / Directive) is calibrated using the current emotional state from the Sentiment Agent.
+- **Trust:** Appeals mechanism builds driver trust and contestability
+- **Fairness:** Ensures drivers can contest unfair scores; coaching tone matched to emotional state
+- **Accountability:** All appeals logged with FM decisions and AI reasoning
+- **Explainability:** Coaching focuses on specific, addressable driving infractions
+- **Ethics:** Driver-centric support (not surveillance); no two coaching outputs identical
 
 #### Events and Categories
 
@@ -136,12 +126,12 @@ Small-to-medium truck fleet operators (50-200 vehicles) currently use basic tele
 
 ##### Priority Levels (4 Operational Levels)
 
-| Priority     | Kafka Topic            | Response                         | Examples                         |
-| :----------- | :--------------------- | :------------------------------- | :------------------------------- |
-| **critical** | emergency-critical     | Immediate Fleet Manager dispatch | collision, rollover              |
-| **high**     | safety-high            | Real-time alert + coaching       | harsh_brake, vehicle_offline     |
-| **medium**   | general-events         | Batched coaching                 | speeding                         |
-| **low**      | analytics-low-priority | Analytics only                   | excessive_idle, normal_operation |
+| Priority     | Celery Queue   | Response                         | Examples                         |
+| :----------- | :------------- | :------------------------------- | :------------------------------- |
+| **critical** | queue.critical | Immediate Fleet Manager dispatch | collision, rollover              |
+| **high**     | queue.high     | Real-time alert + coaching       | harsh_brake, vehicle_offline     |
+| **medium**   | queue.medium   | Batched coaching                 | speeding                         |
+| **low**      | queue.low      | Analytics only                   | excessive_idle, normal_operation |
 
 #### Technology Stack
 
@@ -151,11 +141,10 @@ Small-to-medium truck fleet operators (50-200 vehicles) currently use basic tele
 | **Fairness & Bias**     | AIF360 (IBM)          | Industry-standard fairness auditing, reweighting      |
 | **Explainability**      | SHAP + LIME           | Feature importance (global + local)                   |
 | **ML Model**            | XGBoost               | Fast, interpretable, handles missing data             |
-| **Async Framework**     | FastAPI               | Production-grade async Python framework               |
-| **Task Queue**          | Celery + Redis        | Distributed task execution, priority queuing          |
-| **Database**            | PostgreSQL + pgvector | ACID compliance, JSONB, schema segregation per agent, vector search   |
-| **Streaming**           | Apache Kafka          | High-throughput event bus, durability                 |
-| **ML Tracking**         | MLflow                | Model versioning, metrics logging                     |
+| **Async Framework**     | FastAPI               | Production-grade async Python framework                                     |
+| **Task Queue & Events** | Celery + Redis        | Priority queuing, event routing, async task execution, Redis Streams replay |
+| **Database**            | PostgreSQL + pgvector | ACID compliance, JSONB, schema segregation per agent, vector search         |
+| **ML Tracking**         | MLflow                | Model versioning, metrics logging                                           |
 | **LLM Integration**     | OpenAI API            | Enrichment and Reasoning                              |
 | **Type Safety**         | Pydantic              | Input validation, schema enforcement                  |
 | **Testing**             | pytest                | Unit + integration tests, fixtures                    |
