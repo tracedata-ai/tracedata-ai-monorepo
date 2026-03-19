@@ -74,9 +74,9 @@ class Vehicle(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     # back_populates keeps both sides in sync when you assign vehicle.drivers
     drivers: Mapped[list["Driver"]] = relationship("Driver", back_populates="vehicle")  # type: ignore[name-defined] # noqa: F821
     trips: Mapped[list["Trip"]] = relationship("Trip", back_populates="vehicle")  # type: ignore[name-defined] # noqa: F821
-    maintenance_records: Mapped[list["Maintenance"]] = relationship(
+    maintenance_records: Mapped[list["Maintenance"]] = relationship(  # noqa: F821
         "Maintenance", back_populates="vehicle"
-    )  # type: ignore[name-defined] # noqa: F821
+    )  # type: ignore[name-defined]
 
     def __repr__(self) -> str:
         return f"<Vehicle {self.license_plate} ({self.status})>"
