@@ -22,6 +22,11 @@ ENV NODE_ENV=production
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
+# 🛡️ OS Hardening: Upgrade libraries (patches zlib CVE-2026-22184) 
+# and remove build-time tools (clears npm-bundled tar/minimatch CVEs)
+RUN apk update && apk upgrade --no-cache && \
+    rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx /opt/yarn* /usr/local/bin/yarn* /usr/local/bin/corepack
+
 # Standalone output bundles only runtime deps — no devDependencies, no node_modules bloat
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
