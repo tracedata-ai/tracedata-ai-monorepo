@@ -40,16 +40,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <SidebarProvider>
         <AppSidebar />
         <SidebarInset>
-          <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/70">
+          <header className="glass sticky top-0 z-20 mx-2 mt-2 flex h-14 items-center gap-3 rounded-xl px-4">
             <SidebarTrigger />
             <div>
-              <p className="text-xs text-muted-foreground">Operations</p>
-              <h1 className="text-sm font-semibold tracking-wide">
+              <p className="text-xs font-medium text-muted-foreground">
+                Operations
+              </p>
+              <h1 className="text-sm font-bold uppercase tracking-tight">
                 {currentTitle}
               </h1>
             </div>
           </header>
-          <div className="flex-1 p-4 md:p-6">{children}</div>
+          <div className="flex-1 p-2 md:p-3">{children}</div>
         </SidebarInset>
       </SidebarProvider>
     </TooltipProvider>

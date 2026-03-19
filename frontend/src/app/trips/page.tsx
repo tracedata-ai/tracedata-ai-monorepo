@@ -2,7 +2,8 @@
 
 import type { ColumnDef } from "@tanstack/react-table";
 
-import { DataTable } from "@/components/data-table";
+import { DataTable } from "@/components/shared/DataTable";
+import { DashboardPageTemplate } from "@/components/shared/DashboardPageTemplate";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { tripRows, type TripRow } from "@/lib/sample-data";
@@ -26,13 +27,20 @@ const columns: ColumnDef<TripRow>[] = [
 
 export default function TripsPage() {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Trips</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <DataTable columns={columns} data={tripRows} />
-      </CardContent>
-    </Card>
+    <DashboardPageTemplate
+      title="Trips"
+      subtitle="Track trip progression, ETA confidence, and on-road status in real time."
+    >
+      <Card className="glass rounded-xl">
+        <CardHeader>
+          <CardTitle className="text-base font-bold uppercase tracking-tight">
+            Trip Timeline
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <DataTable columns={columns} data={tripRows} />
+        </CardContent>
+      </Card>
+    </DashboardPageTemplate>
   );
 }

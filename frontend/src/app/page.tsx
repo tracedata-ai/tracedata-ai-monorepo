@@ -2,7 +2,8 @@
 
 import type { ColumnDef } from "@tanstack/react-table";
 
-import { DataTable } from "@/components/data-table";
+import { DataTable } from "@/components/shared/DataTable";
+import { DashboardPageTemplate } from "@/components/shared/DashboardPageTemplate";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { dashboardRows, type DashboardRow } from "@/lib/sample-data";
@@ -34,44 +35,25 @@ const columns: ColumnDef<DashboardRow>[] = [
 
 export default function DashboardPage() {
   return (
-    <div className="space-y-4">
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm font-medium">Active Routes</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-semibold">3</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm font-medium">Live Trips</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-semibold">13</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm font-medium">
-              Open Safety Issues
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-semibold">7</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card>
+    <DashboardPageTemplate
+      title="Dashboard"
+      subtitle="Live command center for fleet health, routing, and safety operations."
+      stats={[
+        { label: "Active Routes", value: 3, change: 8 },
+        { label: "Live Trips", value: 13, change: 5 },
+        { label: "Open Safety Issues", value: 7, change: -3 },
+      ]}
+    >
+      <Card className="glass rounded-xl">
         <CardHeader>
-          <CardTitle>Route Health Overview</CardTitle>
+          <CardTitle className="text-base font-bold uppercase tracking-tight">
+            Route Health Overview
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <DataTable columns={columns} data={dashboardRows} />
         </CardContent>
       </Card>
-    </div>
+    </DashboardPageTemplate>
   );
 }

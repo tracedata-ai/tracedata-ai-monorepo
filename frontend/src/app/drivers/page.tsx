@@ -2,7 +2,8 @@
 
 import type { ColumnDef } from "@tanstack/react-table";
 
-import { DataTable } from "@/components/data-table";
+import { DataTable } from "@/components/shared/DataTable";
+import { DashboardPageTemplate } from "@/components/shared/DashboardPageTemplate";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { driverRows, type DriverRow } from "@/lib/sample-data";
@@ -30,13 +31,20 @@ const columns: ColumnDef<DriverRow>[] = [
 
 export default function DriversPage() {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Drivers</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <DataTable columns={columns} data={driverRows} />
-      </CardContent>
-    </Card>
+    <DashboardPageTemplate
+      title="Drivers"
+      subtitle="Review operator workload, assignments, and fatigue risk levels."
+    >
+      <Card className="glass rounded-xl">
+        <CardHeader>
+          <CardTitle className="text-base font-bold uppercase tracking-tight">
+            Driver Roster
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <DataTable columns={columns} data={driverRows} />
+        </CardContent>
+      </Card>
+    </DashboardPageTemplate>
   );
 }

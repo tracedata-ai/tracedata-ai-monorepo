@@ -2,7 +2,8 @@
 
 import type { ColumnDef } from "@tanstack/react-table";
 
-import { DataTable } from "@/components/data-table";
+import { DataTable } from "@/components/shared/DataTable";
+import { DashboardPageTemplate } from "@/components/shared/DashboardPageTemplate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { routeRows, type RouteRow } from "@/lib/sample-data";
 
@@ -16,13 +17,20 @@ const columns: ColumnDef<RouteRow>[] = [
 
 export default function RoutesPage() {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Routes</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <DataTable columns={columns} data={routeRows} />
-      </CardContent>
-    </Card>
+    <DashboardPageTemplate
+      title="Routes"
+      subtitle="Monitor planned corridors, distance, and driver assignment load."
+    >
+      <Card className="glass rounded-xl">
+        <CardHeader>
+          <CardTitle className="text-base font-bold uppercase tracking-tight">
+            Route Registry
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <DataTable columns={columns} data={routeRows} />
+        </CardContent>
+      </Card>
+    </DashboardPageTemplate>
   );
 }

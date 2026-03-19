@@ -3,7 +3,8 @@
 import { useMemo, useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 
-import { DataTable } from "@/components/data-table";
+import { DataTable } from "@/components/shared/DataTable";
+import { DashboardPageTemplate } from "@/components/shared/DashboardPageTemplate";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -43,43 +44,58 @@ export default function TelemetrySimulatorPage() {
   };
 
   return (
-    <div className="space-y-4">
-      <Card>
-        <CardHeader>
-          <CardTitle>Telemetry Simulator</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-3 sm:flex-row sm:items-end">
-          <div className="w-full sm:max-w-xs">
-            <label className="mb-1 block text-sm text-muted-foreground">
-              Vehicle ID
-            </label>
-            <Input
-              value={vehicleId}
-              onChange={(event) =>
-                setVehicleId(event.target.value.toUpperCase())
-              }
-              placeholder="SGX-2210"
-            />
-          </div>
-          <Button onClick={emitEvent}>Emit Telemetry Event</Button>
-          <p className="text-sm text-muted-foreground">
-            Buffered events: {totalEvents}
-          </p>
-        </CardContent>
-      </Card>
+    <DashboardPageTemplate
+      title="Telemetry Simulator"
+      subtitle="Mimic telematics device emissions before live backend ingestion."
+      stats={[{ label: "Buffered Events", value: totalEvents }]}
+    >
+      <div className="space-y-4">
+        <Card className="glass rounded-xl">
+          <CardHeader>
+            <CardTitle className="text-base font-bold uppercase tracking-tight">
+              Event Generator
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3 sm:flex-row sm:items-end">
+            <div className="w-full sm:max-w-xs">
+              <label className="mb-1 block text-sm font-medium text-muted-foreground">
+                Vehicle ID
+              </label>
+              <Input
+                value={vehicleId}
+                onChange={(event) =>
+                  setVehicleId(event.target.value.toUpperCase())
+                }
+                placeholder="SGX-2210"
+              />
+            </div>
+            <Button
+              className="bg-[var(--info)] text-white hover:bg-[hsl(210_100%_45%)]"
+              onClick={emitEvent}
+            >
+              Emit Telemetry Event
+            </Button>
+            <p className="text-sm font-semibold text-muted-foreground">
+              Buffered events: {totalEvents}
+            </p>
+          </CardContent>
+        </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Emissions</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <DataTable
-            columns={columns}
-            data={events}
-            emptyMessage="No telemetry events yet."
-          />
-        </CardContent>
-      </Card>
-    </div>
+        <Card className="glass rounded-xl">
+          <CardHeader>
+            <CardTitle className="text-base font-bold uppercase tracking-tight">
+              Recent Emissions
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <DataTable
+              columns={columns}
+              data={events}
+              emptyMessage="No telemetry events yet."
+            />
+          </CardContent>
+        </Card>
+      </div>
+    </DashboardPageTemplate>
   );
 }

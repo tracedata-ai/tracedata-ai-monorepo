@@ -39,14 +39,18 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon" variant="inset">
       <SidebarHeader>
-        <div className="px-2 py-1">
-          <p className="text-xs text-sidebar-foreground/70">TraceData</p>
-          <p className="text-sm font-semibold">Fleet Console</p>
+        <div className="glass rounded-lg px-3 py-2">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--info)]">
+            TraceData
+          </p>
+          <p className="text-sm font-bold tracking-tight">Fleet Console</p>
         </div>
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+          <SidebarGroupLabel className="font-semibold uppercase tracking-[0.12em]">
+            Navigation
+          </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {navItems.map((item) => {
@@ -56,6 +60,7 @@ export function AppSidebar() {
                     <SidebarMenuButton
                       isActive={active}
                       tooltip={item.label}
+                      className="font-medium"
                       render={<Link href={item.href} />}
                     >
                       <item.icon />
@@ -69,7 +74,7 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter>
-        <p className="px-2 text-xs text-sidebar-foreground/70">
+        <p className="px-2 text-xs font-medium text-sidebar-foreground/70">
           Ctrl/Cmd + B to toggle
         </p>
       </SidebarFooter>

@@ -5,7 +5,7 @@ This module defines the project structure, component standards, and integration 
 ```
 d:/learning-projects/tracedata-ai-monorepo/
 ├── frontend/                        # Next.js Application
-└── ai-agents/                       # Agentic AI Middleware
+└── backend/                       # Agentic AI Middleware
     ├── app/                         # CORE PACKAGE
     │   ├── core/                    # Engine & Config (DB)
     │   └── services/                # Business Logic
@@ -28,7 +28,7 @@ TraceData uses **uv** for lightning-fast, reproducible builds.
 To maintain a clean state during development, we use the **Nuke & Pave** pattern:
 
 1.  **Idempotency**: Seeding scripts must check `if count == 0` for all tables.
-2.  **RESET_DB Toggle**: Controlled via environment variable. 
+2.  **RESET_DB Toggle**: Controlled via environment variable.
     - `RESET_DB=true`: Drops the schema and re-seeds from `seed_data.json`.
     - `RESET_DB=false`: Skips seeding if data exists (Safe for prod).
 3.  **External Data**: All mock data must reside in JSON files, never hardcoded in Python logic.
@@ -83,7 +83,7 @@ Components interacting with agents must have clear boundaries.
 
 ```typescript
 // Example: useAgentQuery for Orchestrator Agent
-const { data, loading } = useAgentQuery('/api/agent-query');
+const { data, loading } = useAgentQuery("/api/agent-query");
 ```
 
 ## Real-Time Safety Alerts
