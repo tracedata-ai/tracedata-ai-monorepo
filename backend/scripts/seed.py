@@ -177,6 +177,28 @@ async def seed_data():
                 status="active"
             )
             session.add_all([trip1, trip2, trip3])
+            await session.flush()  # Ensure IDs are generated for foreign keys
+
+            # ── 7. Create Issues ─────────────────────────────────────────────
+            logger.info("⚠️  Creating Issues...")
+            from app.models.issue import Issue
+            i1 = Issue(
+                tenant_id=t1.id,
+                trip_id=trip1.id,
+                event_type="harsh_brake",
+                category="harsh_events",
+                severity="medium",
+                description="Harsh braking detected near Tuas Viaduct."
+            )
+            i2 = Issue(
+                tenant_id=t1.id,
+                trip_id=trip2.id,
+                event_type="speeding",
+                category="speed_compliance",
+                severity="high",
+                description="Exceeded 70km/h on Changi Coast Rd."
+            )
+            session.add_all([i1, i2])
 
             await session.commit()
             logger.info("✅ Seeding complete!")

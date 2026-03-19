@@ -1,11 +1,14 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import { getTrips } from "@/lib/api";
 import { DashboardPageTemplate } from "@/components/shared/DashboardPageTemplate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DataTable } from "@/components/data-table";
-import { tripRows, type TripRow } from "@/lib/sample-data";
+import { type TripRow } from "@/lib/sample-data";
 import { ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const columns: ColumnDef<TripRow>[] = [
   {
@@ -52,10 +55,34 @@ const columns: ColumnDef<TripRow>[] = [
 ];
 
 export default function TripsPage() {
+  const [trips, setTrips] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadTrips() {
+      try {
+        const data = await getTrips();
+        const mapped = data.map((t) => ({
+          id: t.id.substring(0, 8),
+          routeName: "Singapore Hub Corridor", // Placeholder
+          driver: "Assigned Driver", // Placeholder
+          status: t.status === "active" ? "In Transit" : "Completed",
+          startedAt: new Date(t.created_at).toLocaleTimeString(),
+          etaMinutes: t.status === "active" ? 45 : 0,
+        }));
+        setTrips(mapped);
+      } catch (error) {
+        console.error("Failed to fetch trips:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadTrips();
+  }, []);
+
   const stats = [
-    { label: "Active Trips", value: "2", change: 1 },
-    { label: "Delayed Trips", value: "1", change: 0 },
-    { label: "Completed", value: "1", change: 1 },
+    { label: "Active Trips", value: loading ? "..." : trips.filter(t => t.status === "In Transit").length.toString(), change: 1 },
+    { label: "Completed", value: loading ? "..." : trips.filter(t => t.status === "Completed").length.toString(), change: 1 },
   ];
 
   return (
@@ -69,7 +96,14 @@ export default function TripsPage() {
           <CardTitle>Trip Timeline</CardTitle>
         </CardHeader>
         <CardContent>
-          <DataTable columns={columns} data={tripRows} />
+          {loading ? (
+            <div className="space-y-4">
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+            </div>
+          ) : (
+            <DataTable columns={columns} data={trips} />
+          )}
         </CardContent>
       </Card>
     </DashboardPageTemplate>
