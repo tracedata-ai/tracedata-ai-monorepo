@@ -9,7 +9,6 @@ multi-tenancy, IoT simulation, and agent routing.
 """
 
 import asyncio
-import logging
 from decimal import Decimal
 
 from sqlalchemy import delete
@@ -153,7 +152,11 @@ async def seed_data():
             logger.info(f"{LogToken.SEED} Creating Trips...")
             # Active trip for T1
             trip1 = Trip(
-                tenant_id=t1.id, driver_id=d1.id, vehicle_id=v1.id, route_id=r1.id, status="active"
+                tenant_id=t1.id,
+                driver_id=d1.id,
+                vehicle_id=v1.id,
+                route_id=r1.id,
+                status="active",
             )
             # Completed trip for T1
             trip2 = Trip(
@@ -167,7 +170,11 @@ async def seed_data():
             )
             # Active trip for T2
             trip3 = Trip(
-                tenant_id=t2.id, driver_id=d3.id, vehicle_id=v3.id, route_id=r2.id, status="active"
+                tenant_id=t2.id,
+                driver_id=d3.id,
+                vehicle_id=v3.id,
+                route_id=r2.id,
+                status="active",
             )
             session.add_all([trip1, trip2, trip3])
             await session.flush()  # Ensure IDs are generated for foreign keys
