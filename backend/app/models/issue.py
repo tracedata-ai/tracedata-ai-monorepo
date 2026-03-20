@@ -19,7 +19,7 @@ class Issue(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     """
     A classified driving event within a trip.
 
-    Severity levels align with the 4-priority Kafka topic routing:
+    Severity levels align with the 4-priority Redis topic routing:
       critical → emergency_channel
       high     → safety_channel
       medium   → general_events

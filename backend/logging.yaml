@@ -67,6 +67,11 @@ loggers:
     level: DEBUG
     propagate: true
 
+  # Our core logger — root namespace for all core.* loggers
+  core:
+    level: DEBUG
+    propagate: true
+
 # ── Root Logger ───────────────────────────────────────────────────────────────
 root:
   level: INFO

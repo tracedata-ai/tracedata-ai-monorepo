@@ -20,10 +20,33 @@ Usage in any module:
 import logging
 import logging.config
 import logging.handlers
+from enum import Enum
 from contextvars import ContextVar, Token
 from pathlib import Path
 
 import yaml
+
+
+class LogToken(str, Enum):
+    """
+    Standardised tokens for automated log monitoring and alerting.
+    Inheriting from `str` allows these to be used directly in f-strings.
+    """
+
+    STARTUP = "[STARTUP]"
+    DATABASE_INIT = "[DATABASE_INIT]"
+    DATABASE = "[DATABASE]"
+    SHUTDOWN = "[SHUTDOWN]"
+    SEED_START = "[SEED_START]"
+    SEED_SUCCESS = "[SEED_SUCCESS]"
+    SEED_FAIL = "[SEED_FAIL]"
+    SEED = "[SEED]"
+    FAIL = "[FAIL]"
+    ERROR = "[ERROR]"
+    SUCCESS = "[SUCCESS]"
+
+    def __str__(self) -> str:
+        return self.value
 
 # Path to the logging configuration file at the backend root
 _CONFIG_PATH = Path(__file__).parents[1] / "logging.yaml"

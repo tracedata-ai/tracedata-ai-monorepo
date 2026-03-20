@@ -17,13 +17,14 @@ ReDoc:      http://localhost:8000/redoc
 
 from contextlib import asynccontextmanager
 
+import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1.router import api_router
 from core.config import get_settings
 from core.database import engine
-from core.logging import get_logger, setup_logging
+from core.logging import LogToken, get_logger, setup_logging
 from app.core.middleware import RequestIdMiddleware
 
 # Import all models so their metadata is registered with Base.
@@ -56,18 +57,18 @@ async def lifespan(app: FastAPI):  # type: ignore[type-arg]
     """
     # ── 1. Logging ─────────────────────────────────────────────────────────
     setup_logging()  # Reads backend/logging.yaml and wires handlers
-    logger.info("TraceData Backend starting up...")
+    logger.info(f"{LogToken.STARTUP} TraceData Backend starting up...")
 
     # ── 2. Database ─────────────────────────────────────────────────────────
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-    logger.info("Database tables created / verified.")
+    logger.info(f"{LogToken.DATABASE_INIT} Database tables created / verified.")
 
     yield  # ← app is live and serving requests from here
 
     # ── Shutdown ────────────────────────────────────────────────────────────
     await engine.dispose()
-    logger.info("Database engine disposed. Shutdown complete.")
+    logger.info(f"{LogToken.SHUTDOWN} Database engine disposed. Shutdown complete.")
 
 
 # ── OpenAPI Tag Metadata ───────────────────────────────────────────────────────
@@ -98,7 +99,7 @@ OPENAPI_TAGS = [
     {
         "name": "Issues",
         "description": "Classified driving events within a trip (e.g. `harsh_brake`, `speeding`, `collision`). "
-        "Severity levels map to Kafka topic priority: critical → emergency, high → safety, medium → general.",
+        "Severity levels map to Redis topic priority: critical → emergency, high → safety, medium → general.",
     },
     {
         "name": "Maintenance",

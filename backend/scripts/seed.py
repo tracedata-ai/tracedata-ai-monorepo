@@ -22,34 +22,36 @@ from app.models.fleet import Vehicle
 from app.models.route import Route
 from app.models.trip import Trip
 
-# Setup logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+from core.logging import LogToken, get_logger, setup_logging
+
+# Module-level logger — uses the script's path (scripts.seed) as the logger name
+logger = get_logger(__name__)
 
 
 async def seed_data():
     """
     Seeds Singapore-relevant data partitioned by Tenant.
     """
-    logger.info("🚀 Starting database seeding...")
+    setup_logging()  # Standardize output for this script
+    logger.info(f"{LogToken.SEED_START} Starting database seeding...")
 
     # ── 0. Create Tables (Dev mode) ───────────────────────────────────────────
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-    logger.info("✅ Database tables verified/created.")
+    logger.info(f"{LogToken.DATABASE_INIT} Database tables verified/created.")
 
     async with AsyncSessionLocal() as session:
         try:
             # ── 1. Clean existing data (Nuke) ─────────────────────────────────
             # Order matters due to foreign key constraints if they existed,
             # but we use CASCADE or SET NULL in models.
-            logger.info("🧹 Cleaning existing data...")
+            logger.info(f"{LogToken.DATABASE} Cleaning existing data...")
             for table in [Trip, Route, Driver, Vehicle, Tenant]:
                 await session.execute(delete(table))
             await session.commit()
 
             # ── 2. Create Tenants (Fleet Operators) ───────────────────────────
-            logger.info("🏢 Creating Tenants...")
+            logger.info(f"{LogToken.SEED} Creating Tenants...")
             t1 = Tenant(
                 name="Singapore Logistics Hub",
                 contact_email="ops@sg-logistics.com.sg",
@@ -64,7 +66,7 @@ async def seed_data():
             await session.flush()  # Populate IDs
 
             # ── 3. Create Drivers ─────────────────────────────────────────────
-            logger.info("👨‍✈️ Creating Drivers...")
+            logger.info(f"{LogToken.SEED} Creating Drivers...")
             # Tenant 1 Drivers
             d1 = Driver(
                 tenant_id=t1.id,
@@ -94,7 +96,7 @@ async def seed_data():
             session.add_all([d1, d2, d3])
 
             # ── 4. Create Vehicles ────────────────────────────────────────────
-            logger.info("🚛 Creating Vehicles...")
+            logger.info(f"{LogToken.SEED} Creating Vehicles...")
             v1 = Vehicle(
                 tenant_id=t1.id,
                 license_plate="SBA 1234 A",
@@ -127,7 +129,7 @@ async def seed_data():
             d3.vehicle_id = v3.id
 
             # ── 5. Create Routes ─────────────────────────────────────────────
-            logger.info("📍 Creating Routes...")
+            logger.info(f"{LogToken.SEED} Creating Routes...")
             r1 = Route(
                 tenant_id=t1.id,
                 name="West-East Corridor",
@@ -148,7 +150,7 @@ async def seed_data():
             await session.flush()
 
             # ── 6. Create Initial Trips ───────────────────────────────────────
-            logger.info("🛣️  Creating Trips...")
+            logger.info(f"{LogToken.SEED} Creating Trips...")
             # Active trip for T1
             trip1 = Trip(
                 tenant_id=t1.id, driver_id=d1.id, vehicle_id=v1.id, route_id=r1.id, status="active"
@@ -171,7 +173,7 @@ async def seed_data():
             await session.flush()  # Ensure IDs are generated for foreign keys
 
             # ── 7. Create Issues ─────────────────────────────────────────────
-            logger.info("⚠️  Creating Issues...")
+            logger.info(f"{LogToken.SEED} Creating Issues...")
             from app.models.issue import Issue
 
             i1 = Issue(
@@ -193,10 +195,10 @@ async def seed_data():
             session.add_all([i1, i2])
 
             await session.commit()
-            logger.info("✅ Seeding complete!")
+            logger.info(f"{LogToken.SEED_SUCCESS} Seeding complete!")
 
         except Exception as e:
-            logger.error(f"❌ Seeding failed: {e}")
+            logger.error(f"{LogToken.SEED_FAIL} Seeding failed: {e}")
             await session.rollback()
             raise
 
