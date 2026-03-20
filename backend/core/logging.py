@@ -48,6 +48,7 @@ class LogToken(str, Enum):
     def __str__(self) -> str:
         return self.value
 
+
 # Path to the logging configuration file at the backend root
 _CONFIG_PATH = Path(__file__).parents[1] / "logging.yaml"
 
@@ -117,7 +118,9 @@ def setup_logging() -> None:
             level=logging.INFO,
             format="%(asctime)s %(levelname)s %(name)s %(message)s",
         )
-        logging.warning("logging.yaml not found at %s — using basicConfig fallback", _CONFIG_PATH)
+        logging.warning(
+            "logging.yaml not found at %s — using basicConfig fallback", _CONFIG_PATH
+        )
 
 
 def get_logger(name: str) -> logging.Logger:

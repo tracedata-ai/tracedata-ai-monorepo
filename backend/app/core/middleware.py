@@ -31,7 +31,7 @@ from starlette.types import ASGIApp
 from core.logging import reset_request_id, set_request_id
 
 # ── ContextVar ────────────────────────────────────────────────────────────────
-# DEPRECATED: The ContextVar has been moved to `core.logging` so it can be 
+# DEPRECATED: The ContextVar has been moved to `core.logging` so it can be
 # shared between the API and the Agents.
 
 

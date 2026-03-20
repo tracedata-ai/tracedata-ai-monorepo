@@ -53,7 +53,15 @@ We standardized all logging to use machine-parsable tokens. This ensures that au
 - **`TimestampMixin`**: Provides automated audit trails for every row creation and update.
 - **`get_db()`**: Injected dependency that automatically manages transaction lifecycles (commit on success, rollback on error).
 
-### C. Sequence Flow: Request Lifecycle (MermaidJS)
+### C. Multi-Tenant Isolation Strategy
+- **Logical Partitioning**: Every domain model (Vehicle, Driver, Trip, Issue) contains a `tenant_id` (UUID).
+- **No Foreign Keys across Schemas**: While we use a single database, cross-module references use UUIDs instead of hard Foreign Keys. This follows the **Modular Monolith** principle, allowing us to split the database into separate RDS instances for each module in the future without code changes.
+
+### D. Correlation Tracing & Reliability
+- **`X-Request-ID` Propagation**: Every log line is tagged with a `request_id` via `ContextVars`. This allows us to trace a single user request across Middleware -> FastAPI -> SQLAlchemy logs.
+- **Circuit Breaker Readiness**: The typed logging of `[FAIL]` and `[ERROR]` is designed to trigger automated circuit breakers and retry logic in our future API Gateways.
+
+### E. Sequence Flow: Request Lifecycle (MermaidJS)
 
 ```mermaid
 sequenceDiagram
@@ -76,5 +84,6 @@ sequenceDiagram
 ---
 
 ## 6. Project References
-- [ADR-002: Shared Core Package](../adr/002-shared-core-package.md)
-- [ADR-001: Messaging Layer](../adr/adr-001-kafka-to-redis-celery.md)
+- [ADR-003: Shared Core Package](../adr/ADR-003-shared-core-package.md)
+- [ADR-002: Messaging Layer](../adr/ADR-002-kafka-to-redis-celery.md)
+- [ADR-001: Environment Isolation](../adr/ADR-001-venv-and-container-isolation.md)
