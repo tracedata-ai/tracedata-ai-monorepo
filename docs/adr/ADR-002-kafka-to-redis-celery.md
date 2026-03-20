@@ -1,10 +1,8 @@
-# ADR-001: Replace Apache Kafka with Redis + Celery for Event Ingestion & Task Queueing
+# ADR-002: Replace Apache Kafka with Redis + Celery for Event Ingestion & Task Queueing
 
 **Date:** 2026-03-19
 **Status:** Accepted
 **Deciders:** TraceData Capstone Team (Dinesh, Jenige, Sreeraj, Zhicheng)
-
----
 
 ## Context
 
@@ -17,8 +15,6 @@ IoT Vehicles → Kafka (4 topics) → FastAPI Consumer → Celery (internal task
 ```
 
 **Redis + Celery already implements EDA in full** — priority queues, async workers, decoupled producers/consumers, and Redis Streams for replay. Kafka adds operational complexity (broker cluster, Zookeeper/KRaft, topic management, consumer group rebalancing) that serves no additional EDA learning value at this project's scale (≤10,000 simulated vehicles, single-region).
-
----
 
 ## Decision
 
@@ -48,8 +44,6 @@ This gives us all the EDA properties we need to demonstrate:
 - **Event replay** — Redis Streams (`XADD`/`XREAD`) allow re-processing of any event for debugging or auditing
 - **Observable workers** — Celery Flower dashboard provides real-time visibility into queue depth and task state
 
----
-
 ## Rationale
 
 ### Why Redis + Celery proves EDA sufficiently
@@ -68,18 +62,14 @@ This gives us all the EDA properties we need to demonstrate:
 - **Infinite log retention**: Kafka can retain events indefinitely. Redis Streams are bounded by memory/MAXLEN setting. **Mitigation**: All events are persisted to PostgreSQL on ingest; Streams serve as a short-term audit buffer.
 - **Fan-out at partition scale**: Kafka's consumer groups support massive parallel fan-out. **Mitigation**: Not needed at ≤10,000 vehicles; Celery worker concurrency is sufficient.
 
----
-
 ## Consequences
 
-- ✅ Single messaging layer reduces operational surface area.
-- ✅ Eliminates a Docker service (Kafka + Zookeeper), simplifying `docker-compose.yml`.
-- ✅ Redis already in use for conversation state — no new infrastructure.
-- ✅ Celery priority queues provide a cleaner API for the 4-level priority model.
-- ⚠️ Redis Streams MAXLEN must be configured to prevent unbounded memory growth in long-running simulations (recommended: `MAXLEN ~= 1,000,000` events with `~` approximate trimming).
-- ⚠️ If the project ever scales to 500,000+ vehicles or requires multi-region fan-out, re-introducing Kafka or migrating to AWS SQS/SNS should be reconsidered.
-
----
+- **Single messaging layer reduces operational surface area.**
+- **Eliminates a Docker service (Kafka + Zookeeper), simplifying `docker-compose.yml`.**
+- **Redis already in use for conversation state — no new infrastructure.**
+- **Celery priority queues provide a cleaner API for the 4-level priority model.**
+- **Redis Streams MAXLEN must be configured to prevent unbounded memory growth in long-running simulations (recommended: `MAXLEN ~= 1,000,000` events with `~` approximate trimming).**
+- **If the project ever scales to 500,000+ vehicles or requires multi-region fan-out, re-introducing Kafka or migrating to AWS SQS/SNS should be reconsidered.**
 
 ## References
 

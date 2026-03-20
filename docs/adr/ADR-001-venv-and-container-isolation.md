@@ -4,8 +4,6 @@
 **Status:** Accepted
 **Deciders:** Backend Team
 
----
-
 ## Context
 
 TraceData is a Python monorepo containing multiple services:
@@ -19,8 +17,6 @@ Two decisions needed to be made:
 
 1. Where should virtual environments live?
 2. Should individual agents have their own venvs?
-
----
 
 ## Decision
 
@@ -89,11 +85,10 @@ a proper project structure. This is wrong because:
 | Operational complexity | Low — one container to monitor | High — N containers, N health checks, N logs   |
 | Independent scaling    | No                             | Yes                                            |
 | Independent deployment | No                             | Yes                                            |
-| Capstone suitability   | ✅ High                        | ❌ Over-engineered for scope                   |
+| Capstone suitability   | High                           | Over-engineered for scope                      |
+
 
 The primary driver: **agents need to share the same database session and configuration at zero latency**. For a capstone project, the operational overhead of separate containers per agent is not justified.
-
----
 
 ## Consequences
 
@@ -102,8 +97,6 @@ The primary driver: **agents need to share the same database session and configu
 - **Extraction path:** If an agent must be extracted (e.g., Behavior Agent for GPU-accelerated scoring), it gets its own `pyproject.toml` under `backend/agents/behavior/` and a new `Dockerfile.behavior`. The code structure already supports this — no refactoring needed.
 - **uv workspaces:** When the first agent is extracted, migrate to [uv workspaces](https://docs.astral.sh/uv/concepts/workspaces/) to maintain a single shared lockfile across all service `pyproject.toml` files.
 
----
-
 ## Rejected Alternatives
 
 | Alternative                                | Why rejected                                                                       |
@@ -111,8 +104,6 @@ The primary driver: **agents need to share the same database session and configu
 | One root venv for all services             | Dependency conflicts; bloated Docker images                                        |
 | One venv per agent (inside same container) | A process can only activate one venv; adds no isolation benefit inside a container |
 | Separate container per agent immediately   | Over-engineered for capstone scope; high operational overhead                      |
-
----
 
 _This ADR should be revisited if:_
 

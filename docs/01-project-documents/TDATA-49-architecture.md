@@ -3,8 +3,6 @@
 **Branch:** `develop/TDATA-49-Backend-API-and-Agent-folder-setup`
 **Status:** Locked & Documented
 
----
-
 ## 1. Problem Statement
 
 The platform required a robust foundation to support high-volume telematics and multi-agent coordination. The primary challenge was designing a structure that allowed the **REST API** and **AI Agents** to coexist while sharing critical infrastructure without tight coupling.
@@ -12,8 +10,6 @@ The platform required a robust foundation to support high-volume telematics and 
 ## 2. Theoretical Background: Modular Monolith
 
 We chose a **Modular Monolith** to maintain ACID transactions across the Fleet and Booking modules during the MVP phase, while using **Schema-per-Module** database design to ensure future microservice readiness.
-
----
 
 ## 3. Architecture Overview (MermaidJS)
 
@@ -35,8 +31,6 @@ graph TD
     core --> fleet_schema
     core --> trips_schema
 ```
-
----
 
 ## 4. Design Standards & Accomplishments
 
@@ -87,8 +81,6 @@ sequenceDiagram
     API->>Log: LogToken.SUCCESS
     API-->>User: JSON + X-Request-ID
 ```
-
----
 
 ## 6. Project References
 
