@@ -118,9 +118,7 @@ def setup_logging() -> None:
             level=logging.INFO,
             format="%(asctime)s %(levelname)s %(name)s %(message)s",
         )
-        logging.warning(
-            "logging.yaml not found at %s — using basicConfig fallback", _CONFIG_PATH
-        )
+        logging.warning("logging.yaml not found at %s — using basicConfig fallback", _CONFIG_PATH)
 
 
 def get_logger(name: str) -> logging.Logger:
