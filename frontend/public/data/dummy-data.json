@@ -1,0 +1,101 @@
+{
+  "tenants": [
+    {
+      "id": "tenant-1",
+      "name": "Global Logistics SG",
+      "contact_email": "ops@globallogistics.sg",
+      "status": "active"
+    },
+    {
+      "id": "tenant-2",
+      "name": "Woodlands Fleet Services",
+      "contact_email": "fleet@woodlands.sg",
+      "status": "active"
+    }
+  ],
+  "vehicles": [
+    {
+      "id": "veh-1",
+      "tenant_id": "tenant-1",
+      "license_plate": "SGX 1234A",
+      "model": "Isuzu NPR",
+      "status": "active"
+    },
+    {
+      "id": "veh-2",
+      "tenant_id": "tenant-1",
+      "license_plate": "SGY 5678B",
+      "model": "Mitsubishi Fuso",
+      "status": "maintenance"
+    },
+    {
+      "id": "veh-3",
+      "tenant_id": "tenant-2",
+      "license_plate": "SHA 9988C",
+      "model": "Scania R450",
+      "status": "active"
+    }
+  ],
+  "drivers": [
+    {
+      "id": "drv-1",
+      "tenant_id": "tenant-1",
+      "first_name": "Farid",
+      "last_name": "Rahman",
+      "email": "farid@example.com",
+      "license_number": "S1234567A",
+      "experience_level": "senior"
+    },
+    {
+      "id": "drv-2",
+      "tenant_id": "tenant-2",
+      "first_name": "Alicia",
+      "last_name": "Tan",
+      "email": "alicia@example.com",
+      "license_number": "S7654321B",
+      "experience_level": "mid"
+    }
+  ],
+  "trips": [
+    {
+      "id": "trip-1",
+      "tenant_id": "tenant-1",
+      "vehicle_id": "veh-1",
+      "driver_id": "drv-1",
+      "route_id": "route-1",
+      "status": "in_transit",
+      "created_at": "2026-03-24T08:00:00Z"
+    },
+    {
+      "id": "trip-2",
+      "tenant_id": "tenant-2",
+      "vehicle_id": "veh-3",
+      "driver_id": "drv-2",
+      "route_id": "route-2",
+      "status": "delayed",
+      "created_at": "2026-03-24T07:45:00Z"
+    }
+  ],
+  "issues": [
+    {
+      "id": "iss-1",
+      "tenant_id": "tenant-1",
+      "trip_id": "trip-1",
+      "severity": "medium",
+      "category": "overspeed",
+      "event_type": "telemetry",
+      "description": "Vehicle exceeded 80km/h on PIE",
+      "created_at": "2026-03-24T08:15:00Z"
+    },
+    {
+      "id": "iss-2",
+      "tenant_id": "tenant-2",
+      "trip_id": "trip-2",
+      "severity": "high",
+      "category": "fatigue",
+      "event_type": "biometric",
+      "description": "Driver showing signs of moderate fatigue",
+      "created_at": "2026-03-24T08:20:00Z"
+    }
+  ]
+}

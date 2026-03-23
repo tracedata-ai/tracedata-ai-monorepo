@@ -54,18 +54,53 @@ export type Issue = {
 };
 
 async function apiGet<T>(path: string): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    headers: {
-      "Content-Type": "application/json",
-    },
-    cache: "no-store",
-  });
+  try {
+    const response = await fetch(`${API_BASE_URL}${path}`, {
+      headers: {
+        "Content-Type": "application/json",
+      },
+      cache: "no-store",
+    });
 
-  if (!response.ok) {
-    throw new Error(`Request failed: ${response.status}`);
+    if (!response.ok) {
+      throw new Error(`Request failed: ${response.status}`);
+    }
+
+    return (await response.json()) as T;
+  } catch (error) {
+    console.warn(`API call to ${path} failed, falling back to dummy data.`, error);
+    
+    // Map path to dummy data key
+    let key = "";
+    if (path.startsWith("/fleet")) key = "vehicles";
+    else if (path.startsWith("/drivers")) key = "drivers";
+    else if (path.startsWith("/trips")) key = "trips";
+    else if (path.startsWith("/issues")) key = "issues";
+    else if (path.startsWith("/tenants")) key = "tenants";
+    
+    if (key) {
+      try {
+        const fallbackResponse = await fetch('/data/dummy-data.json');
+        if (!fallbackResponse.ok) throw new Error("Fallback file not found");
+        const fallbackData = await fallbackResponse.json();
+        let result = fallbackData[key] as T;
+        
+        // Simple filtering for tenant_id if present in query
+        if (Array.isArray(result) && path.includes("tenant_id=")) {
+          const params = new URLSearchParams(path.split("?")[1]);
+          const tenantId = params.get("tenant_id");
+          if (tenantId) {
+            result = (result as Array<{ tenant_id?: string }>).filter((item) => item.tenant_id === tenantId) as unknown as T;
+          }
+        }
+        return result;
+      } catch (fallbackError) {
+        console.error("Fallback failed:", fallbackError);
+        throw error;
+      }
+    }
+    throw error;
   }
-
-  return (await response.json()) as T;
 }
 
 export async function getBackendHealth(): Promise<BackendHealth> {
