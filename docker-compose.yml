@@ -1,5 +1,45 @@
 
+# ─────────────────────────────────────────────────────────────────────────────
+# TraceData — Docker Compose
+#
+# Services:
+#   backend   → FastAPI REST API + LangGraph agents (port 8000)
+#   frontend  → Next.js dashboard (port 3000)
+#   db        → PostgreSQL 16 + pgvector (port 5432)
+#   redis     → In-memory broker for Celery workers (port 6379)
+#
+# Usage:
+#   Full stack:      docker compose up --build
+#   Backend + DB:    docker compose up backend db redis --build
+#   Frontend only:   docker compose up frontend
+# ─────────────────────────────────────────────────────────────────────────────
+
 services:
+
+  # ── Backend (FastAPI + Agents) ───────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.api
+    container_name: tracedata-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/tracedata
+      - REDIS_URL=redis://redis:6379/0
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - RESET_DB=${RESET_DB:-false}
+      - DEBUG=true
+      - APP_ENV=development
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    restart: on-failure
+
+  # ── Frontend (Next.js) ───────────────────────────────────────────────────────
   frontend:
     build:
       context: ./frontend
@@ -9,29 +49,12 @@ services:
     container_name: tracedata-frontend
     ports:
       - "3000:3000"
-    restart: always
     environment:
       - NODE_ENV=production
       - NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
-    depends_on:
-      - ai-agents
+    restart: always
 
-  ai-agents:
-    build:
-      context: ./ai-agents
-      dockerfile: Dockerfile
-    container_name: tracedata-ai-agents
-    ports:
-      - "8000:8000"
-    volumes:
-      - ./ai-agents:/app
-    environment:
-      - DATABASE_URL=postgresql://postgres:postgres@db:5432/tracedata
-      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
-      - RESET_DB=${RESET_DB:-false}
-    depends_on:
-      - db
-
+  # ── PostgreSQL + pgvector ────────────────────────────────────────────────────
   db:
     image: ankane/pgvector:latest
     container_name: tracedata-db
@@ -43,7 +66,25 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d tracedata"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: always
+
+  # ── Redis ────────────────────────────────────────────────────────────────────
+  # Used as the Celery message broker and result backend.
+  # Also used for agent context caching (future: conversation state).
+  redis:
+    image: redis:7-alpine
+    container_name: tracedata-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
     restart: always
 
 volumes:
   postgres_data:
+  redis_data:

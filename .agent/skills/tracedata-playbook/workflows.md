@@ -39,6 +39,6 @@ Standardized templates for common development tasks.
 
 1. Ensure the stack is running: `docker compose up -d`.
 2. Start the simulator: `uv run scripts/truck_simulator.py`.
-3. Monitor the **Kafka Consumer** logs for ingestion events.
+3. Monitor the **Celery Worker** logs for ingestion task routing events (`queue.critical` / `queue.high` / etc.).
 4. Monitor the **Celery Worker** logs for task completion.
 5. Verify data updates in the Dashboard or Database.
