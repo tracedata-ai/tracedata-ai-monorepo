@@ -61,17 +61,25 @@ def telemetry_packet_json(telemetry_packet) -> str:
 @pytest.fixture
 def mock_redis() -> MagicMock:
     """
-    A fully-mocked RedisClient.
-    By default: pop returns None (empty queue), push is a no-op.
-    Override per-test as needed:
-        mock_redis.pop.return_value = json.dumps(some_event)
+    A fully-mocked RedisClient with the new pipeline methods.
     """
     client = MagicMock()
-    client.pop = AsyncMock(return_value=None)
-    client.zpop = AsyncMock(return_value=None)
-    client.push = AsyncMock()
-    client.zpush = AsyncMock()
-    client.get = AsyncMock(return_value=None)
-    client.set_with_ttl = AsyncMock()
+    client.pop_from_buffer = AsyncMock(return_value=None)
+    client.pop_from_processed = AsyncMock(return_value=None)
+    client.push_to_buffer = AsyncMock()
+    client.push_to_processed = AsyncMock()
+    client.push_to_rejected = AsyncMock()
+    client.store_trip_context = AsyncMock()
+    client.get_trip_context = AsyncMock(return_value=None)
     client.close = AsyncMock()
     return client
+
+
+@pytest.fixture
+def mock_db_session() -> MagicMock:
+    """Mock SQLAlchemy AsyncSession."""
+    session = AsyncMock()
+    session.execute = AsyncMock()
+    session.commit = AsyncMock()
+    session.refresh = AsyncMock()
+    return session

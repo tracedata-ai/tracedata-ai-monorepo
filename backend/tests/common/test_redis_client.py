@@ -1,11 +1,3 @@
-"""
-Tests for RedisClient using fakeredis.
-
-fakeredis provides an in-process Redis server — no Docker required.
-Tests cover List (push/pop) and ZSet (zpush/zpop) operations, including
-priority ordering which is critical for the ingestion pipeline.
-"""
-
 from unittest.mock import patch
 
 import fakeredis.aioredis as fakeredis
@@ -27,80 +19,77 @@ async def fake_redis_client():
     await server.aclose()
 
 
-# ── List (push / pop) ──────────────────────────────────────────────────────────
+# ── Pipeline Queues (ZSets) ──────────────────────────────────────────────
 
 
-async def test_push_and_pop_returns_same_value(fake_redis_client):
-    """push → pop roundtrip returns the original string."""
-    await fake_redis_client.push("td:test:list", "hello")
-    result = await fake_redis_client.pop("td:test:list", timeout=1)
-    assert result == "hello"
+async def test_buffer_push_and_pop_returns_same_value(fake_redis_client):
+    """push_to_buffer → pop_from_buffer roundtrip returns dict."""
+    payload = {"event": "test"}
+    await fake_redis_client.push_to_buffer("td:test:buffer", '{"event": "test"}', score=9)
+    result = await fake_redis_client.pop_from_buffer("td:test:buffer")
+    assert result == payload
 
 
-async def test_pop_empty_queue_returns_none(fake_redis_client):
-    """pop on an empty queue with timeout returns None."""
-    result = await fake_redis_client.pop("td:nonexistent:queue", timeout=1)
-    assert result is None
-
-
-async def test_push_order_is_lifo(fake_redis_client):
+async def test_buffer_pop_respects_priority_order(fake_redis_client):
     """
-    RedisClient uses LPUSH + BRPOP.
-    LPUSH pushes to head, BRPOP pops from tail → FIFO order.
+    zpopmin returns the member with the LOWEST score first.
+    Score 0 (CRITICAL) < Score 9 (LOW).
     """
-    await fake_redis_client.push("td:order:queue", "first")
-    await fake_redis_client.push("td:order:queue", "second")
+    await fake_redis_client.push_to_buffer("td:test:buffer", '{"ev": "low"}', score=9)
+    await fake_redis_client.push_to_buffer("td:test:buffer", '{"ev": "critical"}', score=0)
 
-    r1 = await fake_redis_client.pop("td:order:queue", timeout=1)
-    r2 = await fake_redis_client.pop("td:order:queue", timeout=1)
-    assert r1 == "first"
-    assert r2 == "second"
+    first = await fake_redis_client.pop_from_buffer("td:test:buffer")
+    second = await fake_redis_client.pop_from_buffer("td:test:buffer")
 
-
-# ── ZSet (zpush / zpop) ────────────────────────────────────────────────────────
+    assert first == {"ev": "critical"}
+    assert second == {"ev": "low"}
 
 
-async def test_zpush_and_zpop_roundtrip(fake_redis_client):
-    """zpush → zpop returns the same member."""
-    await fake_redis_client.zpush("td:test:zset", "event-payload", priority=3)
-    result = await fake_redis_client.zpop("td:test:zset", timeout=1)
-    assert result == "event-payload"
+async def test_processed_push_and_pop(fake_redis_client):
+    """push_to_processed → pop_from_processed works."""
+    payload = {"event": "processed"}
+    await fake_redis_client.push_to_processed("td:test:proc", '{"event": "processed"}', score=3)
+    result = await fake_redis_client.pop_from_processed("td:test:proc")
+    assert result == payload
 
 
-async def test_zpop_empty_zset_returns_none(fake_redis_client):
-    """zpop on an empty ZSet returns None."""
-    result = await fake_redis_client.zpop("td:nonexistent:zset", timeout=1)
-    assert result is None
+# ── Agent Working Cache (Strings/JSON/Lists) ─────────────────────────────
 
 
-async def test_zpop_respects_priority_order(fake_redis_client):
-    """
-    BZPOPMIN returns the member with the LOWEST score first.
-    Priority 1 (CRITICAL) < Priority 3 (HIGH) — critical should pop first.
-    """
-    await fake_redis_client.zpush("td:priority:queue", "event-high", priority=3)
-    await fake_redis_client.zpush("td:priority:queue", "event-critical", priority=1)
-
-    first = await fake_redis_client.zpop("td:priority:queue", timeout=1)
-    second = await fake_redis_client.zpop("td:priority:queue", timeout=1)
-
-    assert first == "event-critical"  # Score 1 → pops out first
-    assert second == "event-high"  # Score 3 → pops out second
+async def test_trip_context_store_and_get(fake_redis_client):
+    """store_trip_context and get_trip_context work with JSON."""
+    ctx = {"trip_id": "T1", "status": "active"}
+    await fake_redis_client.store_trip_context("td:trip:T1:context", ctx, ttl=60)
+    result = await fake_redis_client.get_trip_context("td:trip:T1:context")
+    assert result == ctx
 
 
-# ── String (set_with_ttl / get) ────────────────────────────────────────────────
+async def test_smoothness_logs_accumulation(fake_redis_client):
+    """push_smoothness_log appends to list and get_all_smoothness_logs reads all."""
+    l1 = {"window": 1}
+    l2 = {"window": 2}
+
+    await fake_redis_client.push_smoothness_log("td:trip:T1:logs", l1, ttl=60)
+    await fake_redis_client.push_smoothness_log("td:trip:T1:logs", l2, ttl=60)
+
+    all_logs = await fake_redis_client.get_all_smoothness_logs("td:trip:T1:logs")
+    # LPUSH makes it [l2, l1]
+    assert len(all_logs) == 2
+    assert all_logs == [l2, l1]
 
 
-async def test_set_with_ttl_and_get(fake_redis_client):
-    """set_with_ttl stores a value retrievable by get."""
-    await fake_redis_client.set_with_ttl(
-        "td:trip:T1:context", '{"trip_id": "T1"}', ttl=3600
-    )
-    result = await fake_redis_client.get("td:trip:T1:context")
-    assert result == '{"trip_id": "T1"}'
+# ── Completion Signalling (Pub/Sub + List) ───────────────────────────────
 
 
-async def test_get_missing_key_returns_none(fake_redis_client):
-    """get on a non-existent key returns None."""
-    result = await fake_redis_client.get("td:doesnotexist")
-    assert result is None
+async def test_publish_completion_writes_to_list(fake_redis_client):
+    """publish_completion writes the event to the durable list."""
+    event = {"agent": "safety", "done": True}
+    # We can't easily test Pub/Sub with fakeredis in a single-threaded test
+    # but we can verify it writes to the fallback list.
+    await fake_redis_client.publish_completion("td:trip:T1:events", event, ttl=60)
+
+    # Re-use get_all_smoothness_logs logic to check the list
+    raw_list = await fake_redis_client._client.lrange("td:trip:T1:events", 0, -1)
+    assert len(raw_list) == 1
+    import json
+    assert json.loads(raw_list[0]) == event

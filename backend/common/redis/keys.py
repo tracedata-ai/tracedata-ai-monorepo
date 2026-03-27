@@ -1,25 +1,42 @@
 class RedisSchema:
     """Central authority for all Redis key patterns and queue names."""
 
-    # ── Queues (Lists) ──────────────────────────────────────────────────────
-    INGESTION_QUEUE = "td:ingestion:events"
-    ORCHESTRATOR_QUEUE = "td:orchestrator:events"
+    class Telemetry:
+        DLQ_TTL: int = 172800  # 48 hours
 
-    # Agent Queues
-    SAFETY_QUEUE = "td:agent:safety"
-    SCORING_QUEUE = "td:agent:scoring"
-    SUPPORT_QUEUE = "td:agent:support"
-    SENTIMENT_QUEUE = "td:agent:sentiment"
+        @staticmethod
+        def buffer(truck_id: str) -> str:
+            """Stage 1 — raw TelemetryPacket."""
+            return f"telemetry:{truck_id}:buffer"
 
-    # ── State (Hashes/Strings) ──────────────────────────────────────────────
-    @staticmethod
-    def trip_context(trip_id: str) -> str:
-        return f"td:trip:{trip_id}:context"
+        @staticmethod
+        def processed(truck_id: str) -> str:
+            """Stage 2 — clean TripEvent."""
+            return f"telemetry:{truck_id}:processed"
 
-    @staticmethod
-    def agent_lock(agent_name: str, trip_id: str) -> str:
-        return f"td:lock:{agent_name}:{trip_id}"
+        @staticmethod
+        def rejected(truck_id: str) -> str:
+            """Dead Letter Queue."""
+            return f"telemetry:{truck_id}:rejected"
 
-    # ── TTLs (Seconds) ──────────────────────────────────────────────────────
-    CONTEXT_TTL = 3600  # 1 hour
-    LOCK_TTL = 30  # 30 seconds
+    class Trip:
+        CONTEXT_TTL_HIGH: int = 172800  # 48 hours — CRITICAL/HIGH
+        CONTEXT_TTL_LOW: int = 600       # 10 minutes — MEDIUM/LOW
+        OUTPUT_TTL: int = 600           # 10 minutes
+        EVENT_TTL: int = 600            # 10 minutes
+
+        @staticmethod
+        def context(trip_id: str) -> str:
+            return f"trip:{trip_id}:context"
+
+        @staticmethod
+        def smoothness_logs(trip_id: str) -> str:
+            return f"trip:{trip_id}:smoothness_logs"
+
+        @staticmethod
+        def output(trip_id: str, agent_name: str) -> str:
+            return f"trip:{trip_id}:{agent_name}_output"
+
+        @staticmethod
+        def events_channel(trip_id: str) -> str:
+            return f"trip:{trip_id}:events"

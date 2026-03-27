@@ -3,25 +3,51 @@ import logging
 
 from common.config.settings import get_settings
 from common.redis.client import RedisClient
+from core.ingestion.sidecar import IngestionSidecar
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+)
 logger = logging.getLogger("ingestion")
 
 
 async def main():
     settings = get_settings()
     redis = RedisClient()
-    logger.info(f"Ingestion worker started. Listening on {settings.ingestion_queue}")
+    sidecar = IngestionSidecar(redis)
+
+    logger.info(
+        f"Ingestion worker started. Listening on {settings.ingestion_queue}..."
+    )
 
     try:
         while True:
-            # ── Role 2 — Priority Popping (as per Flight Plan) ──
-            # Use zpop to pick up the highest priority event (lowest score)
-            event = await redis.zpop(settings.ingestion_queue, timeout=5)
-            if event:
-                logger.info(f"Ingested priority event: {event[:100]}...")
-                # Push to orchestrator (Standard List)
-                await redis.push(settings.orchestrator_queue, event)
+            # ── Stage 1: Pop from Raw Buffer ──
+            # The ingestion_queue is the 'landing zone' for both REST (App) and MQTT (Device)
+            # zpopmin ensures we handle CRITICAL severity (score 0) first.
+            raw_packet = await redis.pop_from_buffer(settings.ingestion_queue)
+
+            if raw_packet:
+                event_type = raw_packet.get("event", {}).get("event_type", "unknown")
+                truck_id = raw_packet.get("event", {}).get("truck_id", "unknown")
+
+                logger.info(f"Processing {event_type} for truck {truck_id}")
+
+                # ── The 7-Step Pipeline ──
+                success = await sidecar.process_packet(raw_packet)
+
+                if success:
+                    logger.info(f"Successfully ingested {event_type}")
+                else:
+                    logger.warning(f"Rejected packet for {event_type}")
+
+            else:
+                # No events, small sleep to prevent CPU spinning
+                await asyncio.sleep(0.1)
+
+    except asyncio.CancelledError:
+        logger.info("Ingestion worker stopping...")
     finally:
         await redis.close()
 
