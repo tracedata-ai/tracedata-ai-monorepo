@@ -29,7 +29,8 @@ env:
 # JOB DEPENDENCY GRAPH
 #
 #  lint ──────────────────────┐
-#  type-check ────────────────┤──► build ──► docker  (steps: Build → Trivy Scan → Push)
+#  type-check ────────────────┤
+#  unit-test ─────────────────┤──► build ──► docker  (steps: Build → Trivy Scan → Push)
 #  npm-audit ─────────────────┘         └──► dast-zap   (PR/main only)
 #  codeql-sast (PR/main only, independent)
 #                                            └──► summary
