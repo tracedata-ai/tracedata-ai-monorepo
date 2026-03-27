@@ -1019,19 +1019,23 @@ telemetry:T12345:buffer (ZSet)
 
 ## 10. Ingestion Tool — From TelemetryPacket to TripEvent
 
-The Ingestion Tool transforms the nested `TelemetryPacket` into a flat `TripEvent` before passing to the Orchestrator.
+The Ingestion Tool is an **independent worker** — it runs in its own container, continuously polling the raw buffer. It transforms untrusted `TelemetryPacket` events into clean `TripEvent` records and routes them to the processed queue. The Orchestrator reads only from the processed queue — it never sees raw data.
 
 ```
-TelemetryPacket (nested, device format)
-        ↓  Ingestion Tool
+Raw Buffer (telemetry:{truck_id}:buffer)
+        ↓  Ingestion Tool polls (zpopmin — CRITICAL first)
            1. validate schema via Pydantic
-           2. check EVENT_MATRIX — event_type must exist
-           3. idempotency check — device_event_id in Postgres?
-           4. PII scrub — anonymise driver_id
-           5. flatten nested structure → TripEvent
-           6. priority resolved from EVENT_MATRIX (overrides device stamp if mismatch)
+           2. check EVENT_MATRIX — event_type must exist, priority governed
+           3. injection scan — prompt, SQL, HTML, control chars (OWASP LLM01)
+           4. PII scrub — anonymise driver_id, round GPS (OWASP LLM02)
+           5. idempotency check — device_event_id already in Postgres?
+           6. DB WRITE 1 — INSERT into events table, status=received
+           7a. SUCCESS → push clean TripEvent to processed queue
+           7b. FAILURE → push raw packet + reason to DLQ (TTL 48h)
         ↓
-TripEvent (flat, agent format)
+Processed Queue (telemetry:{truck_id}:processed)
+        ↓
+Orchestrator reads clean TripEvent
 ```
 
 **TripEvent after transformation (collision example):**
@@ -1085,12 +1089,25 @@ graph LR
         H[High/Med Event] -->|Max 2min Ceiling| T1
     end
 
-    subgraph "Cloud Boundary"
-        T1 -->|zadd with priority score| R[(Redis Sorted Set)]
-        R -->|zpopmin| O[Orchestrator Agent]
-        O -->|Dispatch| A[Specialised Agents]
+    subgraph "Cloud — Stage 1: Raw Buffer"
+        T1 -->|zadd with priority score| RAW[(telemetry:truck:buffer\nZSet · untrusted)]
+    end
+
+    subgraph "Cloud — Ingestion Tool"
+        RAW -->|zpopmin CRITICAL first| IT[Ingestion Tool\nvalidate · scan · PII · dedup]
+        IT -->|success| PROC[(telemetry:truck:processed\nZSet · clean TripEvent)]
+        IT -->|rejected| DLQ[(telemetry:truck:rejected\nDLQ · TTL 48h)]
+        IT -->|DB WRITE 1| PG[(Postgres\nevents table)]
+    end
+
+    subgraph "Cloud — Stage 2: Agent Pipeline"
+        PROC -->|zpopmin| O[Orchestrator\nLangGraph]
+        O -->|Celery dispatch| A[Agents\nSafety · Scoring · DSP · Sentiment]
         A -->|On demand| S3
     end
+
+    style DLQ fill:#fdd,stroke:#f00
+    style PROC fill:#dfd,stroke:#0a0
 ```
 
 ---
@@ -1138,13 +1155,15 @@ THRESHOLDS = {
 
 | Concern | Deferred To | Notes |
 |---|---|---|
-| Postgres persistence of raw events | Phase 8 | Stubbed as TODO in ingestion tool |
-| Idempotency check against Postgres | Phase 8 | device_event_id dedup wired later |
+| ~~Postgres persistence of raw events~~ | ✅ Done | Fully implemented in Phase 3 |
+| ~~Idempotency check against Postgres~~ | ✅ Done | device_event_id dedup wired |
 | Driver history in TripContext | Sprint 3 | Agents only see current event for now |
 | XGBoost scoring with ml_weight | Sprint 3 | Stored but not consumed yet |
 | Kafka replacement for Redis buffer | Production | Redis is proof-of-concept stand-in |
 | Multi-event batch processing | Phase 8 | One event per ingestion call for now |
 | S3 raw log fetch for SHAP | Sprint 3 | Referenced in smoothness_log but not fetched yet |
+| DLQ monitoring dashboard | Sprint 3 | Fleet admin API endpoint for rejected events |
+| NER-based PII detection | Sprint 3 | Hash-based only in Phase 3 |
 
 ---
 

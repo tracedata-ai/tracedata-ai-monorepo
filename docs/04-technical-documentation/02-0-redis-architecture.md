@@ -1025,18 +1025,19 @@ gantt
     dateFormat HH:mm
     axisFormat %H:%M
 
-    section Event Buffer
-    telemetry:T12345:buffer (ZSet, no TTL)     :active, buf, 08:00, 10:46
+    section Pipeline Queues
+    telemetry:T12345:buffer (ZSet, no TTL)       :active, buf, 08:00, 10:46
+    telemetry:T12345:processed (ZSet, no TTL)    :active, proc, 08:00, 10:46
 
-    section Agent Cache
-    trip:...:context (String, TTL 2h)           :ctx, 08:00, 10:00
-    trip:...:smoothness_logs (List, TTL 2h)     :sml, 08:10, 10:40
-    trip:...:safety_output (String, TTL 1h)     :saf, 08:44, 09:44
-    trip:...:scoring_output (String, TTL 1h)    :sco, 10:46, 11:46
-    trip:...:driver_support_output (TTL 1h)     :dsp, 10:52, 11:52
+    section Agent Cache (priority-aware TTL)
+    trip:...:context (String, TTL 10min/48h)     :ctx, 08:00, 10:00
+    trip:...:smoothness_logs (List, TTL 10min/48h):sml, 08:10, 10:40
+    trip:...:safety_output (String, TTL 10min/48h):saf, 08:44, 09:44
+    trip:...:scoring_output (String, TTL 10min)  :sco, 10:46, 11:40
+    trip:...:driver_support_output (TTL 10min)   :dsp, 10:52, 11:40
 
     section Completion Events
-    trip:...:events (List+PubSub, TTL 30m)      :evt, 08:44, 11:16
+    trip:...:events (List+PubSub, TTL 10min/48h) :evt, 08:44, 11:16
 ```
 
 Putting it all together — here is the full lifecycle of Redis state for Trip TRIP-T12345-2026-03-07-08:00.
@@ -1044,7 +1045,9 @@ Putting it all together — here is the full lifecycle of Redis state for Trip T
 ```mermaid
 sequenceDiagram
     participant DEV as Device
-    participant BUF as Redis Buffer\ntelemetry:T12345:buffer
+    participant BUF as Raw Buffer\ntelemetry:T12345:buffer
+    participant IT  as Ingestion Tool\n(independent worker)
+    participant PROC as Processed Queue\ntelemetry:T12345:processed
     participant ORC as Orchestrator
     participant RDS as Redis Cache
     participant SCO as Scoring Agent
@@ -1053,30 +1056,39 @@ sequenceDiagram
 
     note over DEV,BUF: 08:00 — Trip starts
     DEV->>BUF: zadd score=9 {start_of_trip}
-    ORC->>BUF: zpopmin
+    IT->>BUF: zpopmin
+    IT->>PG: INSERT events status=received
+    IT->>PROC: zadd score=9 {clean TripEvent}
+    ORC->>PROC: zpopmin
     ORC->>PG: SELECT historical avg
-    ORC->>RDS: SETEX trip:...:context 7200
+    ORC->>RDS: SETEX trip:...:context TTL=600
 
     note over DEV,BUF: 08:10 – 10:40 — Every 10 minutes
     DEV->>BUF: zadd score=9 {smoothness_log ×16}
-    ORC->>BUF: zpopmin (each)
+    IT->>BUF: zpopmin (each)
+    IT->>PROC: zadd clean TripEvent (each)
+    ORC->>PROC: zpopmin (each)
     ORC->>RDS: LPUSH trip:...:smoothness_logs (×16)
 
     note over DEV,BUF: 09:10 — Harsh brake detected
     DEV->>BUF: zadd score=3 {harsh_brake}
     note over BUF: harsh_brake (score=3) jumps ahead\nof remaining smoothness_logs (score=9)
-    ORC->>BUF: zpopmin → gets harsh_brake first
+    IT->>BUF: zpopmin → gets harsh_brake first
+    IT->>PROC: zadd score=3 {clean harsh_brake}
+    ORC->>PROC: zpopmin → harsh_brake first
 
     note over DEV,BUF: 10:45 — Trip ends
     DEV->>BUF: zadd score=9 {end_of_trip}
-    ORC->>BUF: zpopmin → end_of_trip
+    IT->>BUF: zpopmin → end_of_trip
+    IT->>PROC: zadd score=9 {clean end_of_trip}
+    ORC->>PROC: zpopmin → end_of_trip
     ORC->>SCO: Celery dispatch (IntentCapsule)
 
     SCO->>RDS: GET trip:...:context
     SCO->>RDS: LRANGE trip:...:smoothness_logs 0 -1
     note over SCO: compute score=54.2\nrun SHAP\ncheck fairness
 
-    SCO->>RDS: SETEX trip:...:scoring_output 3600
+    SCO->>RDS: SETEX trip:...:scoring_output TTL=600
     SCO->>PG: INSERT trip_scores + fairness_audit_log
     SCO->>RDS: PUBLISH + LPUSH trip:...:events {priority=MEDIUM, final=false}
 
@@ -1084,7 +1096,7 @@ sequenceDiagram
     ORC->>PG: SELECT last 3 scores (rolling avg check)
     note over ORC: score 54.2 < 60\ncoaching triggered\nenrich context
 
-    ORC->>RDS: SETEX trip:...:context 7200 (enriched with SHAP)
+    ORC->>RDS: SETEX trip:...:context TTL=600 (enriched with SHAP)
     ORC->>PG: UPDATE trips status=coaching_pending
     ORC->>DSP: Celery dispatch (IntentCapsule)
 
@@ -1092,32 +1104,36 @@ sequenceDiagram
     DSP->>RDS: GET trip:...:scoring_output
     note over DSP: read SHAP features\ngenerate coaching tips
 
-    DSP->>RDS: SETEX trip:...:driver_support_output 3600
+    DSP->>RDS: SETEX trip:...:driver_support_output TTL=600
     DSP->>PG: INSERT coaching_logs
     DSP->>RDS: PUBLISH + LPUSH trip:...:events {final=true}
 
     ORC->>PG: UPDATE trips status=complete
-    note over RDS: Keys expire naturally\nover next 1-2 hours
+    note over RDS: Keys expire naturally via TTL
 ```
 
 08:10 through 10:40 — Every 10 minutes
-  smoothness_log → buffer score=9
-  Ingestion Tool pops → appends to trip:...:smoothness_logs
+  smoothness_log → raw buffer score=9
+  Ingestion Tool pops → validates → pushes to processed queue
+  Orchestrator pops processed queue → lpush to trip:...:smoothness_logs
   TTL reset on each append
 
 09:10 — Harsh brake event arrives
-  harsh_brake → buffer score=3
-  Processed BEFORE any remaining smoothness_logs (score 9)
-  Safety Agent dispatched → writes trip:...:safety_output TTL:3600s
+  harsh_brake → raw buffer score=3
+  Ingestion Tool pops harsh_brake BEFORE remaining smoothness_logs (score 9)
+  Pushes clean TripEvent to processed queue score=3
+  Orchestrator pops → Safety Agent dispatched
+  Safety Agent writes trip:...:safety_output TTL: priority-aware
   CompletionEvent published → trip:...:events
   Orchestrator reacts → dispatches Driver Support Agent
 
 10:45 — Trip ends
-  end_of_trip → buffer score=9
-  Scoring Agent dispatched
+  end_of_trip → raw buffer score=9
+  Ingestion Tool pops → processes → pushes to processed queue
+  Orchestrator pops → Scoring Agent dispatched
     reads:  trip:...:context        (historical avg, peer group avg)
     reads:  trip:...:smoothness_logs (all 16 windows via LRANGE 0 -1)
-    writes: trip:...:scoring_output  TTL:3600s
+    writes: trip:...:scoring_output  TTL: priority-aware
     publishes: trip:...:events
 
   Orchestrator receives completion event
@@ -1128,15 +1144,14 @@ sequenceDiagram
   Driver Support Agent
     reads: trip:...:context         (now contains scoring_result)
     reads: trip:...:scoring_output  (for SHAP feature list)
-    writes: trip:...:driver_support_output  TTL:3600s
+    writes: trip:...:driver_support_output  TTL: priority-aware
     publishes: trip:...:events (final=True)
 
   Orchestrator receives final=True
     updates Postgres: trips table status=complete
-    Redis keys expire naturally over next 1-2 hours
-    
----
+    Redis keys expire naturally via TTL
 
+---
 
 ## 9. Redis Configuration
 

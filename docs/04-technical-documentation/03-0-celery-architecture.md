@@ -5,7 +5,7 @@ SWE5008 Capstone | Phase 3 Architecture Record | March 2026
 
 **Related Documents:**
 - Redis Architecture — broker configuration and key schema
-- Orchestrator Agent — dispatch logic and DB Sidecar integration
+- Orchestrator Agent — dispatch logic and DB Manager integration
 - FL-SCO-01 — End-of-Trip Scoring Flow (Steps 4–7)
 
 ---
@@ -314,7 +314,7 @@ sequenceDiagram
     participant WRK  as Scoring Worker
     participant RDS  as Redis Cache
     participant PG   as Postgres
-    participant DBSID as DB Sidecar
+    participant DBSID as DB Manager
 
     ORC->>DBSID: acquire_lock(device_event_id)
     DBSID->>PG: UPDATE events SET status=processing, locked_by=orchestrator
@@ -356,7 +356,7 @@ flowchart TD
     R{"retry_count\n< max_retries?"}
     RETRY["self.retry(exc=e)\nBackoff delay\ntask re-queued"]
     FAIL["Task marked FAILURE\nno more retries"]
-    DBSID["DB Sidecar\nfail_event(device_event_id)\nstatus=failed\nretry_count += 1"]
+    DBSID["DB Manager\nfail_event(device_event_id)\nstatus=failed\nretry_count += 1"]
     HITL["HITL escalation\nfleet manager notified"]
     ABANDON{"retry_count\n>= MAX_RETRIES?"}
     AB["status = abandoned\npermanent failure"]
@@ -380,7 +380,7 @@ Celery layer:
   → NOT lost — returns to scoring_queue
   → another worker picks it up
 
-DB Sidecar watchdog (runs every 2 minutes):
+DB Manager watchdog (runs every 2 minutes):
   → finds rows WHERE status = 'processing'    ← ONLY 'processing'
                 AND locked_at < now() - LOCK_TTL
   → resets: status='received', locked_by=NULL, locked_at=NULL
@@ -445,7 +445,7 @@ Worker:
 
 Orchestrator:
   → receives security alert
-  → calls DB Sidecar: update_trip_status(trip_id, 'locked')
+  → calls DB Manager: update_trip_status(trip_id, 'locked')
   → locks mission — no further agent dispatch
   → HITL escalation: fleet manager must manually override
 
@@ -503,7 +503,7 @@ Lease (what TraceData actually uses):
 
 ```
 PREPARE (Orchestrator before dispatch)
-  DB Sidecar:
+  DB Manager:
     UPDATE events
     SET    status    = 'processing',
            locked_by = 'orchestrator',
@@ -517,12 +517,12 @@ PREPARE (Orchestrator before dispatch)
     Dispatch succeeds, lock fails → task runs with no record ❌
 
 COMMIT (on CompletionEvent received)
-  DB Sidecar:
+  DB Manager:
     status = 'processed', locked_by = NULL,
     locked_at = NULL, processed_at = now()
 
 ROLLBACK (on agent failure after max retries)
-  DB Sidecar:
+  DB Manager:
     status = 'failed', locked_by = NULL,
     locked_at = NULL, retry_count += 1
   If retry_count >= MAX → status = 'abandoned' → HITL
@@ -537,17 +537,17 @@ CRASH RECOVERY (watchdog)
 
 ```mermaid
 flowchart TD
-    LOCK["DB Sidecar\nacquire lease\nstatus=processing\nlocked_at=now()"]
+    LOCK["DB Manager\nacquire lease\nstatus=processing\nlocked_at=now()"]
     DISPATCH["Orchestrator\napply_async\nCelery task queued"]
     PICK["Worker\npicks up task"]
     EXEC["Agent\nexecutes"]
 
     SUCCESS["Task SUCCESS\nCompletionEvent published"]
-    COMMIT["DB Sidecar\nrelease lease\nstatus=processed"]
+    COMMIT["DB Manager\nrelease lease\nstatus=processed"]
 
     RETRY["Celery retry\ntask re-queued"]
     EXHAUSTED["Max retries\nexhausted"]
-    ROLLBACK["DB Sidecar\nfail_event\nstatus=failed"]
+    ROLLBACK["DB Manager\nfail_event\nstatus=failed"]
     ABANDON["status=abandoned\nHITL escalation"]
     LOCKED["trips.status=locked\n⚠ watchdog immune\nhuman reviewing"]
 
@@ -585,7 +585,7 @@ from celery.schedules import crontab
 
 app.conf.beat_schedule = {
 
-    # DB Sidecar watchdog — finds and recovers stuck events
+    # DB Manager watchdog — finds and recovers stuck events
     "watchdog-stuck-events": {
         "task":     "tracedata.db.watchdog_stuck_events",
         "schedule": 120.0,    # every 2 minutes
@@ -755,7 +755,7 @@ flowchart LR
         RAW[("telemetry:T12345:buffer\nZSet\nTelemetryPacket")]
     end
 
-    subgraph IT["Ingestion Tool Worker"]
+    subgraph IT["Ingestion Tool\n(independent container)"]
         PIPE["7-step pipeline"]
     end
 
@@ -764,9 +764,8 @@ flowchart LR
         DLQ[("telemetry:T12345:rejected\nZSet TTL 48h\nfailed events")]
     end
 
-    subgraph ORC_POD["pod — Orchestrator (LangGraph)"]
+    subgraph ORC_BOX["Orchestrator\n(LangGraph · DB Manager internal)"]
         ORC["Core Loop\nrouting + dispatch"]
-        DBSID["DB Sidecar\n2PC · locks"]
     end
 
     subgraph CELERY["Celery Queues (Redis ZSets)"]
@@ -776,19 +775,15 @@ flowchart LR
         SMQ[("sentiment_queue\npriority 6")]
     end
 
-    subgraph SAFETY_POD["pod — Safety Agent"]
-        SW["Safety Worker\nLangGraph · concurrency=2"]
-        EMRG["Emergency Dispatch\nSCDF · LTA tow\nOneMap SG"]
-    end
-
-    subgraph WORKERS["Other Agent Workers (LangGraph)"]
+    subgraph WORKERS["Agent Workers (LangGraph) — one container each"]
+        SW["Safety Worker\nconcurrency=2"]
         SCW["Scoring Worker\nXGBoost · SHAP · AIF360\nconcurrency=1"]
         DW["DSP Worker\ncoaching · SHAP\nconcurrency=2"]
         SMW["Sentiment Worker\nRAG · pgvector\nconcurrency=2"]
     end
 
     subgraph TOOLS["Tool Registry — via Intent Gate"]
-        TR["context · ML/XAI · LLM\nweather · maps · LTA\nXGBoost · SHAP · AIF360\nClaude/GPT-4o via LangChain"]
+        TR["context · emergency · ML/XAI · LLM\nweather · maps · LTA · SCDF dispatch\nXGBoost · SHAP · AIF360\nClaude/GPT-4o via LangChain"]
     end
 
     REDIS_CACHE[("Redis Cache\nTripContext · agent outputs")]
@@ -796,6 +791,7 @@ flowchart LR
     BEAT["Celery Beat\nwatchdog · monitoring"]
     FLOWER["Flower UI\nhttp://5555"]
     LS["LangSmith\nobservability · traces"]
+    FM["Fleet Manager\nHITL override"]
 
     DEV -->|zadd| RAW
     APP -->|zadd| RAW
@@ -813,8 +809,8 @@ flowchart LR
     SW & SCW & DW & SMW -->|tool calls via Intent Gate| TOOLS
     TOOLS -->|read/write| REDIS_CACHE
     TOOLS -->|INSERT| PG
+    TOOLS -.->|CRITICAL: SCDF + LTA dispatch| FM
     SW & SCW & DW & SMW -->|CompletionEvent| ORC
-    SW -.->|CRITICAL only| EMRG
 
     BEAT -->|watchdog every 2min| PG
     BEAT -->|queue depths every 1min| CELERY
@@ -824,7 +820,6 @@ flowchart LR
     style DLQ fill:#fdd,stroke:#f00
     style PROC fill:#dfd,stroke:#0a0
     style BEAT fill:#ddf,stroke:#00f
-    style EMRG fill:#fdd,stroke:#a00
     style LS fill:#faeeda,stroke:#854F0B
 ```
 
@@ -839,11 +834,11 @@ flowchart LR
 | Retry policy | Configured | Working from Sprint 2 |
 | worker_prefetch_multiplier=1 | Configured | Working from Sprint 2 |
 | SecurityViolation no-retry | Stub class | Phase 6 |
-| DB Sidecar lock in dispatch | Logged only | Phase 8 |
+| DB Manager lock in dispatch | Logged only | Phase 8 |
 | Celery Beat watchdog | Configured | Phase 8 |
 | Flower monitoring | Running locally | Sprint 2 |
 | task_reject_on_worker_lost | Configured | Working from Sprint 2 |
 | LangSmith tracing on workers | Not wired | Sprint 3 |
-| Emergency Dispatch sidecar | Stub — logs only | Sprint 2 |
+| Emergency Dispatch tool | Stub — logs only | Sprint 2 |
 | Intent Gate on tool calls | Stub — logs only | Phase 6 |
 | Tool Registry wired | Manual calls | Sprint 3 |
