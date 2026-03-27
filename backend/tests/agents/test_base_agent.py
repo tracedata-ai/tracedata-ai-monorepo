@@ -18,27 +18,21 @@ from agents.base.agent import TDAgentBase
 class EchoAgent(TDAgentBase):
     """Minimal agent that echoes the event back as its result."""
 
-    async def process_event(
-        self, event_data: dict[str, Any]
-    ) -> dict[str, Any] | None:
+    async def process_event(self, event_data: dict[str, Any]) -> dict[str, Any] | None:
         return {"echoed": True, "trip_id": event_data.get("trip_id")}
 
 
 class NullAgent(TDAgentBase):
     """Agent that returns None — should NOT push to the output queue."""
 
-    async def process_event(
-        self, event_data: dict[str, Any]
-    ) -> dict[str, Any] | None:
+    async def process_event(self, event_data: dict[str, Any]) -> dict[str, Any] | None:
         return None
 
 
 class ErrorAgent(TDAgentBase):
     """Agent whose process_event raises an exception — run() should survive."""
 
-    async def process_event(
-        self, event_data: dict[str, Any]
-    ) -> dict[str, Any] | None:
+    async def process_event(self, event_data: dict[str, Any]) -> dict[str, Any] | None:
         raise RuntimeError("Simulated processing error")
 
 
