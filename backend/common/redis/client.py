@@ -1,4 +1,5 @@
 import json
+
 import redis.asyncio as redis
 
 from common.config.settings import get_settings
@@ -11,6 +12,50 @@ class RedisClient:
 
     def __init__(self):
         self._client = redis.from_url(settings.redis_url, decode_responses=True)
+
+    # ── Compatibility Queue Methods (for existing agent runtime) ────────────
+
+    async def push(self, queue_name: str, payload: str):
+        """
+        Backward-compatible enqueue API used by agent runtime.
+
+        Uses ZSet (same as current pipeline) and derives a score from payload
+        priority when present; otherwise uses a neutral default score.
+        """
+        score = 5
+        try:
+            data = json.loads(payload)
+            if isinstance(data, dict):
+                priority = data.get("priority")
+                if isinstance(data.get("event"), dict):
+                    priority = data["event"].get("priority", priority)
+
+                priority_map = {
+                    "critical": 0,
+                    "high": 3,
+                    "medium": 6,
+                    "low": 9,
+                }
+                if isinstance(priority, str):
+                    score = priority_map.get(priority.lower(), score)
+        except Exception:
+            # Keep default score for non-JSON payloads.
+            pass
+
+        await self._client.zadd(queue_name, mapping={payload: score})
+
+    async def pop(self, queue_name: str, timeout: int = 0) -> str | None:
+        """
+        Backward-compatible dequeue API used by agent runtime.
+
+        Pops from ZSet using BZPOPMIN to preserve priority ordering.
+        Returns member payload string or None on timeout.
+        """
+        result = await self._client.bzpopmin(queue_name, timeout=timeout)
+        if not result:
+            return None
+        # redis-py returns (key, member, score)
+        return result[1]
 
     # ── Pipeline Queues (ZSets) ──────────────────────────────────────────────
 
@@ -92,4 +137,4 @@ class RedisClient:
 
     async def close(self):
         """Close the Redis connection."""
-        await self._client.close()
+        await self._client.aclose()

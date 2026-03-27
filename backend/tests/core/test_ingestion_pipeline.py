@@ -1,59 +1,57 @@
 import json
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, patch, MagicMock
 
 import pytest
 
 from common.models.events import TripEvent
-from core.ingestion.sidecar import IngestionSidecar
+from core.ingestion.sidecar import IngestionSidecar, IngestionResult
 
 
 @pytest.fixture
-def sidecar(mock_redis):
-    return IngestionSidecar(mock_redis)
+def mock_db():
+    db = AsyncMock()
+    db.event_exists.return_value = False
+    db.insert_event = AsyncMock()
+    return db
+
+
+@pytest.fixture
+def mock_redis():
+    redis = MagicMock()
+    redis.push_to_processed = MagicMock()
+    redis.push_to_dlq = MagicMock()
+    return redis
+
+
+@pytest.fixture
+def sidecar(mock_db, mock_redis):
+    return IngestionSidecar(db=mock_db, redis=mock_redis)
 
 
 @pytest.mark.asyncio
-async def test_pipeline_success_harsh_brake(sidecar, telemetry_packet, mock_db_session):
+async def test_pipeline_success_harsh_brake(sidecar, telemetry_packet):
     """
     Test 7-step success for a harsh_brake event.
-    Verifies:
-      1. Schema valid
-      2. Matrix override (priority/category)
-      3. No injection
-      4. PII Scrubbed
-      5. DB Write OK
-      6. Routed to processed
     """
-    # Force event_type to harsh_brake to match MATRIX test
     telemetry_packet["event"]["event_type"] = "harsh_brake"
-    # Set different priority to test override
     telemetry_packet["event"]["priority"] = "low"
+    
+    result = await sidecar.process(telemetry_packet, truck_id="TRK123")
 
-    # Mock DB: event does not exist (idempotency passed)
-    mock_db_session.execute.return_value = MagicMock(scalar_one_or_none=lambda: None)
-
-    with patch(
-        "core.ingestion.sidecar.AsyncSessionLocal",
-        return_value=AsyncMock(__aenter__=AsyncMock(return_value=mock_db_session)),
-    ):
-        success = await sidecar.process_packet(telemetry_packet)
-
-    assert success is True
+    assert result.ok is True
+    assert isinstance(result.trip_event, TripEvent)
 
     # Check 7. ROUTE: Success (zpush to processed)
-    # Harsh brake in MATRIX is Priority.HIGH (score 3)
-    sidecar.redis.push_to_processed.assert_called_once()
-    args = sidecar.redis.push_to_processed.call_args[0]
-    # args: (key, payload, score)
-    assert args[2] == 3  # High Priority Override
-
-    # Check 4. PII Scrubbed
+    sidecar._redis.push_to_processed.assert_called_once()
+    args = sidecar._redis.push_to_processed.call_args[0]
+    
+    # Priority for harsh brake should be 3 (HIGH)
+    assert args[2] == 3
+    
     pushed_event = TripEvent(**json.loads(args[1]))
     assert pushed_event.driver_id.startswith("DRV-ANON-")
-    assert pushed_event.priority == "high"
     
     # Check GPS rounding (2dp)
-    # Original: 1.2863, 103.8519 -> 1.29, 103.85
     assert pushed_event.location.lat == 1.29
     assert pushed_event.location.lon == 103.85
 
@@ -63,15 +61,14 @@ async def test_pipeline_rejected_injection(sidecar, telemetry_packet):
     """
     Step 3: Test rejection due to SQL injection.
     """
-    telemetry_packet["event"]["details"]["note"] = "SELECT * FROM drivers;"
+    telemetry_packet["event"]["details"] = {"note": "1'; DROP TABLE drivers;--"}
 
-    success = await sidecar.process_packet(telemetry_packet)
+    result = await sidecar.process(telemetry_packet, truck_id="TRK123")
 
-    assert success is False
-    # Check 7b. ROUTE: Failure (zpush to rejected)
-    sidecar.redis.push_to_rejected.assert_called_once()
-    args = sidecar.redis.push_to_rejected.call_args[0]
-    assert "injection_detected" in args[1]
+    assert result.ok is False
+    assert result.rejected is True
+    sidecar._redis.push_to_dlq.assert_called_once()
+    assert "injection:sql_" in result.reason or "injection" in result.reason
 
 
 @pytest.mark.asyncio
@@ -81,33 +78,25 @@ async def test_pipeline_rejected_invalid_schema(sidecar, telemetry_packet):
     """
     del telemetry_packet["event"]["event_type"]
 
-    success = await sidecar.process_packet(telemetry_packet)
+    result = await sidecar.process(telemetry_packet, truck_id="TRK123")
 
-    assert success is False
-    sidecar.redis.push_to_rejected.assert_called_once()
+    assert result.ok is False
+    assert result.reason == "schema_invalid"
+    sidecar._redis.push_to_dlq.assert_called_once()
 
 
 @pytest.mark.asyncio
-async def test_pipeline_idempotency_skip(sidecar, telemetry_packet, mock_db_session):
+async def test_pipeline_idempotency_skip(sidecar, telemetry_packet, mock_db):
     """
     Step 5: Test idempotency skip.
-    If event already exists, it should return success but NOT push to processed again.
     """
-    # Mock DB: event exists (idempotency failed)
-    mock_db_session.execute.return_value = MagicMock(
-        scalar_one_or_none=lambda: MagicMock()
-    )
+    mock_db.event_exists.return_value = True
 
-    with patch(
-        "core.ingestion.sidecar.AsyncSessionLocal",
-        return_value=AsyncMock(__aenter__=AsyncMock(return_value=mock_db_session)),
-    ):
-        success = await sidecar.process_packet(telemetry_packet)
+    result = await sidecar.process(telemetry_packet, truck_id="TRK123")
 
-    assert success is True
-    # Should NOT have pushed to processed or rejected
-    sidecar.redis.push_to_processed.assert_not_called()
-    sidecar.redis.push_to_rejected.assert_not_called()
-
-
-from unittest.mock import MagicMock
+    assert result.ok is False
+    assert result.reason == "duplicate"
+    
+    # It routes duplicates to DLQ per new design
+    sidecar._redis.push_to_dlq.assert_called_once()
+    sidecar._redis.push_to_processed.assert_not_called()

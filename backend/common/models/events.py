@@ -29,7 +29,7 @@ class TripEvent(BaseModel):
     driver_id: str
     event_type: str
     category: str
-    priority: Priority
+    priority: Priority | int
     timestamp: datetime
     offset_seconds: int
     trip_meter_km: float | None = None
@@ -37,6 +37,14 @@ class TripEvent(BaseModel):
     location: Location | None = None
     schema_version: str = "event_v1"
     details: dict[str, Any] = Field(default_factory=dict)
+    
+    # Processed metadata added after ingestion
+    evidence: Evidence | None = None
+    source: Source | None = None
+    ping_type: PingType | None = None
+    is_emergency: bool | None = None
+    ingested_at: datetime | None = None
+
 
 
 class TelemetryPacket(BaseModel):
