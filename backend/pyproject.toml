@@ -34,7 +34,9 @@ dev = [
     "pytest-asyncio>=0.24.0",
     "pytest-cov>=6.0.0",          # Coverage plugin used by CI --cov flag
     "httpx>=0.28.0",              # Async test client for FastAPI
-    "ruff>=0.8.0",                # Linter + formatter
+    "black>=24.0.0",              # Formatter
+    "ruff>=0.8.0",               # Linter (industry standard)
+    "bandit>=1.7.0",             # Security SAST
     "mypy>=1.13.0",               # Static type checker
     "types-PyYAML>=6.0.0",        # Stubs for PyYAML (needed by logging.py)
 ]
@@ -46,12 +48,35 @@ build-backend = "hatchling.build"
 
 # Tell hatchling which package to include in the wheel
 [tool.hatch.build.targets.wheel]
-packages = ["app", "agents", "core"]
+packages = ["api", "agents", "core"]
 
 # ─── Tool Config ─────────────────────────────────────────────────────────────
+[tool.black]
+line-length = 88
+target-version = ["py311"]
+
 [tool.ruff]
-line-length = 100
+line-length = 88
 target-version = "py311"
+# Enable auto-fix by default
+fix = true
+
+[tool.ruff.lint]
+# E501: ignore line length (Black handles it)
+# S101: allow assert in tests (project preference)
+# B008: allow function calls in argument defaults (common in FastAPI)
+ignore = ["E501", "S101", "B008"]
+select = [
+    "E",   # Pycodestyle errors
+    "F",   # Pyflakes
+    "I",   # Import sorting (handled by Ruff's isort)
+    "B",   # Bugbear
+    "UP",  # pyupgrade
+    "SIM", # simplify
+]
+
+[tool.ruff.lint.isort]
+combine-as-imports = true
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

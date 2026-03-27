@@ -13,14 +13,13 @@ from decimal import Decimal
 
 from sqlalchemy import delete
 
+from api.models.base import Base
+from api.models.driver import Driver
+from api.models.fleet import Vehicle
+from api.models.route import Route
+from api.models.tenant import Tenant
+from api.models.trip import Trip
 from core.database import AsyncSessionLocal, engine
-from app.models.base import Base
-from app.models.tenant import Tenant
-from app.models.driver import Driver
-from app.models.fleet import Vehicle
-from app.models.route import Route
-from app.models.trip import Trip
-
 from core.logging import LogToken, get_logger, setup_logging
 
 # Module-level logger — uses the script's path (scripts.seed) as the logger name
@@ -242,7 +241,9 @@ async def seed_data():
 
             # Assign vehicles to drivers (optional)
             for row in SEED_DATA["driver_vehicle_assignments"]:
-                drivers_by_key[row["driver"]].vehicle_id = vehicles_by_key[row["vehicle"]].id
+                drivers_by_key[row["driver"]].vehicle_id = vehicles_by_key[
+                    row["vehicle"]
+                ].id
 
             # ── 5. Create Routes ─────────────────────────────────────────────
             logger.info(f"{LogToken.SEED} Creating Routes...")
@@ -279,7 +280,7 @@ async def seed_data():
 
             # ── 7. Create Issues ─────────────────────────────────────────────
             logger.info(f"{LogToken.SEED} Creating Issues...")
-            from app.models.issue import Issue
+            from api.models.issue import Issue
 
             for row in SEED_DATA["issues"]:
                 issue = Issue(
