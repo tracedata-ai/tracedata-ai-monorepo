@@ -6,6 +6,8 @@ on:
       - main
       - "feature/**"
       - "hotfix/**"
+      - "integration/**"
+      - "experiment/**"
     paths:
       - "frontend/**"
       - ".github/workflows/ci-frontend.yaml"
