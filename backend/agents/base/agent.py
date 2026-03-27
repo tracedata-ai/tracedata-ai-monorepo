@@ -12,11 +12,12 @@ settings = get_settings()
 
 def _extract_event_meta(event_data: dict[str, Any]) -> dict[str, Any]:
     """Normalizes event fields for consistent trace logging."""
-    event_obj = (
-        event_data.get("event")
-        if isinstance(event_data.get("event"), dict)
-        else event_data
-    )
+    maybe_event_obj = event_data.get("event")
+    if isinstance(maybe_event_obj, dict):
+        event_obj: dict[str, Any] = maybe_event_obj
+    else:
+        event_obj = event_data if isinstance(event_data, dict) else {}
+
     return {
         "event_id": event_obj.get("event_id", "unknown"),
         "device_event_id": event_obj.get("device_event_id", "unknown"),

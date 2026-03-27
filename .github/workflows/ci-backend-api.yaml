@@ -43,12 +43,24 @@ env:
   WORKING_DIR: backend
 
 # ─────────────────────────────────────────────────────────────────────────────
+# JOB DEPENDENCY GRAPH
+#
+#  lint ──────────────────────┐
+#  type-check ────────────────┤
+#  unit-test ─────────────────┤──► build ──► docker (Build → Trivy Scan)
+#  security-sca ──────────────┘                  └──► summary
+#
+#  Note: Backend-specific SAST (Bandit) is included in lint.
+# ─────────────────────────────────────────────────────────────────────────────
+
+# ─────────────────────────────────────────────────────────────────────────────
 # JOB 1: Lint & Type Check
 # Fails fast — no point running tests if the code doesn't parse.
 # ─────────────────────────────────────────────────────────────────────────────
 jobs:
+  # ── 1. LINT ───────────────────────────────────────────────────────────────
   lint:
-    name: 🧹 Lint & Type Check
+    name: 🧹 Lint
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -67,7 +79,7 @@ jobs:
       - name: Set up Python ${{ env.PYTHON_VERSION }}
         run: uv python install ${{ env.PYTHON_VERSION }}
 
-      - name: Install dependencies (with dev extras for ruff + mypy)
+      - name: Install dependencies (with dev extras)
         run: uv sync --frozen --extra dev
 
       - name: 🔐 Check lockfile sync
@@ -82,7 +94,32 @@ jobs:
       - name: 🔐 Bandit — security scan (SAST)
         run: uv run bandit -r api/ -ll
 
-      - name: 🔬 Mypy — static type check
+  # ── 2. TYPE CHECK ─────────────────────────────────────────────────────────
+  type-check:
+    name: 🔬 Type Check
+    runs-on: ubuntu-latest
+    needs: lint
+    defaults:
+      run:
+        working-directory: ${{ env.WORKING_DIR }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "backend/uv.lock"
+
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        run: uv python install ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies (with dev extras)
+        run: uv sync --frozen --extra dev
+
+      - name: Mypy static type check
         run: uv run mypy api --ignore-missing-imports --no-error-summary
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -90,10 +127,11 @@ jobs:
 # Spins up a real postgres:16 container so SQLAlchemy can run
 # create_all() and verify the ORM models are wired correctly.
 # ─────────────────────────────────────────────────────────────────────────────
-  test:
+  # ── 3. UNIT TESTS ─────────────────────────────────────────────────────────
+  unit-test:
     name: 🧪 Unit Tests & Coverage
     runs-on: ubuntu-latest
-    needs: lint
+    needs: type-check
     defaults:
       run:
         working-directory: ${{ env.WORKING_DIR }}
@@ -155,11 +193,7 @@ jobs:
           path: backend/coverage.xml
           retention-days: 7
 
-# ─────────────────────────────────────────────────────────────────────────────
-# JOB 3: Software Composition Analysis (SCA)
-# pip-audit checks all installed packages against known CVE databases.
-# continue-on-error: true — advisory; won't block merge until baseline set.
-# ─────────────────────────────────────────────────────────────────────────────
+  # ── 4. SCA — pip-audit ────────────────────────────────────────────────────
   security-sca:
     name: 🔐 SCA — pip-audit
     runs-on: ubuntu-latest
@@ -180,15 +214,40 @@ jobs:
         # uvx pulls pip-audit from PyPI without polluting the project venv
         run: uvx pip-audit --requirement <(uv export --format requirements-txt --no-dev --no-emit-project)
 
-# ─────────────────────────────────────────────────────────────────────────────
-# JOB 4: Docker Build Check
-# Verifies Dockerfile.api builds successfully without pushing.
-# Catches missing COPY targets, broken layers, etc.
-# ─────────────────────────────────────────────────────────────────────────────
-  docker-build:
-    name: 🐳 Docker Build Check
+  # ── 5. BUILD ──────────────────────────────────────────────────────────────
+  build:
+    name: 🏗️ Build Backend API
     runs-on: ubuntu-latest
-    needs: lint
+    needs: [lint, type-check, unit-test, security-sca]
+    defaults:
+      run:
+        working-directory: ${{ env.WORKING_DIR }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "backend/uv.lock"
+
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        run: uv python install ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies (with dev extras)
+        run: uv sync --frozen --extra dev
+
+      - name: Compile backend API modules
+        run: uv run python -m compileall api common core
+
+  # ── 6. DOCKER (Build → Trivy Scan) ───────────────────────────────────────
+  docker:
+    name: 🐳 Docker
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
 
     steps:
       - name: Checkout code
@@ -197,24 +256,31 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build backend image (no push)
+      - name: 🐳 Build backend API image
         uses: docker/build-push-action@v6
         with:
           context: ./backend
           file: ./backend/Dockerfile.api
-          push: false
-          tags: tracedata-backend:ci
+          load: true
+          tags: tracedata-backend-api:scan
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-# ─────────────────────────────────────────────────────────────────────────────
-# JOB 5: CI Summary (always runs, even on failure)
-# Writes a Markdown table to the GitHub Actions Job Summary tab.
-# ─────────────────────────────────────────────────────────────────────────────
+      - name: 🛡️ Trivy - Scan for CRITICAL & HIGH CVEs
+        uses: aquasecurity/trivy-action@master
+        env:
+          TRIVY_DISABLE_VEX_NOTICE: "true"
+        with:
+          image-ref: tracedata-backend-api:scan
+          format: "table"
+          exit-code: "1"
+          severity: "CRITICAL,HIGH"
+
+  # ── 7. SUMMARY ────────────────────────────────────────────────────────────
   summary:
     name: 📊 CI Summary
     runs-on: ubuntu-latest
-    needs: [lint, test, security-sca, docker-build]
+    needs: [lint, type-check, unit-test, security-sca, build, docker]
     if: always()
 
     steps:
@@ -224,10 +290,12 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
           echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
-          echo "| 🧹 Lint (Black + Ruff) | ${{ needs.lint.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| 🧪 Unit Tests         | ${{ needs.test.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| 🔐 SCA (pip-audit)    | ${{ needs.security-sca.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| 🐳 Docker Build       | ${{ needs.docker-build.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🧹 Lint | ${{ needs.lint.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🔬 Type Check | ${{ needs.type-check.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🧪 Unit Tests | ${{ needs.unit-test.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🔐 SCA (pip-audit) | ${{ needs.security-sca.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🏗️ Build | ${{ needs.build.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🐳 Docker (Build → Trivy Scan) | ${{ needs.docker.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Component:** Backend API (FastAPI + Python 3.11)" >> $GITHUB_STEP_SUMMARY
           echo "**Branch:** \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
