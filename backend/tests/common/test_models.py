@@ -25,6 +25,8 @@ class TestTripEvent:
             "truck_id": "TRUCK-101",
             "driver_id": "DRIVER-77",
             "event_type": "harsh_brake",
+            "category": "harsh_events",
+            "priority": "high",
             "timestamp": datetime.now(UTC),
             "offset_seconds": 120,
             "trip_meter_km": 5.4,
@@ -48,10 +50,12 @@ class TestTripEvent:
         assert event.details == {}
 
     def test_optional_fields_are_none_by_default(self):
-        """category, priority, and location are optional (None)."""
-        event = TripEvent(**self._valid_payload())
-        assert event.category is None
-        assert event.priority is None
+        """location is optional (None)."""
+        payload = self._valid_payload()
+        # category and priority are required, so test with them
+        event = TripEvent(**payload)
+        assert event.category == "harsh_events"
+        assert event.priority == "high"
         assert event.location is None
 
     def test_missing_trip_id_raises_validation_error(self):
@@ -69,11 +73,11 @@ class TestTripEvent:
             TripEvent(**payload)
 
     def test_location_map_stored_correctly(self):
-        """Location dict is stored as-is."""
+        """Location dict is parsed into Location model."""
         payload = self._valid_payload()
         payload["location"] = {"lat": 1.2863, "lon": 103.8519}
         event = TripEvent(**payload)
-        assert event.location["lat"] == 1.2863
+        assert event.location.lat == 1.2863
 
 
 # ── TelemetryPacket ────────────────────────────────────────────────────────────
@@ -89,6 +93,8 @@ class TestTelemetryPacket:
             "truck_id": "TRUCK-101",
             "driver_id": "DRIVER-77",
             "event_type": "harsh_brake",
+            "category": "harsh_events",
+            "priority": "high",
             "timestamp": datetime.now(UTC),
             "offset_seconds": 120,
             "trip_meter_km": 5.4,
@@ -108,8 +114,8 @@ class TestTelemetryPacket:
     def test_is_emergency_defaults_to_false(self):
         """is_emergency defaults to False."""
         packet = TelemetryPacket(
-            ping_type="normal",
-            source="device",
+            ping_type="high_speed",
+            source="telematics_device",
             event=self._valid_event(),
         )
         assert packet.is_emergency is False
@@ -123,7 +129,7 @@ class TestTelemetryPacket:
         """is_emergency is correctly set to True."""
         packet = TelemetryPacket(
             ping_type="emergency",
-            source="device",
+            source="telematics_device",
             is_emergency=True,
             event=self._valid_event(),
         )
@@ -135,35 +141,52 @@ class TestTelemetryPacket:
 
 class TestTripContext:
 
+    def _valid_trip_event(self) -> TripEvent:
+        """Create a valid TripEvent for TripContext tests."""
+        return TripEvent(
+            event_id=str(uuid.uuid4()),
+            device_event_id="DEV-001",
+            trip_id="TRIP-001",
+            truck_id="TRUCK-101",
+            driver_id="DRIVER-77",
+            event_type="harsh_brake",
+            category="harsh_events",
+            priority=3,
+            timestamp=datetime.now(UTC),
+            offset_seconds=120,
+            trip_meter_km=5.4,
+            odometer_km=124565.4,
+        )
+
     def test_valid_context_parses(self):
         """A complete TripContext parses correctly."""
         ctx = TripContext(
             trip_id="TRIP-001",
             truck_id="TRUCK-101",
             driver_id="DRIVER-77",
-            status="active",
-            start_time=datetime.now(UTC),
+            priority=3,
+            event=self._valid_trip_event(),
         )
         assert ctx.trip_id == "TRIP-001"
 
     def test_distance_km_defaults_to_zero(self):
-        """distance_km defaults to 0.0 when not provided."""
+        """historical_avg_score defaults to None when not provided."""
         ctx = TripContext(
             trip_id="TRIP-001",
             truck_id="TRUCK-101",
             driver_id="DRIVER-77",
-            status="active",
-            start_time=datetime.now(UTC),
+            priority=3,
+            event=self._valid_trip_event(),
         )
-        assert ctx.distance_km == 0.0
+        assert ctx.historical_avg_score is None
 
     def test_end_time_is_optional(self):
-        """end_time is None by default (trip still in progress)."""
+        """peer_group_avg is optional (None by default)."""
         ctx = TripContext(
             trip_id="TRIP-001",
             truck_id="TRUCK-101",
             driver_id="DRIVER-77",
-            status="active",
-            start_time=datetime.now(UTC),
+            priority=3,
+            event=self._valid_trip_event(),
         )
-        assert ctx.end_time is None
+        assert ctx.peer_group_avg is None

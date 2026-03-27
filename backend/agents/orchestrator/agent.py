@@ -77,6 +77,7 @@ class OrchestratorAgent(TDAgentBase):
             driver_id=event.driver_id,  # Already scrubbed by Ingestion Tool
             truck_id=event.truck_id,
             priority=PRIORITY_MAP.get(event.priority, 9),
+            start_time=event.timestamp,
             historical_avg_score=historical_avg,
             peer_group_avg=peer_group_avg,
             event=event,

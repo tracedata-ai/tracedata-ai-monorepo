@@ -11,12 +11,17 @@ settings = get_settings()
 
 
 def _extract_event_meta(event_data: dict[str, Any]) -> dict[str, Any]:
-    """Normalizes event fields for consistent trace logging."""
-    maybe_event_obj = event_data.get("event")
-    if isinstance(maybe_event_obj, dict):
-        event_obj: dict[str, Any] = maybe_event_obj
+    """Normalizes event fields for consistent trace logging.
+
+    Handles both wrapped shape (TelemetryPacket with nested 'event' field)
+    and flat shape (direct TripEvent dict).
+    """
+    # Flat TripEvent — top-level trip_id key indicates unwrapped shape
+    if "trip_id" in event_data and "event" not in event_data:
+        event_obj: dict[str, Any] = event_data
     else:
-        event_obj = event_data if isinstance(event_data, dict) else {}
+        # Wrapped TelemetryPacket or fallback
+        event_obj = event_data.get("event", event_data) or {}
 
     return {
         "event_id": event_obj.get("event_id", "unknown"),

@@ -48,14 +48,14 @@ class RedisClient:
         """
         Backward-compatible dequeue API used by agent runtime.
 
-        Pops from ZSet using BZPOPMIN to preserve priority ordering.
-        Returns member payload string or None on timeout.
+        Pops from ZSet using ZPOPMIN (non-blocking) to preserve priority ordering.
+        Returns member payload string or None if queue is empty.
         """
-        result = await self._client.bzpopmin(queue_name, timeout=timeout)
+        result = await self._client.zpopmin(queue_name, count=1)
         if not result:
             return None
-        # redis-py returns (key, member, score)
-        return result[1]
+        # redis-py ZPOPMIN returns [(member, score), ...]
+        return result[0][0]
 
     # ── Pipeline Queues (ZSets) ──────────────────────────────────────────────
 

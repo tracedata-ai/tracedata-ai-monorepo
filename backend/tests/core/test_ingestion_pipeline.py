@@ -18,8 +18,8 @@ def mock_db():
 @pytest.fixture
 def mock_redis():
     redis = MagicMock()
-    redis.push_to_processed = MagicMock()
-    redis.push_to_dlq = MagicMock()
+    redis.push_to_processed = AsyncMock()
+    redis.push_to_dlq = AsyncMock()
     return redis
 
 
