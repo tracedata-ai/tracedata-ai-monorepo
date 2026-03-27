@@ -16,28 +16,102 @@
 
 services:
 
-  # ── Backend (FastAPI + Agents) ───────────────────────────────────────────────
-  backend:
+  # ── Container 1: API (FastAPI) ────────────────────────────────────────────────
+  api:
     build:
       context: ./backend
-      dockerfile: Dockerfile.api
-    container_name: tracedata-backend
+      dockerfile: Dockerfile
+    container_name: td-api
+    command: uvicorn api.main:app --host 0.0.0.0 --port 8000
     ports:
       - "8000:8000"
     environment:
       - DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/tracedata
       - REDIS_URL=redis://redis:6379/0
-      - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
-      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
-      - RESET_DB=${RESET_DB:-false}
-      - DEBUG=true
-      - APP_ENV=development
     depends_on:
       db:
         condition: service_healthy
       redis:
         condition: service_started
     restart: on-failure
+
+  # ── Container 2: Ingestion ──────────────────────────────────────────────────
+  ingestion:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: td-ingestion
+    command: python -m core.ingestion.worker
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - redis
+    restart: always
+
+  # ── Container 3: Orchestrator ───────────────────────────────────────────────
+  orchestrator:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: td-orchestrator
+    command: python -m agents.worker orchestrator
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - redis
+    restart: always
+
+  # ── Container 4: Safety Worker ──────────────────────────────────────────────
+  safety_worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: td-safety
+    command: python -m agents.worker safety
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - redis
+    restart: always
+
+  # ── Container 5: Scoring Worker ─────────────────────────────────────────────
+  scoring_worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: td-scoring
+    command: python -m agents.worker scoring
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - redis
+    restart: always
+
+  # ── Container 6: Support Worker ─────────────────────────────────────────────
+  support_worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: td-support
+    command: python -m agents.worker support
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - redis
+    restart: always
+
+  # ── Container 7: Sentiment Worker ───────────────────────────────────────────
+  sentiment_worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: td-sentiment
+    command: python -m agents.worker sentiment
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - redis
+    restart: always
 
   # ── Frontend (Next.js) ───────────────────────────────────────────────────────
   frontend:

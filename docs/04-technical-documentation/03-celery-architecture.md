@@ -1,849 +1,151 @@
-# TraceData — Celery Task Queue Architecture
-## Priority Queues, Agent Workers, Task Lifecycle, and Two-Phase Commit Integration
+# 30,000 ft — The Logistics Dispatcher
+Celery is the "Logistics Dispatcher" of the TraceData backend, responsible for distributing specialized work to the right agent containers.
 
-SWE5008 Capstone | Phase 3 Architecture Record | March 2026
+Imagine a major truck terminal in Singapore. The **Orchestrator** is the terminal manager. When a truck returns with a data packet, the manager doesn't do the inspection or the paperwork himself. Instead, he writes a "Job Slip" (a Celery Task) and puts it in the appropriate pigeonhole (a Queue). The specialized teams—Safety Inspectors (Safety Agent), Accountants (Scoring Agent), and Support Staff (Support Agent)—pick up their slips and do the work independently. This allows the manager to keep handling new arrivals without getting bogged down in one single task.
 
-**Related Documents:**
-- Redis Architecture — broker configuration and key schema
-- Orchestrator Agent — dispatch logic and DB Sidecar integration
-- FL-SCO-01 — End-of-Trip Scoring Flow (Steps 4–7)
+### Diagram: The Dispatcher Analogy
+```mermaid
+graph TD
+    subgraph Terminal ["TraceData Backend"]
+        O["Manager (Orchestrator)"]
+        Q["Pigeonholes (Queues)"]
+        W1["Safety Team"]
+        W2["Scoring Team"]
+    end
+    
+    O -->|Dispatches Job Slip| Q
+    Q --> W1
+    Q --> W2
+```
+
+| Mistake | Why people make it | What to do instead |
+|---|---|---|
+| One Giant Queue | It's easier to set up a single "default" queue. | Use one queue per agent so a slow Scoring task doesn't block a critical Safety alert. |
+| Forgetting Retries | Assuming the LLM or DB will always be "up". | Always implement retries with exponential backoff for transient network/API failures. |
+| Ignoring Timeouts | Some agents (like Scoring) can be very slow. | Set explicit `soft_time_limit` and `time_limit` per task type. |
+
+**Learning Checkpoint:** If you can explain why the "Manager" (Orchestrator) should never do the "Inspector's" (Agent) work directly, you are ready to descend.
 
 ---
 
-## 1. What Celery Does In TraceData
+# 20,000 ft — The Worker Ecosystem
+Celery connects our 7-container backend by providing an asynchronous, event-driven execution environment.
 
-Celery is the task queue that decouples the Orchestrator from agent execution. All agents are implemented as **LangGraph** graphs — Celery workers host these LangGraph instances and run them asynchronously.
+In the TraceData stack, Celery sits between the **Orchestrator API** and the **Analytical Workers**. It uses Redis as a "Broker" to hold tasks while workers are busy. This relates directly to our scalability goals: if we suddenly have 1,000 trucks active, we can simply spin up more "Scoring Worker" containers to handle the load without changing a single line of code.
 
-```
-Without Celery:
-  Orchestrator calls Safety Agent directly
-  Orchestrator blocks waiting for Safety Agent to finish
-  If Safety Agent takes 30 seconds → Orchestrator is frozen
-  Cannot process other events during that time
-
-With Celery:
-  Orchestrator enqueues task → returns immediately
-  Safety Agent LangGraph worker picks up task independently
-  Orchestrator continues processing other events
-  Agent publishes CompletionEvent when done
-  Orchestrator reacts via Pub/Sub
-```
-
-Redis serves dual purpose here — it is both the Celery **broker** (task queue) and the **result backend** (agent outputs stored in Redis cache).
-
-**Observability — LangSmith** is wired across all agent workers. Every LangGraph node execution, every LLM call, and every tool invocation is traced automatically. This gives full visibility into agent decision paths without additional instrumentation.
-
-```
-LangSmith captures per agent task:
-  → node-by-node execution trace
-  → LLM prompt + response (with token counts)
-  → tool call inputs and outputs
-  → latency per step
-  → error traces on failure
+### Diagram: Component Hierarchy
+```mermaid
+graph LR
+    subgraph Control ["Control Plane"]
+        O["Orchestrator"]
+    end
+    
+    subgraph Transport ["Broker"]
+        R[("Redis Broker")]
+    end
+    
+    subgraph Data ["Data Plane (7 Containers)"]
+        W1["Safety Worker"]
+        W2["Scoring Worker"]
+        W3["Support Worker"]
+    end
+    
+    O -->|Apply Async| R
+    R --> W1 & W2 & W3
 ```
 
 ---
 
-## 2. Queue Design — One Queue Per Agent
+# 10,000 ft — The Intent-Driven Task
+The core insight is that every Celery task is an **Intent**.
 
-Each agent has its own dedicated Celery queue. This gives independent priority control, independent scaling, and clear observability per agent type.
+When the Orchestrator dispatches a task, it doesn't just send raw data. it sends an `IntentCapsule`. This capsule is a cryptographically signed instruction that tells the worker:
+1.  **What** to do (e.g., "Score this trip").
+2.  **Why** it's authorized (the Scoped Token).
+3.  **Where** to find the context (the Trip ID).
 
+**Key Insight**: Because the task is an *intent*, if a worker crashes, we can safely re-queue that same intent. The worker will pick it up, read the `TripContext` from Redis again, and resume work without missing a beat.
+
+---
+
+# 5,000 ft — Mechanism & Queues
+TraceData uses hardware-tailored concurrency and queue separation.
+
+1.  **Safety Queue**: Optimized for **Latency**. `concurrency=2` (high-priority, fast response).
+2.  **Scoring Queue**: Optimized for **Throughput**. `concurrency=1` (CPU-bound XGBoost models prefer single-process execution to avoid cache thrashing).
+3.  **Support Queue**: Optimized for **I/O**. `concurrency=2` (waiting on LLM API responses).
+4.  **Acks Late**: We set `task_acks_late=True`. This means the task is only removed from the queue *after* it succeeds. If a container vanishes mid-task, the job "bubbles back up" and is picked up by another worker.
+
+---
+
+# 2,000 ft — Reliability & The Lease
+Details that handle the "unhappy paths" of distributed systems.
+
+-   **Wait and Retry**: We use `max_retries=3` with a 5s delay for Safety agents. If the LLM is rate-limiting us, we wait and try again automatically.
+-   **Lease-Based Locking**: Before the Orchestrator sends a task to Celery, it marks the event as `processing` in Postgres with a `locked_at` timestamp.
+-   **The Watchdog**: A periodic Celery Beat task (the "Watchdog") scans for events stuck in `processing` for too long. If it finds one, it assumes the worker died and resets it to `received` so it can be dispatched again.
+
+### Diagram: Failure Recovery State
+```mermaid
+stateDiagram-v2
+    [*] --> Received: Event Arrives
+    Received --> Processing: Lease Acquired
+    Processing --> Processed: Task Success (ACK)
+    Processing --> Failed: Max Retries Exhausted
+    Processing --> Received: Watchdog TTL Reset
+    Failed --> Locked: Human Review Needed
 ```
-Queue               Worker              Priority    Processing SLA
-────────────────    ──────────────────  ────────    ──────────────
-safety_queue        safety_worker       CRITICAL→LOW   5s / 30s
-scoring_queue       scoring_worker      LOW            1 hour
-driver_support_queue driver_support_w   MEDIUM         10 minutes
-sentiment_queue     sentiment_worker    MEDIUM/LOW     10 minutes
-```
 
-### Why Not One Shared Queue?
+---
 
-```
-Shared queue problem:
-  100 smoothness_log scoring tasks queued (LOW)
-  One collision safety task arrives
-  Collision task waits behind 100 LOW tasks
-  → fleet manager not alerted for 100 × processing time
-
-Per-queue solution:
-  safety_queue has collision task → processed in 5 seconds
-  scoring_queue has 100 smoothness tasks → takes 1 hour
-  Completely independent — no interference
-```
-
-### Priority Within Each Queue
-
-Within each queue, Celery uses Redis ZSet scores for ordering. The Orchestrator sets the priority when dispatching:
+# 1,000 ft — The Code Contract
+The `celery_app.py` defines the network layout for all 7 containers.
 
 ```python
-# CRITICAL collision → safety_queue, priority 0
-score_trip.apply_async(
-    queue    = "safety_queue",
-    priority = 0,    # CRITICAL — processed first within queue
-)
-
-# LOW end_of_trip → scoring_queue, priority 9
-score_trip.apply_async(
-    queue    = "scoring_queue",
-    priority = 9,    # LOW — processed last within queue
-)
-```
-
----
-
-## 3. Celery Configuration
-
-```python
-# celery_app.py
-
-from celery import Celery
-import os
-
-REDIS_URL = (
-    f"redis://{os.getenv('REDIS_HOST', 'localhost')}:"
-    f"{os.getenv('REDIS_PORT', '6379')}/0"
-)
-
+# common/config/celery_app.py
 app = Celery("tracedata", broker=REDIS_URL, backend=REDIS_URL)
 
-app.conf.update(
-
-    # ── Queue configuration ────────────────────────────────────
-    task_queues = {
-        "safety_queue":        {"exchange": "safety_queue",        "routing_key": "safety"},
-        "scoring_queue":       {"exchange": "scoring_queue",       "routing_key": "scoring"},
-        "driver_support_queue":{"exchange": "driver_support_queue","routing_key": "driver_support"},
-        "sentiment_queue":     {"exchange": "sentiment_queue",     "routing_key": "sentiment"},
-    },
-
-    # ── Task routing — each task type goes to its dedicated queue ──
-    task_routes = {
-        "tracedata.safety.analyse_event":    {"queue": "safety_queue"},
-        "tracedata.scoring.score_trip":      {"queue": "scoring_queue"},
-        "tracedata.support.generate_coaching":{"queue": "driver_support_queue"},
-        "tracedata.sentiment.analyse_text":  {"queue": "sentiment_queue"},
-    },
-
-    # ── Serialisation ──────────────────────────────────────────
-    task_serializer   = "json",
-    result_serializer = "json",
-    accept_content    = ["json"],
-
-    # ── Reliability ────────────────────────────────────────────
-    task_acks_late          = True,     # ACK only after task completes
-    task_reject_on_worker_lost = True,  # re-queue if worker dies mid-task
-    worker_prefetch_multiplier  = 1,    # one task at a time per worker
-                                        # prevents priority starvation
-
-    # ── Timeouts ───────────────────────────────────────────────
-    task_soft_time_limit = 3600,    # 1 hour soft limit (SIGTERM)
-    task_time_limit      = 3660,    # 1 hour hard limit (SIGKILL)
-
-    # ── Result backend ─────────────────────────────────────────
-    result_expires = 3600,          # results expire after 1 hour
-    task_ignore_result = False,     # store results for retry logic
-
-    # ── Monitoring ─────────────────────────────────────────────
-    worker_send_task_events = True,  # enables Flower monitoring
-    task_send_sent_event    = True,
-)
-```
-
-### Why `task_acks_late = True`
-
-```
-Default (acks_early):
-  Worker receives task → immediately ACKs → removes from queue
-  Worker crashes mid-execution → task is LOST
-  No retry possible
-
-acks_late:
-  Worker receives task → does NOT ACK yet
-  Worker finishes task → ACKs → removed from queue
-  Worker crashes mid-execution → task stays in queue
-  Another worker picks it up and retries
-
-Critical for TraceData:
-  A Safety Agent processing a collision cannot be lost mid-execution
-  acks_late ensures crash recovery at the Celery layer
-```
-
-### Why `worker_prefetch_multiplier = 1`
-
-```
-Default prefetch = 4:
-  Worker grabs 4 tasks at once
-  CRITICAL task arrives → must wait for worker to finish
-  current 4 LOW tasks before touching CRITICAL task
-
-Prefetch = 1:
-  Worker grabs exactly 1 task at a time
-  Finishes → grabs next → CRITICAL gets picked up immediately
-  Correct priority ordering is preserved
-```
-
----
-
-## 4. Task Definitions
-
-### 4.1 Safety Agent Task
-
-```python
-# tasks/safety.py
-
-from celery_app import app
-from models import IntentCapsule, SafetyResult
-import logging
-
-logger = logging.getLogger(__name__)
-
-
-@app.task(
-    name    = "tracedata.safety.analyse_event",
-    bind    = True,
-    max_retries    = 3,
-    default_retry_delay = 5,    # 5 seconds between retries
-)
-def analyse_event(self, intent_capsule: dict) -> dict:
-    """
-    Safety Agent task.
-    Validates IntentCapsule, analyses the event, returns SafetyResult.
-
-    Retry policy:
-      - Max 3 retries on transient failures (Redis timeout, LLM error)
-      - No retry on security violations (capsule invalid, HMAC mismatch)
-      - No retry on validation failures (bad output from LLM)
-    """
-    from agents.safety_agent import SafetyAgent
-
-    try:
-        capsule = IntentCapsule(**intent_capsule)
-        agent   = SafetyAgent()
-        result  = agent.execute(capsule)
-        return result.model_dump()
-
-    except SecurityViolation as e:
-        # Do not retry security violations
-        logger.error({
-            "action":  "security_violation",
-            "task_id": self.request.id,
-            "error":   str(e),
-        })
-        raise  # marks task as FAILURE, no retry
-
-    except (RedisError, LLMError) as e:
-        # Transient failures — retry with backoff
-        logger.warning({
-            "action":      "transient_failure_retry",
-            "task_id":     self.request.id,
-            "retry_count": self.request.retries,
-            "error":       str(e),
-        })
-        raise self.retry(exc=e)
-```
-
-### 4.2 Scoring Agent Task
-
-```python
-# tasks/scoring.py
-
-@app.task(
-    name    = "tracedata.scoring.score_trip",
-    bind    = True,
-    max_retries    = 2,
-    default_retry_delay = 30,   # 30 seconds — scoring is slow
-)
-def score_trip(self, intent_capsule: dict) -> dict:
-    """
-    Scoring Agent task.
-    Validates capsule, computes trip score, runs SHAP, checks fairness.
-    """
-    from agents.scoring_agent import ScoringAgent
-
-    try:
-        capsule = IntentCapsule(**intent_capsule)
-        agent   = ScoringAgent()
-        result  = agent.execute(capsule)
-        return result.model_dump()
-
-    except SecurityViolation as e:
-        logger.error({"action": "security_violation", "task_id": self.request.id})
-        raise
-
-    except (RedisError, XGBoostError, LLMError) as e:
-        raise self.retry(exc=e)
-```
-
-### 4.3 Driver Support Agent Task
-
-```python
-# tasks/driver_support.py
-
-@app.task(
-    name    = "tracedata.support.generate_coaching",
-    bind    = True,
-    max_retries    = 2,
-    default_retry_delay = 60,
-)
-def generate_coaching(self, intent_capsule: dict) -> dict:
-    from agents.driver_support_agent import DriverSupportAgent
-
-    try:
-        capsule = IntentCapsule(**intent_capsule)
-        agent   = DriverSupportAgent()
-        result  = agent.execute(capsule)
-        return result.model_dump()
-
-    except SecurityViolation as e:
-        logger.error({"action": "security_violation", "task_id": self.request.id})
-        raise
-
-    except (RedisError, LLMError) as e:
-        raise self.retry(exc=e)
-```
-
----
-
-## 5. Task Lifecycle — Happy Path
-
-```mermaid
-sequenceDiagram
-    participant ORC  as Orchestrator
-    participant CEL  as Celery Broker\n(Redis)
-    participant WRK  as Scoring Worker
-    participant RDS  as Redis Cache
-    participant PG   as Postgres
-    participant DBSID as DB Sidecar
-
-    ORC->>DBSID: acquire_lock(device_event_id)
-    DBSID->>PG: UPDATE events SET status=processing, locked_by=orchestrator
-    DBSID-->>ORC: lock acquired ✓
-
-    ORC->>CEL: score_trip.apply_async(IntentCapsule, priority=9)
-    note over CEL: task queued in scoring_queue\nZSet score=9 (LOW)
-
-    CEL->>WRK: worker prefetches 1 task
-    note over WRK: acks_late = True\ntask NOT yet ACKed
-
-    WRK->>WRK: validate IntentCapsule\nverify HMAC\ncheck ScopedToken\ncheck step_index
-
-    WRK->>RDS: GET trip context + smoothness_logs
-    WRK->>WRK: compute score\nrun SHAP\ncheck fairness
-
-    WRK->>RDS: SET scoring_output TTL:10min
-    WRK->>PG: INSERT trip_scores + fairness_audit_log
-    WRK->>RDS: PUBLISH + LPUSH trip events CompletionEvent
-
-    WRK->>CEL: ACK task (acks_late — only now removed from queue)
-    note over CEL: task removed from queue\nworker ready for next task
-
-    CEL-->>ORC: CompletionEvent received via Pub/Sub
-    ORC->>DBSID: release_lock(device_event_id)
-    DBSID->>PG: UPDATE events SET status=processed, locked_by=NULL
-```
-
----
-
-## 6. Task Lifecycle — Failure Paths
-
-### 6.1 Transient Failure (Redis timeout, LLM error)
-
-```mermaid
-flowchart TD
-    T["Task picked up by worker"]
-    EX["Exception raised\nRedisError or LLMError"]
-    R{"retry_count\n< max_retries?"}
-    RETRY["self.retry(exc=e)\nBackoff delay\ntask re-queued"]
-    FAIL["Task marked FAILURE\nno more retries"]
-    DBSID["DB Sidecar\nfail_event(device_event_id)\nstatus=failed\nretry_count += 1"]
-    HITL["HITL escalation\nfleet manager notified"]
-    ABANDON{"retry_count\n>= MAX_RETRIES?"}
-    AB["status = abandoned\npermanent failure"]
-
-    T --> EX --> R
-    R -->|Yes| RETRY
-    R -->|No| FAIL --> DBSID --> ABANDON
-    ABANDON -->|Yes| AB --> HITL
-    ABANDON -->|No| HITL
-```
-
-### 6.2 Worker Crash Mid-Execution
-
-```
-Worker picks up task (acks_late — not yet ACKed)
-Worker process crashes (OOM, SIGKILL, container restart)
-
-Celery layer:
-  task_reject_on_worker_lost = True
-  → task REJECTED back to the queue
-  → NOT lost — returns to scoring_queue
-  → another worker picks it up
-
-DB Sidecar watchdog (runs every 2 minutes):
-  → finds rows WHERE status = 'processing'    ← ONLY 'processing'
-                AND locked_at < now() - LOCK_TTL
-  → resets: status='received', locked_by=NULL, locked_at=NULL
-  → event re-pushed to processed queue for reprocessing
-
-  WATCHDOG NEVER TOUCHES status = 'locked':
-    'processing' = agent crashed or is still running
-                   watchdog can safely reset after TTL
-    'locked'     = fleet manager is actively reviewing (HITL)
-                   human review takes unpredictable time
-                   resetting it would abort an active review session
-                   only a fleet manager UI action can exit 'locked'
-
-Two-layer crash recovery:
-  Celery layer: task back in queue automatically
-  DB layer:     event row reset by watchdog
-  Both must agree: prevents duplicate processing
-
-Lock TTL must be >= 2x maximum agent runtime:
-  Safety Agent:  30s max  → minimum TTL: 2 minutes
-  DSP Agent:     10m max  → minimum TTL: 20 minutes
-  Scoring Agent: 1hr max  → minimum TTL: 2 hours
-  TraceData default TTL: 10 minutes
-  Scoring Agent uses extended TTL set via IntentCapsule.ttl
-```
-
-**Why lease-based locking is better than strict 2PC for TraceData:**
-
-```
-Strict 2PC:
-  Phase 1 coordinator asks ALL participants to prepare
-  ALL must respond before proceeding
-  DB lock held for the ENTIRE duration of agent execution
-  Scoring Agent takes 1 hour → DB locked for 1 hour
-  Any crash = coordinator stuck = manual intervention
-
-Lease-based locking (what TraceData uses):
-  Lock acquisition = one SQL UPDATE (milliseconds)
-  Agent runs asynchronously — DB is completely free
-  Lock expires automatically via TTL — self-healing
-  HITL uses a separate status = 'locked' that never expires
-  No distributed coordinator required
-
-The tradeoff:
-  2PC gives stronger consistency guarantees
-  Lease gives better resilience and HITL compatibility
-  At TraceData's scale (300 trucks) lease is correct choice
-  2PC overhead only makes sense at high-concurrency DB systems
-```
-
-### 6.3 Security Violation
-
-```
-Worker picks up task
-IntentCapsule validation fails (HMAC mismatch, expired token)
-
-Worker:
-  → captures ForensicSnapshot to Postgres task_execution_logs
-  → publishes to critical-security-alerts Pub/Sub channel
-  → raises SecurityViolation (NOT retried)
-  → task marked FAILURE
-
-Orchestrator:
-  → receives security alert
-  → calls DB Sidecar: update_trip_status(trip_id, 'locked')
-  → locks mission — no further agent dispatch
-  → HITL escalation: fleet manager must manually override
-
-Why no retry on security violations:
-  A HMAC mismatch means the capsule was tampered with
-  Retrying would execute the same compromised task again
-  Fail-fast is the only safe response
-```
-
----
-
-## 7. Retry Policy Per Agent
-
-| Agent | Max Retries | Delay | Retry On | Never Retry |
-|---|---|---|---|---|
-| Safety Agent | 3 | 5s | Redis timeout, LLM error | SecurityViolation, ValidationError |
-| Scoring Agent | 2 | 30s | Redis timeout, XGBoost error, LLM error | SecurityViolation, null score |
-| Driver Support | 2 | 60s | Redis timeout, LLM error | SecurityViolation, Pydantic failure |
-| Sentiment | 2 | 30s | Redis timeout, LLM error | SecurityViolation |
-
-**Why Safety Agent gets more retries:**
-```
-Safety Agent handles CRITICAL events (collision, SOS).
-A failed Safety Agent means emergency response may not trigger.
-3 retries with 5s delay = 15 seconds of recovery window.
-After 3 failures → HITL — human takes over.
-```
-
----
-
-## 8. Lease-Based Locking — Not Strict 2PC
-
-TraceData uses **optimistic locking with TTL** (also called a lease) — not strict Two-Phase Commit. The pattern is named "Prepare / Commit" to describe the intent, but the mechanism is a timestamp-based lease. This distinction matters.
-
-### Why Lease, Not Strict 2PC
-
-```
-Strict 2PC for TraceData would mean:
-  Orchestrator acquires DB lock
-  Waits for ALL participants (Celery + agent + Redis) to confirm
-  DB lock held for entire agent execution duration
-  Scoring Agent takes 1 hour → DB locked for 1 hour
-  Any participant crash = coordinator stuck forever = manual fix
-
-Lease (what TraceData actually uses):
-  Lock acquisition = one SQL UPDATE (milliseconds)
-  Orchestrator walks away — DB immediately free
-  Agent runs fully asynchronously
-  Lock expires via TTL — self-healing on crash
-  HITL uses status='locked' which never expires automatically
-  No distributed coordinator, no blocking protocol
-```
-
-### The Locking Protocol
-
-```
-PREPARE (Orchestrator before dispatch)
-  DB Sidecar:
-    UPDATE events
-    SET    status    = 'processing',
-           locked_by = 'orchestrator',
-           locked_at = now()            ← timestamp, not expiry
-    WHERE  device_event_id = ?
-    AND    status    = 'received'
-    AND    locked_by IS NULL
-
-  Order matters — lock BEFORE Celery dispatch:
-    Lock succeeds, dispatch fails → release lock, event retried ✅
-    Dispatch succeeds, lock fails → task runs with no record ❌
-
-COMMIT (on CompletionEvent received)
-  DB Sidecar:
-    status = 'processed', locked_by = NULL,
-    locked_at = NULL, processed_at = now()
-
-ROLLBACK (on agent failure after max retries)
-  DB Sidecar:
-    status = 'failed', locked_by = NULL,
-    locked_at = NULL, retry_count += 1
-  If retry_count >= MAX → status = 'abandoned' → HITL
-
-CRASH RECOVERY (watchdog)
-  Watchdog finds: status = 'processing'    ← ONLY this status
-                  locked_at < now() - TTL
-  Resets: status = 'received', locked_by = NULL, locked_at = NULL
-  NEVER resets: status = 'locked'
-                (fleet manager is actively reviewing — do not interrupt)
-```
-
-```mermaid
-flowchart TD
-    LOCK["DB Sidecar\nacquire lease\nstatus=processing\nlocked_at=now()"]
-    DISPATCH["Orchestrator\napply_async\nCelery task queued"]
-    PICK["Worker\npicks up task"]
-    EXEC["Agent\nexecutes"]
-
-    SUCCESS["Task SUCCESS\nCompletionEvent published"]
-    COMMIT["DB Sidecar\nrelease lease\nstatus=processed"]
-
-    RETRY["Celery retry\ntask re-queued"]
-    EXHAUSTED["Max retries\nexhausted"]
-    ROLLBACK["DB Sidecar\nfail_event\nstatus=failed"]
-    ABANDON["status=abandoned\nHITL escalation"]
-    LOCKED["trips.status=locked\n⚠ watchdog immune\nhuman reviewing"]
-
-    CRASH["Worker crash\nmid-execution"]
-    CELERY_RECOVER["Celery\ntask_reject_on_worker_lost\ntask back in queue"]
-    WATCHDOG["Watchdog\nstatus=processing only\nresets after TTL\nNEVER touches locked"]
-
-    LOCK --> DISPATCH --> PICK --> EXEC
-
-    EXEC -->|success| SUCCESS --> COMMIT
-    EXEC -->|transient error| RETRY --> PICK
-    RETRY -->|retries exhausted| EXHAUSTED --> ROLLBACK
-    ROLLBACK --> ABANDON --> LOCKED
-    EXEC -->|worker crash| CRASH
-    CRASH --> CELERY_RECOVER --> PICK
-    CRASH --> WATCHDOG
-
-    style COMMIT fill:#dfd,stroke:#0a0
-    style ABANDON fill:#fdd,stroke:#f00
-    style CRASH fill:#ffd,stroke:#aa0
-    style LOCKED fill:#faeeda,stroke:#854F0B
-    style WATCHDOG fill:#e6f1fb,stroke:#185FA5
-```
-
----
-
-## 9. Celery Beat — Scheduled Tasks
-
-Celery Beat runs the watchdog and any other periodic jobs:
-
-```python
-# celery_app.py — beat schedule
-
-from celery.schedules import crontab
-
-app.conf.beat_schedule = {
-
-    # DB Sidecar watchdog — finds and recovers stuck events
-    "watchdog-stuck-events": {
-        "task":     "tracedata.db.watchdog_stuck_events",
-        "schedule": 120.0,    # every 2 minutes
-        "options":  {"queue": "default_queue"},
-    },
-
-    # Queue depth monitoring — logs depths for alerting
-    "monitor-queue-depths": {
-        "task":     "tracedata.monitoring.log_queue_depths",
-        "schedule": 60.0,     # every 1 minute
-        "options":  {"queue": "default_queue"},
-    },
+app.conf.task_queues = {
+    "safety_queue": {"routing_key": "safety"},
+    "scoring_queue": {"routing_key": "scoring"},
 }
+
+# The Base Agent Task Wrapper
+@app.task(bind=True, acks_late=True, max_retries=3)
+def agent_task_wrapper(self, capsule: dict):
+    # Inside each agent's container
+    agent = self.get_agent_instance()
+    return agent.handle(capsule)
 ```
 
 ---
 
-## 10. Docker Compose — Worker Configuration
+# Ground — A Driver Dispute in Transit
+**Scenario**: A driver disputes a "Harsh Cornering" event in the app.
 
-Each agent runs as its own container with a dedicated Celery worker:
-
-```yaml
-# docker-compose.yml additions
-
-  orchestrator:
-    build: .
-    container_name: tracedata_orchestrator
-    command: python -m tracedata.orchestrator
-    environment:
-      - REDIS_HOST=redis
-      - POSTGRES_HOST=postgres
-    depends_on:
-      redis:
-        condition: service_healthy
-      postgres:
-        condition: service_healthy
-
-  ingestion_worker:
-    build: .
-    container_name: tracedata_ingestion
-    command: python run_ingestion.py
-    environment:
-      - REDIS_HOST=redis
-      - POSTGRES_HOST=postgres
-    depends_on:
-      - redis
-      - postgres
-
-  safety_worker:
-    build: .
-    container_name: tracedata_safety_worker
-    command: >
-      celery -A celery_app worker
-      --queues safety_queue
-      --concurrency 2
-      --loglevel info
-      --hostname safety@%h
-    environment:
-      - REDIS_HOST=redis
-      - POSTGRES_HOST=postgres
-    depends_on:
-      - redis
-
-  scoring_worker:
-    build: .
-    container_name: tracedata_scoring_worker
-    command: >
-      celery -A celery_app worker
-      --queues scoring_queue
-      --concurrency 1
-      --loglevel info
-      --hostname scoring@%h
-    environment:
-      - REDIS_HOST=redis
-      - POSTGRES_HOST=postgres
-    depends_on:
-      - redis
-
-  driver_support_worker:
-    build: .
-    container_name: tracedata_dsp_worker
-    command: >
-      celery -A celery_app worker
-      --queues driver_support_queue
-      --concurrency 2
-      --loglevel info
-      --hostname dsp@%h
-    environment:
-      - REDIS_HOST=redis
-      - POSTGRES_HOST=postgres
-    depends_on:
-      - redis
-
-  celery_beat:
-    build: .
-    container_name: tracedata_beat
-    command: celery -A celery_app beat --loglevel info
-    environment:
-      - REDIS_HOST=redis
-      - POSTGRES_HOST=postgres
-    depends_on:
-      - redis
-
-  flower:
-    image: mher/flower:2.0
-    container_name: tracedata_flower
-    command: celery flower --broker=redis://redis:6379/0
-    ports:
-      - "5555:5555"
-    depends_on:
-      - redis
-```
-
-### Why Different Concurrency Per Worker
-
-```
-safety_worker  --concurrency 2
-  Two simultaneous safety analyses.
-  CRITICAL events need fast processing.
-  Two workers = two collisions handled in parallel.
-
-scoring_worker --concurrency 1
-  XGBoost inference is CPU-bound.
-  Running two models simultaneously on same container
-  would cause CPU contention and slow both down.
-  One at a time is faster overall.
-
-dsp_worker     --concurrency 2
-  LLM calls are I/O bound (waiting for API response).
-  Two workers = two coaching generations in parallel.
-  No CPU contention — both waiting on network.
-```
+1.  **Submit (0s)**: Driver hits "Dispute" on their phone.
+2.  **Orchestrate (2ms)**:
+    - API receives request.
+    - Orchestrator prepares `IntentCapsule` for the `Support Agent`.
+    - `POSTGRES`: Event `EV-102` marked as `processing`.
+3.  **Dispatch (5ms)**:
+    - Orchestrator calls `support_agent.apply_async(capsule, queue="support_queue")`.
+    - Task sits in `support_queue` inside Redis.
+4.  **Pickup (10ms)**:
+    - The `support_worker` container picks up the task.
+    - It validates the HMAC signature on the capsule.
+5.  **Reasoning (1.5s)**:
+    - Agent calls LLM to analyze the cornering G-force vs. the road curvature (fetched from Google Maps).
+    - Result: "Dispute valid; road is a sharp 90-degree turn, 0.8g is expected."
+6.  **Resolve (1.7s)**:
+    - Agent writes result to `td:trip:T1:support_output`.
+    - `PUBLISH`es signal to Orchestrator.
+    - Task is `ACK`ed and removed from Celery.
 
 ---
 
-## 11. Monitoring — Flower Dashboard
-
-Flower is the Celery monitoring UI. Available at `http://localhost:5555`.
-
-```
-What Flower shows:
-  Active tasks per queue — how many currently running
-  Queue depths — how many tasks waiting
-  Worker status — which workers are alive
-  Task history — recent successes and failures
-  Retry counts — which tasks are struggling
-  Processing time — average duration per task type
-
-Key metrics to watch:
-  safety_queue depth > 0 for > 30s  → alert (SLA breach)
-  scoring_worker failures > 3        → alert (model problem)
-  watchdog not running               → alert (beat scheduler down)
-```
-
----
-
-## 12. Full Queue Flow Diagram
-
-```mermaid
-flowchart LR
-    subgraph SOURCES["Data Sources"]
-        DEV["Device"]
-        APP["Driver App"]
-    end
-
-    subgraph STAGE1["Stage 1 — Raw Buffer"]
-        RAW[("telemetry:T12345:buffer\nZSet\nTelemetryPacket")]
-    end
-
-    subgraph IT["Ingestion Tool Worker"]
-        PIPE["7-step pipeline"]
-    end
-
-    subgraph STAGE2["Stage 2 — Processed Queue"]
-        PROC[("telemetry:T12345:processed\nZSet\nTripEvent")]
-        DLQ[("telemetry:T12345:rejected\nZSet TTL 48h\nfailed events")]
-    end
-
-    subgraph ORC_POD["pod — Orchestrator (LangGraph)"]
-        ORC["Core Loop\nrouting + dispatch"]
-        DBSID["DB Sidecar\n2PC · locks"]
-    end
-
-    subgraph CELERY["Celery Queues (Redis ZSets)"]
-        SQ[("safety_queue\npriority 0-9")]
-        SCQ[("scoring_queue\npriority 9")]
-        DQ[("driver_support_queue\npriority 6")]
-        SMQ[("sentiment_queue\npriority 6")]
-    end
-
-    subgraph SAFETY_POD["pod — Safety Agent"]
-        SW["Safety Worker\nLangGraph · concurrency=2"]
-        EMRG["Emergency Dispatch\nSCDF · LTA tow\nOneMap SG"]
-    end
-
-    subgraph WORKERS["Other Agent Workers (LangGraph)"]
-        SCW["Scoring Worker\nXGBoost · SHAP · AIF360\nconcurrency=1"]
-        DW["DSP Worker\ncoaching · SHAP\nconcurrency=2"]
-        SMW["Sentiment Worker\nRAG · pgvector\nconcurrency=2"]
-    end
-
-    subgraph TOOLS["Tool Registry — via Intent Gate"]
-        TR["context · ML/XAI · LLM\nweather · maps · LTA\nXGBoost · SHAP · AIF360\nClaude/GPT-4o via LangChain"]
-    end
-
-    REDIS_CACHE[("Redis Cache\nTripContext · agent outputs")]
-    PG[("Postgres + pgvector\nevents · trips · scores\ncoaching · audit · embeds")]
-    BEAT["Celery Beat\nwatchdog · monitoring"]
-    FLOWER["Flower UI\nhttp://5555"]
-    LS["LangSmith\nobservability · traces"]
-
-    DEV -->|zadd| RAW
-    APP -->|zadd| RAW
-    RAW -->|zpopmin| PIPE
-    PIPE -->|success zadd| PROC
-    PIPE -->|rejected zadd| DLQ
-    PROC -->|zpopmin| ORC
-
-    ORC -->|apply_async| SQ & SCQ & DQ & SMQ
-    SQ -->|prefetch 1| SW
-    SCQ -->|prefetch 1| SCW
-    DQ -->|prefetch 1| DW
-    SMQ -->|prefetch 1| SMW
-
-    SW & SCW & DW & SMW -->|tool calls via Intent Gate| TOOLS
-    TOOLS -->|read/write| REDIS_CACHE
-    TOOLS -->|INSERT| PG
-    SW & SCW & DW & SMW -->|CompletionEvent| ORC
-    SW -.->|CRITICAL only| EMRG
-
-    BEAT -->|watchdog every 2min| PG
-    BEAT -->|queue depths every 1min| CELERY
-    FLOWER -->|monitors| CELERY & WORKERS
-    LS -.->|traces| SW & SCW & DW & SMW & ORC
-
-    style DLQ fill:#fdd,stroke:#f00
-    style PROC fill:#dfd,stroke:#0a0
-    style BEAT fill:#ddf,stroke:#00f
-    style EMRG fill:#fdd,stroke:#a00
-    style LS fill:#faeeda,stroke:#854F0B
-```
-
----
-
-## 13. Phase 3 Stubs
-
-| Concern | Phase 3 | Full Implementation |
-|---|---|---|
-| task_acks_late | Configured | Working from Sprint 2 |
-| Per-agent queue routing | Configured | Working from Sprint 2 |
-| Retry policy | Configured | Working from Sprint 2 |
-| worker_prefetch_multiplier=1 | Configured | Working from Sprint 2 |
-| SecurityViolation no-retry | Stub class | Phase 6 |
-| DB Sidecar lock in dispatch | Logged only | Phase 8 |
-| Celery Beat watchdog | Configured | Phase 8 |
-| Flower monitoring | Running locally | Sprint 2 |
-| task_reject_on_worker_lost | Configured | Working from Sprint 2 |
-| LangSmith tracing on workers | Not wired | Sprint 3 |
-| Emergency Dispatch sidecar | Stub — logs only | Sprint 2 |
-| Intent Gate on tool calls | Stub — logs only | Phase 6 |
-| Tool Registry wired | Manual calls | Sprint 3 |
+# What This Connects To
+- **Redis Architecture**: Redis act as the "Job Slip" pigeonhole (Broker).
+- **Safety Agent**: Inherits the reliability patterns (Acks Late, Retries) documented here.
+- **Orchestrator Agent**: Relies on Celery to clear its "inbox" without blocking.
+- **SWE5008 Rubric**: Directly maps to **System Reliability** and **Fault Tolerance** requirements.

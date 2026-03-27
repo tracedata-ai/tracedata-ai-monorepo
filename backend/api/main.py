@@ -27,8 +27,8 @@ import api.models as _models  # noqa: F401
 from api.api.v1.router import api_router
 from api.core.middleware import RequestIdMiddleware
 from api.models.base import Base
-from core.config import get_settings
-from core.database import engine
+from common.config.settings import get_settings
+from common.db.engine import engine
 from core.logging import LogToken, get_logger, setup_logging
 
 # Module-level logger — uses the module path (app.main) as the logger name
