@@ -18,9 +18,9 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_db
-from app.models.fleet import Vehicle
-from app.schemas.fleet import VehicleCreate, VehicleRead
+from api.api.deps import get_db
+from api.models.fleet import Vehicle
+from api.schemas.fleet import VehicleCreate, VehicleRead
 
 router = APIRouter(prefix="/fleet", tags=["Fleet"])
 
@@ -55,12 +55,17 @@ async def get_vehicle(
     """
     vehicle = await db.get(Vehicle, vehicle_id)
     if not vehicle:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Vehicle not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Vehicle not found"
+        )
     return vehicle
 
 
 @router.post(
-    "/", response_model=VehicleRead, status_code=status.HTTP_201_CREATED, summary="Create a vehicle"
+    "/",
+    response_model=VehicleRead,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a vehicle",
 )
 async def create_vehicle(
     payload: VehicleCreate,

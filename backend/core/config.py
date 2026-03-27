@@ -39,7 +39,9 @@ class Settings(BaseSettings):
     )
 
     # ── Database ────────────────────────────────────────────────────────────
-    database_url: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/tracedata"
+    database_url: str = (
+        "postgresql+asyncpg://postgres:postgres@localhost:5432/tracedata"
+    )
 
     # ── Security ────────────────────────────────────────────────────────────
     secret_key: str = "changeme"

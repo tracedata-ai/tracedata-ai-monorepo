@@ -13,7 +13,9 @@ class TripCreate(BaseModel):
     tenant_id: uuid.UUID = Field(..., description="Owning tenant UUID")
     driver_id: uuid.UUID = Field(..., description="Driver performing this trip")
     vehicle_id: uuid.UUID = Field(..., description="Vehicle used for this trip")
-    route_id: uuid.UUID | None = Field(None, description="Pre-defined route, if applicable")
+    route_id: uuid.UUID | None = Field(
+        None, description="Pre-defined route, if applicable"
+    )
     status: str = Field("active", description="active | completed | zombie")
 
     model_config = {

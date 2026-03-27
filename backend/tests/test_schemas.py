@@ -8,9 +8,9 @@ from decimal import Decimal
 
 import pytest
 
-from app.schemas.fleet import VehicleCreate
-from app.schemas.driver import DriverCreate
-from app.schemas.route import RouteCreate
+from api.schemas.driver import DriverCreate
+from api.schemas.fleet import VehicleCreate
+from api.schemas.route import RouteCreate
 
 
 def test_vehicle_create_schema_valid():

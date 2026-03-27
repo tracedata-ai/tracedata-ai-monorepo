@@ -12,9 +12,9 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_db
-from app.models.route import Route
-from app.schemas.route import RouteCreate, RouteRead
+from api.api.deps import get_db
+from api.models.route import Route
+from api.schemas.route import RouteCreate, RouteRead
 
 router = APIRouter(prefix="/routes", tags=["Routes"])
 
@@ -38,12 +38,17 @@ async def get_route(
     """Fetches a single route. Raises 404 if not found."""
     route = await db.get(Route, route_id)
     if not route:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Route not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Route not found"
+        )
     return route
 
 
 @router.post(
-    "/", response_model=RouteRead, status_code=status.HTTP_201_CREATED, summary="Create a route"
+    "/",
+    response_model=RouteRead,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a route",
 )
 async def create_route(
     payload: RouteCreate,

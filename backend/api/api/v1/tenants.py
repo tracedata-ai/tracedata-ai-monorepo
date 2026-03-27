@@ -4,9 +4,9 @@ from fastapi import APIRouter, Depends
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_db
-from app.models.tenant import Tenant
-from app.schemas.tenant import TenantRead
+from api.api.deps import get_db
+from api.models.tenant import Tenant
+from api.schemas.tenant import TenantRead
 
 router = APIRouter(prefix="/tenants", tags=["System"])
 

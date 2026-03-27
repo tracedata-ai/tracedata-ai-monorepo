@@ -9,12 +9,12 @@ has been imported. Without this file, `create_all()` would silently create
 zero tables even though the model files exist.
 """
 
-from app.models.driver import Driver
-from app.models.fleet import Vehicle
-from app.models.issue import Issue
-from app.models.maintenance import Maintenance
-from app.models.route import Route
-from app.models.tenant import Tenant
-from app.models.trip import Trip
+from api.models.driver import Driver
+from api.models.fleet import Vehicle
+from api.models.issue import Issue
+from api.models.maintenance import Maintenance
+from api.models.route import Route
+from api.models.tenant import Tenant
+from api.models.trip import Trip
 
 __all__ = ["Vehicle", "Driver", "Route", "Trip", "Issue", "Maintenance", "Tenant"]

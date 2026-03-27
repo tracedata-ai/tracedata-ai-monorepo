@@ -12,9 +12,9 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_db
-from app.models.trip import Trip
-from app.schemas.trip import TripCreate, TripRead
+from api.api.deps import get_db
+from api.models.trip import Trip
+from api.schemas.trip import TripCreate, TripRead
 
 router = APIRouter(prefix="/trips", tags=["Trips"])
 
@@ -25,7 +25,9 @@ async def list_trips(
     limit: int = 50,
     tenant_id: uuid.UUID | None = None,
     status_filter: str | None = Query(
-        None, alias="status", description="Filter by status: active | completed | zombie"
+        None,
+        alias="status",
+        description="Filter by status: active | completed | zombie",
     ),
     db: AsyncSession = Depends(get_db),
 ) -> list[Trip]:
@@ -57,12 +59,17 @@ async def get_trip(
     """
     trip = await db.get(Trip, trip_id)
     if not trip:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Trip not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Trip not found"
+        )
     return trip
 
 
 @router.post(
-    "/", response_model=TripRead, status_code=status.HTTP_201_CREATED, summary="Start a new trip"
+    "/",
+    response_model=TripRead,
+    status_code=status.HTTP_201_CREATED,
+    summary="Start a new trip",
 )
 async def start_trip(
     payload: TripCreate,

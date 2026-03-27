@@ -11,7 +11,7 @@ from sqlalchemy import ForeignKey, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.models.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
+from api.models.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
 
 
 class Driver(Base, UUIDPrimaryKeyMixin, TimestampMixin):

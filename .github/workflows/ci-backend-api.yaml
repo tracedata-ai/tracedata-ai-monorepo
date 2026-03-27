@@ -10,14 +10,24 @@ on:
       - main
       - "feature/**"
       - "hotfix/**"
+      - "integration/**"
+      - "experiment/**"
     paths:
-      - "backend/**"
+      - "backend/api/**"
+      - "backend/common/**"
+      - "backend/core/**"
+      - "backend/pyproject.toml"
+      - "backend/uv.lock"
       - ".github/workflows/ci-backend-api.yaml"
   pull_request:
     branches:
       - main
     paths:
-      - "backend/**"
+      - "backend/api/**"
+      - "backend/common/**"
+      - "backend/core/**"
+      - "backend/pyproject.toml"
+      - "backend/uv.lock"
       - ".github/workflows/ci-backend-api.yaml"
   workflow_dispatch:
 
@@ -60,16 +70,20 @@ jobs:
       - name: Install dependencies (with dev extras for ruff + mypy)
         run: uv sync --frozen --extra dev
 
-      - name: 🔍 Ruff — lint check
-        # ruff check fails on any lint error; --output-format=github
-        # annotates the PR diff with inline error comments
-        run: uv run ruff check . --output-format=github
+      - name: 🔐 Check lockfile sync
+        run: uv lock --check
 
-      - name: 🔍 Ruff — format check
-        run: uv run ruff format --check .
+      - name: 🔍 Black — format check
+        run: uv run black --check .
+
+      - name: 🔍 Ruff — lint check
+        run: uv run ruff check .
+
+      - name: 🔐 Bandit — security scan (SAST)
+        run: uv run bandit -r api/ -ll
 
       - name: 🔬 Mypy — static type check
-        run: uv run mypy app --ignore-missing-imports --no-error-summary
+        run: uv run mypy api --ignore-missing-imports --no-error-summary
 
 # ─────────────────────────────────────────────────────────────────────────────
 # JOB 2: Unit Tests with PostgreSQL service container
@@ -126,15 +140,12 @@ jobs:
       - name: 🧪 Run pytest with coverage
         run: |
           uv run pytest \
-            --cov=app \
+            --cov=api \
             --cov-report=xml \
             --cov-report=term-missing \
+            --cov-fail-under=1 \
             -v \
             tests/
-        # Don't fail the build yet if there are no tests — allows us to
-        # bootstrap CI before the test suite is written.
-        # Remove this flag once tests exist.
-        continue-on-error: true
 
       - name: 📤 Upload coverage report
         if: always()
@@ -213,12 +224,13 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
           echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
-          echo "| 🧹 Lint & Type Check | ${{ needs.lint.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| 🧪 Unit Tests        | ${{ needs.test.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| 🔐 SCA (pip-audit)   | ${{ needs.security-sca.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| 🐳 Docker Build      | ${{ needs.docker-build.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🧹 Lint (Black + Ruff) | ${{ needs.lint.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🧪 Unit Tests         | ${{ needs.test.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🔐 SCA (pip-audit)    | ${{ needs.security-sca.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🐳 Docker Build       | ${{ needs.docker-build.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Component:** Backend API (FastAPI + Python 3.11)" >> $GITHUB_STEP_SUMMARY
           echo "**Branch:** \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
           echo "**Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
           echo "**Triggered by:** ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
+

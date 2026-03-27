@@ -20,18 +20,16 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.v1.router import api_router
-from core.config import get_settings
-from core.database import engine
-from core.logging import LogToken, get_logger, setup_logging
-from app.core.middleware import RequestIdMiddleware
-
 # Import all models so their metadata is registered with Base.
 # Aliased as _models to prevent `app` name from being bound to the package
 # module — which causes mypy to type `app = FastAPI(...)` as Module.
-import app.models as _models  # noqa: F401
-
-from app.models.base import Base
+import api.models as _models  # noqa: F401
+from api.api.v1.router import api_router
+from api.core.middleware import RequestIdMiddleware
+from api.models.base import Base
+from core.config import get_settings
+from core.database import engine
+from core.logging import LogToken, get_logger, setup_logging
 
 # Module-level logger — uses the module path (app.main) as the logger name
 logger = get_logger(__name__)

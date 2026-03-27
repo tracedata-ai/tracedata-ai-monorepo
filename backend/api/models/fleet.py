@@ -14,14 +14,14 @@ from sqlalchemy import Integer, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.models.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
+from api.models.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
 
 if TYPE_CHECKING:
     # Only imported during type-checking (not at runtime) — prevents circular imports.
     # SQLAlchemy resolves these forward refs at runtime via its own registry.
-    from app.models.driver import Driver
-    from app.models.maintenance import Maintenance
-    from app.models.trip import Trip
+    from api.models.driver import Driver
+    from api.models.maintenance import Maintenance
+    from api.models.trip import Trip
 
 
 class VehicleStatus(str):

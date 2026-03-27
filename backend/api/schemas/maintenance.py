@@ -16,7 +16,9 @@ class MaintenanceCreate(BaseModel):
         max_length=100,
         description="e.g. oil_change | tyre_rotation | brake_inspection | collision_repair",
     )
-    status: str = Field("scheduled", description="scheduled | in_progress | completed | overdue")
+    status: str = Field(
+        "scheduled", description="scheduled | in_progress | completed | overdue"
+    )
     scheduled_date: date | None = Field(None)
     completed_date: date | None = Field(None)
     notes: str | None = Field(None)

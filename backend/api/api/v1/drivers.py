@@ -12,9 +12,9 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_db
-from app.models.driver import Driver
-from app.schemas.driver import DriverCreate, DriverRead
+from api.api.deps import get_db
+from api.models.driver import Driver
+from api.schemas.driver import DriverCreate, DriverRead
 
 router = APIRouter(prefix="/drivers", tags=["Drivers"])
 
@@ -45,12 +45,17 @@ async def get_driver(
     """Fetches a single driver by UUID. Returns 404 if not found."""
     driver = await db.get(Driver, driver_id)
     if not driver:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Driver not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Driver not found"
+        )
     return driver
 
 
 @router.post(
-    "/", response_model=DriverRead, status_code=status.HTTP_201_CREATED, summary="Register a driver"
+    "/",
+    response_model=DriverRead,
+    status_code=status.HTTP_201_CREATED,
+    summary="Register a driver",
 )
 async def create_driver(
     payload: DriverCreate,

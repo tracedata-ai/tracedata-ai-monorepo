@@ -12,14 +12,16 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_db
-from app.models.maintenance import Maintenance
-from app.schemas.maintenance import MaintenanceCreate, MaintenanceRead
+from api.api.deps import get_db
+from api.models.maintenance import Maintenance
+from api.schemas.maintenance import MaintenanceCreate, MaintenanceRead
 
 router = APIRouter(prefix="/maintenance", tags=["Maintenance"])
 
 
-@router.get("/", response_model=list[MaintenanceRead], summary="List maintenance records")
+@router.get(
+    "/", response_model=list[MaintenanceRead], summary="List maintenance records"
+)
 async def list_maintenance(
     skip: int = 0,
     limit: int = 50,
@@ -37,7 +39,11 @@ async def list_maintenance(
     return list(result.scalars().all())
 
 
-@router.get("/{record_id}", response_model=MaintenanceRead, summary="Get maintenance record by ID")
+@router.get(
+    "/{record_id}",
+    response_model=MaintenanceRead,
+    summary="Get maintenance record by ID",
+)
 async def get_maintenance(
     record_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),

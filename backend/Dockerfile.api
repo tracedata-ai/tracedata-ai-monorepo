@@ -39,7 +39,7 @@ COPY --from=builder /app/.venv /app/.venv
 ENV PATH="/app/.venv/bin:$PATH"
 
 # Copy application source
-COPY app/ ./app/
+COPY api/ ./api/
 COPY agents/ ./agents/
 COPY scripts/ ./scripts/
 COPY entrypoint.sh ./

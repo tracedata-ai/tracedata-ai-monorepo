@@ -16,7 +16,7 @@ from sqlalchemy import ForeignKey, Numeric, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.models.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
+from api.models.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
 
 
 class Trip(Base, UUIDPrimaryKeyMixin, TimestampMixin):

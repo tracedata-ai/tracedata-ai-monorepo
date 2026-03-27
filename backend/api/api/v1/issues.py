@@ -12,9 +12,9 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_db
-from app.models.issue import Issue
-from app.schemas.issue import IssueCreate, IssueRead
+from api.api.deps import get_db
+from api.models.issue import Issue
+from api.schemas.issue import IssueCreate, IssueRead
 
 router = APIRouter(prefix="/issues", tags=["Issues"])
 
@@ -48,7 +48,9 @@ async def get_issue(
     """Fetches a single issue by UUID. Returns 404 if not found."""
     issue = await db.get(Issue, issue_id)
     if not issue:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Issue not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Issue not found"
+        )
     return issue
 
 

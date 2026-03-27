@@ -23,7 +23,9 @@ class VehicleCreate(BaseModel):
     make: str = Field(..., max_length=50, description="Manufacturer name")
     model: str = Field(..., max_length=50, description="Model name")
     year: int = Field(..., ge=1990, le=2100, description="Manufacturing year")
-    vin: str | None = Field(None, max_length=17, description="Vehicle Identification Number")
+    vin: str | None = Field(
+        None, max_length=17, description="Vehicle Identification Number"
+    )
     status: str = Field("active", description="active | inactive | in_maintenance")
 
     model_config = {

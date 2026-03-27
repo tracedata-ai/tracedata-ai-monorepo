@@ -9,7 +9,7 @@ to ensure data isolation.
 from sqlalchemy import String
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.models.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
+from api.models.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
 
 
 class Tenant(Base, UUIDPrimaryKeyMixin, TimestampMixin):

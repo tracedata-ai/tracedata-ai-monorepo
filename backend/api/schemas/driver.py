@@ -14,13 +14,17 @@ class DriverCreate(BaseModel):
     last_name: str = Field(..., max_length=100)
     email: str = Field(..., description="Driver's email address")
     phone: str | None = Field(None, max_length=20)
-    license_number: str = Field(..., max_length=50, description="Commercial vehicle license number")
+    license_number: str = Field(
+        ..., max_length=50, description="Commercial vehicle license number"
+    )
     status: str = Field("active", description="active | inactive | suspended")
     experience_level: str = Field(
         "novice",
         description="novice | intermediate | expert — used for AIF360 fairness cohort assignment",
     )
-    vehicle_id: uuid.UUID | None = Field(None, description="Assigned vehicle. NULL if unassigned.")
+    vehicle_id: uuid.UUID | None = Field(
+        None, description="Assigned vehicle. NULL if unassigned."
+    )
 
     model_config = {
         "json_schema_extra": {
