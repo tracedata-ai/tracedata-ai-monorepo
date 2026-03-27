@@ -5,15 +5,13 @@ All fixtures use mocks / fakeredis — no running Docker or Redis required.
 
 import json
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from common.redis.keys import RedisSchema
-
-
 # ── Fake Telemetry Packet ──────────────────────────────────────────────────────
+
 
 @pytest.fixture
 def trip_id() -> str:
@@ -41,7 +39,7 @@ def telemetry_packet(trip_id, event_id) -> dict:
             "event_type": "harsh_brake",
             "category": "harsh_events",
             "priority": "high",
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "offset_seconds": 120,
             "trip_meter_km": 5.4,
             "odometer_km": 124565.4,
@@ -58,6 +56,7 @@ def telemetry_packet_json(telemetry_packet) -> str:
 
 
 # ── Mock Redis Client ──────────────────────────────────────────────────────────
+
 
 @pytest.fixture
 def mock_redis() -> MagicMock:

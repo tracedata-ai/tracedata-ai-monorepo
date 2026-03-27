@@ -1,6 +1,8 @@
-from pydantic import BaseModel, Field
 from datetime import datetime
-from typing import Dict, Any, Optional
+from typing import Any
+
+from pydantic import BaseModel, Field
+
 
 class TripEvent(BaseModel):
     event_id: str = Field(..., description="Globally unique UUID")
@@ -9,20 +11,21 @@ class TripEvent(BaseModel):
     truck_id: str
     driver_id: str
     event_type: str
-    category: Optional[str] = None
-    priority: Optional[str] = None
+    category: str | None = None
+    priority: str | None = None
     timestamp: datetime
     offset_seconds: int
     trip_meter_km: float
     odometer_km: float
-    location: Optional[Dict[str, float]] = None
+    location: dict[str, float] | None = None
     schema_version: str = "event_v1"
-    details: Dict[str, Any] = Field(default_factory=dict)
+    details: dict[str, Any] = Field(default_factory=dict)
+
 
 class TelemetryPacket(BaseModel):
-    batch_id: Optional[str] = None
+    batch_id: str | None = None
     ping_type: str
     source: str
     is_emergency: bool = False
     event: TripEvent
-    evidence: Optional[Dict[str, Any]] = None
+    evidence: dict[str, Any] | None = None

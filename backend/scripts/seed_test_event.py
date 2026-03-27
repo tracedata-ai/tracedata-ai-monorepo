@@ -1,9 +1,10 @@
-import sys
-import os
 import asyncio
 import json
-from datetime import datetime, timezone
+import os
+import sys
 import uuid
+from datetime import UTC, datetime
+
 import redis.asyncio as redis
 
 # Add app root to path for imports
@@ -11,6 +12,7 @@ sys.path.append(os.getcwd())
 
 # Import schema for queue names
 from common.redis.keys import RedisSchema
+
 
 async def seed():
     redis_host = os.getenv("REDIS_HOST", "localhost")
@@ -25,7 +27,7 @@ async def seed():
 
     event_id = str(uuid.uuid4())
     trip_id = "TRIP-TEST-001"
-    
+
     # Payload matching common.models.events.TelemetryPacket
     payload = {
         "ping_type": "high_speed",
@@ -40,23 +42,26 @@ async def seed():
             "event_type": "harsh_brake",
             "category": "harsh_events",
             "priority": "high",
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "offset_seconds": 120,
             "trip_meter_km": 5.4,
             "odometer_km": 124565.4,
             "location": {"lat": 1.2863, "lon": 103.8519},
-            "details": {"g_force": -0.85, "speed_kmh": 85}
-        }
+            "details": {"g_force": -0.85, "speed_kmh": 85},
+        },
     }
-    
+
     # ── Role 1 — Priority Event Buffer (as per Flight Plan) ──
     # We push into the ingestion queue (ZSet) with priority 3 (HIGH)
     await r.zadd(RedisSchema.INGESTION_QUEUE, {json.dumps(payload): 3})
-    
-    print(f"Successfully seeded harsh_brake event (Priority 3) into {RedisSchema.INGESTION_QUEUE}")
+
+    print(
+        f"Successfully seeded harsh_brake event (Priority 3) into {RedisSchema.INGESTION_QUEUE}"
+    )
     print(f"Event ID: {event_id}")
-    
+
     await r.close()
+
 
 if __name__ == "__main__":
     asyncio.run(seed())

@@ -7,15 +7,13 @@ infinite `main()` loop which requires asyncio task cancellation.
 """
 
 import json
-from unittest.mock import AsyncMock, MagicMock, patch
-
-import pytest
+from unittest.mock import AsyncMock, MagicMock
 
 from common.config.settings import get_settings
 
-
 # ── Minimal extraction helper ──────────────────────────────────────────────────
 # We test the behaviour of one iteration of the ingestion loop directly.
+
 
 async def _ingest_one(mock_redis, settings):
     """Run exactly one pop-and-forward cycle of the ingestion logic."""
@@ -26,6 +24,7 @@ async def _ingest_one(mock_redis, settings):
 
 
 # ── Tests ──────────────────────────────────────────────────────────────────────
+
 
 async def test_ingestion_pops_from_ingestion_queue(telemetry_packet_json):
     """Worker calls zpop on the configured ingestion_queue key."""
@@ -48,7 +47,9 @@ async def test_ingestion_pushes_to_orchestrator_queue(telemetry_packet_json):
 
     await _ingest_one(mock_redis, settings)
 
-    mock_redis.push.assert_called_once_with(settings.orchestrator_queue, telemetry_packet_json)
+    mock_redis.push.assert_called_once_with(
+        settings.orchestrator_queue, telemetry_packet_json
+    )
 
 
 async def test_ingestion_skips_push_when_queue_is_empty():

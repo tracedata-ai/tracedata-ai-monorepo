@@ -1,6 +1,7 @@
-from pydantic import BaseModel
 from datetime import datetime
-from typing import Optional
+
+from pydantic import BaseModel
+
 
 class TripContext(BaseModel):
     trip_id: str
@@ -8,5 +9,5 @@ class TripContext(BaseModel):
     driver_id: str
     status: str
     start_time: datetime
-    end_time: Optional[datetime] = None
+    end_time: datetime | None = None
     distance_km: float = 0.0

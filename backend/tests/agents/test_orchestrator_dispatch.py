@@ -6,9 +6,7 @@ and that unknown event types produce no dispatch.
 """
 
 import json
-from unittest.mock import AsyncMock, MagicMock, patch
-
-import pytest
+from unittest.mock import patch
 
 from agents.worker import OrchestratorAgent
 
@@ -26,10 +24,11 @@ def _make_orchestrator(mock_redis):
 
 # ── Dispatch Routing Tests ─────────────────────────────────────────────────────
 
+
 async def test_harsh_brake_dispatches_to_safety_queue(mock_redis, telemetry_packet):
     """A harsh_brake TelemetryPacket is pushed to td:agent:safety."""
     agent = _make_orchestrator(mock_redis)
-    result = await agent.process_event(telemetry_packet)
+    await agent.process_event(telemetry_packet)
 
     # push should have been called once with the safety queue
     mock_redis.push.assert_called_once()
@@ -37,7 +36,9 @@ async def test_harsh_brake_dispatches_to_safety_queue(mock_redis, telemetry_pack
     assert queue_name == "td:agent:safety"
 
 
-async def test_harsh_brake_payload_preserved_in_dispatch(mock_redis, telemetry_packet, event_id):
+async def test_harsh_brake_payload_preserved_in_dispatch(
+    mock_redis, telemetry_packet, event_id
+):
     """The full event payload (not a truncated copy) arrives in the safety queue."""
     agent = _make_orchestrator(mock_redis)
     await agent.process_event(telemetry_packet)

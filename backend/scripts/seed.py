@@ -11,6 +11,7 @@ multi-tenancy, IoT simulation, and agent routing.
 import asyncio
 from decimal import Decimal
 
+from core.database import AsyncSessionLocal, engine
 from sqlalchemy import delete
 
 from api.models.base import Base
@@ -19,7 +20,6 @@ from api.models.fleet import Vehicle
 from api.models.route import Route
 from api.models.tenant import Tenant
 from api.models.trip import Trip
-from core.database import AsyncSessionLocal, engine
 from core.logging import LogToken, get_logger, setup_logging
 
 # Module-level logger — uses the script's path (scripts.seed) as the logger name

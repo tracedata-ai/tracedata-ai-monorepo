@@ -1,5 +1,7 @@
 from functools import lru_cache
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
@@ -23,7 +25,7 @@ class Settings(BaseSettings):
 
     # ── Redis ────────────────────────────────────────────────────────────────
     redis_url: str = "redis://redis:6379/0"
-    
+
     # ── Queues ──────────────────────────────────────────────────────────────
     ingestion_queue: str = "td:ingestion:events"
     orchestrator_queue: str = "td:orchestrator:events"
@@ -31,13 +33,14 @@ class Settings(BaseSettings):
     scoring_queue: str = "td:agent:scoring"
     support_queue: str = "td:agent:support"
     sentiment_queue: str = "td:agent:sentiment"
-    
+
     # ── Security ────────────────────────────────────────────────────────────
     secret_key: str = "changeme"
-    
+
     # ── AI ──────────────────────────────────────────────────────────────────
     google_api_key: str = ""
     openai_api_key: str = ""
+
 
 @lru_cache
 def get_settings() -> Settings:

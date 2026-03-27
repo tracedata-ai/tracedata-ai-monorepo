@@ -7,38 +7,47 @@ subclass uses our mock automatically.
 """
 
 import json
-from typing import Any, Optional
-from unittest.mock import AsyncMock, MagicMock, patch
-
-import pytest
+from typing import Any
+from unittest.mock import AsyncMock, patch
 
 from agents.base.agent import TDAgentBase
 
-
 # ── Concrete subclass for testing ─────────────────────────────────────────────
+
 
 class EchoAgent(TDAgentBase):
     """Minimal agent that echoes the event back as its result."""
-    async def process_event(self, event_data: dict[str, Any]) -> Optional[dict[str, Any]]:
+
+    async def process_event(
+        self, event_data: dict[str, Any]
+    ) -> dict[str, Any] | None:
         return {"echoed": True, "trip_id": event_data.get("trip_id")}
 
 
 class NullAgent(TDAgentBase):
     """Agent that returns None — should NOT push to the output queue."""
-    async def process_event(self, event_data: dict[str, Any]) -> Optional[dict[str, Any]]:
+
+    async def process_event(
+        self, event_data: dict[str, Any]
+    ) -> dict[str, Any] | None:
         return None
 
 
 class ErrorAgent(TDAgentBase):
     """Agent whose process_event raises an exception — run() should survive."""
-    async def process_event(self, event_data: dict[str, Any]) -> Optional[dict[str, Any]]:
+
+    async def process_event(
+        self, event_data: dict[str, Any]
+    ) -> dict[str, Any] | None:
         raise RuntimeError("Simulated processing error")
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
 
-def _make_agent(cls, mock_redis, agent_name="TestAgent",
-                input_q="td:in", output_q="td:out"):
+
+def _make_agent(
+    cls, mock_redis, agent_name="TestAgent", input_q="td:in", output_q="td:out"
+):
     """
     Build an agent with a pre-injected mock redis.
     Patches RedisClient at the module level so __init__ gets the mock.
@@ -70,6 +79,7 @@ async def _run_once(agent, mock_redis, event_json: str):
 
 # ── Tests ──────────────────────────────────────────────────────────────────────
 
+
 async def test_run_processes_single_event(mock_redis, telemetry_packet_json):
     """process_event is called exactly once per received event."""
     agent = _make_agent(EchoAgent, mock_redis)
@@ -95,7 +105,9 @@ async def test_run_result_enriched_with_source_agent(mock_redis, telemetry_packe
     assert published["source_agent"] == "EchoAgent"
 
 
-async def test_run_skips_push_when_process_returns_none(mock_redis, telemetry_packet_json):
+async def test_run_skips_push_when_process_returns_none(
+    mock_redis, telemetry_packet_json
+):
     """If process_event returns None, no push is made."""
     agent = _make_agent(NullAgent, mock_redis)
     await _run_once(agent, mock_redis, telemetry_packet_json)
@@ -107,6 +119,7 @@ async def test_run_handles_invalid_json(mock_redis):
     agent = _make_agent(EchoAgent, mock_redis)
 
     call_count = 0
+
     async def _pop_side_effect(queue, timeout=0):
         nonlocal call_count
         call_count += 1

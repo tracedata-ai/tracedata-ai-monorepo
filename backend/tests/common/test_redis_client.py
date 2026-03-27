@@ -6,12 +6,12 @@ Tests cover List (push/pop) and ZSet (zpush/zpop) operations, including
 priority ordering which is critical for the ingestion pipeline.
 """
 
-import pytest
+from unittest.mock import patch
+
 import fakeredis.aioredis as fakeredis
-from unittest.mock import patch, AsyncMock
+import pytest
 
 from common.redis.client import RedisClient
-from common.redis.keys import RedisSchema
 
 
 @pytest.fixture
@@ -28,6 +28,7 @@ async def fake_redis_client():
 
 
 # ── List (push / pop) ──────────────────────────────────────────────────────────
+
 
 async def test_push_and_pop_returns_same_value(fake_redis_client):
     """push → pop roundtrip returns the original string."""
@@ -58,6 +59,7 @@ async def test_push_order_is_lifo(fake_redis_client):
 
 # ── ZSet (zpush / zpop) ────────────────────────────────────────────────────────
 
+
 async def test_zpush_and_zpop_roundtrip(fake_redis_client):
     """zpush → zpop returns the same member."""
     await fake_redis_client.zpush("td:test:zset", "event-payload", priority=3)
@@ -82,15 +84,18 @@ async def test_zpop_respects_priority_order(fake_redis_client):
     first = await fake_redis_client.zpop("td:priority:queue", timeout=1)
     second = await fake_redis_client.zpop("td:priority:queue", timeout=1)
 
-    assert first == "event-critical"   # Score 1 → pops out first
-    assert second == "event-high"      # Score 3 → pops out second
+    assert first == "event-critical"  # Score 1 → pops out first
+    assert second == "event-high"  # Score 3 → pops out second
 
 
 # ── String (set_with_ttl / get) ────────────────────────────────────────────────
 
+
 async def test_set_with_ttl_and_get(fake_redis_client):
     """set_with_ttl stores a value retrievable by get."""
-    await fake_redis_client.set_with_ttl("td:trip:T1:context", '{"trip_id": "T1"}', ttl=3600)
+    await fake_redis_client.set_with_ttl(
+        "td:trip:T1:context", '{"trip_id": "T1"}', ttl=3600
+    )
     result = await fake_redis_client.get("td:trip:T1:context")
     assert result == '{"trip_id": "T1"}'
 

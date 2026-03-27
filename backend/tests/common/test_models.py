@@ -4,7 +4,7 @@ These are pure unit tests — no I/O, no Redis, no database.
 """
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 from pydantic import ValidationError
@@ -12,8 +12,8 @@ from pydantic import ValidationError
 from common.models.events import TelemetryPacket, TripEvent
 from common.models.trips import TripContext
 
-
 # ── TripEvent ──────────────────────────────────────────────────────────────────
+
 
 class TestTripEvent:
 
@@ -25,7 +25,7 @@ class TestTripEvent:
             "truck_id": "TRUCK-101",
             "driver_id": "DRIVER-77",
             "event_type": "harsh_brake",
-            "timestamp": datetime.now(timezone.utc),
+            "timestamp": datetime.now(UTC),
             "offset_seconds": 120,
             "trip_meter_km": 5.4,
             "odometer_km": 124565.4,
@@ -78,6 +78,7 @@ class TestTripEvent:
 
 # ── TelemetryPacket ────────────────────────────────────────────────────────────
 
+
 class TestTelemetryPacket:
 
     def _valid_event(self) -> dict:
@@ -88,7 +89,7 @@ class TestTelemetryPacket:
             "truck_id": "TRUCK-101",
             "driver_id": "DRIVER-77",
             "event_type": "harsh_brake",
-            "timestamp": datetime.now(timezone.utc),
+            "timestamp": datetime.now(UTC),
             "offset_seconds": 120,
             "trip_meter_km": 5.4,
             "odometer_km": 124565.4,
@@ -131,6 +132,7 @@ class TestTelemetryPacket:
 
 # ── TripContext ────────────────────────────────────────────────────────────────
 
+
 class TestTripContext:
 
     def test_valid_context_parses(self):
@@ -140,7 +142,7 @@ class TestTripContext:
             truck_id="TRUCK-101",
             driver_id="DRIVER-77",
             status="active",
-            start_time=datetime.now(timezone.utc),
+            start_time=datetime.now(UTC),
         )
         assert ctx.trip_id == "TRIP-001"
 
@@ -151,7 +153,7 @@ class TestTripContext:
             truck_id="TRUCK-101",
             driver_id="DRIVER-77",
             status="active",
-            start_time=datetime.now(timezone.utc),
+            start_time=datetime.now(UTC),
         )
         assert ctx.distance_km == 0.0
 
@@ -162,6 +164,6 @@ class TestTripContext:
             truck_id="TRUCK-101",
             driver_id="DRIVER-77",
             status="active",
-            start_time=datetime.now(timezone.utc),
+            start_time=datetime.now(UTC),
         )
         assert ctx.end_time is None
