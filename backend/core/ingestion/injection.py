@@ -14,9 +14,9 @@ Applied at the ingestion boundary before any data reaches agents or LLMs.
 Location: backend/core/ingestion/injection.py
 """
 
-import re
-import os
 import logging
+import os
+import re
 from typing import Any
 
 logger = logging.getLogger(__name__)
@@ -50,7 +50,7 @@ _SYSTEM_EXTRACTION: list[re.Pattern] = [
 
 # SQL injection — covers common patterns
 _SQL_INJECTION: list[re.Pattern] = [
-    re.compile(r"--\s*$", re.M),                               # SQL comment
+    re.compile(r"--\s*$", re.M),  # SQL comment
     re.compile(r";\s*(DROP|DELETE|TRUNCATE|ALTER)\s+", re.I),
     re.compile(r"\bUNION\s+(ALL\s+)?SELECT\b", re.I),
     re.compile(r"'\s*(OR|AND)\s+'?\d+'?\s*=\s*'?\d+", re.I),  # ' OR '1'='1
@@ -68,20 +68,18 @@ _HTML_INJECTION: list[re.Pattern] = [
 ]
 
 # Control characters (null byte injection, CRLF injection)
-_CONTROL_CHARS: re.Pattern = re.compile(
-    r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]"
-)
+_CONTROL_CHARS: re.Pattern = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
 
 ALL_PATTERNS: list[tuple[str, re.Pattern]] = (
-    [("prompt_injection",  p) for p in _PROMPT_INJECTION]  +
-    [("system_extraction", p) for p in _SYSTEM_EXTRACTION] +
-    [("sql_injection",     p) for p in _SQL_INJECTION]     +
-    [("html_injection",    p) for p in _HTML_INJECTION]    +
-    [("control_chars",     _CONTROL_CHARS)]
+    [("prompt_injection", p) for p in _PROMPT_INJECTION]
+    + [("system_extraction", p) for p in _SYSTEM_EXTRACTION]
+    + [("sql_injection", p) for p in _SQL_INJECTION]
+    + [("html_injection", p) for p in _HTML_INJECTION]
+    + [("control_chars", _CONTROL_CHARS)]
 )
 
-MAX_STRING_LENGTH: int  = int(os.getenv("MAX_STRING_LENGTH", "2000"))
-SCAN_ENABLED:      bool = os.getenv("INJECTION_SCAN_ENABLED", "true").lower() == "true"
+MAX_STRING_LENGTH: int = int(os.getenv("MAX_STRING_LENGTH", "2000"))
+SCAN_ENABLED: bool = os.getenv("INJECTION_SCAN_ENABLED", "true").lower() == "true"
 
 
 class InjectionScanner:
@@ -141,12 +139,14 @@ class InjectionScanner:
             if pattern.search(value):
                 # Log only first 100 chars — never log the full injection payload
                 preview = value[:100].replace("\n", "\\n")
-                logger.warning({
-                    "action":   "injection_pattern_matched",
-                    "category": category,
-                    "pattern":  pattern.pattern[:80],
-                    "preview":  preview,
-                })
+                logger.warning(
+                    {
+                        "action": "injection_pattern_matched",
+                        "category": category,
+                        "pattern": pattern.pattern[:80],
+                        "preview": preview,
+                    }
+                )
                 return False, f"{category} pattern detected"
 
         return True, None

@@ -1,7 +1,7 @@
-import json
 import logging
 
 from agents.base.agent import TDAgentBase
+from common.config.events import PRIORITY_MAP
 from common.config.settings import get_settings
 from common.models.events import TripEvent
 from common.models.trips import TripContext
@@ -39,7 +39,9 @@ class OrchestratorAgent(TDAgentBase):
                 )
                 # For Phase 3, we push to a standard Redis queue.
                 # In Sprint 2+, this becomes a Celery apply_async call.
-                await self.redis.push_to_buffer(settings.safety_queue, event.model_dump_json(), 3)
+                await self.redis.push_to_buffer(
+                    settings.safety_queue, event.model_dump_json(), 3
+                )
 
             elif event.event_type == "end_of_trip":
                 logger.info(
@@ -47,7 +49,9 @@ class OrchestratorAgent(TDAgentBase):
                     event.event_id,
                     event.trip_id,
                 )
-                await self.redis.push_to_buffer(settings.scoring_queue, event.model_dump_json(), 9)
+                await self.redis.push_to_buffer(
+                    settings.scoring_queue, event.model_dump_json(), 9
+                )
 
             return {
                 "agent_type": "orchestrator",
@@ -72,7 +76,7 @@ class OrchestratorAgent(TDAgentBase):
             trip_id=event.trip_id,
             driver_id=event.driver_id,  # Already scrubbed by Ingestion Tool
             truck_id=event.truck_id,
-            priority=event.priority.value,
+            priority=PRIORITY_MAP.get(event.priority, 9),
             historical_avg_score=historical_avg,
             peer_group_avg=peer_group_avg,
             event=event,
@@ -82,9 +86,9 @@ class OrchestratorAgent(TDAgentBase):
         # Choose TTL based on priority as per 02-0-redis-architecture.md
         ttl = (
             RedisSchema.Trip.CONTEXT_TTL_HIGH
-            if event.priority in ["critical", "high"]
+            if event.priority.value in ["critical", "high"]
             else RedisSchema.Trip.CONTEXT_TTL_LOW
         )
 
-        await self.redis.store_trip_context(key, context.model_dump(), ttl)
+        await self.redis.store_trip_context(key, context.model_dump(mode="json"), ttl)
         logger.info(f"Warmed cache for trip {event.trip_id} (TTL: {ttl}s)")

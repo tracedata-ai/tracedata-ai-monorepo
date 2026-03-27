@@ -13,15 +13,15 @@ Location: backend/core/ingestion/db.py
 """
 
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 
-from common.models.events        import TelemetryPacket
-from common.config.events        import EVENT_MATRIX, PRIORITY_MAP
-from common.config.settings      import get_settings
+from common.config.events import EVENT_MATRIX, PRIORITY_MAP
+from common.config.settings import get_settings
+from common.models.events import TelemetryPacket
 
 settings = get_settings()
 
@@ -39,7 +39,7 @@ class IngestionDB:
     """
 
     def __init__(self, dsn: str | None = None) -> None:
-        self._dsn:    str               = dsn or settings.database_url
+        self._dsn: str = dsn or settings.database_url
         self._engine: AsyncEngine | None = None
 
     # ── LIFECYCLE ─────────────────────────────────────────────────────────────
@@ -48,10 +48,10 @@ class IngestionDB:
         """Creates the async connection pool. Call once at startup."""
         self._engine = create_async_engine(
             self._dsn,
-            pool_size     = 5,
-            max_overflow  = 10,
-            pool_pre_ping = True,   # validates connections before use
-            echo          = False,
+            pool_size=5,
+            max_overflow=10,
+            pool_pre_ping=True,  # validates connections before use
+            echo=False,
         )
         # Log DSN without password
         safe_dsn = self._dsn.split("@")[-1]
@@ -95,10 +95,10 @@ class IngestionDB:
         This is the only table that stores the real identity.
         All other tables use the anonymised DRV-ANON-XXXX token.
         """
-        event  = packet.event
+        event = packet.event
         config = EVENT_MATRIX[event.event_type]
-        lat    = event.location.lat if event.location else None
-        lon    = event.location.lon if event.location else None
+        lat = event.location.lat if event.location else None
+        lon = event.location.lon if event.location else None
 
         async with self._engine.begin() as conn:
             await conn.execute(
@@ -150,34 +150,36 @@ class IngestionDB:
                 """),
                 {
                     "device_event_id": event.device_event_id,
-                    "event_id":        event.event_id,
-                    "trip_id":         event.trip_id,
-                    "driver_id":       event.driver_id,         # real ID — audit only
-                    "truck_id":        event.truck_id,
-                    "event_type":      event.event_type,
-                    "category":        config.category,
-                    "priority":        PRIORITY_MAP[event.priority],
-                    "ping_type":       packet.ping_type.value,
-                    "source":          packet.source.value,
-                    "is_emergency":    packet.is_emergency,
-                    "timestamp":       event.timestamp,
-                    "offset_seconds":  event.offset_seconds,
-                    "trip_meter_km":   event.trip_meter_km,
-                    "odometer_km":     event.odometer_km,
-                    "lat":             lat,
-                    "lon":             lon,
-                    "raw_payload":     packet.model_dump_json(),
-                    "ingested_at":     datetime.now(timezone.utc),
+                    "event_id": event.event_id,
+                    "trip_id": event.trip_id,
+                    "driver_id": event.driver_id,  # real ID — audit only
+                    "truck_id": event.truck_id,
+                    "event_type": event.event_type,
+                    "category": config.category,
+                    "priority": PRIORITY_MAP[event.priority],
+                    "ping_type": packet.ping_type.value,
+                    "source": packet.source.value,
+                    "is_emergency": packet.is_emergency,
+                    "timestamp": event.timestamp,
+                    "offset_seconds": event.offset_seconds,
+                    "trip_meter_km": event.trip_meter_km,
+                    "odometer_km": event.odometer_km,
+                    "lat": lat,
+                    "lon": lon,
+                    "raw_payload": packet.model_dump_json(),
+                    "ingested_at": datetime.now(UTC),
                 },
             )
 
-        logger.info({
-            "action":          "event_written",
-            "trip_id":         event.trip_id,
-            "event_id":        event.event_id,
-            "device_event_id": event.device_event_id,
-            "event_type":      event.event_type,
-        })
+        logger.info(
+            {
+                "action": "event_written",
+                "trip_id": event.trip_id,
+                "event_id": event.event_id,
+                "device_event_id": event.device_event_id,
+                "event_type": event.event_type,
+            }
+        )
 
     # ── CONTEXT MANAGER ───────────────────────────────────────────────────────
 

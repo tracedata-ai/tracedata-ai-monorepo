@@ -17,9 +17,7 @@ async def main():
     redis = RedisClient()
     sidecar = IngestionSidecar(redis)
 
-    logger.info(
-        f"Ingestion worker started. Listening on {settings.ingestion_queue}..."
-    )
+    logger.info(f"Ingestion worker started. Listening on {settings.ingestion_queue}...")
 
     try:
         while True:

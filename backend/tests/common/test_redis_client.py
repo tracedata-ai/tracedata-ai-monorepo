@@ -25,7 +25,9 @@ async def fake_redis_client():
 async def test_buffer_push_and_pop_returns_same_value(fake_redis_client):
     """push_to_buffer → pop_from_buffer roundtrip returns dict."""
     payload = {"event": "test"}
-    await fake_redis_client.push_to_buffer("td:test:buffer", '{"event": "test"}', score=9)
+    await fake_redis_client.push_to_buffer(
+        "td:test:buffer", '{"event": "test"}', score=9
+    )
     result = await fake_redis_client.pop_from_buffer("td:test:buffer")
     assert result == payload
 
@@ -36,7 +38,9 @@ async def test_buffer_pop_respects_priority_order(fake_redis_client):
     Score 0 (CRITICAL) < Score 9 (LOW).
     """
     await fake_redis_client.push_to_buffer("td:test:buffer", '{"ev": "low"}', score=9)
-    await fake_redis_client.push_to_buffer("td:test:buffer", '{"ev": "critical"}', score=0)
+    await fake_redis_client.push_to_buffer(
+        "td:test:buffer", '{"ev": "critical"}', score=0
+    )
 
     first = await fake_redis_client.pop_from_buffer("td:test:buffer")
     second = await fake_redis_client.pop_from_buffer("td:test:buffer")
@@ -48,7 +52,9 @@ async def test_buffer_pop_respects_priority_order(fake_redis_client):
 async def test_processed_push_and_pop(fake_redis_client):
     """push_to_processed → pop_from_processed works."""
     payload = {"event": "processed"}
-    await fake_redis_client.push_to_processed("td:test:proc", '{"event": "processed"}', score=3)
+    await fake_redis_client.push_to_processed(
+        "td:test:proc", '{"event": "processed"}', score=3
+    )
     result = await fake_redis_client.pop_from_processed("td:test:proc")
     assert result == payload
 
@@ -92,4 +98,5 @@ async def test_publish_completion_writes_to_list(fake_redis_client):
     raw_list = await fake_redis_client._client.lrange("td:trip:T1:events", 0, -1)
     assert len(raw_list) == 1
     import json
+
     assert json.loads(raw_list[0]) == event

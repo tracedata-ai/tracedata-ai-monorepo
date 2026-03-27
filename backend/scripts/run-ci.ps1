@@ -2,7 +2,9 @@
 # Backend CI Runner - Local Pre-Push Verification
 # -----------------------------------------------------------------------------
 #
-# Runs all checks defined in .github/workflows/ci-backend-api.yaml
+# Runs local checks for files covered by:
+#   - .github/workflows/ci-backend-api.yaml
+#   - .github/workflows/ci-backend-agents.yaml
 #
 # Usage:
 #   ./scripts/run-ci.ps1
@@ -27,6 +29,29 @@ function Write-Failure ([string]$msg) {
     Write-Host "ERR: $msg" -ForegroundColor Red
 }
 
+function Get-CiPythonFiles {
+    # Union of backend paths watched by API CI + Agents CI workflows.
+    $ScopeRoots = @("api", "agents", "common", "core", "tests")
+
+    $files = @()
+    foreach ($root in $ScopeRoots) {
+        if (Test-Path $root) {
+            $files += Get-ChildItem -Path $root -Recurse -File -Filter *.py | ForEach-Object {
+                $_.FullName
+            }
+        }
+    }
+
+    return $files | Sort-Object -Unique
+}
+
+$CiPythonFiles = Get-CiPythonFiles
+
+if (-not $CiPythonFiles -or $CiPythonFiles.Count -eq 0) {
+    Write-Failure "No Python files found in CI scope (api/agents/common/core/tests)."
+    exit 1
+}
+
 try {
     Write-Step "Syncing dependencies with uv..."
     # --frozen ensures we use the exact versions in uv.lock
@@ -37,14 +62,24 @@ try {
     uv lock --check
     Write-Success "Lockfile is healthy."
 
-    Write-Step "Running Black (Formatter Check)..."
-    # Black ensures the code follows the 88-char style
-    uv run black --check .
+    Write-Step "Running isort (Auto-fix imports) on API+Agents CI scope..."
+    uv run isort @CiPythonFiles
+    Write-Success "Import sorting applied."
+
+    Write-Step "Running Black (Auto-format) on API+Agents CI scope..."
+    uv run black @CiPythonFiles
+    Write-Success "Formatting applied."
+
+    Write-Step "Running Ruff (Auto-fix lint) on API+Agents CI scope..."
+    uv run ruff check @CiPythonFiles --fix
+    Write-Success "Ruff auto-fixes applied."
+
+    Write-Step "Running Black (Formatter Check) on API+Agents CI scope..."
+    uv run black --check @CiPythonFiles
     Write-Success "Formatting check passed."
 
-    Write-Step "Running Ruff (Linter Check)..."
-    # --no-fix ensures we fail if issues exist, matching CI behavior
-    uv run ruff check . --no-fix
+    Write-Step "Running Ruff (Linter Check) on API+Agents CI scope..."
+    uv run ruff check @CiPythonFiles --no-fix
     Write-Success "Linting check passed."
 
     Write-Step "Running Bandit (Security Scan)..."

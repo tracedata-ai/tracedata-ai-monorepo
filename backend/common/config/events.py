@@ -1,5 +1,3 @@
-from typing import Any, Dict
-
 from ..models.enums import Priority
 
 
@@ -23,7 +21,7 @@ PRIORITY_MAP = {
 }
 
 # ── EVENT MATRIX ──────────────────────────────────────────
-EVENT_MATRIX: Dict[str, EventConfig] = {
+EVENT_MATRIX: dict[str, EventConfig] = {
     "collision": EventConfig(
         "critical", Priority.CRITICAL, 1.0, "Emergency Alert & 911"
     ),
@@ -39,23 +37,19 @@ EVENT_MATRIX: Dict[str, EventConfig] = {
     "smoothness_log": EventConfig(
         "normal_operation", Priority.LOW, -0.2, "Reward Bonus"
     ),
-    "normal_operation": EventConfig(
-        "normal_operation", Priority.LOW, 0.0, "Analytics"
-    ),
+    "normal_operation": EventConfig("normal_operation", Priority.LOW, 0.0, "Analytics"),
     "start_of_trip": EventConfig("trip_lifecycle", Priority.LOW, 0.0, "Logging"),
     "end_of_trip": EventConfig("trip_lifecycle", Priority.LOW, 0.0, "Scoring"),
-    "driver_sos": EventConfig(
-        "critical", Priority.CRITICAL, 0.0, "Emergency Alert"
-    ),
+    "driver_sos": EventConfig("critical", Priority.CRITICAL, 0.0, "Emergency Alert"),
     "driver_dispute": EventConfig("driver_feedback", Priority.HIGH, 0.0, "HITL"),
-    "driver_complaint": EventConfig(
-        "driver_feedback", Priority.HIGH, 0.0, "Support"
-    ),
+    "driver_complaint": EventConfig("driver_feedback", Priority.HIGH, 0.0, "Support"),
     "driver_feedback": EventConfig(
         "driver_feedback", Priority.MEDIUM, 0.0, "Sentiment"
     ),
     "driver_comment": EventConfig("driver_feedback", Priority.LOW, 0.0, "Sentiment"),
-    "malicious_injection": EventConfig("security_scan", Priority.MEDIUM, 0.0, "Reject & Log"),
+    "malicious_injection": EventConfig(
+        "security_scan", Priority.MEDIUM, 0.0, "Reject & Log"
+    ),
 }
 
 # ── THRESHOLDS ────────────────────────────────────────────

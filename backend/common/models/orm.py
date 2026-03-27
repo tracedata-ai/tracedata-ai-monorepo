@@ -33,7 +33,9 @@ class EventORM(Base):
     status: Mapped[str] = mapped_column(String(20), default="received")
     locked_by: Mapped[str | None] = mapped_column(String(50), nullable=True)
     locked_at: Mapped[datetime.datetime | None] = mapped_column(DateTime, nullable=True)
-    processed_at: Mapped[datetime.datetime | None] = mapped_column(DateTime, nullable=True)
+    processed_at: Mapped[datetime.datetime | None] = mapped_column(
+        DateTime, nullable=True
+    )
     created_at: Mapped[datetime.datetime] = mapped_column(
         DateTime, default=datetime.datetime.utcnow
     )

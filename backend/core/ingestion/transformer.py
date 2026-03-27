@@ -16,10 +16,10 @@ Location: backend/core/ingestion/transformer.py
 """
 
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
-from common.models.events        import TelemetryPacket, TripEvent
-from common.config.events        import EVENT_MATRIX, PRIORITY_MAP
+from common.config.events import EVENT_MATRIX, PRIORITY_MAP
+from common.models.events import TelemetryPacket, TripEvent
 
 logger = logging.getLogger(__name__)
 
@@ -36,42 +36,35 @@ class PacketTransformer:
         Converts a validated, scrubbed TelemetryPacket into a flat TripEvent.
         Resolves category and numeric priority from EVENT_MATRIX.
         """
-        event  = packet.event
+        event = packet.event
         config = EVENT_MATRIX[event.event_type]
 
         return TripEvent(
             # ── Correlation IDs ────────────────────────────────────────────
-            event_id        = event.event_id,
-            device_event_id = event.device_event_id,
-            trip_id         = event.trip_id,
-
+            event_id=event.event_id,
+            device_event_id=event.device_event_id,
+            trip_id=event.trip_id,
             # ── Identity (anonymised before this point) ────────────────────
-            driver_id       = event.driver_id,   # DRV-ANON-XXXX at this stage
-            truck_id        = event.truck_id,
-
+            driver_id=event.driver_id,  # DRV-ANON-XXXX at this stage
+            truck_id=event.truck_id,
             # ── Classification (governed by EVENT_MATRIX) ──────────────────
-            event_type      = event.event_type,
-            category        = config.category,
-            priority        = PRIORITY_MAP[event.priority],
-
+            event_type=event.event_type,
+            category=config.category,
+            priority=PRIORITY_MAP[event.priority],
             # ── Temporal anchor ────────────────────────────────────────────
-            timestamp       = event.timestamp,
-            offset_seconds  = event.offset_seconds,
-
+            timestamp=event.timestamp,
+            offset_seconds=event.offset_seconds,
             # ── Spatial anchor ─────────────────────────────────────────────
-            trip_meter_km   = event.trip_meter_km,
-            odometer_km     = event.odometer_km,
-            location        = event.location,
-
+            trip_meter_km=event.trip_meter_km,
+            odometer_km=event.odometer_km,
+            location=event.location,
             # ── Content ────────────────────────────────────────────────────
-            details         = event.details,
-            evidence        = packet.evidence,
-
+            details=event.details,
+            evidence=packet.evidence,
             # ── Routing metadata ───────────────────────────────────────────
-            source          = packet.source,
-            ping_type       = packet.ping_type,
-            is_emergency    = packet.is_emergency,
-
+            source=packet.source,
+            ping_type=packet.ping_type,
+            is_emergency=packet.is_emergency,
             # ── Processing metadata ────────────────────────────────────────
-            ingested_at     = datetime.now(timezone.utc),
+            ingested_at=datetime.now(UTC),
         )

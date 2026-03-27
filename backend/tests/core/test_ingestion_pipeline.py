@@ -1,10 +1,10 @@
 import json
-from unittest.mock import AsyncMock, patch, MagicMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
 from common.models.events import TripEvent
-from core.ingestion.sidecar import IngestionSidecar, IngestionResult
+from core.ingestion.sidecar import IngestionSidecar
 
 
 @pytest.fixture
@@ -35,7 +35,7 @@ async def test_pipeline_success_harsh_brake(sidecar, telemetry_packet):
     """
     telemetry_packet["event"]["event_type"] = "harsh_brake"
     telemetry_packet["event"]["priority"] = "low"
-    
+
     result = await sidecar.process(telemetry_packet, truck_id="TRK123")
 
     assert result.ok is True
@@ -44,13 +44,13 @@ async def test_pipeline_success_harsh_brake(sidecar, telemetry_packet):
     # Check 7. ROUTE: Success (zpush to processed)
     sidecar._redis.push_to_processed.assert_called_once()
     args = sidecar._redis.push_to_processed.call_args[0]
-    
+
     # Priority for harsh brake should be 3 (HIGH)
     assert args[2] == 3
-    
+
     pushed_event = TripEvent(**json.loads(args[1]))
     assert pushed_event.driver_id.startswith("DRV-ANON-")
-    
+
     # Check GPS rounding (2dp)
     assert pushed_event.location.lat == 1.29
     assert pushed_event.location.lon == 103.85
@@ -96,7 +96,7 @@ async def test_pipeline_idempotency_skip(sidecar, telemetry_packet, mock_db):
 
     assert result.ok is False
     assert result.reason == "duplicate"
-    
+
     # It routes duplicates to DLQ per new design
     sidecar._redis.push_to_dlq.assert_called_once()
     sidecar._redis.push_to_processed.assert_not_called()

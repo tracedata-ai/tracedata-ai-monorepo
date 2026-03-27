@@ -21,9 +21,9 @@ class RedisSchema:
 
     class Trip:
         CONTEXT_TTL_HIGH: int = 172800  # 48 hours — CRITICAL/HIGH
-        CONTEXT_TTL_LOW: int = 600       # 10 minutes — MEDIUM/LOW
-        OUTPUT_TTL: int = 600           # 10 minutes
-        EVENT_TTL: int = 600            # 10 minutes
+        CONTEXT_TTL_LOW: int = 600  # 10 minutes — MEDIUM/LOW
+        OUTPUT_TTL: int = 600  # 10 minutes
+        EVENT_TTL: int = 600  # 10 minutes
 
         @staticmethod
         def context(trip_id: str) -> str:
