@@ -2,7 +2,7 @@
 # 🏗️ Optimized Frontend CI Runner — Local Pre-Push Verification
 # ─────────────────────────────────────────────────────────────────────────────
 #
-# Runs all checks in parallel where possible to maximize efficiency.
+# Runs all checks in parallel using npm-run-all for maximum efficiency.
 #
 # Usage:
 #   ./scripts/run-ci.ps1
@@ -31,45 +31,10 @@ try {
     npm ci
     Write-Success "Dependencies installed."
 
-    Write-Step "Starting Parallel Static Analysis (Lint, Type Check, Audit)..."
-    
-    # Define tasks to run in parallel
-    $Tasks = @(
-        @{ Name = "Linting"; Command = "npm run lint" },
-        @{ Name = "Type Checking"; Command = "npm run type-check" },
-        @{ Name = "Security Audit"; Command = "npm audit --audit-level=high" }
-    )
-
-    $Jobs = @()
-    foreach ($Task in $Tasks) {
-        Write-Host "   -> Starting $($Task.Name)..." -ForegroundColor Gray
-        $Jobs += Start-Job -ScriptBlock { 
-            param($cmd, $path) 
-            Set-Location $path
-            # Run command and capture exit code
-            cmd /c "$cmd 2>&1"
-            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-        } -ArgumentList $Task.Command, $FrontendRoot -Name $Task.Name
-    }
-
-    Write-Host "`n⌛ Waiting for parallel tasks to complete..." -ForegroundColor Yellow
-    $null = Wait-Job $Jobs
-
-    $Failed = $false
-    foreach ($Job in $Jobs) {
-        $ExitCode = $Job.ChildJobs[0].ExitCode
-        if ($ExitCode -ne 0) {
-            Write-Failure "$($Job.Name) failed (Exit Code: $ExitCode)!"
-            Receive-Job -Job $Job -Keep | Write-Host -ForegroundColor Yellow
-            $Failed = $true
-        } else {
-            Write-Success "$($Job.Name) passed."
-        }
-    }
-
-    if ($Failed) {
-        throw "One or more static analysis tasks failed."
-    }
+    Write-Step "Running Parallel Static Analysis (Lint, Type Check, Audit)..."
+    # We use 'npm run validate' which uses npm-run-all for robust parallel execution
+    npm run validate
+    Write-Success "Static analysis passed."
 
     Write-Step "Running logic checks (npm test)..."
     npm test
@@ -84,9 +49,4 @@ try {
     Write-Failure "CI check failed at the current step."
     Write-Host $_.Exception.Message -ForegroundColor Yellow
     exit 1
-} finally {
-    if ($Jobs) { 
-        Get-Job | Stop-Job
-        Get-Job | Remove-Job -Force 
-    }
 }
