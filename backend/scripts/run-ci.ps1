@@ -99,7 +99,7 @@ try {
     Write-Success "Security scan passed."
 
     Write-Step "Running Mypy (Type Check)..."
-    uv run mypy api --ignore-missing-imports --no-error-summary
+    uv run mypy api agents tests/agents --ignore-missing-imports --no-error-summary
     Write-Success "Type check passed."
 
     Write-Step "Running Unit Tests (Pytest)..."
