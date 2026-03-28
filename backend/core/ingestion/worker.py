@@ -1,4 +1,5 @@
 import asyncio
+import json
 import logging
 
 from common.config.settings import get_settings
@@ -37,6 +38,14 @@ async def main():
 
                 if success:
                     logger.info(f"Successfully ingested {event_type}")
+                    # Push to visualization buffer (60-min TTL) for observability
+                    try:
+                        await redis.push_to_visualization_buffer(
+                            json.dumps(raw_packet),
+                            ttl=settings.visualization_buffer_ttl,
+                        )
+                    except Exception as e:
+                        logger.warning(f"Failed to push to visualization buffer: {e}")
                 else:
                     logger.warning(f"Rejected packet for {event_type}")
 

@@ -25,6 +25,7 @@ class Settings(BaseSettings):
 
     # ── Redis ────────────────────────────────────────────────────────────────
     redis_url: str = "redis://redis:6379/0"
+    visualization_buffer_ttl: int = 3600  # 60 minutes for recent events visualization
 
     # ── Queues (pipeline stage) ─────────────────────────────────────────────
     ingestion_queue: str = "td:ingestion:events"

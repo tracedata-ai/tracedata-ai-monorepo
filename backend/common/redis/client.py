@@ -88,6 +88,28 @@ class RedisClient:
         await self._client.zadd(key, mapping={payload: score})
         await self._client.expire(key, ttl)
 
+    # ── Visualization Buffer (60-min TTL for observability) ──────────────────
+
+    async def push_to_visualization_buffer(self, payload: str, ttl: int = 3600):
+        """
+        Store a recent event in the visualization buffer for inspection.
+        Each event is stored as a list entry with automatic 60-minute expiration.
+        Non-blocking; ideal for tracking incoming data shape without impacting pipeline.
+        """
+        viz_key = "td:visualization:recent_events"
+        await self._client.lpush(viz_key, payload)
+        await self._client.expire(viz_key, ttl)
+
+    async def get_recent_visualization_events(self, limit: int = 50) -> list[dict]:
+        """
+        Retrieve the most recent events from the visualization buffer.
+        Returns up to `limit` events (default 50) in reverse chronological order.
+        Useful for dashboards, debugging, or understanding incoming data structure.
+        """
+        viz_key = "td:visualization:recent_events"
+        raw_events = await self._client.lrange(viz_key, 0, limit - 1)
+        return [json.loads(event) for event in raw_events]
+
     # ── Agent Working Cache (Strings/JSON/Lists) ─────────────────────────────
 
     async def store_trip_context(self, key: str, context: dict, ttl: int):
