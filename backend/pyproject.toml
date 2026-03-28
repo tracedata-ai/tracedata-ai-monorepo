@@ -10,21 +10,19 @@ dependencies = [
     # Web framework — Swagger UI is bundled at /docs, ReDoc at /redoc
     "fastapi>=0.115.0",
     "uvicorn[standard]>=0.32.0",
-
     # Database — async SQLAlchemy 2.0 + asyncpg driver for PostgreSQL
     "sqlalchemy>=2.0.36",
     "asyncpg>=0.30.0",
     "greenlet>=3.1.1",          # Required by SQLAlchemy async internals
-
     # Schema migration
     "alembic>=1.14.0",
-
     # Data validation & settings
     "pydantic>=2.10.0",
     "pydantic-settings>=2.7.0",
-
     # Environment variables
     "python-dotenv>=1.0.1",
+    "langgraph>=1.1.0",
+    "langchain-openai>=1.1.0",
 ]
 
 [project.optional-dependencies]

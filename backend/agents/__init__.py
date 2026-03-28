@@ -1,10 +1,22 @@
 """
 TraceData Backend — Agents Package.
 
-Contains the 5 AI agents co-located in this container:
+Contains the AI agents co-located in this container:
+  - base:         Thick BaseAgent class (LangGraph + OpenAI) — inherit to build agents
   - orchestrator: Routes user requests to specialist agents
-  - ingestion:    Parses and normalises incoming telemetry/trip data
-  - behavior:     Scores driving behaviour with AIF360 bias correction
   - feedback:     Generates driver coaching feedback
-  - safety:       Detects critical events and triggers maintenance alerts
+
+All agents extend ``BaseAgent`` — subclass it and set ``SYSTEM_PROMPT`` +
+``tools`` to create a new agent with full LLM + memory + tool support.
 """
+
+from agents.base import AgentState, BaseAgent
+from agents.feedback import FeedbackAgent
+from agents.orchestrator import OrchestratorAgent
+
+__all__ = [
+    "AgentState",
+    "BaseAgent",
+    "FeedbackAgent",
+    "OrchestratorAgent",
+]
