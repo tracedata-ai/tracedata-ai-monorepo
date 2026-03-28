@@ -4,8 +4,8 @@ Celery Application — single instance imported by all workers.
 Every agent container imports this module to register tasks.
 The Orchestrator imports it to call apply_async.
 
-Broker:  Redis DB 1 (separate from pipeline queues on DB 0)
-Backend: Redis DB 1
+Broker:  Redis DB 0 (unified with pipeline queues)
+Backend: Redis DB 0
 
 Location: backend/celery_app.py
 """

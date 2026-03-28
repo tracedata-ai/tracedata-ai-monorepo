@@ -37,9 +37,9 @@ class Settings(BaseSettings):
     support_queue: str = "td:agent:support"
     sentiment_queue: str = "td:agent:sentiment"
 
-    # ── Celery (Broker / Backend on Redis DB 1 — separate from pipeline) ────
-    celery_broker_url: str = "redis://redis:6379/1"
-    celery_result_backend: str = "redis://redis:6379/1"
+    # ── Celery (Broker / Backend on Redis DB 0 — unified with pipeline) ──────
+    celery_broker_url: str = "redis://redis:6379/0"
+    celery_result_backend: str = "redis://redis:6379/0"
     celery_task_serializer: str = "json"
     celery_result_serializer: str = "json"
     celery_accept_content: str = "json"
