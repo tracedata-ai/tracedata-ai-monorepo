@@ -1,14 +1,11 @@
 import asyncio
 import json
-import os
-import sys
 import uuid
 from datetime import UTC, datetime
 
 from common.config.events import PRIORITY_MAP
 from common.models.enums import PingType, Priority, Source
 from common.redis.client import RedisClient
-from common.redis.keys import RedisSchema
 
 
 async def seed_event(event_type: str, priority: Priority = Priority.LOW):

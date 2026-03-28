@@ -1,7 +1,7 @@
 import asyncio
+import json
 import os
 import sys
-import json
 from datetime import datetime
 
 # Add app root to path for imports
@@ -42,7 +42,9 @@ async def monitor():
             # Peek at latest processed
             if proc_count > 0:
                 # We can't pop here, only peek
-                latest = await redis._client.zrange(processed_key, 0, 0, withscores=True)
+                latest = await redis._client.zrange(
+                    processed_key, 0, 0, withscores=True
+                )
                 if latest:
                     event = json.loads(latest[0][0])
                     print(

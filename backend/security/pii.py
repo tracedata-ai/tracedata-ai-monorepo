@@ -45,8 +45,8 @@ class PIIScrubber:
     """
 
     def __init__(self) -> None:
-        self._salt:  str             = os.getenv("PII_SALT", "tracedata-default-salt")
-        self._cache: dict[str, str]  = {}
+        self._salt: str = os.getenv("PII_SALT", "tracedata-default-salt")
+        self._cache: dict[str, str] = {}
 
     # ── PUBLIC ────────────────────────────────────────────────────────────────
 
@@ -64,10 +64,12 @@ class PIIScrubber:
                 # Evict oldest entry — FIFO via dict insertion order (Python 3.7+)
                 oldest = next(iter(self._cache))
                 del self._cache[oldest]
-                logger.debug({
-                    "action":  "pii_cache_eviction",
-                    "evicted": oldest[:4] + "****",   # log only prefix, not full id
-                })
+                logger.debug(
+                    {
+                        "action": "pii_cache_eviction",
+                        "evicted": oldest[:4] + "****",  # log only prefix, not full id
+                    }
+                )
             token = self._hash(real_driver_id)
             self._cache[real_driver_id] = f"DRV-ANON-{token}"
 
@@ -88,7 +90,7 @@ class PIIScrubber:
 
     def scrub_details(
         self,
-        details:    dict | None,
+        details: dict | None,
         event_type: str,
     ) -> dict | None:
         """
@@ -118,7 +120,5 @@ class PIIScrubber:
         Deterministic within a deployment (same salt).
         Not reversible without the salt.
         """
-        digest = hashlib.sha256(
-            f"{self._salt}:{value}".encode("utf-8")
-        ).hexdigest()
+        digest = hashlib.sha256(f"{self._salt}:{value}".encode()).hexdigest()
         return digest[:8].upper()
