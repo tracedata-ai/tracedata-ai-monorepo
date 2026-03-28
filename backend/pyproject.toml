@@ -41,6 +41,7 @@ dev = [
     "pytest-cov>=6.0.0",          # Coverage plugin used by CI --cov flag
     "httpx>=0.28.0",              # Async test client for FastAPI
     "fakeredis>=2.26.0",          # In-memory Redis for unit tests (no Docker)
+    "aiosqlite>=0.20.0",          # SQLite async driver for integration tests
     "black>=24.0.0",              # Formatter
     "ruff>=0.8.0",               # Linter (industry standard)
     "bandit>=1.7.0",             # Security SAST

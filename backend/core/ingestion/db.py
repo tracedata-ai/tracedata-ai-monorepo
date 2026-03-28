@@ -73,14 +73,12 @@ class IngestionDB:
         """
         async with self._engine.connect() as conn:
             result = await conn.execute(
-                text(
-                    """
+                text("""
                     SELECT EXISTS(
                         SELECT 1 FROM pipeline_events
                         WHERE device_event_id = :device_event_id
                     )
-                """
-                ),
+                """),
                 {"device_event_id": device_event_id},
             )
             return result.scalar()
@@ -105,8 +103,7 @@ class IngestionDB:
 
         async with self._engine.begin() as conn:
             await conn.execute(
-                text(
-                    """
+                text("""
                     INSERT INTO pipeline_events (
                         device_event_id,
                         event_id,
@@ -155,8 +152,7 @@ class IngestionDB:
                         :ingested_at
                     )
                     ON CONFLICT (device_event_id) DO NOTHING
-                """
-                ),
+                """),
                 {
                     "device_event_id": event.device_event_id,
                     "event_id": event.event_id,

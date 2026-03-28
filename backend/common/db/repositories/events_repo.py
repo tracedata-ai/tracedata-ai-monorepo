@@ -29,14 +29,12 @@ class EventsRepo:
         """Idempotency check — returns True if already ingested."""
         async with self._engine.connect() as conn:
             result = await conn.execute(
-                text(
-                    """
+                text("""
                     SELECT EXISTS(
                         SELECT 1 FROM pipeline_events
                         WHERE device_event_id = :device_event_id
                     )
-                """
-                ),
+                """),
                 {"device_event_id": device_event_id},
             )
             return bool(result.scalar())
@@ -53,8 +51,7 @@ class EventsRepo:
         """
         async with self._engine.begin() as conn:
             result = await conn.execute(
-                text(
-                    """
+                text("""
                     UPDATE pipeline_events
                     SET    status    = 'processing',
                            locked_by = 'orchestrator',
@@ -62,8 +59,7 @@ class EventsRepo:
                     WHERE  device_event_id = :device_event_id
                     AND    status    = 'received'
                     AND    locked_by IS NULL
-                """
-                ),
+                """),
                 {
                     "device_event_id": device_event_id,
                     "now": datetime.now(UTC).replace(tzinfo=None),
@@ -96,8 +92,7 @@ class EventsRepo:
         """
         async with self._engine.begin() as conn:
             await conn.execute(
-                text(
-                    """
+                text("""
                     UPDATE pipeline_events
                     SET    status       = 'processed',
                            locked_by    = NULL,
@@ -105,8 +100,7 @@ class EventsRepo:
                            processed_at = :now
                     WHERE  device_event_id = :device_event_id
                     AND    status = 'processing'
-                """
-                ),
+                """),
                 {
                     "device_event_id": device_event_id,
                     "now": datetime.now(UTC).replace(tzinfo=None),
@@ -126,16 +120,14 @@ class EventsRepo:
         """
         async with self._engine.begin() as conn:
             await conn.execute(
-                text(
-                    """
+                text("""
                     UPDATE pipeline_events
                     SET    status      = 'failed',
                            locked_by   = NULL,
                            locked_at   = NULL,
                            retry_count = retry_count + 1
                     WHERE  device_event_id = :device_event_id
-                """
-                ),
+                """),
                 {"device_event_id": device_event_id},
             )
         logger.warning(
@@ -152,15 +144,13 @@ class EventsRepo:
         """
         async with self._engine.begin() as conn:
             await conn.execute(
-                text(
-                    """
+                text("""
                     UPDATE pipeline_events
                     SET    status    = 'locked',
                            locked_by = NULL,
                            locked_at = NULL
                     WHERE  device_event_id = :device_event_id
-                """
-                ),
+                """),
                 {"device_event_id": device_event_id},
             )
         logger.warning(
@@ -180,8 +170,7 @@ class EventsRepo:
         """
         async with self._engine.begin() as conn:
             result = await conn.execute(
-                text(
-                    """
+                text("""
                     UPDATE pipeline_events
                     SET    status    = 'received',
                            locked_by = NULL,
@@ -190,8 +179,7 @@ class EventsRepo:
                     AND    locked_by = 'orchestrator'
                     AND    locked_at < now() - INTERVAL '1 minute' * :ttl
                     RETURNING device_event_id, trip_id, locked_at
-                """
-                ),
+                """),
                 {"ttl": lock_ttl_minutes},
             )
             recovered = [dict(row) for row in result.fetchall()]
