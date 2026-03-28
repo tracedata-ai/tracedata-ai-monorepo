@@ -73,4 +73,4 @@ def analyse_feedback(self, intent_capsule: dict) -> dict:
         logger.exception(
             {"action": "task_failed", "task": "analyse_feedback", "trip_id": trip_id}
         )
-        raise self.retry(exc=exc)
+        raise self.retry(exc=exc) from exc

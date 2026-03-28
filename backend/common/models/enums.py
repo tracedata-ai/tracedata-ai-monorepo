@@ -1,14 +1,14 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class Priority(str, Enum):
+class Priority(StrEnum):
     CRITICAL = "critical"
     HIGH = "high"
     MEDIUM = "medium"
     LOW = "low"
 
 
-class PingType(str, Enum):
+class PingType(StrEnum):
     EMERGENCY = "emergency"
     HIGH_SPEED = "high_speed"
     MEDIUM_SPEED = "medium_speed"
@@ -17,13 +17,13 @@ class PingType(str, Enum):
     END_OF_TRIP = "end_of_trip"
 
 
-class Source(str, Enum):
+class Source(StrEnum):
     TELEMATICS_DEVICE = "telematics_device"
     DRIVER_APP = "driver_app"
     SYSTEM = "system"
 
 
-class AgentName(str, Enum):
+class AgentName(StrEnum):
     ORCHESTRATOR = "orchestrator"
     SAFETY = "safety"
     SCORING = "scoring"

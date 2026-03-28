@@ -75,4 +75,4 @@ def generate_coaching(self, intent_capsule: dict) -> dict:
         logger.exception(
             {"action": "task_failed", "task": "generate_coaching", "trip_id": trip_id}
         )
-        raise self.retry(exc=exc)
+        raise self.retry(exc=exc) from exc

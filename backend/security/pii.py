@@ -106,9 +106,11 @@ class PIIScrubber:
 
         scrubbed = copy.deepcopy(details)
 
-        if event_type not in _SAFETY_EVENT_TYPES:
-            if "injury_severity_estimate" in scrubbed:
-                scrubbed["injury_severity_estimate"] = "REDACTED"
+        if (
+            event_type not in _SAFETY_EVENT_TYPES
+            and "injury_severity_estimate" in scrubbed
+        ):
+            scrubbed["injury_severity_estimate"] = "REDACTED"
 
         return scrubbed
 
