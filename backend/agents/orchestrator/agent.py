@@ -2,14 +2,14 @@
 Orchestrator Agent — wired with DB Manager and Celery.
 
 Reads clean TripEvents from the processed queue, warms the Redis
-TripContext cache, acquires DB lease, then dispatches via Celery.
+TripContext cache, acquires DB lease, then dispatches via Celery
+to specialized agent workers (Safety, Scoring, Sentiment).
 
-Sprint 2 state:
-  - DB Manager wired (acquire_lock / release_lock / create_trip)
-  - Celery dispatch wired (apply_async with IntentCapsule payload)
-  - CompletionEvent listener wired (Pub/Sub)
-  - LangSmith: stub (enabled in Sprint 3)
-  - Intent Gate: stub (enforced in Phase 6)
+Event routing is centralized in EVENT_MAP for consistency.
+Internal components:
+  - DB Manager: acquire_lock, release_lock, create_trip, update_trip
+  - Celery dispatch: sends IntentCapsule to agent-specific queues
+  - IntentCapsule: security token with scoped Redis R/W access
 
 Location: backend/agents/orchestrator/agent.py
 """
@@ -40,124 +40,58 @@ def _get_celery() -> Celery:
     return app
 
 
+# ── Event-to-Agent Routing Map ─────────────────────────────────────────────────
+# Centralized mapping from event types to (agent_name, celery_task_name).
+# Ensures consistent routing and simplifies adding new event types.
+EVENT_MAP = {
+    "collision": {"agent": "safety", "task": "tasks.safety_tasks.analyse_event"},
+    "rollover": {"agent": "safety", "task": "tasks.safety_tasks.analyse_event"},
+    "driver_sos": {"agent": "safety", "task": "tasks.safety_tasks.analyse_event"},
+    "harsh_brake": {"agent": "safety", "task": "tasks.safety_tasks.analyse_event"},
+    "hard_accel": {"agent": "safety", "task": "tasks.safety_tasks.analyse_event"},
+    "harsh_corner": {"agent": "safety", "task": "tasks.safety_tasks.analyse_event"},
+    "end_of_trip": {"agent": "scoring", "task": "tasks.scoring_tasks.score_trip"},
+    "driver_dispute": {
+        "agent": "sentiment",
+        "task": "tasks.sentiment_tasks.analyse_feedback",
+    },
+    "driver_complaint": {
+        "agent": "sentiment",
+        "task": "tasks.sentiment_tasks.analyse_feedback",
+    },
+    "driver_feedback": {
+        "agent": "sentiment",
+        "task": "tasks.sentiment_tasks.analyse_feedback",
+    },
+    "driver_comment": {
+        "agent": "sentiment",
+        "task": "tasks.sentiment_tasks.analyse_feedback",
+    },
+}
+
+
 class OrchestratorAgent:
     """
     Reads from processed queue, warms cache, acquires lock, dispatches via Celery.
     Polls all configured truck IDs in round-robin.
-
-    Supports two modes:
-    1. Sprint 2+ mode: use run() with truck_ids list
-    2. Legacy mode (tests): use process_event() directly (backward compatibility)
     """
 
     AGENT_NAME = "orchestrator"
 
     def __init__(
         self,
-        agent_name: str | None = None,
-        input_queue: str | None = None,
-        output_queue: str | None = None,
         truck_ids: list[str] | None = None,
     ) -> None:
         """
-        Initialize OrchestratorAgent.
+        Initialize OrchestratorAgent with a list of truck IDs to poll.
 
-        Supports both:
-        - New interface: OrchestratorAgent(truck_ids=['truck1', 'truck2'])
-        - Legacy interface: OrchestratorAgent('orchestrator', 'input_queue', 'output_queue')
+        Args:
+            truck_ids: List of truck IDs to monitor for events.
         """
-        # Handle legacy interface for backward compatibility
-        if (
-            agent_name is not None
-            and input_queue is not None
-            and output_queue is not None
-        ):
-            # Legacy interface
-            self.agent_name = agent_name
-            self.input_queue = input_queue
-            self.output_queue = output_queue
-            self.truck_ids = truck_ids or []
-            self._legacy_mode = True
-        else:
-            # New Sprint 2 interface
-            self.truck_ids = truck_ids or []
-            self._legacy_mode = False
-
+        self.truck_ids = truck_ids or []
         self.redis = RedisClient()
         self.db = DBManager()
         self._running = False
-
-    # ── Legacy process_event for backward compatibility with tests ──────────────
-
-    async def process_event(self, event_data: dict):
-        """
-        Legacy interface for tests. Routes events to agent queues via Redis
-        (old pre-Celery behavior).
-
-        Returns dict with agent_type, status, trip_id etc. for test assertions.
-        In Sprint 2+, this layer is replaced with full Celery dispatch via run().
-        """
-        if not self._legacy_mode:
-            return None
-
-        try:
-            event = TripEvent(**event_data)
-        except Exception:
-            return None
-
-        trip_id = event.trip_id
-        event_type = event.event_type
-
-        # Route to appropriate agent queue based on event type
-        if event_type in (
-            "collision",
-            "rollover",
-            "driver_sos",
-            "harsh_brake",
-            "hard_accel",
-            "harsh_corner",
-        ):
-            await self.redis.push_to_buffer(
-                settings.safety_queue, event.model_dump_json(), 3
-            )
-            return {
-                "agent_type": "orchestrator",
-                "status": "dispatched",
-                "trip_id": trip_id,
-            }
-
-        elif event_type == "end_of_trip":
-            await self.redis.push_to_buffer(
-                settings.scoring_queue, event.model_dump_json(), 9
-            )
-            return {
-                "agent_type": "orchestrator",
-                "status": "dispatched",
-                "trip_id": trip_id,
-            }
-
-        elif event_type in (
-            "driver_dispute",
-            "driver_complaint",
-            "driver_feedback",
-            "driver_comment",
-        ):
-            await self.redis.push_to_buffer(
-                settings.sentiment_queue, event.model_dump_json(), 9
-            )
-            return {
-                "agent_type": "orchestrator",
-                "status": "dispatched",
-                "trip_id": trip_id,
-            }
-
-        else:
-            # Unknown event type — no dispatch, but still return status
-            return {
-                "agent_type": "orchestrator",
-                "status": "dispatched",
-                "trip_id": trip_id,
-            }
 
     # ── Main loop ─────────────────────────────────────────────────────────────
 
@@ -251,12 +185,13 @@ class OrchestratorAgent:
 
     async def _warm_cache(self, event: TripEvent) -> None:
         """
-        Writes TripContext to Redis.
-        Historical averages are stubbed in Sprint 2.
-        Sprint 3: replace with real Postgres queries via DBManager.
+        Writes TripContext to Redis with driver context.
+
+        Historical averages are fetched from DBManager via rolling window.
+        Peer group averaging is deferred (currently None); see Phase 3 planning.
         """
         historical_avg = await self.db.get_rolling_avg(event.driver_id, n=3)
-        peer_group_avg = None  # TODO Sprint 3 — peer group query
+        peer_group_avg = None  # Deferred: peer group averaging not yet implemented
 
         context = TripContext(
             trip_id=event.trip_id,
@@ -316,8 +251,8 @@ class OrchestratorAgent:
         """
         Build and seal an IntentCapsule for this event.
 
-        Sprint 2: HMAC seal is a stub (empty string).
-        Phase 6: sign_capsule(capsule) wired from security.capsule.
+        Encapsulates the trip context, permissions, and security token.
+        HMAC signing deferred to Phase 6 (see security.capsule module).
         """
         trip_id = event.trip_id
         agent_name = self._agent_for_event(event.event_type)
@@ -348,7 +283,6 @@ class OrchestratorAgent:
             step_to_tools={"1": ["redis_read"], "2": ["redis_write"]},
             ttl_seconds=3600,
             token=token,
-            # hmac_seal = sign_capsule(capsule)  ← Phase 6
         )
 
         logger.info(
@@ -367,65 +301,13 @@ class OrchestratorAgent:
         ctx: dict,
     ) -> bool:
         """
-        Dispatch to the appropriate Celery queue.
+        Dispatch to the appropriate Celery queue via EVENT_MAP.
         Returns True if dispatched, False if no agent for this event type.
         """
-        celery = _get_celery()
         event_type = event.event_type
-        payload = capsule.model_dump()
-        # Include flat event data for agent consumption
-        payload["event_type"] = event_type
-        payload["event_data"] = event.model_dump()
+        route = EVENT_MAP.get(event_type)
 
-        priority_score = (
-            event.priority
-            if isinstance(event.priority, int)
-            else PRIORITY_MAP.get(event.priority, 9)
-        )
-
-        if event_type in (
-            "collision",
-            "rollover",
-            "driver_sos",
-            "harsh_brake",
-            "hard_accel",
-            "harsh_corner",
-        ):
-            logger.info({**ctx, "action": "dispatch", "target": "safety"})
-            celery.send_task(
-                "tasks.safety_tasks.analyse_event",
-                kwargs={"intent_capsule": payload},
-                queue=settings.safety_queue,
-                priority=priority_score,
-            )
-            return True
-
-        elif event_type == "end_of_trip":
-            logger.info({**ctx, "action": "dispatch", "target": "scoring"})
-            celery.send_task(
-                "tasks.scoring_tasks.score_trip",
-                kwargs={"intent_capsule": payload},
-                queue=settings.scoring_queue,
-                priority=priority_score,
-            )
-            return True
-
-        elif event_type in (
-            "driver_dispute",
-            "driver_complaint",
-            "driver_feedback",
-            "driver_comment",
-        ):
-            logger.info({**ctx, "action": "dispatch", "target": "sentiment"})
-            celery.send_task(
-                "tasks.sentiment_tasks.analyse_feedback",
-                kwargs={"intent_capsule": payload},
-                queue=settings.sentiment_queue,
-                priority=priority_score,
-            )
-            return True
-
-        else:
+        if not route:
             logger.info(
                 {
                     **ctx,
@@ -437,25 +319,41 @@ class OrchestratorAgent:
             await self.db.release_lock(event.device_event_id)
             return False
 
+        celery = _get_celery()
+        payload = capsule.model_dump()
+        # Include flat event data for agent consumption
+        payload["event_type"] = event_type
+        payload["event_data"] = event.model_dump()
+
+        priority_score = (
+            event.priority
+            if isinstance(event.priority, int)
+            else PRIORITY_MAP.get(event.priority, 9)
+        )
+
+        agent_name = route["agent"]
+        task_name = route["task"]
+        target_queue = (
+            settings.safety_queue
+            if agent_name == "safety"
+            else (
+                settings.scoring_queue
+                if agent_name == "scoring"
+                else settings.sentiment_queue
+            )
+        )
+
+        logger.info({**ctx, "action": "dispatch", "target": agent_name})
+        celery.send_task(
+            task_name,
+            kwargs={"intent_capsule": payload},
+            queue=target_queue,
+            priority=priority_score,
+        )
+        return True
+
     @staticmethod
     def _agent_for_event(event_type: str) -> str:
-        """Maps event type to agent name for capsule labelling."""
-        if event_type in (
-            "collision",
-            "rollover",
-            "driver_sos",
-            "harsh_brake",
-            "hard_accel",
-            "harsh_corner",
-        ):
-            return "safety"
-        elif event_type == "end_of_trip":
-            return "scoring"
-        elif event_type in (
-            "driver_dispute",
-            "driver_complaint",
-            "driver_feedback",
-            "driver_comment",
-        ):
-            return "sentiment"
-        return "orchestrator"
+        """Maps event type to agent name for capsule labelling via EVENT_MAP."""
+        route = EVENT_MAP.get(event_type)
+        return route["agent"] if route else "orchestrator"
