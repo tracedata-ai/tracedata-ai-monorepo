@@ -30,6 +30,7 @@ from typing import Any
 from pydantic import ValidationError
 
 from common.config.events import EVENT_MATRIX, PRIORITY_MAP
+from common.models.enums import Priority
 from common.models.events import TelemetryPacket, TripEvent
 from common.redis.keys import RedisSchema
 from core.ingestion.db import IngestionDB
@@ -112,7 +113,16 @@ class IngestionSidecar:
 
         # Determine priority for queue routing before any validation
         priority_str = raw.get("event", {}).get("priority", "low")
-        priority_score = PRIORITY_MAP.get(priority_str, 9)
+        try:
+            priority_enum = (
+                Priority(priority_str.lower())
+                if isinstance(priority_str, str)
+                else priority_str
+            )
+            priority_score = PRIORITY_MAP.get(priority_enum, 9)
+        except (ValueError, AttributeError):
+            # Fall back to default if priority is invalid
+            priority_score = 9
 
         # ── Step 1: Schema validation ─────────────────────────────────────────
         packet = self._validate_schema(raw)
@@ -199,13 +209,13 @@ class IngestionSidecar:
         )
 
         while True:
-            result = self._redis.pop_from_buffer(raw_key)
+            result = await self._redis.pop_from_buffer(raw_key)
 
             if result is None:
                 await asyncio.sleep(poll_interval_ms / 1000)
                 continue
 
-            raw_dict, _score = result
+            raw_dict = result
             raw_json = json.dumps(raw_dict)
 
             await self.process(

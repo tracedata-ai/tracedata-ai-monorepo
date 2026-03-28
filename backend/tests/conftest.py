@@ -83,3 +83,24 @@ def mock_db_session() -> MagicMock:
     session.commit = AsyncMock()
     session.refresh = AsyncMock()
     return session
+
+
+@pytest.fixture
+def mock_db() -> MagicMock:
+    """Mock DBManager for orchestrator tests."""
+    db_manager = MagicMock()
+    db_manager.acquire_lock = AsyncMock(return_value="orchestrator")
+    db_manager.release_lock = AsyncMock()
+    db_manager.fail_event = AsyncMock()
+    db_manager.get_trip = AsyncMock(return_value=None)
+    db_manager.create_trip = AsyncMock(return_value={"trip_id": "test_trip"})
+    db_manager.update_trip = AsyncMock()
+    return db_manager
+
+
+@pytest.fixture
+def mock_celery() -> MagicMock:
+    """Mock Celery app instance."""
+    celery_app = MagicMock()
+    celery_app.send_task = MagicMock(return_value=MagicMock(id="task-123"))
+    return celery_app

@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import os
 import sys
 
 from agents.driver_support.agent import SupportAgent
@@ -18,34 +19,36 @@ logger = logging.getLogger(__name__)
 
 async def main():
     settings = get_settings()
-    results_queue = "td:orchestrator:results"
+
     # Logic to pick which agent to start based on env var or arg
     agent_type = sys.argv[1] if len(sys.argv) > 1 else "orchestrator"
     logger.info("[worker] booting agent_type=%s", agent_type)
 
     if agent_type == "safety":
-        agent = SafetyAgent("SafetyAgent", settings.safety_queue, results_queue)
+        agent = SafetyAgent("SafetyAgent", settings.safety_queue, settings.safety_queue)
     elif agent_type == "scoring":
-        agent = ScoringAgent("ScoringAgent", settings.scoring_queue, results_queue)
+        agent = ScoringAgent(
+            "ScoringAgent", settings.scoring_queue, settings.scoring_queue
+        )
     elif agent_type == "support":
-        agent = SupportAgent("SupportAgent", settings.support_queue, results_queue)
+        agent = SupportAgent(
+            "SupportAgent", settings.support_queue, settings.support_queue
+        )
     elif agent_type == "sentiment":
         agent = SentimentAgent(
-            "SentimentAgent", settings.sentiment_queue, results_queue
+            "SentimentAgent", settings.sentiment_queue, settings.sentiment_queue
         )
     else:
-        # Orchestrator dispatches to multiple agent queues, but for the base class pattern,
-        # we'll point it to a dedicated results/dispatch queue.
-        agent = OrchestratorAgent(
-            "OrchestratorAgent", settings.orchestrator_queue, "td:orchestrator:results"
-        )
+        # Orchestrator polls per-truck processed queues in round-robin.
+        # Get truck IDs from environment or use defaults for dev
+        truck_ids_str = os.getenv("TRUCK_IDS", "T001,T002,T003")
+        truck_ids = [tid.strip() for tid in truck_ids_str.split(",") if tid.strip()]
 
-    logger.info(
-        "[worker] starting agent_name=%s input_queue=%s output_queue=%s",
-        agent.agent_name,
-        agent.input_queue,
-        agent.output_queue,
-    )
+        agent = OrchestratorAgent(truck_ids=truck_ids)
+        logger.info(
+            "[worker] orchestrator starting with truck_ids=%s",
+            truck_ids,
+        )
 
     await agent.run()
 

@@ -1,9 +1,11 @@
 import asyncio
-import json
 import logging
+import os
 
 from common.config.settings import get_settings
 from common.redis.client import RedisClient
+from common.redis.keys import RedisSchema
+from core.ingestion.db import IngestionDB
 from core.ingestion.sidecar import IngestionSidecar
 
 logging.basicConfig(
@@ -15,52 +17,65 @@ logger = logging.getLogger("ingestion")
 
 async def main():
     settings = get_settings()
-    redis = RedisClient()
-    sidecar = IngestionSidecar(redis)
 
-    logger.info(f"Ingestion worker started. Listening on {settings.ingestion_queue}...")
+    # Get truck IDs to monitor from environment or use defaults for dev
+    truck_ids_str = os.getenv("TRUCK_IDS", "T001,T002,T003")
+    truck_ids = [tid.strip() for tid in truck_ids_str.split(",") if tid.strip()]
 
-    try:
-        while True:
-            # ── Stage 1: Pop from Raw Buffer ──
-            # The ingestion_queue is the 'landing zone' for both REST (App) and MQTT (Device)
-            # zpopmin ensures we handle CRITICAL severity (score 0) first.
-            raw_packet = await redis.pop_from_buffer(settings.ingestion_queue)
+    logger.info(f"Ingestion worker started. Monitoring trucks: {truck_ids}")
 
-            if raw_packet:
-                event_type = raw_packet.get("event", {}).get("event_type", "unknown")
-                truck_id = raw_packet.get("event", {}).get("truck_id", "unknown")
+    async with IngestionDB() as db:
+        redis = RedisClient()
+        sidecar = IngestionSidecar(db=db, redis=redis)
 
-                logger.info(f"Processing {event_type} for truck {truck_id}")
+        try:
+            while True:
+                handled = 0
 
-                # ── The 7-Step Pipeline ──
-                success = await sidecar.process_packet(raw_packet)
+                # Poll all trucks in round-robin
+                for truck_id in truck_ids:
+                    raw_key = RedisSchema.Telemetry.buffer(truck_id)
+                    raw_packet = await redis.pop_from_buffer(raw_key)
 
-                if success:
-                    logger.info(f"Successfully ingested {event_type}")
-                    # Push to visualization buffer (60-min TTL) for observability
-                    logger.debug("🔄 Attempting to push to visualization buffer...")
-                    try:
-                        await redis.push_to_visualization_buffer(
-                            json.dumps(raw_packet),
-                            ttl=settings.visualization_buffer_ttl,
+                    if raw_packet:
+                        event_type = raw_packet.get("event", {}).get(
+                            "event_type", "unknown"
                         )
-                        logger.debug(f"✅ Pushed {event_type} to visualization buffer")
-                    except Exception as e:
-                        logger.warning(
-                            f"❌ Failed to push to visualization buffer: {e}"
+                        truck_id_from_packet = raw_packet.get("event", {}).get(
+                            "truck_id", truck_id
                         )
-                else:
-                    logger.warning(f"Rejected packet for {event_type}")
 
-            else:
-                # No events, small sleep to prevent CPU spinning
-                await asyncio.sleep(0.1)
+                        logger.info(
+                            f"Processing {event_type} for truck {truck_id_from_packet}"
+                        )
 
-    except asyncio.CancelledError:
-        logger.info("Ingestion worker stopping...")
-    finally:
-        await redis.close()
+                        # ── The 7-Step Pipeline ──
+                        result = await sidecar.process(
+                            raw=raw_packet,
+                            truck_id=truck_id_from_packet,
+                        )
+
+                        if result.ok:
+                            logger.info(
+                                f"Successfully ingested {event_type} (trip_id={result.trip_event.trip_id})"
+                            )
+                        else:
+                            logger.warning(f"Rejected packet: {result.reason}")
+
+                        handled += 1
+
+                if handled == 0:
+                    # No events, small sleep to prevent CPU spinning
+                    await asyncio.sleep(0.1)
+
+        except asyncio.CancelledError:
+            logger.info("Ingestion worker stopping...")
+        finally:
+            await redis.close()
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
 
 
 if __name__ == "__main__":

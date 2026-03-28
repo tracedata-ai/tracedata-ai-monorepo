@@ -15,7 +15,7 @@ ExecutionLog:    immutable audit record written on every tool call.
 Location: backend/common/models/security.py
 """
 
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from pydantic import BaseModel, Field
@@ -68,7 +68,7 @@ class IntentCapsule(BaseModel):
     issued_by: str = "orchestrator"
     ttl_seconds: int = 3600
     is_closed: bool = False
-    issued_at: datetime = Field(default_factory=datetime.utcnow)
+    issued_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     closed_at: datetime | None = None
     token: "ScopedToken | None" = None
 
@@ -92,8 +92,8 @@ class ExecutionContext(BaseModel):
     completed_actions: list[str] = Field(default_factory=list)
     status: str = "PENDING"
     # PENDING → IN_PROGRESS → COMPLETED | LOCKED
-    started_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    started_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
 
 # ── ExecutionLog ──────────────────────────────────────────────────────────────
@@ -121,7 +121,7 @@ class ExecutionLog(BaseModel):
     tokens_input: int | None = None
     tokens_output: int | None = None
     latency_ms: int | None = None
-    executed_at: datetime = Field(default_factory=datetime.utcnow)
+    executed_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
 
 # ── ForensicSnapshot ──────────────────────────────────────────────────────────
@@ -140,7 +140,7 @@ class ForensicSnapshot(BaseModel):
     # 'sequence_violation' | 'pii_detected' | 'hitl_required'
     capsule_snapshot: dict[str, Any] = Field(default_factory=dict)
     offending_input: str = ""  # first 200 chars only
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
 
 # ── Backwards compatibility ───────────────────────────────────────────────────
