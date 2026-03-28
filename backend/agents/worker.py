@@ -25,18 +25,20 @@ async def main():
     logger.info("[worker] booting agent_type=%s", agent_type)
 
     if agent_type == "safety":
-        agent = SafetyAgent("SafetyAgent", settings.safety_queue, settings.safety_queue)
+        agent = SafetyAgent(
+            "SafetyAgent", settings.safety_queue, settings.orchestrator_queue
+        )
     elif agent_type == "scoring":
         agent = ScoringAgent(
-            "ScoringAgent", settings.scoring_queue, settings.scoring_queue
+            "ScoringAgent", settings.scoring_queue, settings.orchestrator_queue
         )
     elif agent_type == "support":
         agent = SupportAgent(
-            "SupportAgent", settings.support_queue, settings.support_queue
+            "SupportAgent", settings.support_queue, settings.orchestrator_queue
         )
     elif agent_type == "sentiment":
         agent = SentimentAgent(
-            "SentimentAgent", settings.sentiment_queue, settings.sentiment_queue
+            "SentimentAgent", settings.sentiment_queue, settings.orchestrator_queue
         )
     else:
         # Orchestrator polls per-truck processed queues in round-robin.

@@ -20,9 +20,9 @@ from argparse import ArgumentParser
 from datetime import UTC, datetime
 
 from common.config.events import PRIORITY_MAP
-from common.config.settings import get_settings
 from common.models.enums import PingType, Priority, Source
 from common.redis.client import RedisClient
+from common.redis.keys import RedisSchema
 
 # ── Realistic Telemetry Data ────────────────────────────────────────────────
 
@@ -157,11 +157,8 @@ async def seed_telemetry(event_types: list[str], count: int = 1) -> None:
     Seed `count` telemetry events of specified types into the ingestion queue.
     """
     redis = RedisClient()
-    settings = get_settings()
-    buffer_key = settings.ingestion_queue
 
     print("\n📡 TraceData Telemetry Batch Seeder")
-    print(f"   Buffer Key: {buffer_key}")
     print(f"   Total Events: {count}")
     print(f"   Event Types: {', '.join(event_types)}\n")
 
@@ -175,6 +172,7 @@ async def seed_telemetry(event_types: list[str], count: int = 1) -> None:
 
         truck_id = payload["event"]["truck_id"]
         trip_id = payload["event"]["trip_id"]
+        buffer_key = RedisSchema.Telemetry.buffer(truck_id)
 
         try:
             await redis.push_to_buffer(buffer_key, json.dumps(payload), score)
@@ -188,7 +186,7 @@ async def seed_telemetry(event_types: list[str], count: int = 1) -> None:
         except Exception as e:
             print(f"❌ [{i+1:3d}] Failed to seed {event_type}: {e}")
 
-    print(f"\n✨ Seeded {seeded_count}/{count} events into {buffer_key}")
+    print(f"\n✨ Seeded {seeded_count}/{count} events into per-truck buffers")
     print("\n📝 Next steps:")
     print("   1. Run the ingestion worker:  python -m core.ingestion.worker")
     print("   2. Check Redis Insights → td → visualization → recent_events")
