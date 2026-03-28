@@ -35,20 +35,18 @@ async def my_function():
         await redis.close()  # Ensures cleanup
 ```
 
----
-
-## 📊 Data Flow Diagram
+## Data Flow Diagram
 
 ```mermaid
 graph TD
-    A["🚛 Device<br/>MQTT/REST"] -->|raw packet| B["buffer<br/>ZSet"]
+    A["Truck<br/>MQTT/REST"] -->|raw packet| B["buffer<br/>ZSet"]
     B -->|zpopmin| C["Ingestion Tool<br/>7-step pipeline"]
     C -->|success| D["processed<br/>ZSet"]
     C -->|rejected| E["DLQ<br/>48h TTL"]
     D -->|zpopmin| F["Orchestrator<br/>Dispatch to agents"]
     F -->|cache warm| G["Trip Context<br/>Redis String"]
     F -->|send_task| H["Celery Queue<br/>ZSet"]
-    H -->|dequeue| I["⚙️ Agent Workers<br/>Safety/Scoring"]
+    H -->|dequeue| I["Agent Workers<br/>Safety/Scoring"]
     I -->|output| J["Agent Output<br/>String/List"]
     I -->|completion| K["Trip Events<br/>Pub/Sub+List"]
     K -->|listen| F
@@ -176,8 +174,8 @@ await redis.push_to_visualization_buffer(
     payload=json.dumps(processed_packet),
     ttl=3600  # 60 minutes auto-cleanup
 )
-# ✓ O(1) non-blocking
-# ✓ Wrapped in try/catch (doesn't block pipeline if Redis fails)
+# O(1) non-blocking
+# Wrapped in try/catch (doesn't block pipeline if Redis fails)
 
 # READ (Dashboard/debugging)
 recent = await redis.get_recent_visualization_events(limit=50)
@@ -208,7 +206,7 @@ await pubsub.subscribe("tracedata:security:critical-alerts")
 async for message in pubsub.listen():
     if message["type"] == "message":
         data = json.loads(message["data"])
-        print(f"⚠️  Security Alert: {data['violation_type']}")
+        print(f"Security Alert: {data['violation_type']}")
 ```
 
 ## Key Schema Reference
@@ -298,7 +296,7 @@ async def safe_redis_operation():
     try:
         result = await redis.get_trip_context(key)
         if result is None:
-            print("⚠️  Cache miss — context not found")
+            print("Cache miss — context not found")
             # Implement fallback (e.g., reload from DB)
             
     except Exception as e:
@@ -315,18 +313,14 @@ async def safe_redis_operation():
 - **[client.py](client.py)** — `RedisClient` implementation
 - **[../../references/.../02-1-redis-event.md](../../../../references/04-technical-documentation/02-1-redis-event.md)** — Full Redis architecture
 
----
-
 ## Checklist for New Code
 
-- ✓ Use `RedisSchema` — never hardcode strings
-- ✓ Call `redis.close()` in finally block
-- ✓ Handle `None` returns (cache miss)
-- ✓ Use priority scores (0–9) where needed
-- ✓ Check TTL for context: 48h (CRITICAL/HIGH) vs 10min (others)
-- ✓ Wrap observability operations in try/catch
-- ✓ Log what you're doing (`logger.info(...)`)
-
----
+- Use `RedisSchema` — never hardcode strings
+- Call `redis.close()` in finally block
+- Handle `None` returns (cache miss)
+- Use priority scores (0–9) where needed
+- Check TTL for context: 48h (CRITICAL/HIGH) vs 10min (others)
+- Wrap observability operations in try/catch
+- Log what you're doing (`logger.info(...)`)
 
 **Questions?** See [Redis Event Registry](../../../../references/04-technical-documentation/02-1-redis-event.md) for full system design.
