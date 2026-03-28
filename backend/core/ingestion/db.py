@@ -12,6 +12,7 @@ for explicit SQL control over the events table.
 Location: backend/core/ingestion/db.py
 """
 
+import json
 import logging
 from datetime import UTC, datetime
 from typing import Any
@@ -19,7 +20,7 @@ from typing import Any
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 
-from common.config.events import EVENT_MATRIX, PRIORITY_MAP
+from common.config.events import EVENT_MATRIX
 from common.config.settings import get_settings
 from common.models.events import TelemetryPacket
 
@@ -67,17 +68,19 @@ class IngestionDB:
 
     async def event_exists(self, device_event_id: str) -> bool:
         """
-        Returns True if device_event_id already exists in events table.
+        Returns True if device_event_id already exists in pipeline_events table.
         Uses the partial index on (device_event_id) — sub-millisecond lookup.
         """
         async with self._engine.connect() as conn:
             result = await conn.execute(
-                text("""
+                text(
+                    """
                     SELECT EXISTS(
-                        SELECT 1 FROM events
+                        SELECT 1 FROM pipeline_events
                         WHERE device_event_id = :device_event_id
                     )
-                """),
+                """
+                ),
                 {"device_event_id": device_event_id},
             )
             return result.scalar()
@@ -86,7 +89,7 @@ class IngestionDB:
 
     async def insert_event(self, packet: TelemetryPacket) -> None:
         """
-        DB WRITE 1 — inserts raw event into events table.
+        DB WRITE 1 — inserts raw event into pipeline_events table.
         Sets status = 'received' on insert.
         ON CONFLICT DO NOTHING — belt-and-suspenders deduplication
         (idempotency check in step 5 is the primary guard).
@@ -102,8 +105,9 @@ class IngestionDB:
 
         async with self._engine.begin() as conn:
             await conn.execute(
-                text("""
-                    INSERT INTO events (
+                text(
+                    """
+                    INSERT INTO pipeline_events (
                         device_event_id,
                         event_id,
                         trip_id,
@@ -121,8 +125,10 @@ class IngestionDB:
                         odometer_km,
                         lat,
                         lon,
+                        details,
                         raw_payload,
                         status,
+                        retry_count,
                         ingested_at
                     ) VALUES (
                         :device_event_id,
@@ -142,12 +148,15 @@ class IngestionDB:
                         :odometer_km,
                         :lat,
                         :lon,
+                        :details,
                         :raw_payload,
                         'received',
+                        :retry_count,
                         :ingested_at
                     )
                     ON CONFLICT (device_event_id) DO NOTHING
-                """),
+                """
+                ),
                 {
                     "device_event_id": event.device_event_id,
                     "event_id": event.event_id,
@@ -156,18 +165,24 @@ class IngestionDB:
                     "truck_id": event.truck_id,
                     "event_type": event.event_type,
                     "category": config.category,
-                    "priority": PRIORITY_MAP[event.priority],
+                    "priority": event.priority.value,
                     "ping_type": packet.ping_type.value,
                     "source": packet.source.value,
                     "is_emergency": packet.is_emergency,
-                    "timestamp": event.timestamp,
+                    "timestamp": (
+                        event.timestamp.replace(tzinfo=None)
+                        if event.timestamp.tzinfo
+                        else event.timestamp
+                    ),
                     "offset_seconds": event.offset_seconds,
                     "trip_meter_km": event.trip_meter_km,
                     "odometer_km": event.odometer_km,
                     "lat": lat,
                     "lon": lon,
+                    "details": json.dumps(event.details or {}),
                     "raw_payload": packet.model_dump_json(),
-                    "ingested_at": datetime.now(UTC),
+                    "retry_count": 0,
+                    "ingested_at": datetime.now(UTC).replace(tzinfo=None),
                 },
             )
 

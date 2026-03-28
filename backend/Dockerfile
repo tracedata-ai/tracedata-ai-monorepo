@@ -15,5 +15,11 @@ RUN pip install .
 # Copy everything from backend context
 COPY . .
 
+# Convert line endings from CRLF to LF (Windows → Unix)
+RUN sed -i 's/\r$//' entrypoint.sh
+
+# Make entrypoint script executable
+RUN chmod +x entrypoint.sh
+
 # Default command (will be overridden by docker-compose)
 CMD ["python", "-m", "api.main"]

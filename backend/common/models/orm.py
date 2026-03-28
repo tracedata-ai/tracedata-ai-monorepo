@@ -16,7 +16,7 @@ class EventORM(Base):
     Updated by:  DB Manager (status transitions, lock lifecycle)
     """
 
-    __tablename__ = "events"
+    __tablename__ = "pipeline_events"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     event_id: Mapped[str] = mapped_column(String(36), unique=True)
@@ -31,12 +31,26 @@ class EventORM(Base):
     source: Mapped[str | None] = mapped_column(String(30), nullable=True)
     is_emergency: Mapped[bool] = mapped_column(Boolean, default=False)
     timestamp: Mapped[datetime.datetime] = mapped_column(DateTime)
-    offset_seconds: Mapped[int] = mapped_column(Integer)
+    offset_seconds: Mapped[int | None] = mapped_column(
+        Integer, nullable=True
+    )  # NULL for driver_app events
     trip_meter_km: Mapped[float | None] = mapped_column(Float, nullable=True)
     odometer_km: Mapped[float | None] = mapped_column(Float, nullable=True)
     lat: Mapped[float | None] = mapped_column(Float, nullable=True)
     lon: Mapped[float | None] = mapped_column(Float, nullable=True)
     details: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+
+    # ── Evidence S3 URLs (extracted from TelemetryPacket.evidence at ingestion time) ──
+    evidence_video_url: Mapped[str | None] = mapped_column(
+        String(500), nullable=True
+    )  # Dashcam clip (30s)
+    evidence_voice_url: Mapped[str | None] = mapped_column(
+        String(500), nullable=True
+    )  # Voice recording (emergency)
+    evidence_sensor_url: Mapped[str | None] = mapped_column(
+        String(500), nullable=True
+    )  # Sensor dump binary (emergency)
+
     raw_payload: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # ── Lease-based locking ───────────────────────────────────────────────────
@@ -70,7 +84,7 @@ class TripORM(Base):
     Read by:     Orchestrator, Scoring Agent (rolling average query)
     """
 
-    __tablename__ = "trips"
+    __tablename__ = "pipeline_trips"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     trip_id: Mapped[str] = mapped_column(String(100), unique=True)
@@ -84,9 +98,17 @@ class TripORM(Base):
     ended_at: Mapped[datetime.datetime | None] = mapped_column(DateTime, nullable=True)
     duration_minutes: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
-    # Route summary
+    # Route summary — populated from end_of_trip event details
     distance_km: Mapped[float | None] = mapped_column(Float, nullable=True)
     route_type: Mapped[str | None] = mapped_column(String(30), nullable=True)
+    avg_speed_kmh: Mapped[float | None] = mapped_column(Float, nullable=True)
+    max_speed_kmh: Mapped[float | None] = mapped_column(Float, nullable=True)
+    fuel_consumed_litres: Mapped[float | None] = mapped_column(Float, nullable=True)
+    total_checkpoints: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    safe_checkpoints: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    safety_percentage: Mapped[float | None] = mapped_column(
+        Float, nullable=True
+    )  # safe_checkpoints / total_checkpoints × 100
 
     # Trip lifecycle — see status machine above
     status: Mapped[str] = mapped_column(String(30), default="active")

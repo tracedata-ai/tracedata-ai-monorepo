@@ -1,10 +1,20 @@
 import json
+from datetime import datetime
 
 import redis.asyncio as redis
 
 from common.config.settings import get_settings
 
 settings = get_settings()
+
+
+class DateTimeEncoder(json.JSONEncoder):
+    """Custom JSON encoder that handles datetime serialization."""
+
+    def default(self, obj):
+        if isinstance(obj, datetime):
+            return obj.isoformat()
+        return super().default(obj)
 
 
 class RedisClient:
@@ -114,7 +124,7 @@ class RedisClient:
 
     async def store_trip_context(self, key: str, context: dict, ttl: int):
         """Warmed once by Orchestrator, read by all agents."""
-        await self._client.setex(key, ttl, json.dumps(context))
+        await self._client.setex(key, ttl, json.dumps(context, cls=DateTimeEncoder))
 
     async def get_trip_context(self, key: str) -> dict | None:
         """Hydrate agent from shared context."""
@@ -123,7 +133,7 @@ class RedisClient:
 
     async def push_smoothness_log(self, key: str, log: dict, ttl: int):
         """Accumulate smoothness windows for Scoring Agent."""
-        await self._client.lpush(key, json.dumps(log))
+        await self._client.lpush(key, json.dumps(log, cls=DateTimeEncoder))
         await self._client.expire(key, ttl)
 
     async def get_all_smoothness_logs(self, key: str) -> list[dict]:
@@ -133,7 +143,7 @@ class RedisClient:
 
     async def store_agent_output(self, key: str, output: dict, ttl: int):
         """Store agent result for Orchestrator to consume."""
-        await self._client.setex(key, ttl, json.dumps(output))
+        await self._client.setex(key, ttl, json.dumps(output, cls=DateTimeEncoder))
 
     async def get_agent_output(self, key: str) -> dict | None:
         """Read specific agent result."""
@@ -144,7 +154,7 @@ class RedisClient:
 
     async def publish_completion(self, channel: str, event: dict, ttl: int):
         """Dual write: Pub/Sub for immediate, List for durable fallback."""
-        event_json = json.dumps(event)
+        event_json = json.dumps(event, cls=DateTimeEncoder)
         await self._client.publish(channel, event_json)
         await self._client.lpush(channel, event_json)
         await self._client.expire(channel, ttl)

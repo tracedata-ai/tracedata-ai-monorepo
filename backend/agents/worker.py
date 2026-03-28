@@ -1,6 +1,5 @@
 import asyncio
 import logging
-import os
 import sys
 
 from agents.driver_support.agent import SupportAgent
@@ -41,16 +40,9 @@ async def main():
             "SentimentAgent", settings.sentiment_queue, settings.orchestrator_queue
         )
     else:
-        # Orchestrator polls per-truck processed queues in round-robin.
-        # Get truck IDs from environment or use defaults for dev
-        truck_ids_str = os.getenv("TRUCK_IDS", "T001,T002,T003")
-        truck_ids = [tid.strip() for tid in truck_ids_str.split(",") if tid.strip()]
-
-        agent = OrchestratorAgent(truck_ids=truck_ids)
-        logger.info(
-            "[worker] orchestrator starting with truck_ids=%s",
-            truck_ids,
-        )
+        # Orchestrator dynamically discovers trucks from processed queues
+        agent = OrchestratorAgent()
+        logger.info("[worker] orchestrator starting (dynamic truck discovery mode)")
 
     await agent.run()
 

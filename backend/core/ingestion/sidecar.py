@@ -170,7 +170,11 @@ class IngestionSidecar:
         trip_event = self._transformer.transform(packet)
         trip_event_json = trip_event.model_dump_json()
 
-        await self._redis.push_to_processed(truck_id, trip_event_json, priority_score)
+        await self._redis.push_to_processed(
+            RedisSchema.Telemetry.processed(truck_id),
+            trip_event_json,
+            priority_score,
+        )
 
         logger.info(
             {
@@ -238,11 +242,11 @@ class IngestionSidecar:
         DLQ entry includes the raw payload and structured reason code.
         TTL: 48h (fleet admin inspection window).
         """
-        await self._redis.push_to_dlq(
-            truck_id=truck_id,
-            raw_packet=raw_json,
-            reason=reason,
-            priority=priority_score,
+        await self._redis.push_to_rejected(
+            key=RedisSchema.Telemetry.rejected(truck_id),
+            payload=raw_json,
+            score=priority_score,
+            ttl=172800,  # 48 hours
         )
         logger.warning(
             {

@@ -95,20 +95,57 @@ class OrchestratorAgent:
 
     # ── Main loop ─────────────────────────────────────────────────────────────
 
+    async def _discover_trucks(self) -> list[str]:
+        """
+        Discover truck IDs from active processed queues in Redis.
+        Returns list of truck_ids that have events waiting.
+
+        Pattern: telemetry:{truck_id}:processed (sorted set)
+        """
+        pattern = "telemetry:*:processed"
+        keys = await self.redis._client.keys(pattern)
+
+        # Extract truck_id from "telemetry:{truck_id}:processed"
+        truck_ids = [key.split(":")[1] for key in keys if ":" in key]
+
+        if truck_ids:
+            logger.info(
+                {
+                    "action": "trucks_discovered",
+                    "count": len(truck_ids),
+                    "truck_ids": truck_ids,
+                }
+            )
+        else:
+            logger.debug(
+                "No trucks with processed queues found (waiting for ingestion to populate)."
+            )
+
+        return sorted(set(truck_ids))  # Deduplicate and sort for consistency
+
     async def run(self) -> None:
-        """Poll all truck processed queues in round-robin."""
+        """Poll all discovered truck processed queues in round-robin."""
         self._running = True
         logger.info(
             {
                 "action": "orchestrator_started",
-                "truck_ids": self.truck_ids,
+                "mode": "dynamic_truck_discovery",
             }
         )
 
         try:
             while self._running:
+                # Dynamically discover trucks from processed queues
+                truck_ids = await self._discover_trucks()
+
+                if not truck_ids:
+                    # Ingestion hasn't populated processed queues yet
+                    logger.debug("No trucks found, sleeping 1s before retry...")
+                    await asyncio.sleep(1.0)
+                    continue
+
                 handled = 0
-                for truck_id in self.truck_ids:
+                for truck_id in truck_ids:
                     key = RedisSchema.Telemetry.processed(truck_id)
                     result = await self.redis.pop_from_processed(key)
                     if result is None:

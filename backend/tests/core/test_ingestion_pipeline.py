@@ -19,7 +19,7 @@ def mock_db():
 def mock_redis():
     redis = MagicMock()
     redis.push_to_processed = AsyncMock()
-    redis.push_to_dlq = AsyncMock()
+    redis.push_to_rejected = AsyncMock()
     return redis
 
 
@@ -67,7 +67,7 @@ async def test_pipeline_rejected_injection(sidecar, telemetry_packet):
 
     assert result.ok is False
     assert result.rejected is True
-    sidecar._redis.push_to_dlq.assert_called_once()
+    sidecar._redis.push_to_rejected.assert_called_once()
     assert "injection:sql_" in result.reason or "injection" in result.reason
 
 
@@ -82,7 +82,7 @@ async def test_pipeline_rejected_invalid_schema(sidecar, telemetry_packet):
 
     assert result.ok is False
     assert result.reason == "schema_invalid"
-    sidecar._redis.push_to_dlq.assert_called_once()
+    sidecar._redis.push_to_rejected.assert_called_once()
 
 
 @pytest.mark.asyncio
@@ -98,5 +98,5 @@ async def test_pipeline_idempotency_skip(sidecar, telemetry_packet, mock_db):
     assert result.reason == "duplicate"
 
     # It routes duplicates to DLQ per new design
-    sidecar._redis.push_to_dlq.assert_called_once()
+    sidecar._redis.push_to_rejected.assert_called_once()
     sidecar._redis.push_to_processed.assert_not_called()

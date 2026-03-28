@@ -1,8 +1,6 @@
 import asyncio
 import logging
-import os
 
-from common.config.settings import get_settings
 from common.redis.client import RedisClient
 from common.redis.keys import RedisSchema
 from core.ingestion.db import IngestionDB
@@ -15,14 +13,33 @@ logging.basicConfig(
 logger = logging.getLogger("ingestion")
 
 
+async def _discover_trucks(redis: RedisClient) -> list[str]:
+    """
+    Discover truck IDs from active telemetry buffers in Redis.
+    Returns list of truck_ids that have events waiting.
+
+    Pattern: telemetry:{truck_id}:buffer (sorted set)
+    """
+    pattern = "telemetry:*:buffer"
+    keys = await redis._client.keys(pattern)
+
+    # Extract truck_id from "telemetry:{truck_id}:buffer"
+    truck_ids = [key.split(":")[1] for key in keys if ":" in key]
+
+    if truck_ids:
+        logger.info(
+            f"Discovered {len(truck_ids)} trucks with buffered telemetry: {truck_ids}"
+        )
+    else:
+        logger.info(
+            "No trucks with buffered telemetry found (scanning empty). Waiting for events..."
+        )
+
+    return sorted(set(truck_ids))  # Deduplicate and sort for consistency
+
+
 async def main():
-    settings = get_settings()
-
-    # Get truck IDs to monitor from environment or use defaults for dev
-    truck_ids_str = os.getenv("TRUCK_IDS", "T001,T002,T003")
-    truck_ids = [tid.strip() for tid in truck_ids_str.split(",") if tid.strip()]
-
-    logger.info(f"Ingestion worker started. Monitoring trucks: {truck_ids}")
+    logger.info("🚀 Ingestion worker started (dynamic truck discovery mode)")
 
     async with IngestionDB() as db:
         redis = RedisClient()
@@ -30,9 +47,18 @@ async def main():
 
         try:
             while True:
+                # Dynamically discover trucks from Redis keys
+                truck_ids = await _discover_trucks(redis)
+
+                if not truck_ids:
+                    # No trucks yet — sleep and retry
+                    logger.debug("No trucks found, sleeping 1s before retry...")
+                    await asyncio.sleep(1.0)
+                    continue
+
                 handled = 0
 
-                # Poll all trucks in round-robin
+                # Poll all discovered trucks in round-robin
                 for truck_id in truck_ids:
                     raw_key = RedisSchema.Telemetry.buffer(truck_id)
                     raw_packet = await redis.pop_from_buffer(raw_key)

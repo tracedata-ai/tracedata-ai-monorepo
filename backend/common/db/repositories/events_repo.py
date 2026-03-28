@@ -32,7 +32,7 @@ class EventsRepo:
                 text(
                     """
                     SELECT EXISTS(
-                        SELECT 1 FROM events
+                        SELECT 1 FROM pipeline_events
                         WHERE device_event_id = :device_event_id
                     )
                 """
@@ -55,7 +55,7 @@ class EventsRepo:
             result = await conn.execute(
                 text(
                     """
-                    UPDATE events
+                    UPDATE pipeline_events
                     SET    status    = 'processing',
                            locked_by = 'orchestrator',
                            locked_at = :now
@@ -66,7 +66,7 @@ class EventsRepo:
                 ),
                 {
                     "device_event_id": device_event_id,
-                    "now": datetime.now(UTC),
+                    "now": datetime.now(UTC).replace(tzinfo=None),
                 },
             )
             acquired = result.rowcount == 1
@@ -98,7 +98,7 @@ class EventsRepo:
             await conn.execute(
                 text(
                     """
-                    UPDATE events
+                    UPDATE pipeline_events
                     SET    status       = 'processed',
                            locked_by    = NULL,
                            locked_at    = NULL,
@@ -109,7 +109,7 @@ class EventsRepo:
                 ),
                 {
                     "device_event_id": device_event_id,
-                    "now": datetime.now(UTC),
+                    "now": datetime.now(UTC).replace(tzinfo=None),
                 },
             )
         logger.info(
@@ -128,7 +128,7 @@ class EventsRepo:
             await conn.execute(
                 text(
                     """
-                    UPDATE events
+                    UPDATE pipeline_events
                     SET    status      = 'failed',
                            locked_by   = NULL,
                            locked_at   = NULL,
@@ -154,7 +154,7 @@ class EventsRepo:
             await conn.execute(
                 text(
                     """
-                    UPDATE events
+                    UPDATE pipeline_events
                     SET    status    = 'locked',
                            locked_by = NULL,
                            locked_at = NULL
@@ -182,7 +182,7 @@ class EventsRepo:
             result = await conn.execute(
                 text(
                     """
-                    UPDATE events
+                    UPDATE pipeline_events
                     SET    status    = 'received',
                            locked_by = NULL,
                            locked_at = NULL
