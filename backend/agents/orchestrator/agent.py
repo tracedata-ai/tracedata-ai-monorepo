@@ -267,7 +267,6 @@ class OrchestratorAgent:
                 if isinstance(event.priority, int)
                 else PRIORITY_MAP.get(event.priority, 9)
             ),
-            start_time=event.timestamp,
             historical_avg_score=historical_avg,
             peer_group_avg=peer_group_avg,
             event=event,
