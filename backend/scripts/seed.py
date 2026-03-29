@@ -13,13 +13,14 @@ from decimal import Decimal
 
 from sqlalchemy import delete
 
-from api.models.base import Base
+from api.models.base import Base as ApiBase
 from api.models.driver import Driver
 from api.models.fleet import Vehicle
 from api.models.route import Route
 from api.models.tenant import Tenant
 from api.models.trip import Trip
-from core.database import AsyncSessionLocal, engine
+from common.db.engine import AsyncSessionLocal, engine
+from common.models.orm import Base as PipelineBase
 from core.logging import LogToken, get_logger, setup_logging
 
 # Module-level logger — uses the script's path (scripts.seed) as the logger name
@@ -180,9 +181,13 @@ async def seed_data():
     logger.info(f"{LogToken.SEED_START} Starting database seeding...")
 
     # ── 0. Create Tables (Dev mode) ───────────────────────────────────────────
+    # Create both API tables and pipeline tables in order (foreign key dependencies)
     async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    logger.info(f"{LogToken.DATABASE_INIT} Database tables verified/created.")
+        await conn.run_sync(
+            ApiBase.metadata.create_all
+        )  # Tenants, drivers, vehicles, routes first
+        await conn.run_sync(PipelineBase.metadata.create_all)  # Events, trips second
+    logger.info(f"{LogToken.DATABASE_INIT} API and pipeline tables verified/created.")
 
     async with AsyncSessionLocal() as session:
         try:

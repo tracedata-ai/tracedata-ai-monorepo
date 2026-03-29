@@ -38,10 +38,14 @@ COPY --from=builder /app/.venv /app/.venv
 # Prepend venv's bin directory to PATH so `python` and `uvicorn` resolve correctly
 ENV PATH="/app/.venv/bin:$PATH"
 
-# Copy application source
+# Copy application source (all modules)
 COPY api/ ./api/
 COPY agents/ ./agents/
+COPY common/ ./common/
+COPY core/ ./core/
+COPY security/ ./security/
 COPY scripts/ ./scripts/
+COPY celery_app.py ./
 COPY entrypoint.sh ./
 
 # Ensure the entrypoint script is executable
