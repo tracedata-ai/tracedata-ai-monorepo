@@ -100,3 +100,32 @@ async def test_pipeline_idempotency_skip(sidecar, telemetry_packet, mock_db):
     # It routes duplicates to DLQ per new design
     sidecar._redis.push_to_rejected.assert_called_once()
     sidecar._redis.push_to_processed.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_priority_in_processed_event_is_string_not_int(sidecar, telemetry_packet):
+    """
+    Regression guard: the TripEvent pushed to the processed queue must have
+    priority as a Priority StrEnum string ('high'), never as an int (3).
+
+    Before the transformer fix, PRIORITY_MAP[event.priority.value] returned
+    an integer score (0/3/6/9) which Pydantic rejected at TripEvent creation.
+    """
+    result = await sidecar.process(telemetry_packet, truck_id="TRK123")
+
+    assert result.ok is True
+
+    args = sidecar._redis.push_to_processed.call_args[0]
+    pushed_event = TripEvent(**json.loads(args[1]))
+
+    # Priority must be the string enum value, not a Redis score integer
+    assert isinstance(
+        pushed_event.priority, str
+    ), f"priority must be a string, got {type(pushed_event.priority)}"
+    assert pushed_event.priority in (
+        "critical",
+        "high",
+        "medium",
+        "low",
+    ), f"priority must be a valid Priority value, got '{pushed_event.priority}'"
+    assert pushed_event.priority != 3, "priority must not be the Redis score int"

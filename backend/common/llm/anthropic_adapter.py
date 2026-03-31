@@ -15,7 +15,7 @@ class AnthropicAdapter(LLMAdapter):
     def __init__(self, model: str | AnthropicModel | None = None):
         api_key = os.getenv("ANTHROPIC_API_KEY")
         if not api_key:
-            raise EnvironmentError(
+            raise OSError(
                 "ANTHROPIC_API_KEY not found in environment. "
                 "Set it in .env.local or as environment variable."
             )

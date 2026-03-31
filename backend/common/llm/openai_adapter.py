@@ -14,7 +14,7 @@ class OpenAIAdapter(LLMAdapter):
     def __init__(self, model: str | OpenAIModel | None = None):
         api_key = os.getenv("OPENAI_API_KEY")
         if not api_key:
-            raise EnvironmentError(
+            raise OSError(
                 "OPENAI_API_KEY not found in environment. "
                 "Set it in .env.local or as environment variable."
             )

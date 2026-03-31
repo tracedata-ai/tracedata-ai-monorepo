@@ -17,7 +17,6 @@ Usage:
 import asyncio
 import json
 import sys
-from datetime import UTC, datetime
 
 import redis.asyncio as redis
 
@@ -95,11 +94,11 @@ async def show_truck_detail(truck_id: str):
     try:
         print("\n" + "=" * 80)
         print(
-            f"╔════════════════════════════════════════════════════════════════════════════╗"
+            "╔════════════════════════════════════════════════════════════════════════════╗"
         )
         print(f"║             DEBUG QUEUES FOR TRUCK: {truck_id:<47} ║")
         print(
-            f"╚════════════════════════════════════════════════════════════════════════════╝"
+            "╚════════════════════════════════════════════════════════════════════════════╝"
         )
         print()
 
@@ -187,9 +186,9 @@ async def main():
         elif arg.startswith("tk") or arg.startswith("TK"):
             await show_truck_detail(arg.upper())
         else:
-            print(f"Usage: python inspect_debug_queues.py [truck_id|watch]")
-            print(f"  truck_id:  Show details for a truck (e.g., TK001)")
-            print(f"  watch:     Live refresh mode (5s interval)")
+            print("Usage: python inspect_debug_queues.py [truck_id|watch]")
+            print("  truck_id:  Show details for a truck (e.g., TK001)")
+            print("  watch:     Live refresh mode (5s interval)")
             sys.exit(1)
     else:
         await show_all_trucks()

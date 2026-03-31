@@ -7,7 +7,6 @@ This determines Celery task chaining and event listener logic.
 
 from dataclasses import dataclass, field
 from enum import Enum, auto
-from typing import List, Set
 
 from common.config.events import AgentType
 
@@ -51,7 +50,7 @@ class AgentSequenceStep:
     order: int
     """Execution order (1, 2, 3, ...). Lower runs first."""
 
-    depends_on: Set[AgentType] = field(default_factory=set)
+    depends_on: set[AgentType] = field(default_factory=set)
     """Which agents must complete before this one starts.
     
     Example:
@@ -109,19 +108,19 @@ class ExecutionWorkflow:
     execution_policy: ExecutionPolicy
     """Sequential, Parallel, or Conditional"""
 
-    steps: List[AgentSequenceStep] = field(default_factory=list)
+    steps: list[AgentSequenceStep] = field(default_factory=list)
     """Ordered list of execution steps"""
 
     timeout_seconds: int = 300
     """How long to wait for all agents to complete"""
 
     @property
-    def agents(self) -> Set[AgentType]:
+    def agents(self) -> set[AgentType]:
         """All agents in this workflow"""
         return {step.agent for step in self.steps}
 
     @property
-    def first_agents(self) -> Set[AgentType]:
+    def first_agents(self) -> set[AgentType]:
         """Agents that run first (no dependencies)"""
         return {step.agent for step in self.steps if step.is_first}
 
@@ -142,7 +141,7 @@ class ExecutionWorkflow:
                 return step
         return None
 
-    def get_dependents(self, agent: AgentType) -> List[AgentType]:
+    def get_dependents(self, agent: AgentType) -> list[AgentType]:
         """Get agents that depend on this agent"""
         dependents = []
         for step in self.steps:

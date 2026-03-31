@@ -623,24 +623,24 @@ async def send_telemetry(mode="all"):
             print("\n" + "=" * 60)
             print("✅ TELEMETRY DATA SENT TO REDIS")
             print("=" * 60)
-            print(f"Queue:           telemetry:TK001:buffer")
+            print("Queue:           telemetry:TK001:buffer")
             print(f"Total events:    {event_counter}")
 
             if trips_sent > 0:
-                print(f"\n📊 COMPLETE TRIPS:")
+                print("\n📊 COMPLETE TRIPS:")
                 print(f"   • Trips sent:           {trips_sent}")
-                print(f"   • Events per trip:      3 (start, normal_op, end)")
+                print("   • Events per trip:      3 (start, normal_op, end)")
 
             if diverse_events > 0:
-                print(f"\n🎯 DIVERSE EVENTS:")
-                print(f"   • harsh_brake:          ×2 → Safety agent")
-                print(f"   • harsh_corner:         ×1 → Safety agent")
-                print(f"   • driver_sos:           ×1 → Safety agent")
-                print(f"   • speeding:             ×1 → Support agent")
-                print(f"   • excessive_idle:       ×1 → Support agent")
+                print("\n🎯 DIVERSE EVENTS:")
+                print("   • harsh_brake:          ×2 → Safety agent")
+                print("   • harsh_corner:         ×1 → Safety agent")
+                print("   • driver_sos:           ×1 → Safety agent")
+                print("   • speeding:             ×1 → Support agent")
+                print("   • excessive_idle:       ×1 → Support agent")
 
             if random_events > 0:
-                print(f"\n🎲 RANDOM EVENTS:")
+                print("\n🎲 RANDOM EVENTS:")
                 print(f"   • Total random events:  {random_events}")
 
             print(f"\n✅ Queue size: {event_counter} events ready for processing")

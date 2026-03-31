@@ -19,7 +19,6 @@ from common.config.events import (
     EVENT_MATRIX,
     PRIORITY_MAP,
     Action,
-    AgentType,
 )
 
 logger = logging.getLogger(__name__)

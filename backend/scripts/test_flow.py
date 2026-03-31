@@ -3,7 +3,6 @@
 
 import asyncio
 import json
-import sys
 import uuid
 from datetime import UTC, datetime, timedelta
 

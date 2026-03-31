@@ -41,13 +41,11 @@ class TripsRepo:
             now = datetime.now(UTC).replace(tzinfo=None)  # naive timestamp for DB
             started_at_val = (started_at or datetime.now(UTC)).replace(tzinfo=None)
             await conn.execute(
-                text(
-                    """
+                text("""
                     INSERT INTO pipeline_trips (trip_id, driver_id, truck_id, status, started_at, escalated, capsule_closed, created_at, updated_at)
                     VALUES (:trip_id, :driver_id, :truck_id, 'active', :started_at, false, false, :now, :now)
                     ON CONFLICT (trip_id) DO NOTHING
-                """
-                ),
+                """),
                 {
                     "trip_id": trip_id,
                     "driver_id": driver_id,
@@ -69,15 +67,13 @@ class TripsRepo:
         async with self._engine.begin() as conn:
             now = datetime.now(UTC).replace(tzinfo=None)  # naive timestamp
             await conn.execute(
-                text(
-                    """
+                text("""
                     UPDATE pipeline_trips
                     SET    status     = :status,
                            action_sla = COALESCE(:action_sla, action_sla),
                            updated_at = :now
                     WHERE  trip_id = :trip_id
-                """
-                ),
+                """),
                 {
                     "trip_id": trip_id,
                     "status": status,
@@ -94,16 +90,14 @@ class TripsRepo:
         async with self._engine.begin() as conn:
             now = datetime.now(UTC).replace(tzinfo=None)  # naive timestamp
             await conn.execute(
-                text(
-                    """
+                text("""
                     UPDATE pipeline_trips
                     SET    status         = 'complete',
                            capsule_closed = true,
                            closed_at      = :now,
                            updated_at     = :now
                     WHERE  trip_id = :trip_id
-                """
-                ),
+                """),
                 {"trip_id": trip_id, "now": now},
             )
         logger.info({"action": "trip_closed", "trip_id": trip_id})
