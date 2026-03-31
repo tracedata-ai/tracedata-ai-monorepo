@@ -13,6 +13,7 @@ Usage:
 
 import asyncio
 import json
+import os
 import random
 import sys
 import uuid
@@ -592,7 +593,8 @@ async def send_telemetry(mode="all"):
 
     # Handle Redis telemetry
     if mode in ("trips", "diverse", "random", "all"):
-        r = await redis.from_url("redis://localhost:6379/0")
+        redis_url = os.environ.get("REDIS_URL", "redis://localhost:6379/0")
+        r = await redis.from_url(redis_url)
 
         try:
             await r.delete("telemetry:TK001:buffer")

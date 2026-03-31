@@ -27,7 +27,7 @@ class TripEvent(BaseModel):
     driver_id: str
     event_type: str
     category: str
-    priority: Priority | int
+    priority: Priority
     timestamp: datetime
     offset_seconds: int
     trip_meter_km: float | None = None

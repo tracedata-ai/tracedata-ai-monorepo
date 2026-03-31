@@ -11,15 +11,16 @@ NO magic strings - everything is Enum or StrEnum.
 
 from dataclasses import dataclass, field
 from enum import Enum, auto
-from typing import List, Set
+
+from common.models.enums import Priority as PriorityLevel
 
 # ==============================================================================
 # ENUMS (Type-Safe, No Magic Strings)
 # ==============================================================================
 
 
-class Priority(Enum):
-    """Event priority levels"""
+class PriorityScore(Enum):
+    """Redis queue priority scores (lower = higher priority for zpopmin)"""
 
     CRITICAL = 0  # Immediate action required
     HIGH = 3  # Urgent, next available
@@ -107,13 +108,13 @@ class CapsuleExpiryPolicy(Enum):
 class ScopeSpecification:
     """Security scope for an event"""
 
-    read_keys: Set[DataKey] = field(default_factory=set)
+    read_keys: set[DataKey] = field(default_factory=set)
     """What data this event's agents can read"""
 
-    write_keys: Set[DataKey] = field(default_factory=set)
+    write_keys: set[DataKey] = field(default_factory=set)
     """What data this event's agents can write"""
 
-    allowed_agents: Set[AgentType] = field(default_factory=set)
+    allowed_agents: set[AgentType] = field(default_factory=set)
     """Which agents are allowed to run for this event"""
 
     data_classification: DataClassification = DataClassification.INTERNAL
@@ -156,8 +157,8 @@ class EventConfig:
     category: str
     """Event category (critical, harsh_events, trip_lifecycle, etc.)"""
 
-    priority: Priority
-    """Event priority (CRITICAL, HIGH, MEDIUM, LOW)"""
+    priority: "Priority"
+    """Event priority (CRITICAL, HIGH, MEDIUM, LOW) from enums.Priority"""
 
     ml_weight: float
     """ML weighting factor for scoring"""
@@ -168,14 +169,14 @@ class EventConfig:
 
     # ── CONVENIENCE PROPERTIES ────────────────────────────
     @property
-    def agents_from_action(self) -> List[AgentType]:
+    def agents_from_action(self) -> list[AgentType]:
         """Get agents that should run based on action"""
         return list(self.scope.allowed_agents)
 
     @property
     def is_critical(self) -> bool:
         """Is this a critical event"""
-        return self.priority == Priority.CRITICAL
+        return self.priority.value == "critical"
 
     @property
     def requires_security_hardening(self) -> bool:
@@ -189,14 +190,14 @@ class EventConfig:
 
 
 # ==============================================================================
-# PRIORITY MAP (Redis ZSet scores)
+# PRIORITY MAPPING (String → Score for Redis ZSet)
 # ==============================================================================
 # Note: Lower score = higher priority (for zpopmin)
 PRIORITY_MAP = {
-    Priority.CRITICAL: 0,
-    Priority.HIGH: 3,
-    Priority.MEDIUM: 6,
-    Priority.LOW: 9,
+    "critical": 0,
+    "high": 3,
+    "medium": 6,
+    "low": 9,
 }
 
 
@@ -230,7 +231,7 @@ EVENT_MATRIX: dict[str, EventConfig] = {
     "collision": EventConfig(
         action=Action.EMERGENCY_ALERT_911,
         category="critical",
-        priority=Priority.CRITICAL,
+        priority=PriorityLevel.CRITICAL,
         ml_weight=1.0,
         scope=ScopeSpecification(
             read_keys={
@@ -255,7 +256,7 @@ EVENT_MATRIX: dict[str, EventConfig] = {
     "rollover": EventConfig(
         action=Action.EMERGENCY_ALERT_911,
         category="critical",
-        priority=Priority.CRITICAL,
+        priority=PriorityLevel.CRITICAL,
         ml_weight=1.0,
         scope=ScopeSpecification(
             read_keys={
@@ -280,7 +281,7 @@ EVENT_MATRIX: dict[str, EventConfig] = {
     "driver_sos": EventConfig(
         action=Action.EMERGENCY_ALERT,
         category="critical",
-        priority=Priority.CRITICAL,
+        priority=PriorityLevel.CRITICAL,
         ml_weight=1.0,
         scope=ScopeSpecification(
             read_keys={DataKey.DRIVER_ID, DataKey.TRIP_ID},
@@ -297,7 +298,7 @@ EVENT_MATRIX: dict[str, EventConfig] = {
     "harsh_brake": EventConfig(
         action=Action.COACHING,
         category="harsh_events",
-        priority=Priority.HIGH,
+        priority=PriorityLevel.HIGH,
         ml_weight=0.7,
         scope=ScopeSpecification(
             read_keys={
@@ -323,7 +324,7 @@ EVENT_MATRIX: dict[str, EventConfig] = {
     "hard_accel": EventConfig(
         action=Action.COACHING,
         category="harsh_events",
-        priority=Priority.HIGH,
+        priority=PriorityLevel.HIGH,
         ml_weight=0.7,
         scope=ScopeSpecification(
             read_keys={
@@ -346,7 +347,7 @@ EVENT_MATRIX: dict[str, EventConfig] = {
     "harsh_corner": EventConfig(
         action=Action.COACHING,
         category="harsh_events",
-        priority=Priority.HIGH,
+        priority=PriorityLevel.HIGH,
         ml_weight=0.6,
         scope=ScopeSpecification(
             read_keys={
@@ -369,7 +370,7 @@ EVENT_MATRIX: dict[str, EventConfig] = {
     "vehicle_offline": EventConfig(
         action=Action.FLEET_ALERT,
         category="critical",
-        priority=Priority.HIGH,
+        priority=PriorityLevel.HIGH,
         ml_weight=0.3,
         scope=ScopeSpecification(
             read_keys={DataKey.DRIVER_ID, DataKey.TRUCK_ID, DataKey.TRIP_ID},
@@ -385,7 +386,7 @@ EVENT_MATRIX: dict[str, EventConfig] = {
     "speeding": EventConfig(
         action=Action.REGULATORY,
         category="speed_compliance",
-        priority=Priority.MEDIUM,
+        priority=PriorityLevel.MEDIUM,
         ml_weight=0.5,
         scope=ScopeSpecification(
             read_keys={
@@ -402,7 +403,7 @@ EVENT_MATRIX: dict[str, EventConfig] = {
     "driver_feedback": EventConfig(
         action=Action.SENTIMENT,
         category="driver_feedback",
-        priority=Priority.MEDIUM,
+        priority=PriorityLevel.MEDIUM,
         ml_weight=0.0,
         scope=ScopeSpecification(
             read_keys={DataKey.DRIVER_ID, DataKey.TRIP_ID},
@@ -415,7 +416,7 @@ EVENT_MATRIX: dict[str, EventConfig] = {
     "malicious_injection": EventConfig(
         action=Action.REJECT_AND_LOG,
         category="security_scan",
-        priority=Priority.MEDIUM,
+        priority=PriorityLevel.MEDIUM,
         ml_weight=0.0,
         scope=ScopeSpecification(
             read_keys=set(),
@@ -432,7 +433,7 @@ EVENT_MATRIX: dict[str, EventConfig] = {
     "excessive_idle": EventConfig(
         action=Action.COACHING,
         category="idle_fuel",
-        priority=Priority.LOW,
+        priority=PriorityLevel.LOW,
         ml_weight=0.2,
         scope=ScopeSpecification(
             read_keys={DataKey.DRIVER_ID, DataKey.TRIP_ID, DataKey.TRIP_CONTEXT},
@@ -445,7 +446,7 @@ EVENT_MATRIX: dict[str, EventConfig] = {
     "end_of_trip": EventConfig(
         action=Action.SCORING,
         category="trip_lifecycle",
-        priority=Priority.LOW,
+        priority=PriorityLevel.LOW,
         ml_weight=0.0,
         scope=ScopeSpecification(
             read_keys={
@@ -469,7 +470,7 @@ EVENT_MATRIX: dict[str, EventConfig] = {
     "start_of_trip": EventConfig(
         action=Action.LOGGING,
         category="trip_lifecycle",
-        priority=Priority.LOW,
+        priority=PriorityLevel.LOW,
         ml_weight=0.0,
         scope=ScopeSpecification(
             read_keys={DataKey.DRIVER_ID, DataKey.TRIP_ID},
@@ -482,7 +483,7 @@ EVENT_MATRIX: dict[str, EventConfig] = {
     "smoothness_log": EventConfig(
         action=Action.REWARD_BONUS,
         category="normal_operation",
-        priority=Priority.LOW,
+        priority=PriorityLevel.LOW,
         ml_weight=-0.2,
         scope=ScopeSpecification(
             read_keys={DataKey.DRIVER_ID, DataKey.TRIP_ID},
@@ -495,7 +496,7 @@ EVENT_MATRIX: dict[str, EventConfig] = {
     "normal_operation": EventConfig(
         action=Action.ANALYTICS,
         category="normal_operation",
-        priority=Priority.LOW,
+        priority=PriorityLevel.LOW,
         ml_weight=0.0,
         scope=ScopeSpecification(
             read_keys={DataKey.DRIVER_ID, DataKey.TRIP_ID},
@@ -508,7 +509,7 @@ EVENT_MATRIX: dict[str, EventConfig] = {
     "driver_complaint": EventConfig(
         action=Action.SUPPORT,
         category="driver_feedback",
-        priority=Priority.HIGH,
+        priority=PriorityLevel.HIGH,
         ml_weight=0.0,
         scope=ScopeSpecification(
             read_keys={DataKey.DRIVER_ID, DataKey.TRIP_ID},
@@ -521,7 +522,7 @@ EVENT_MATRIX: dict[str, EventConfig] = {
     "driver_dispute": EventConfig(
         action=Action.HITL,
         category="driver_feedback",
-        priority=Priority.HIGH,
+        priority=PriorityLevel.HIGH,
         ml_weight=0.0,
         scope=ScopeSpecification(
             read_keys={DataKey.DRIVER_ID, DataKey.TRIP_ID, DataKey.TRIP_CONTEXT},
@@ -534,7 +535,7 @@ EVENT_MATRIX: dict[str, EventConfig] = {
     "driver_comment": EventConfig(
         action=Action.SENTIMENT,
         category="driver_feedback",
-        priority=Priority.LOW,
+        priority=PriorityLevel.LOW,
         ml_weight=0.0,
         scope=ScopeSpecification(
             read_keys={DataKey.DRIVER_ID, DataKey.TRIP_ID},
