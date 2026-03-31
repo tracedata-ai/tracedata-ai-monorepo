@@ -43,14 +43,30 @@ def _get_celery() -> Celery:
 # ── Event-to-Agent Routing Map ─────────────────────────────────────────────────
 # Centralized mapping from event types to (agent_name, celery_task_name).
 # Ensures consistent routing and simplifies adding new event types.
+#
+# ⚠️  IMPORTANT ARCHITECTURE NOTE:
+# - SAFETY: Handles critical/high-priority events immediately (harsh_brake, etc.)
+# - SUPPORT: Handles coaching for compliance (speeding, excessive_idle) during trip
+# - SENTIMENT: Handles driver feedback during/after trip
+# - SCORING: Only runs at END_OF_TRIP for comprehensive trip scoring (not individual events)
 EVENT_MAP = {
+    # ── Safety Agent: Critical driving events ──
     "collision": {"agent": "safety", "task": "tasks.safety_tasks.analyse_event"},
     "rollover": {"agent": "safety", "task": "tasks.safety_tasks.analyse_event"},
     "driver_sos": {"agent": "safety", "task": "tasks.safety_tasks.analyse_event"},
     "harsh_brake": {"agent": "safety", "task": "tasks.safety_tasks.analyse_event"},
     "hard_accel": {"agent": "safety", "task": "tasks.safety_tasks.analyse_event"},
     "harsh_corner": {"agent": "safety", "task": "tasks.safety_tasks.analyse_event"},
+    "vehicle_offline": {"agent": "safety", "task": "tasks.safety_tasks.analyse_event"},
+    # ── Scoring Agent: Only end-of-trip comprehensive scoring (Sprint 3+) ──
     "end_of_trip": {"agent": "scoring", "task": "tasks.scoring_tasks.score_trip"},
+    # ── Support Agent: Driver coaching for compliance & efficiency ──
+    "speeding": {"agent": "support", "task": "tasks.support_tasks.generate_coaching"},
+    "excessive_idle": {
+        "agent": "support",
+        "task": "tasks.support_tasks.generate_coaching",
+    },
+    # ── Sentiment Agent: Driver feedback & disputes ──
     "driver_dispute": {
         "agent": "sentiment",
         "task": "tasks.sentiment_tasks.analyse_feedback",
@@ -370,15 +386,16 @@ class OrchestratorAgent:
 
         agent_name = route["agent"]
         task_name = route["task"]
-        target_queue = (
-            settings.safety_queue
-            if agent_name == "safety"
-            else (
-                settings.scoring_queue
-                if agent_name == "scoring"
-                else settings.sentiment_queue
-            )
-        )
+
+        # Route to the appropriate queue based on agent type
+        if agent_name == "safety":
+            target_queue = settings.safety_queue
+        elif agent_name == "scoring":
+            target_queue = settings.scoring_queue
+        elif agent_name == "support":
+            target_queue = settings.support_queue
+        else:  # sentiment or other
+            target_queue = settings.sentiment_queue
 
         logger.info({**ctx, "action": "dispatch", "target": agent_name})
         celery.send_task(
