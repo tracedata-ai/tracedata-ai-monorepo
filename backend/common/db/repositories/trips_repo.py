@@ -38,18 +38,22 @@ class TripsRepo:
         Inserts with status='active'. ON CONFLICT DO NOTHING — idempotent.
         """
         async with self._engine.begin() as conn:
+            now = datetime.now(UTC).replace(tzinfo=None)  # naive timestamp for DB
+            started_at_val = (started_at or datetime.now(UTC)).replace(tzinfo=None)
             await conn.execute(
-                text("""
-                    INSERT INTO trips (trip_id, driver_id, truck_id, status, started_at, created_at, updated_at)
-                    VALUES (:trip_id, :driver_id, :truck_id, 'active', :started_at, :now, :now)
+                text(
+                    """
+                    INSERT INTO pipeline_trips (trip_id, driver_id, truck_id, status, started_at, escalated, capsule_closed, created_at, updated_at)
+                    VALUES (:trip_id, :driver_id, :truck_id, 'active', :started_at, false, false, :now, :now)
                     ON CONFLICT (trip_id) DO NOTHING
-                """),
+                """
+                ),
                 {
                     "trip_id": trip_id,
                     "driver_id": driver_id,
                     "truck_id": truck_id,
-                    "started_at": started_at or datetime.now(UTC),
-                    "now": datetime.now(UTC),
+                    "started_at": started_at_val,
+                    "now": now,
                 },
             )
         logger.info({"action": "trip_created", "trip_id": trip_id})
@@ -63,19 +67,22 @@ class TripsRepo:
     ) -> None:
         """Update trips table status. Accepts optional action_sla."""
         async with self._engine.begin() as conn:
+            now = datetime.now(UTC).replace(tzinfo=None)  # naive timestamp
             await conn.execute(
-                text("""
-                    UPDATE trips
+                text(
+                    """
+                    UPDATE pipeline_trips
                     SET    status     = :status,
                            action_sla = COALESCE(:action_sla, action_sla),
                            updated_at = :now
                     WHERE  trip_id = :trip_id
-                """),
+                """
+                ),
                 {
                     "trip_id": trip_id,
                     "status": status,
                     "action_sla": action_sla,
-                    "now": datetime.now(UTC),
+                    "now": now,
                 },
             )
         logger.info(
@@ -85,16 +92,19 @@ class TripsRepo:
     async def close_trip(self, trip_id: str) -> None:
         """Mark trip as complete and capsule as closed after final CompletionEvent."""
         async with self._engine.begin() as conn:
+            now = datetime.now(UTC).replace(tzinfo=None)  # naive timestamp
             await conn.execute(
-                text("""
-                    UPDATE trips
+                text(
+                    """
+                    UPDATE pipeline_trips
                     SET    status         = 'complete',
                            capsule_closed = true,
                            closed_at      = :now,
                            updated_at     = :now
                     WHERE  trip_id = :trip_id
-                """),
-                {"trip_id": trip_id, "now": datetime.now(UTC)},
+                """
+                ),
+                {"trip_id": trip_id, "now": now},
             )
         logger.info({"action": "trip_closed", "trip_id": trip_id})
 

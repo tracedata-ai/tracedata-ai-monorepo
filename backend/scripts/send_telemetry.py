@@ -173,12 +173,36 @@ LOCATIONS = [
 ]
 
 EVENT_TYPES_CONFIG = {
-    "collision": {"priority": "critical", "details": {"impact_severity": "medium"}},
-    "rollover": {"priority": "critical", "details": {"angle_degrees": 45}},
-    "harsh_brake": {"priority": "high", "details": {"deceleration_g": 0.92}},
-    "harsh_corner": {"priority": "high", "details": {"lateral_g": 0.87}},
-    "speeding": {"priority": "medium", "details": {"speed_kmh": 105}},
-    "smoothness_log": {"priority": "low", "details": {"smoothness_score": 0.85}},
+    "collision": {
+        "priority": "critical",
+        "category": "safety_incidents",
+        "details": {"impact_severity": "medium"},
+    },
+    "rollover": {
+        "priority": "critical",
+        "category": "safety_incidents",
+        "details": {"angle_degrees": 45},
+    },
+    "harsh_brake": {
+        "priority": "high",
+        "category": "safety_incidents",
+        "details": {"deceleration_g": 0.92},
+    },
+    "harsh_corner": {
+        "priority": "high",
+        "category": "safety_incidents",
+        "details": {"lateral_g": 0.87},
+    },
+    "speeding": {
+        "priority": "medium",
+        "category": "safety_violations",
+        "details": {"speed_kmh": 105},
+    },
+    "smoothness_log": {
+        "priority": "low",
+        "category": "normal_operation",
+        "details": {"smoothness_score": 0.85},
+    },
 }
 
 # ────────────────────────────────────────────────────────────────────────────────
@@ -530,6 +554,7 @@ async def send_random_events(r, event_counter=0, count=20):
                 "truck_id": random.choice(TRUCK_IDS),
                 "driver_id": random.choice(DRIVER_IDS),
                 "event_type": event_type,
+                "category": config["category"],
                 "priority": config["priority"],
                 "timestamp": base_time.isoformat(),
                 "offset_seconds": random.randint(0, 3600),

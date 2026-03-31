@@ -3,21 +3,32 @@ class RedisSchema:
 
     class Telemetry:
         DLQ_TTL: int = 172800  # 48 hours
+        DEBUG_TTL: int = 3600  # 1 hour — for debugging/observability only
 
         @staticmethod
         def buffer(truck_id: str) -> str:
-            """Stage 1 — raw TelemetryPacket."""
+            """Stage 1 — raw TelemetryPacket (consumed)."""
             return f"telemetry:{truck_id}:buffer"
 
         @staticmethod
         def processed(truck_id: str) -> str:
-            """Stage 2 — clean TripEvent."""
+            """Stage 2 — clean TripEvent (consumed)."""
             return f"telemetry:{truck_id}:processed"
 
         @staticmethod
         def rejected(truck_id: str) -> str:
-            """Dead Letter Queue."""
+            """Dead Letter Queue (48h TTL)."""
             return f"telemetry:{truck_id}:rejected"
+
+        @staticmethod
+        def debug_buffer(truck_id: str) -> str:
+            """DEBUG COPY — raw TelemetryPacket (1h TTL, for observability)."""
+            return f"debug:telemetry:{truck_id}:buffer"
+
+        @staticmethod
+        def debug_processed(truck_id: str) -> str:
+            """DEBUG COPY — clean TripEvent (1h TTL, for observability)."""
+            return f"debug:telemetry:{truck_id}:processed"
 
     class Trip:
         CONTEXT_TTL_HIGH: int = 172800  # 48 hours — CRITICAL/HIGH

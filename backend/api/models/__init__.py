@@ -16,5 +16,16 @@ from api.models.maintenance import Maintenance
 from api.models.route import Route
 from api.models.tenant import Tenant
 from api.models.trip import Trip
+from common.models.orm import EventORM, TripORM
 
-__all__ = ["Vehicle", "Driver", "Route", "Trip", "Issue", "Maintenance", "Tenant"]
+__all__ = [
+    "Vehicle",
+    "Driver",
+    "Route",
+    "Trip",
+    "Issue",
+    "Maintenance",
+    "Tenant",
+    "EventORM",
+    "TripORM",
+]
