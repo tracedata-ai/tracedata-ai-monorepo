@@ -57,6 +57,8 @@ services:
     command: python -m agents.worker orchestrator
     environment:
       - REDIS_URL=redis://redis:6379/0
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
     depends_on:
       - redis
     restart: always

@@ -5,7 +5,7 @@ from typing import Any
 
 from langgraph.prebuilt import create_react_agent
 
-from backend.agents.base.logger import get_agent_logger
+from .logger import get_agent_logger
 
 
 class Agent(ABC):

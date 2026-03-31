@@ -18,7 +18,7 @@ Location: backend/common/models/security.py
 from datetime import UTC, datetime
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 # ── ScopedToken ───────────────────────────────────────────────────────────────
 
@@ -31,6 +31,8 @@ class ScopedToken(BaseModel):
     Key constraint: read_keys never include demographic fields or real driver_id.
     This enforces Fairness Through Unawareness at the access control level.
     """
+
+    model_config = ConfigDict(json_encoders={datetime: lambda v: v.isoformat()})
 
     agent: str
     trip_id: str
@@ -56,6 +58,8 @@ class IntentCapsule(BaseModel):
         { "1": ["redis_read", "xgboost_tool"],
           "2": ["redis_write", "llm_call"] }
     """
+
+    model_config = ConfigDict(json_encoders={datetime: lambda v: v.isoformat()})
 
     trip_id: str
     agent: str
@@ -85,6 +89,8 @@ class ExecutionContext(BaseModel):
     Intent Gate reads this to enforce step sequence validation.
     """
 
+    model_config = ConfigDict(json_encoders={datetime: lambda v: v.isoformat()})
+
     correlation_id: str
     trip_id: str
     agent: str
@@ -107,6 +113,8 @@ class ExecutionLog(BaseModel):
     capsule_snapshot captures exact capsule state at call time,
     enabling forensic replay and compliance audit.
     """
+
+    model_config = ConfigDict(json_encoders={datetime: lambda v: v.isoformat()})
 
     log_id: str
     trip_id: str
@@ -132,6 +140,8 @@ class ForensicSnapshot(BaseModel):
     Captured on security violations. Published to critical-alerts channel.
     Also persisted to execution_logs table.
     """
+
+    model_config = ConfigDict(json_encoders={datetime: lambda v: v.isoformat()})
 
     trip_id: str
     agent: str
