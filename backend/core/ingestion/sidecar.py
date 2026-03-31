@@ -29,8 +29,8 @@ from typing import Any
 
 from pydantic import ValidationError
 
-from common.config.events import EVENT_MATRIX, PRIORITY_MAP
-from common.models.enums import Priority
+from common.config.events import EVENT_MATRIX, PRIORITY_MAP, Priority
+from common.models.enums import Priority as StringPriority
 from common.models.events import TelemetryPacket, TripEvent
 from common.redis.keys import RedisSchema
 from core.ingestion.db import IngestionDB
@@ -279,16 +279,17 @@ class IngestionSidecar:
             logger.warning({**ctx, "action": "unknown_event_type"})
             return False
 
-        if packet.event.priority != config.priority:
+        if packet.event.priority != config.priority.name.lower():
             logger.info(
                 {
                     **ctx,
                     "action": "priority_override",
                     "device_priority": packet.event.priority,
-                    "governed_priority": config.priority,
+                    "governed_priority": config.priority.name.lower(),
                 }
             )
-            packet.event.priority = config.priority
+            # Convert integer Priority enum to string Priority enum
+            packet.event.priority = StringPriority[config.priority.name]
 
         return True
 

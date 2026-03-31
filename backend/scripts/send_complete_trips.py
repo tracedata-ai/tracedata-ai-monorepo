@@ -39,7 +39,7 @@ async def send_complete_trips_multi_truck():
         "end": {"lat": 1.3400, "lon": 103.8600},
     }
 
-    r = await redis.from_url("redis://localhost:6379/0")
+    r = await redis.from_url("redis://redis:6379/0")
 
     try:
         await r.delete("telemetry:TK001:buffer")
@@ -201,11 +201,11 @@ async def send_complete_trips_multi_truck():
         print("\n" + "=" * 70)
         print("[OK] COMPLETE TRIPS TELEMETRY SENT TO REDIS")
         print("=" * 70)
-        print(f"Queue:               telemetry:TK001:buffer")
+        print("Queue:               telemetry:TK001:buffer")
         print(f"Trucks:              {len(TRUCKS)} ({', '.join(TRUCKS)})")
         print(f"Trips per truck:     {TRIPS_PER_TRUCK}")
-        print(f"Events per trip:     3 (START, NORMAL_OP, END)")
-        print(f"Trip directions:     To and Fro (alternating)")
+        print("Events per trip:     3 (START, NORMAL_OP, END)")
+        print("Trip directions:     To and Fro (alternating)")
         print(f"\nTotal trips created: {trips_created}")
         print(f"Total events queued: {event_counter}")
         print("=" * 70)
