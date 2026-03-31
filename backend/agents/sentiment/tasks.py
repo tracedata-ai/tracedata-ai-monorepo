@@ -37,6 +37,14 @@ def analyse_feedback(self, intent_capsule: dict) -> dict:
     logger.info(
         {"action": "task_received", "task": "analyse_feedback", "trip_id": trip_id}
     )
+    logger.info(
+        {
+            "action": "intent_capsule_received",
+            "task": "analyse_feedback",
+            "trip_id": trip_id,
+            "intent_capsule": intent_capsule,
+        }
+    )
 
     try:
         redis = RedisClient()

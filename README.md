@@ -97,6 +97,9 @@ Results → Redis Cache & Webhooks
 docker compose logs orchestrator -f          # Follow orchestrator
 docker compose logs safety_worker --tail 50  # Last 50 lines of safety agent
 
+# Stable sentiment-agent trigger (inject driver feedback event)
+docker compose exec -T api python -m scripts.seed_sentiment_event --count 1 --event-type driver_feedback
+
 # Reset everything
 docker compose down -v    # Remove containers and volumes
 docker system prune -f    # Clean up unused images
