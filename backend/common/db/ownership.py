@@ -10,6 +10,7 @@ from enum import Enum
 
 class Owner(str, Enum):
     """Table owners"""
+
     DB_MANAGER = "DBManager"
     SAFETY_AGENT = "SafetyAgent"
     SCORING_AGENT = "ScoringAgent"
@@ -132,6 +133,7 @@ class TABLE_OWNERSHIP:
 
 
 # ── BUILD LOOKUP TABLES ────────────────────────────────────────────────────
+
 
 def _build_ownership_map():
     """Build lookup table: schema.table → ownership rules"""

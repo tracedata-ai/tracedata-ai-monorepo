@@ -12,8 +12,8 @@ Tasks:
 import asyncio
 import logging
 
-from celery_app import app
 from agents.safety.agent import SafetyAgent
+from celery_app import app
 from common.db.engine import engine
 from common.redis.client import RedisClient
 
@@ -50,4 +50,4 @@ def analyse_event(self, intent_capsule: dict) -> dict:
             }
         )
         # Retry with exponential backoff: 2^retries seconds
-        raise self.retry(exc=exc, countdown=2 ** self.request.retries)
+        raise self.retry(exc=exc, countdown=2**self.request.retries)

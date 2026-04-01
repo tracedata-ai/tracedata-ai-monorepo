@@ -8,19 +8,17 @@ Tests for:
 - Cache warming helper functions
 """
 
+from unittest.mock import AsyncMock
+
 import pytest
-from datetime import datetime
-from unittest.mock import AsyncMock, MagicMock, patch
 
 from common.config.events import (
-    get_event_config,
-    get_warming_type,
     get_agents_to_dispatch,
     get_cache_requirements,
+    get_event_config,
+    get_warming_type,
 )
-from common.models.events import TripEvent
 from common.redis.keys import RedisSchema
-
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Test EventMatrix helpers

@@ -12,15 +12,13 @@ import asyncio
 import json
 import logging
 import sys
-from datetime import datetime, UTC
-from typing import Any
+from datetime import UTC, datetime
 
-from sqlalchemy import text, MetaData
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 
 from common.config.settings import get_settings
 from common.redis.client import RedisClient
-from common.models.events import TripEvent, TelemetryPacket
 
 logging.basicConfig(
     level=logging.INFO,
@@ -40,15 +38,11 @@ async def drop_all_tables():
     try:
         async with engine.connect() as conn:
             # Get all table names
-            result = await conn.execute(
-                text(
-                    """
+            result = await conn.execute(text("""
                     SELECT table_name
                     FROM information_schema.tables
                     WHERE table_schema = 'public'
-                """
-                )
-            )
+                """))
             tables = [row[0] for row in result.fetchall()]
 
             if not tables:
@@ -78,9 +72,7 @@ async def create_schema():
     try:
         async with engine.connect() as conn:
             # Create trips table
-            await conn.execute(
-                text(
-                    """
+            await conn.execute(text("""
                     CREATE TABLE IF NOT EXISTS trips (
                         trip_id VARCHAR(80) PRIMARY KEY,
                         truck_id VARCHAR(80) NOT NULL,
@@ -93,15 +85,11 @@ async def create_schema():
                         route_name VARCHAR(255),
                         created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
                     )
-                """
-                )
-            )
+                """))
             logger.info("  ✓ Created trips table")
 
             # Create pipeline_events table (main ingestion table)
-            await conn.execute(
-                text(
-                    """
+            await conn.execute(text("""
                     CREATE TABLE IF NOT EXISTS pipeline_events (
                         event_id VARCHAR(80) PRIMARY KEY,
                         device_event_id VARCHAR(80) UNIQUE NOT NULL,
@@ -133,9 +121,7 @@ async def create_schema():
                         created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
                         FOREIGN KEY (trip_id) REFERENCES trips(trip_id) ON DELETE CASCADE
                     )
-                """
-                )
-            )
+                """))
             logger.info("  ✓ Created pipeline_events table")
 
             # Create indexes for performance
@@ -157,9 +143,7 @@ async def create_schema():
             logger.info("  ✓ Created indexes")
 
             # Create safety_events table (agent output)
-            await conn.execute(
-                text(
-                    """
+            await conn.execute(text("""
                     CREATE TABLE IF NOT EXISTS safety_events (
                         id SERIAL PRIMARY KEY,
                         trip_id VARCHAR(80) NOT NULL,
@@ -172,15 +156,11 @@ async def create_schema():
                         created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
                         FOREIGN KEY (trip_id) REFERENCES trips(trip_id) ON DELETE CASCADE
                     )
-                """
-                )
-            )
+                """))
             logger.info("  ✓ Created safety_events table")
 
             # Create scoring_results table
-            await conn.execute(
-                text(
-                    """
+            await conn.execute(text("""
                     CREATE TABLE IF NOT EXISTS scoring_results (
                         id SERIAL PRIMARY KEY,
                         trip_id VARCHAR(80) NOT NULL,
@@ -190,9 +170,7 @@ async def create_schema():
                         created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
                         FOREIGN KEY (trip_id) REFERENCES trips(trip_id) ON DELETE CASCADE
                     )
-                """
-                )
-            )
+                """))
             logger.info("  ✓ Created scoring_results table")
 
             await conn.commit()
@@ -226,14 +204,12 @@ async def seed_test_data():
             # Create test trip
             trip_id = "TRIP-TEST-001"
             await conn.execute(
-                text(
-                    """
+                text("""
                     INSERT INTO trips
                     (trip_id, truck_id, driver_id, started_at, status)
                     VALUES (:trip_id, :truck_id, :driver_id, :started_at, :status)
                     ON CONFLICT DO NOTHING
-                """
-                ),
+                """),
                 {
                     "trip_id": trip_id,
                     "truck_id": "TRUCK-001",
@@ -323,8 +299,7 @@ async def run_integration_test():
 
         # Step 6: Summary
         logger.info("✅ Integration test passed!")
-        logger.info(
-            """
+        logger.info("""
 ╔══════════════════════════════════════════════════╗
 ║ SYSTEM READY FOR DATA FLOW                       ║
 ╠══════════════════════════════════════════════════╣
@@ -338,8 +313,7 @@ async def run_integration_test():
 ║ docker compose up api db redis ingestion...      ║
 ║                       orchestrator safety_worker ║
 ╚══════════════════════════════════════════════════╝
-        """
-        )
+        """)
 
         return True
 

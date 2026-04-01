@@ -5,8 +5,8 @@ Sentiment Agent Celery Tasks
 import asyncio
 import logging
 
-from celery_app import app
 from agents.sentiment.agent import SentimentAgent
+from celery_app import app
 from common.db.engine import engine
 from common.redis.client import RedisClient
 
@@ -23,9 +23,11 @@ def analyse_feedback(self, intent_capsule: dict) -> dict:
         return result
 
     except Exception as exc:
-        logger.error({
-            "action": "sentiment_task_error",
-            "error": str(exc),
-            "retry_count": self.request.retries,
-        })
-        raise self.retry(exc=exc, countdown=2 ** self.request.retries)
+        logger.error(
+            {
+                "action": "sentiment_task_error",
+                "error": str(exc),
+                "retry_count": self.request.retries,
+            }
+        )
+        raise self.retry(exc=exc, countdown=2**self.request.retries)

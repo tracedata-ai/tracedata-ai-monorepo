@@ -191,9 +191,9 @@ class TestIngestionDBInsert:
         await ingestion_db.insert_event(_packet(trip_event))
 
         cnt = await test_db_session.execute(
-            select(func.count()).select_from(EventORM).where(
-                EventORM.device_event_id == "dev-005"
-            )
+            select(func.count())
+            .select_from(EventORM)
+            .where(EventORM.device_event_id == "dev-005")
         )
         assert cnt.scalar_one() == 1
 

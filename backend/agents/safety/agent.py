@@ -8,11 +8,10 @@ Layer 1 enforcement: repo injection makes it impossible to write elsewhere.
 import logging
 from typing import Any
 
+from agents.base.agent import TDAgentBase
 from common.cache.reader import CacheReader
-from common.db.engine import engine
 from common.db.repositories.safety_repo import SafetyRepository
 from common.redis.client import RedisClient
-from agents.base.agent import TDAgentBase
 
 logger = logging.getLogger(__name__)
 

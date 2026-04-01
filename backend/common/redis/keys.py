@@ -69,8 +69,12 @@ class RedisSchema:
         def event_driven_cache(trip_id: str, agent: str) -> dict[str, str]:
             """Keys for event-driven agents (Safety, Support)."""
             return {
-                "current_event": RedisSchema.Trip.agent_data(trip_id, agent, "current_event"),
-                "trip_context": RedisSchema.Trip.agent_data(trip_id, agent, "trip_context"),
+                "current_event": RedisSchema.Trip.agent_data(
+                    trip_id, agent, "current_event"
+                ),
+                "trip_context": RedisSchema.Trip.agent_data(
+                    trip_id, agent, "trip_context"
+                ),
             }
 
         @staticmethod
@@ -78,18 +82,28 @@ class RedisSchema:
             """Keys for aggregation-driven agents (Scoring, Support)."""
             if agent == "scoring":
                 return {
-                    "all_pings": RedisSchema.Trip.agent_data(trip_id, agent, "all_pings"),
-                    "historical_avg": RedisSchema.Trip.agent_data(trip_id, agent, "historical_avg"),
+                    "all_pings": RedisSchema.Trip.agent_data(
+                        trip_id, agent, "all_pings"
+                    ),
+                    "historical_avg": RedisSchema.Trip.agent_data(
+                        trip_id, agent, "historical_avg"
+                    ),
                 }
             elif agent == "support":
                 return {
-                    "trip_context": RedisSchema.Trip.agent_data(trip_id, agent, "trip_context"),
-                    "coaching_history": RedisSchema.Trip.agent_data(trip_id, agent, "coaching_history"),
+                    "trip_context": RedisSchema.Trip.agent_data(
+                        trip_id, agent, "trip_context"
+                    ),
+                    "coaching_history": RedisSchema.Trip.agent_data(
+                        trip_id, agent, "coaching_history"
+                    ),
                 }
             else:
                 # Default for unknown agents
                 return {
-                    "all_pings": RedisSchema.Trip.agent_data(trip_id, agent, "all_pings"),
+                    "all_pings": RedisSchema.Trip.agent_data(
+                        trip_id, agent, "all_pings"
+                    ),
                 }
 
     class Lock:

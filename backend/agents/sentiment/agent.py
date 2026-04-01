@@ -7,11 +7,11 @@ Uses SentimentRepository to ONLY write to sentiment_schema tables.
 import logging
 from typing import Any
 
+from agents.base.agent import TDAgentBase
 from common.cache.reader import CacheReader
 from common.db.engine import engine
 from common.db.repositories.support_repo import SentimentRepository
 from common.redis.client import RedisClient
-from agents.base.agent import TDAgentBase
 
 logger = logging.getLogger(__name__)
 
@@ -41,14 +41,10 @@ class SentimentAgent(TDAgentBase):
                 cache_data, "trip_context", "current_event"
             )
             trip_context = (
-                raw["trip_context"]
-                if isinstance(raw["trip_context"], dict)
-                else None
+                raw["trip_context"] if isinstance(raw["trip_context"], dict) else None
             )
             current_event = (
-                raw["current_event"]
-                if isinstance(raw["current_event"], dict)
-                else None
+                raw["current_event"] if isinstance(raw["current_event"], dict) else None
             )
 
             driver_id = (
@@ -71,7 +67,9 @@ class SentimentAgent(TDAgentBase):
             lower_fb = feedback_text.lower()
             if any(w in lower_fb for w in ("great", "thanks", "good", "excellent")):
                 sentiment, sentiment_score = "positive", 0.75
-            elif any(w in lower_fb for w in ("bad", "terrible", "angry", "hate", "awful")):
+            elif any(
+                w in lower_fb for w in ("bad", "terrible", "angry", "hate", "awful")
+            ):
                 sentiment, sentiment_score = "negative", 0.25
 
             # Write to sentiment_schema (Layer 1: only this repo available)

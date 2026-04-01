@@ -6,6 +6,7 @@ Usage (from repo root):
 
 Requires: db + redis + schema applied (bootstrap_e2e.sql + agent_schemas.sql).
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -73,9 +74,7 @@ async def main() -> None:
         async with engine.connect() as conn:
             n = (
                 await conn.execute(
-                    text(
-                        "SELECT COUNT(*) FROM pipeline_events WHERE trip_id = :t"
-                    ),
+                    text("SELECT COUNT(*) FROM pipeline_events WHERE trip_id = :t"),
                     {"t": trip_id},
                 )
             ).scalar()

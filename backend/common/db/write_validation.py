@@ -20,11 +20,10 @@ Usage:
   # ❌ NOT in write_keys_database → exception
 """
 
-from datetime import UTC, datetime
-from typing import Callable
-
-from common.db.ownership import Owner, can_write, get_table_ownership
 import logging
+from collections.abc import Callable
+
+from common.db.ownership import Owner
 
 logger = logging.getLogger(__name__)
 

@@ -19,10 +19,10 @@ Benefits:
 """
 
 import asyncio
-from collections import deque
-from datetime import datetime, timedelta, UTC
-from typing import Any
 import logging
+from collections import deque
+from datetime import UTC, datetime
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -165,5 +165,5 @@ class RingBuffer:
                     timeout=timeout_seconds,
                 )
                 return True
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 return False

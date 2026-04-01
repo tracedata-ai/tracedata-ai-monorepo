@@ -160,10 +160,22 @@ async def test_warm_aggregation_driven_scoring_and_support(orchestrator_mocks):
     await orch._warm_aggregation_driven(event, ["scoring", "support"])
 
     keys_called = {c.args[0] for c in fake_redis._client.setex.await_args_list}
-    assert RedisSchema.Trip.agent_data(event.trip_id, "scoring", "all_pings") in keys_called
-    assert RedisSchema.Trip.agent_data(event.trip_id, "scoring", "historical_avg") in keys_called
-    assert RedisSchema.Trip.agent_data(event.trip_id, "support", "trip_context") in keys_called
-    assert RedisSchema.Trip.agent_data(event.trip_id, "support", "coaching_history") in keys_called
+    assert (
+        RedisSchema.Trip.agent_data(event.trip_id, "scoring", "all_pings")
+        in keys_called
+    )
+    assert (
+        RedisSchema.Trip.agent_data(event.trip_id, "scoring", "historical_avg")
+        in keys_called
+    )
+    assert (
+        RedisSchema.Trip.agent_data(event.trip_id, "support", "trip_context")
+        in keys_called
+    )
+    assert (
+        RedisSchema.Trip.agent_data(event.trip_id, "support", "coaching_history")
+        in keys_called
+    )
 
 
 @pytest.mark.asyncio

@@ -8,11 +8,11 @@ Generates coaching messages for drivers.
 import logging
 from typing import Any
 
+from agents.base.agent import TDAgentBase
 from common.cache.reader import CacheReader
 from common.db.engine import engine
 from common.db.repositories.support_repo import SupportRepository
 from common.redis.client import RedisClient
-from agents.base.agent import TDAgentBase
 
 logger = logging.getLogger(__name__)
 
@@ -45,9 +45,7 @@ class SupportAgent(TDAgentBase):
                 "current_event",
             )
             trip_context = (
-                raw["trip_context"]
-                if isinstance(raw["trip_context"], dict)
-                else None
+                raw["trip_context"] if isinstance(raw["trip_context"], dict) else None
             )
             coaching_history = (
                 raw["coaching_history"]
@@ -55,9 +53,7 @@ class SupportAgent(TDAgentBase):
                 else []
             )
             current_event = (
-                raw["current_event"]
-                if isinstance(raw["current_event"], dict)
-                else None
+                raw["current_event"] if isinstance(raw["current_event"], dict) else None
             )
 
             driver_id = (
@@ -77,10 +73,12 @@ class SupportAgent(TDAgentBase):
             elif current_event:
                 coaching_category = "event_based"
                 evt_type = current_event.get("event_type", "event")
-                coaching_message = (
-                    f"Coaching for {evt_type}: focus on smooth braking, speed, and follow distance."
+                coaching_message = f"Coaching for {evt_type}: focus on smooth braking, speed, and follow distance."
+                priority = (
+                    "high"
+                    if str(evt_type).lower() in ("harsh_brake", "collision")
+                    else "normal"
                 )
-                priority = "high" if str(evt_type).lower() in ("harsh_brake", "collision") else "normal"
             else:
                 coaching_category = "general"
                 coaching_message = "Keep safe driving practices!"

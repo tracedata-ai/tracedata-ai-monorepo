@@ -67,9 +67,7 @@ class Agent(ABC):
     def _ensure_graph(self) -> Any:
         if self._graph is None:
             self.logger.info("creating langgraph agent")
-            self._graph = build_react_graph(
-                self.llm, self.tools, self.system_prompt
-            )
+            self._graph = build_react_graph(self.llm, self.tools, self.system_prompt)
         return self._graph
 
     def invoke(self, input_data: dict) -> dict:
@@ -177,9 +175,7 @@ class TDAgentBase(ABC):
             )
 
             await self._release_lock(trip_id, capsule.device_event_id)
-            await self._publish_completion_event(
-                trip_id, agent_name, "success", result
-            )
+            await self._publish_completion_event(trip_id, agent_name, "success", result)
 
             logger.info(
                 {
@@ -197,9 +193,7 @@ class TDAgentBase(ABC):
                 {
                     "action": "agent_run_error",
                     "agent": self.AGENT_NAME,
-                    "trip_id": capsule.trip_id
-                    if "capsule" in locals()
-                    else "unknown",
+                    "trip_id": capsule.trip_id if "capsule" in locals() else "unknown",
                     "error": str(e),
                     "error_type": type(e).__name__,
                 }
@@ -229,9 +223,7 @@ class TDAgentBase(ABC):
         capsule: IntentCapsule,
     ) -> dict[str, Any]:
         cache_data: dict[str, Any] = {}
-        read_keys = (
-            list(capsule.token.read_keys) if capsule.token else []
-        )
+        read_keys = list(capsule.token.read_keys) if capsule.token else []
 
         for key in read_keys:
             try:
@@ -283,13 +275,9 @@ class TDAgentBase(ABC):
                 from common.db.repositories.events_repo import EventsRepo
 
                 events_repo = EventsRepo(self._engine)
-                recent_event = await events_repo.get_latest_event_for_trip(
-                    trip_id
-                )
+                recent_event = await events_repo.get_latest_event_for_trip(trip_id)
                 if recent_event:
-                    resolved_id = (
-                        recent_event.get("device_event_id") or ""
-                    ).strip()
+                    resolved_id = (recent_event.get("device_event_id") or "").strip()
 
             if resolved_id:
                 await db_manager.release_lock(resolved_id)

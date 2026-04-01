@@ -30,14 +30,12 @@ from agents.orchestrator.db_manager import DBManager
 from agents.orchestrator.tools import ORCHESTRATOR_TOOLS
 from common.config.events import (
     PRIORITY_MAP,
-    get_cache_requirements,
     get_warming_type,
 )
 from common.config.settings import get_settings
 from common.db.engine import engine
 from common.models.events import TripEvent
 from common.models.security import IntentCapsule, ScopedToken
-from common.models.trips import TripContext
 from common.redis.client import RedisClient
 from common.redis.keys import RedisSchema
 
@@ -416,9 +414,7 @@ class OrchestratorAgent:
             # Store pre-warmed data for each routed agent (scoped keys)
             for agent in agents_to_dispatch:
                 # Store current event
-                event_key = RedisSchema.Trip.agent_data(
-                    trip_id, agent, "current_event"
-                )
+                event_key = RedisSchema.Trip.agent_data(trip_id, agent, "current_event")
                 await self.redis._client.setex(
                     event_key,
                     300,  # 5 minute TTL
@@ -530,9 +526,7 @@ class OrchestratorAgent:
                     3600,
                     json.dumps(all_pings),
                 )
-                avg_key = RedisSchema.Trip.agent_data(
-                    trip_id, agent, "historical_avg"
-                )
+                avg_key = RedisSchema.Trip.agent_data(trip_id, agent, "historical_avg")
                 await self.redis._client.setex(
                     avg_key,
                     3600,
@@ -682,7 +676,6 @@ class OrchestratorAgent:
             )
             return []
 
-
     async def _acquire_and_dispatch(self, event: TripEvent, ctx: dict) -> None:
         """
         Acquire DB lease then dispatch to Celery.
@@ -763,7 +756,9 @@ class OrchestratorAgent:
             elif agent_name == "support":
                 read_keys = [
                     RedisSchema.Trip.agent_data(trip_id, agent_name, "trip_context"),
-                    RedisSchema.Trip.agent_data(trip_id, agent_name, "coaching_history"),
+                    RedisSchema.Trip.agent_data(
+                        trip_id, agent_name, "coaching_history"
+                    ),
                 ]
             else:
                 # Fallback for unknown agents

@@ -50,7 +50,7 @@ async def main():
     buffer = RingBuffer(
         max_size=100,
         batch_flush_size=10,  # Lower threshold for better responsiveness
-        max_wait_seconds=2,   # Shorter timeout for testing
+        max_wait_seconds=2,  # Shorter timeout for testing
     )
 
     async with IngestionDB() as db:

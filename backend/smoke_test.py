@@ -21,9 +21,9 @@ import asyncio
 import json
 import logging
 import sys
-from datetime import datetime, UTC, timedelta
-from typing import Any
 import uuid
+from datetime import UTC, datetime, timedelta
+from typing import Any
 
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
@@ -52,17 +52,17 @@ HARSH_EVENT_IDS = []
 def get_priority_score(event_type: str) -> int:
     """Get priority score for Redis sorted set (lower = higher priority)."""
     priority_map = {
-        "collision": 0,       # CRITICAL
-        "rollover": 0,        # CRITICAL
-        "driver_sos": 0,      # CRITICAL
-        "harsh_brake": 3,     # HIGH
-        "hard_accel": 3,      # HIGH
-        "harsh_corner": 3,    # HIGH
-        "speeding": 3,        # HIGH
-        "end_of_trip": 3,     # HIGH
-        "start_of_trip": 9,   # LOW
-        "normal_operation": 9,# LOW
-        "driver_feedback": 6, # MEDIUM
+        "collision": 0,  # CRITICAL
+        "rollover": 0,  # CRITICAL
+        "driver_sos": 0,  # CRITICAL
+        "harsh_brake": 3,  # HIGH
+        "hard_accel": 3,  # HIGH
+        "harsh_corner": 3,  # HIGH
+        "speeding": 3,  # HIGH
+        "end_of_trip": 3,  # HIGH
+        "start_of_trip": 9,  # LOW
+        "normal_operation": 9,  # LOW
+        "driver_feedback": 6,  # MEDIUM
     }
     return priority_map.get(event_type, 9)
 
@@ -334,12 +334,10 @@ async def monitor_database_outputs() -> dict[str, Any]:
         async with engine.connect() as conn:
             # Check safety_events (Safety Agent output)
             result = await conn.execute(
-                text(
-                    """
+                text("""
                     SELECT COUNT(*) as count FROM safety_events
                     WHERE trip_id = :trip_id
-                """
-                ),
+                """),
                 {"trip_id": TRIP_ID},
             )
             safety_count = result.scalar() or 0
@@ -348,12 +346,10 @@ async def monitor_database_outputs() -> dict[str, Any]:
 
             # Check scoring_results (Scoring Agent output)
             result = await conn.execute(
-                text(
-                    """
+                text("""
                     SELECT COUNT(*) as count FROM scoring_results
                     WHERE trip_id = :trip_id
-                """
-                ),
+                """),
                 {"trip_id": TRIP_ID},
             )
             scoring_count = result.scalar() or 0
@@ -362,12 +358,10 @@ async def monitor_database_outputs() -> dict[str, Any]:
 
             # Check pipeline_events (ingestion table)
             result = await conn.execute(
-                text(
-                    """
+                text("""
                     SELECT COUNT(*) as count FROM pipeline_events
                     WHERE trip_id = :trip_id
-                """
-                ),
+                """),
                 {"trip_id": TRIP_ID},
             )
             pipeline_count = result.scalar() or 0

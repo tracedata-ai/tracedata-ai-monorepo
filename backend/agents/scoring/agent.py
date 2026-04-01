@@ -8,11 +8,11 @@ Must use cross-domain coordination for coaching suggestions.
 import logging
 from typing import Any
 
+from agents.base.agent import TDAgentBase
 from common.cache.reader import CacheReader
 from common.db.engine import engine
 from common.db.repositories.scoring_repo import ScoringRepository
 from common.redis.client import RedisClient
-from agents.base.agent import TDAgentBase
 
 logger = logging.getLogger(__name__)
 

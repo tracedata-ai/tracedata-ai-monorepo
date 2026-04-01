@@ -338,15 +338,17 @@ class EventsRepo:
 
             pings = []
             for row in rows:
-                pings.append({
-                    "event_id": row[0],
-                    "trip_id": row[1],
-                    "event_type": row[2],
-                    "device_event_id": row[3],
-                    "timestamp": row[4].isoformat() if row[4] else None,
-                    "data": json.loads(row[5]) if row[5] else {},
-                    "severity": row[6],
-                })
+                pings.append(
+                    {
+                        "event_id": row[0],
+                        "trip_id": row[1],
+                        "event_type": row[2],
+                        "device_event_id": row[3],
+                        "timestamp": row[4].isoformat() if row[4] else None,
+                        "data": json.loads(row[5]) if row[5] else {},
+                        "severity": row[6],
+                    }
+                )
 
             return pings
 
@@ -354,7 +356,9 @@ class EventsRepo:
         """Get count of pings for a trip (useful for logging)."""
         async with self._engine.connect() as conn:
             result = await conn.execute(
-                text("SELECT COUNT(*) as count FROM pipeline_events WHERE trip_id = :trip_id"),
+                text(
+                    "SELECT COUNT(*) as count FROM pipeline_events WHERE trip_id = :trip_id"
+                ),
                 {"trip_id": trip_id},
             )
             row = result.scalar()

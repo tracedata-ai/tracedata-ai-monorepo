@@ -60,7 +60,7 @@ class ErrorEvent(BaseModel):
 
     def next_backoff_seconds(self) -> int:
         """Calculate exponential backoff: 2^retry_count seconds."""
-        return 2 ** self.retry_count
+        return 2**self.retry_count
 
 
 class Location(BaseModel):

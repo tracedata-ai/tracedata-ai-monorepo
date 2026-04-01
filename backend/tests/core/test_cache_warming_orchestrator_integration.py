@@ -8,11 +8,12 @@ Tests the full flow:
   4. Agent capsule is sealed with correct scoped keys
 """
 
-import pytest
 from datetime import datetime
-from unittest.mock import AsyncMock, MagicMock, patch
-from common.models.events import TripEvent, Location
+
+import pytest
+
 from common.models.enums import Priority
+from common.models.events import TripEvent
 from common.redis.keys import RedisSchema
 
 pytestmark = [pytest.mark.integration]
@@ -229,7 +230,7 @@ class TestCacheWarmingEdgeCases:
 
     async def test_unknown_event_type_no_crash(self):
         """Test that unknown event type doesn't crash warming."""
-        from common.config.events import get_warming_type, get_agents_to_dispatch
+        from common.config.events import get_agents_to_dispatch, get_warming_type
 
         warming_type = get_warming_type("completely_unknown_event")
         assert warming_type is None

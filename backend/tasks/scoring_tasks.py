@@ -5,8 +5,8 @@ Scoring Agent Celery Tasks
 import asyncio
 import logging
 
-from celery_app import app
 from agents.scoring.agent import ScoringAgent
+from celery_app import app
 from common.config.settings import get_settings
 from common.db.engine import engine
 from common.redis.client import RedisClient

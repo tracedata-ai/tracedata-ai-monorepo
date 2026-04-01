@@ -44,14 +44,10 @@ class TestDispatchRouting:
 
     def _make_agent(self, mock_redis, mock_db, mock_celery):
         with (
-            patch(
-                "agents.orchestrator.agent.RedisClient", return_value=mock_redis
-            ),
+            patch("agents.orchestrator.agent.RedisClient", return_value=mock_redis),
             patch("agents.orchestrator.agent.DBManager", return_value=mock_db),
             patch("agents.orchestrator.agent._get_celery", return_value=mock_celery),
-            patch(
-                "agents.orchestrator.agent._get_llm", return_value=MagicMock()
-            ),
+            patch("agents.orchestrator.agent._get_llm", return_value=MagicMock()),
         ):
             agent = OrchestratorAgent(truck_ids=["truck1"])
         return agent
@@ -72,9 +68,7 @@ class TestDispatchRouting:
         capsules = {"safety": capsule}
         ctx = {"trip_id": "test_trip", "action": "test"}
         routing_decision = {"agents_to_dispatch": ["safety"], "action": "test"}
-        result = await agent._dispatch(
-            trip_event, capsules, ctx, routing_decision
-        )
+        result = await agent._dispatch(trip_event, capsules, ctx, routing_decision)
 
         assert result is True
         mock_celery.send_task.assert_called_once()
@@ -116,9 +110,7 @@ class TestDispatchRouting:
         capsules = {"safety": capsule}
         ctx = {"trip_id": trip_event.trip_id, "action": "test"}
         routing_decision = {"agents_to_dispatch": ["safety"], "action": "test"}
-        result = await agent._dispatch(
-            trip_event, capsules, ctx, routing_decision
-        )
+        result = await agent._dispatch(trip_event, capsules, ctx, routing_decision)
 
         assert result is True
         mock_celery.send_task.assert_called_once()
@@ -172,9 +164,7 @@ class TestDispatchRouting:
                 "agents_to_dispatch": [agent_name],
                 "action": "test",
             }
-            result = await agent._dispatch(
-                trip_event, capsules, ctx, routing_decision
-            )
+            result = await agent._dispatch(trip_event, capsules, ctx, routing_decision)
 
             assert result is True
             mock_celery.send_task.assert_called_once()
@@ -189,9 +179,7 @@ class TestInitialization:
         with (
             patch("agents.orchestrator.agent.RedisClient"),
             patch("agents.orchestrator.agent.DBManager"),
-            patch(
-                "agents.orchestrator.agent._get_llm", return_value=MagicMock()
-            ),
+            patch("agents.orchestrator.agent._get_llm", return_value=MagicMock()),
         ):
             agent = OrchestratorAgent(truck_ids=["truck1", "truck2"])
             assert agent.truck_ids == ["truck1", "truck2"]
@@ -200,9 +188,7 @@ class TestInitialization:
         with (
             patch("agents.orchestrator.agent.RedisClient"),
             patch("agents.orchestrator.agent.DBManager"),
-            patch(
-                "agents.orchestrator.agent._get_llm", return_value=MagicMock()
-            ),
+            patch("agents.orchestrator.agent._get_llm", return_value=MagicMock()),
         ):
             agent = OrchestratorAgent()
             assert agent.truck_ids == []
@@ -211,9 +197,7 @@ class TestInitialization:
         with (
             patch("agents.orchestrator.agent.RedisClient"),
             patch("agents.orchestrator.agent.DBManager"),
-            patch(
-                "agents.orchestrator.agent._get_llm", return_value=MagicMock()
-            ),
+            patch("agents.orchestrator.agent._get_llm", return_value=MagicMock()),
         ):
             agent = OrchestratorAgent(truck_ids=["truck1"])
             assert agent.truck_ids == ["truck1"]
