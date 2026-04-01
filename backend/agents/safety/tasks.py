@@ -10,12 +10,10 @@ import logging
 from celery import shared_task
 
 from agents.safety.agent import SafetyAgent
-from common.config.settings import get_settings
 from common.redis.client import RedisClient
 from common.redis.keys import RedisSchema
 
 logger = logging.getLogger(__name__)
-settings = get_settings()
 
 
 @shared_task(
@@ -49,14 +47,9 @@ def analyse_event(self, intent_capsule: dict) -> dict:
 
     try:
         redis = RedisClient()
-        agent = SafetyAgent(
-            agent_name="SafetyAgent",
-            input_queue=settings.safety_queue,
-            output_queue=settings.orchestrator_queue,
-        )
+        agent = SafetyAgent()
 
-        # Sprint 2: process_event is a stub that logs and returns
-        result = asyncio.run(agent.process_event(intent_capsule))
+        result = asyncio.run(agent.run(intent_capsule))
 
         # Publish CompletionEvent
         completion = {

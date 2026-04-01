@@ -50,4 +50,4 @@ def analyse_event(self, intent_capsule: dict) -> dict:
             }
         )
         # Retry with exponential backoff: 2^retries seconds
-        raise self.retry(exc=exc, countdown=2**self.request.retries)
+        raise self.retry(exc=exc, countdown=2**self.request.retries) from exc

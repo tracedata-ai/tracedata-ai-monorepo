@@ -884,7 +884,7 @@ Return ONLY the JSON object, no additional text."""
                         if "agents_to_dispatch" in decision:
                             logger.info(
                                 {
-                                    "action": "routing_decision",
+                                    "log_action": "routing_decision",
                                     "event_type": event.event_type,
                                     "agents": decision.get("agents_to_dispatch", []),
                                     "action": decision.get("action", "unknown"),
@@ -940,7 +940,6 @@ Return ONLY the JSON object, no additional text."""
         Dispatch to multiple agents via Celery based on routing decision.
         Returns True if at least one agent was dispatched, False otherwise.
         """
-        event_type = event.event_type
         agents_to_dispatch = routing_decision.get("agents_to_dispatch", [])
         action = routing_decision.get("action", "unknown")
 

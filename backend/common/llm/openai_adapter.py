@@ -31,11 +31,11 @@ class OpenAIAdapter(LLMAdapter):
                 if isinstance(raw_model, OpenAIModel)
                 else OpenAIModel(raw_model)
             )
-        except ValueError:
+        except ValueError as err:
             available = ", ".join(m.value for m in OpenAIModel)
             raise ValueError(
                 f"Invalid OpenAI model: {raw_model}. Available models: {available}"
-            )
+            ) from err
 
         self.api_key = api_key
 

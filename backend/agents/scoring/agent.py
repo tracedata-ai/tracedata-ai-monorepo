@@ -57,7 +57,6 @@ class ScoringAgent(TDAgentBase):
                 cache_data, "all_pings", "historical_avg"
             )
             all_pings = found["all_pings"]
-            historical_avg = found["historical_avg"]
 
             if not all_pings:
                 return {

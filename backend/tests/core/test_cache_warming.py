@@ -159,7 +159,6 @@ class TestCacheWarmingFlow:
     async def test_event_driven_warming_flow(self):
         """Test event-driven warming workflow."""
         # Setup mocks
-        redis_client = AsyncMock()
         db = AsyncMock()
 
         # Mock DB responses
@@ -182,9 +181,6 @@ class TestCacheWarmingFlow:
         assert reqs["ttl"] == 300
 
         # Simulate warming flow
-        event_key = RedisSchema.Trip.agent_data("TRP-456", "safety", "current_event")
-        context_key = RedisSchema.Trip.agent_data("TRP-456", "safety", "trip_context")
-
         event_data = await db.get_event_by_id("EVT-123")
         trip_data = await db.get_trip_metadata("TRP-456")
 
@@ -199,7 +195,6 @@ class TestCacheWarmingFlow:
     async def test_aggregation_driven_warming_flow(self):
         """Test aggregation-driven warming workflow."""
         # Setup mocks
-        redis_client = AsyncMock()
         db = AsyncMock()
 
         # Mock DB responses for aggregation-driven
@@ -247,7 +242,6 @@ class TestCacheWarmingFlow:
     async def test_no_double_warming(self):
         """Test that same data isn't warmed multiple times."""
         trip_id = "TRP-123"
-        warming_calls = set()
 
         # Track which data types are warmed
         event_driven = RedisSchema.Trip.event_driven_cache(trip_id, "safety")
@@ -273,7 +267,7 @@ class TestCacheWarmingIntegration:
         """Verify all events in EventMatrix have defined warming strategies."""
         from common.config.events import EVENT_MATRIX
 
-        for event_type in EVENT_MATRIX.keys():
+        for event_type in EVENT_MATRIX:
             warming_type = get_warming_type(event_type)
             # warming_type can be None for events that don't need warming
             # but it should be explicitly None, not missing

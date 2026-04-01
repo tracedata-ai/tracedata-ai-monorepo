@@ -10,12 +10,10 @@ import logging
 from celery import shared_task
 
 from agents.sentiment.agent import SentimentAgent
-from common.config.settings import get_settings
 from common.redis.client import RedisClient
 from common.redis.keys import RedisSchema
 
 logger = logging.getLogger(__name__)
-settings = get_settings()
 
 
 @shared_task(
@@ -40,13 +38,9 @@ def analyse_feedback(self, intent_capsule: dict) -> dict:
 
     try:
         redis = RedisClient()
-        agent = SentimentAgent(
-            agent_name="SentimentAgent",
-            input_queue=settings.sentiment_queue,
-            output_queue=settings.orchestrator_queue,
-        )
+        agent = SentimentAgent()
 
-        result = asyncio.run(agent.process_event(intent_capsule))
+        result = asyncio.run(agent.run(intent_capsule))
 
         completion = {
             "trip_id": trip_id,

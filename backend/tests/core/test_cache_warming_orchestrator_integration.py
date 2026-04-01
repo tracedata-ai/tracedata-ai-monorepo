@@ -311,7 +311,7 @@ class TestCacheWarmingMetrics:
 
         warming_counts = {"event-driven": 0, "aggregation-driven": 0, "none": 0}
 
-        for event_type in EVENT_MATRIX.keys():
+        for event_type in EVENT_MATRIX:
             warming = get_warming_type(event_type)
             if warming == "event-driven":
                 warming_counts["event-driven"] += 1

@@ -32,11 +32,11 @@ class AnthropicAdapter(LLMAdapter):
                 if isinstance(raw_model, AnthropicModel)
                 else AnthropicModel(raw_model)
             )
-        except ValueError:
+        except ValueError as err:
             available = ", ".join(m.value for m in AnthropicModel)
             raise ValueError(
                 f"Invalid Anthropic model: {raw_model}. Available models: {available}"
-            )
+            ) from err
 
         self.api_key = api_key
 

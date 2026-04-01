@@ -32,4 +32,4 @@ def score_trip(self, intent_capsule: dict) -> dict:
                 "retry_count": self.request.retries,
             }
         )
-        raise self.retry(exc=exc, countdown=2**self.request.retries)
+        raise self.retry(exc=exc, countdown=2**self.request.retries) from exc

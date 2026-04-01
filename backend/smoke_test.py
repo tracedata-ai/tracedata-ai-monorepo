@@ -300,7 +300,7 @@ async def push_events_to_redis(events: list[dict]) -> None:
         # Clear existing buffer
         await redis._client.delete(buffer_key)
 
-        for name, event, expected_agent in events:
+        for name, event, _expected_agent in events:
             packet = create_raw_packet(event)
             payload = json.dumps(packet)
             score = get_priority_score(event["event_type"])

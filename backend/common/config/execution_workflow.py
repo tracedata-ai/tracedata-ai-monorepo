@@ -173,9 +173,8 @@ class ExecutionWorkflow:
             return False
 
         for agent in self.agents:
-            if agent not in visited:
-                if has_cycle(agent):
-                    return False, f"Circular dependency detected involving {agent}"
+            if agent not in visited and has_cycle(agent):
+                return False, f"Circular dependency detected involving {agent}"
 
         return True, "Valid"
 

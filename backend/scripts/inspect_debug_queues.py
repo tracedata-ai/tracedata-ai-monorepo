@@ -121,7 +121,6 @@ async def show_truck_detail(truck_id: str):
                     event = json.loads(event_json)
                     trip_id = event.get("event", {}).get("trip_id", "?")
                     event_type = event.get("event", {}).get("event_type", "?")
-                    priority = event.get("event", {}).get("priority", "?")
                     print(
                         f"      • priority={int(score):2d}  {event_type:20s}  trip_id={trip_id}"
                     )

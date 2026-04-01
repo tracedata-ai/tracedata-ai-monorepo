@@ -105,9 +105,11 @@ def orchestrator_mocks():
     fake_redis._client = MagicMock()
     fake_redis._client.setex = AsyncMock(return_value=True)
 
-    with patch.object(orch_mod, "_get_llm", return_value=MagicMock()):
-        with patch.object(orch_mod, "RedisClient", return_value=fake_redis):
-            orch = orch_mod.OrchestratorAgent(truck_ids=[])
+    with (
+        patch.object(orch_mod, "_get_llm", return_value=MagicMock()),
+        patch.object(orch_mod, "RedisClient", return_value=fake_redis),
+    ):
+        orch = orch_mod.OrchestratorAgent(truck_ids=[])
     return orch, fake_redis
 
 

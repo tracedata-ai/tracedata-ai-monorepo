@@ -10,7 +10,7 @@ NO magic strings - everything is Enum or StrEnum.
 """
 
 from dataclasses import dataclass, field
-from enum import Enum, auto
+from enum import Enum, StrEnum, auto
 
 from common.models.enums import Priority as PriorityLevel
 
@@ -46,7 +46,7 @@ class Action(Enum):
     REJECT_AND_LOG = auto()
 
 
-class AgentType(str, Enum):
+class AgentType(StrEnum):
     """Which agents can run (StrEnum for logging/serialization)"""
 
     SAFETY = "safety"
@@ -56,7 +56,7 @@ class AgentType(str, Enum):
     HUMAN_IN_THE_LOOP = "human_in_the_loop"
 
 
-class DataKey(str, Enum):
+class DataKey(StrEnum):
     """What data keys agents can read/write (StrEnum for permissions)"""
 
     # Read keys (trip context, history, etc.)
@@ -157,7 +157,7 @@ class EventConfig:
     category: str
     """Event category (critical, harsh_events, trip_lifecycle, etc.)"""
 
-    priority: "Priority"
+    priority: PriorityLevel
     """Event priority (CRITICAL, HIGH, MEDIUM, LOW) from enums.Priority"""
 
     ml_weight: float

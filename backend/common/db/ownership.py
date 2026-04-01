@@ -5,10 +5,10 @@ Defines data ownership, access patterns, and write rules for all tables.
 Enforced at 3 layers: Code Structure → Intent Capsule → Database Permissions.
 """
 
-from enum import Enum
+from enum import StrEnum
 
 
-class Owner(str, Enum):
+class Owner(StrEnum):
     """Table owners"""
 
     DB_MANAGER = "DBManager"

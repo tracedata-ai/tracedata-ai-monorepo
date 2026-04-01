@@ -42,7 +42,7 @@ def build_react_graph(llm: Any, tools: list, system_prompt: str) -> Any:
     )
 
 
-class Agent(ABC):
+class Agent:
     """LangGraph ReAct helper: tools + LLM + ``invoke`` (orchestrator router pattern)."""
 
     def __init__(
