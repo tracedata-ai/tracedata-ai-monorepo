@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(.venv/Scripts/pip show:*)",
+      "Bash(docker compose:*)",
+      "Bash(docker cp:*)",
+      "Bash(xargs -I{} echo \"  {} / 50 expected score_trip tasks done\")",
+      "Bash(powershell -ExecutionPolicy Bypass -File scripts/run-ci.ps1)",
+      "Bash(uv run:*)"
+    ]
+  }
+}

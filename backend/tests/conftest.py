@@ -61,7 +61,7 @@ def telemetry_packet_json(telemetry_packet) -> str:
 @pytest.fixture
 def mock_redis() -> MagicMock:
     """
-    A fully-mocked RedisClient with the new pipeline methods.
+    Fully-mocked RedisClient: ingestion buffers, legacy pop/push, and raw _client.
     """
     client = MagicMock()
     client.pop_from_buffer = AsyncMock(return_value=None)
@@ -72,6 +72,15 @@ def mock_redis() -> MagicMock:
     client.store_trip_context = AsyncMock()
     client.get_trip_context = AsyncMock(return_value=None)
     client.close = AsyncMock()
+    client.pop = AsyncMock(return_value=None)
+    client.push = AsyncMock()
+    client.zpop = AsyncMock(return_value=None)
+    inner = MagicMock()
+    inner.get = AsyncMock(return_value=None)
+    inner.set = AsyncMock()
+    inner.setex = AsyncMock()
+    inner.publish = AsyncMock()
+    client._client = inner
     return client
 
 

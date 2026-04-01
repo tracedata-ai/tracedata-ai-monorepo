@@ -1,77 +1,62 @@
 """
-Integration tests for database operations during ingestion pipeline.
-Tests REAL database writes and reads - not mocked.
+Integration tests for IngestionDB against SQLite in-memory.
 
-Requires test database to be set up.
+Uses the same insert_event / event_exists code paths as production.
 """
 
 from datetime import UTC, datetime
 
 import pytest
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
-from common.models.enums import Priority
+from common.models.enums import PingType, Priority, Source
+from common.models.events import TelemetryPacket, TripEvent
 from common.models.orm import EventORM
+from common.models.sa_base import Base
 from core.ingestion.db import IngestionDB
 
-# Skip all tests in this module - requires real PostgreSQL setup
-pytestmark = pytest.mark.skip(reason="Requires PostgreSQL with pgvector setup")
-
-# ── Test Database Setup ────────────────────────────────────────────────────────
+pytestmark = pytest.mark.integration
 
 
 @pytest.fixture
 async def test_db_engine():
-    """Create in-memory SQLite database for testing."""
-    # Using SQLite in-memory for fast tests
-    engine = create_async_engine(
-        "sqlite+aiosqlite:///:memory:",
-        echo=False,
-    )
-
+    engine = create_async_engine("sqlite+aiosqlite:///:memory:", echo=False)
     async with engine.begin() as conn:
-        # Create all tables from ORM models
-        from common.models.orm import Base
-
         await conn.run_sync(Base.metadata.create_all)
-
     yield engine
-
     await engine.dispose()
 
 
 @pytest.fixture
 async def test_db_session(test_db_engine):
-    """Create test database session."""
     async_session = sessionmaker(
         test_db_engine, class_=AsyncSession, expire_on_commit=False
     )
-
     async with async_session() as session:
         yield session
 
 
 @pytest.fixture
-async def ingestion_db(test_db_session):
-    """Create IngestionDB with test session."""
+def ingestion_db(test_db_engine):
     db = IngestionDB()
-    db._session = test_db_session
+    db._engine = test_db_engine
     return db
 
 
-# ── Tests ──────────────────────────────────────────────────────────────────
+def _packet(event: TripEvent) -> TelemetryPacket:
+    return TelemetryPacket(
+        ping_type=PingType.BATCH,
+        source=Source.TELEMATICS_DEVICE,
+        is_emergency=False,
+        event=event,
+    )
 
 
 class TestIngestionDBInsert:
-    """Tests for IngestionDB.insert_event()"""
-
     @pytest.mark.asyncio
     async def test_insert_event_creates_row(self, ingestion_db, test_db_session):
-        """insert_event creates a row in pipeline_events table."""
-        from common.models.events import TripEvent
-
         trip_event = TripEvent(
             event_id="evt-001",
             device_event_id="dev-001",
@@ -86,15 +71,12 @@ class TestIngestionDBInsert:
             location={"lat": 1.29, "lon": 103.85},
             details={"g_force": -0.85},
         )
+        await ingestion_db.insert_event(_packet(trip_event))
 
-        await ingestion_db.insert_event(trip_event, retry_count=0)
-
-        # Query the database
         result = await test_db_session.execute(
             select(EventORM).where(EventORM.event_id == "evt-001")
         )
         row = result.scalar_one_or_none()
-
         assert row is not None
         assert row.event_id == "evt-001"
         assert row.device_event_id == "dev-001"
@@ -104,9 +86,6 @@ class TestIngestionDBInsert:
     async def test_insert_event_stores_all_required_columns(
         self, ingestion_db, test_db_session
     ):
-        """insert_event includes all required columns including retry_count and details."""
-        from common.models.events import TripEvent
-
         trip_event = TripEvent(
             event_id="evt-002",
             device_event_id="dev-002",
@@ -117,21 +96,17 @@ class TestIngestionDBInsert:
             category="safety",
             priority=Priority.CRITICAL,
             timestamp=datetime.now(UTC),
+            offset_seconds=0,
             location={"lat": 1.30, "lon": 103.86},
             details={"collision_type": "rear_end", "speed": 45},
         )
-
-        await ingestion_db.insert_event(trip_event, retry_count=0)
+        await ingestion_db.insert_event(_packet(trip_event))
 
         result = await test_db_session.execute(
             select(EventORM).where(EventORM.event_id == "evt-002")
         )
         row = result.scalar_one()
-
-        # Verify retry_count is stored
         assert row.retry_count == 0
-
-        # Verify details JSON is stored and can be read back
         assert row.details is not None
         assert row.details["collision_type"] == "rear_end"
         assert row.details["speed"] == 45
@@ -140,11 +115,7 @@ class TestIngestionDBInsert:
     async def test_insert_event_datetime_fields_naive_utc(
         self, ingestion_db, test_db_session
     ):
-        """insert_event stores datetime fields as naive UTC (no tzinfo)."""
-        from common.models.events import TripEvent
-
         now_utc = datetime.now(UTC)
-
         trip_event = TripEvent(
             event_id="evt-003",
             device_event_id="dev-003",
@@ -155,22 +126,18 @@ class TestIngestionDBInsert:
             category="emergency",
             priority=Priority.CRITICAL,
             timestamp=now_utc,
+            offset_seconds=0,
             location={"lat": 1.31, "lon": 103.87},
             details={"reason": "driver_emergency"},
         )
-
-        await ingestion_db.insert_event(trip_event, retry_count=0)
+        await ingestion_db.insert_event(_packet(trip_event))
 
         result = await test_db_session.execute(
             select(EventORM).where(EventORM.event_id == "evt-003")
         )
         row = result.scalar_one()
-
-        # Verify timestamp is stored and has NO timezone info
         assert row.timestamp is not None
         assert row.timestamp.tzinfo is None
-
-        # Verify ingested_at also has no timezone
         assert row.ingested_at is not None
         assert row.ingested_at.tzinfo is None
 
@@ -178,9 +145,6 @@ class TestIngestionDBInsert:
     async def test_insert_event_priority_stored_as_string(
         self, ingestion_db, test_db_session
     ):
-        """insert_event stores priority as string (PRIORITY_MAP.value), not int."""
-        from common.models.events import TripEvent
-
         trip_event = TripEvent(
             event_id="evt-004",
             device_event_id="dev-004",
@@ -195,57 +159,50 @@ class TestIngestionDBInsert:
             location={"lat": 1.32, "lon": 103.88},
             details={},
         )
-
-        await ingestion_db.insert_event(trip_event, retry_count=0)
+        await ingestion_db.insert_event(_packet(trip_event))
 
         result = await test_db_session.execute(
             select(EventORM).where(EventORM.event_id == "evt-004")
         )
         row = result.scalar_one()
-
-        # Priority should be the string value, not an int
         assert row.priority == "high"
         assert isinstance(row.priority, str)
 
     @pytest.mark.asyncio
-    async def test_insert_event_unique_constraints(self, ingestion_db, test_db_session):
-        """insert_event respects UNIQUE constraints on event_id and device_event_id."""
-        from common.models.events import TripEvent
-
+    async def test_insert_event_duplicate_device_id_is_noop(
+        self, ingestion_db, test_db_session
+    ):
+        """ON CONFLICT (device_event_id) DO NOTHING — no IntegrityError."""
         trip_event = TripEvent(
             event_id="evt-005",
             device_event_id="dev-005",
             trip_id="trip-005",
             truck_id="truck-005",
             driver_id="driver-005",
-            event_type="acceleration",
-            category="vehicle_dynamics",
+            event_type="hard_accel",
+            category="harsh_events",
             priority=Priority.LOW,
             timestamp=datetime.now(UTC),
+            offset_seconds=0,
             location={"lat": 1.33, "lon": 103.89},
             details={},
         )
+        await ingestion_db.insert_event(_packet(trip_event))
+        await ingestion_db.insert_event(_packet(trip_event))
 
-        # First insert should succeed
-        await ingestion_db.insert_event(trip_event, retry_count=0)
-
-        # Duplicate insert should fail
-        from sqlalchemy.exc import IntegrityError
-
-        with pytest.raises(IntegrityError):
-            await ingestion_db.insert_event(trip_event, retry_count=0)
+        cnt = await test_db_session.execute(
+            select(func.count())
+            .select_from(EventORM)
+            .where(EventORM.device_event_id == "dev-005")
+        )
+        assert cnt.scalar_one() == 1
 
 
 class TestIngestionDBQuery:
-    """Tests for IngestionDB.event_exists()"""
-
     @pytest.mark.asyncio
-    async def test_event_exists_returns_true_for_existing_event(
-        self, ingestion_db, test_db_session
+    async def test_event_exists_returns_true_for_existing_device_event(
+        self, ingestion_db
     ):
-        """event_exists returns True when event_id exists in database."""
-        from common.models.events import TripEvent
-
         trip_event = TripEvent(
             event_id="evt-100",
             device_event_id="dev-100",
@@ -260,15 +217,11 @@ class TestIngestionDBQuery:
             location={"lat": 1.34, "lon": 103.90},
             details={},
         )
-
-        await ingestion_db.insert_event(trip_event, retry_count=0)
-
-        # Query should find it
-        exists = await ingestion_db.event_exists("evt-100")
-        assert exists is True
+        await ingestion_db.insert_event(_packet(trip_event))
+        assert await ingestion_db.event_exists("dev-100") is True
 
     @pytest.mark.asyncio
-    async def test_event_exists_returns_false_for_missing_event(self, ingestion_db):
-        """event_exists returns False when event_id does not exist."""
-        exists = await ingestion_db.event_exists("evt-nonexistent")
-        assert exists is False
+    async def test_event_exists_returns_false_for_missing_device_event(
+        self, ingestion_db
+    ):
+        assert await ingestion_db.event_exists("dev-nonexistent") is False

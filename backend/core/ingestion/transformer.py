@@ -18,7 +18,7 @@ Location: backend/core/ingestion/transformer.py
 import logging
 from datetime import UTC, datetime
 
-from common.config.events import EVENT_MATRIX, PRIORITY_MAP
+from common.config.events import EVENT_MATRIX
 from common.models.events import TelemetryPacket, TripEvent
 
 logger = logging.getLogger(__name__)
@@ -50,7 +50,7 @@ class PacketTransformer:
             # ── Classification (governed by EVENT_MATRIX) ──────────────────
             event_type=event.event_type,
             category=config.category,
-            priority=PRIORITY_MAP[event.priority],
+            priority=event.priority,
             # ── Temporal anchor ────────────────────────────────────────────
             timestamp=event.timestamp,
             offset_seconds=event.offset_seconds,

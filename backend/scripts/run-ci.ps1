@@ -74,9 +74,9 @@ try {
     uv run ruff check . --fix
     Write-Success "All Python files formatted and linted."
 
-    Write-Step "Running isort (Auto-fix imports) on CI scope..."
-    uv run isort @CiPythonFiles
-    Write-Success "Import sorting applied."
+    Write-Step "Running Ruff import sorting fixes on CI scope..."
+    uv run ruff check @CiPythonFiles --select I --fix
+    Write-Success "Import sorting applied via Ruff."
 
     Write-Step "Running Black (Auto-format) on CI scope..."
     uv run black @CiPythonFiles

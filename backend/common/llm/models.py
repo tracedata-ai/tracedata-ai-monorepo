@@ -1,0 +1,38 @@
+"""LLM provider model enums and configuration."""
+
+from enum import StrEnum
+from typing import Any
+
+from pydantic import BaseModel, ConfigDict
+
+
+class OpenAIModel(StrEnum):
+    """Available OpenAI models."""
+
+    GPT_4 = "gpt-4"
+    GPT_4_TURBO = "gpt-4-turbo"
+    GPT_4O = "gpt-4o"
+    GPT_4O_MINI = "gpt-4o-mini"
+    GPT_35_TURBO = "gpt-3.5-turbo"
+
+
+class AnthropicModel(StrEnum):
+    """Available Anthropic Claude models."""
+
+    CLAUDE_OPUS_20250514 = "claude-opus-20250514"
+    CLAUDE_SONNET_4_20250514 = "claude-sonnet-4-20250514"
+    CLAUDE_35_SONNET_20241022 = "claude-3-5-sonnet-20241022"
+    CLAUDE_35_HAIKU_20241022 = "claude-3-5-haiku-20241022"
+    CLAUDE_3_OPUS_20240229 = "claude-3-opus-20240229"
+    CLAUDE_3_SONNET_20240229 = "claude-3-sonnet-20240229"
+    CLAUDE_3_HAIKU_20240307 = "claude-3-haiku-20240307"
+
+
+class LLMConfig(BaseModel):
+    """Resolved LLM configuration returned by the factory."""
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    provider: str
+    model: str
+    adapter: Any  # LLMAdapter type, but uses Any to avoid circular import

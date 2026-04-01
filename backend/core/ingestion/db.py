@@ -29,6 +29,15 @@ settings = get_settings()
 logger = logging.getLogger(__name__)
 
 
+class DateTimeEncoder(json.JSONEncoder):
+    """Custom JSON encoder for datetime objects."""
+
+    def default(self, obj: Any) -> Any:
+        if isinstance(obj, datetime):
+            return obj.isoformat()
+        return super().default(obj)
+
+
 class IngestionDB:
     """
     Async database client for the Ingestion Tool.
@@ -81,7 +90,7 @@ class IngestionDB:
                 """),
                 {"device_event_id": device_event_id},
             )
-            return result.scalar()
+            return bool(result.scalar())
 
     # ── WRITE ─────────────────────────────────────────────────────────────────
 
@@ -176,7 +185,7 @@ class IngestionDB:
                     "lat": lat,
                     "lon": lon,
                     "details": json.dumps(event.details or {}),
-                    "raw_payload": packet.model_dump_json(),
+                    "raw_payload": json.dumps(packet.model_dump(), cls=DateTimeEncoder),
                     "retry_count": 0,
                     "ingested_at": datetime.now(UTC).replace(tzinfo=None),
                 },

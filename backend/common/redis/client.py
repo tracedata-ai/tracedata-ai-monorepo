@@ -69,9 +69,28 @@ class RedisClient:
 
     # ── Pipeline Queues (ZSets) ──────────────────────────────────────────────
 
-    async def push_to_buffer(self, key: str, payload: str, score: int):
-        """Stage 1 — push raw TelemetryPacket to buffer."""
+    async def push_to_buffer(
+        self, key: str, payload: str, score: int, debug: bool = True
+    ):
+        """Stage 1 — push raw TelemetryPacket to buffer.
+
+        Args:
+            key: Production queue key (e.g., telemetry:TK001:buffer)
+            payload: Raw telemetry packet JSON
+            score: Priority score for sorting
+            debug: If True, also push to debug copy with 1h TTL for observability
+        """
+        from common.redis.keys import RedisSchema
+
+        # Push to production queue
         await self._client.zadd(key, mapping={payload: score})
+
+        # Mirror to debug queue if enabled
+        if debug:
+            truck_id = key.split(":")[1]  # Extract truck_id from key
+            debug_key = RedisSchema.Telemetry.debug_buffer(truck_id)
+            await self._client.zadd(debug_key, mapping={payload: score})
+            await self._client.expire(debug_key, RedisSchema.Telemetry.DEBUG_TTL)
 
     async def pop_from_buffer(self, key: str) -> dict | None:
         """Stage 1 — pop highest priority raw packet from buffer."""
@@ -81,9 +100,28 @@ class RedisClient:
         raw_json, score = result[0]
         return json.loads(raw_json)
 
-    async def push_to_processed(self, key: str, payload: str, score: int):
-        """Stage 2 — push clean TripEvent to processed queue."""
+    async def push_to_processed(
+        self, key: str, payload: str, score: int, debug: bool = True
+    ):
+        """Stage 2 — push clean TripEvent to processed queue.
+
+        Args:
+            key: Production queue key (e.g., telemetry:TK001:processed)
+            payload: Clean trip event JSON
+            score: Priority score for sorting
+            debug: If True, also push to debug copy with 1h TTL for observability
+        """
+        from common.redis.keys import RedisSchema
+
+        # Push to production queue
         await self._client.zadd(key, mapping={payload: score})
+
+        # Mirror to debug queue if enabled
+        if debug:
+            truck_id = key.split(":")[1]  # Extract truck_id from key
+            debug_key = RedisSchema.Telemetry.debug_processed(truck_id)
+            await self._client.zadd(debug_key, mapping={payload: score})
+            await self._client.expire(debug_key, RedisSchema.Telemetry.DEBUG_TTL)
 
     async def pop_from_processed(self, key: str) -> dict | None:
         """Stage 2 — pop highest priority clean event from processed queue."""
@@ -93,10 +131,102 @@ class RedisClient:
         raw_json, score = result[0]
         return json.loads(raw_json)
 
-    async def push_to_rejected(self, key: str, payload: str, score: int, ttl: int):
-        """Push rejected packet to DLQ with TTL."""
+    async def push_to_rejected(
+        self, key: str, payload: str, score: int, ttl: int, debug: bool = True
+    ):
+        """Push rejected packet to DLQ with TTL.
+
+        Args:
+            key: DLQ queue key
+            payload: Rejected telemetry packet JSON
+            score: Priority score
+            ttl: TTL for the DLQ (typically 48 hours)
+            debug: If True, also push to visualization buffer
+        """
         await self._client.zadd(key, mapping={payload: score})
         await self._client.expire(key, ttl)
+
+        # Also track rejections in visualization buffer
+        if debug:
+            rejection_event = {
+                "type": "rejection",
+                "original_key": key,
+                "timestamp": datetime.now().__str__(),
+                "payload": json.loads(payload) if isinstance(payload, str) else payload,
+            }
+            await self.push_to_visualization_buffer(
+                json.dumps(rejection_event, cls=DateTimeEncoder)
+            )
+
+    # ── Debug Queue Inspection (for observability) ───────────────────────────
+
+    async def get_debug_buffer(self, truck_id: str, limit: int = 20) -> list[dict]:
+        """Inspect recent raw telemetry packets from debug buffer (1h TTL).
+
+        Returns up to `limit` events from debug:telemetry:{truck_id}:buffer
+        sorted by priority (lowest score first).
+        """
+        from common.redis.keys import RedisSchema
+
+        debug_key = RedisSchema.Telemetry.debug_buffer(truck_id)
+        # ZRANGE returns [(member, score), ...] when withscores=True
+        raw_events = await self._client.zrange(debug_key, 0, limit - 1, withscores=True)
+        return [
+            {"payload": json.loads(event), "priority_score": score}
+            for event, score in raw_events
+        ]
+
+    async def get_debug_processed(self, truck_id: str, limit: int = 20) -> list[dict]:
+        """Inspect recent clean trip events from debug queue (1h TTL).
+
+        Returns up to `limit` events from debug:telemetry:{truck_id}:processed
+        sorted by priority (lowest score first).
+        """
+        from common.redis.keys import RedisSchema
+
+        debug_key = RedisSchema.Telemetry.debug_processed(truck_id)
+        raw_events = await self._client.zrange(debug_key, 0, limit - 1, withscores=True)
+        return [
+            {"payload": json.loads(event), "priority_score": score}
+            for event, score in raw_events
+        ]
+
+    async def get_all_debug_trucks(self) -> dict[str, dict]:
+        """Scan all debug queues and return status.
+
+        Returns:
+            {
+                "TK001": {
+                    "buffer_count": 15,
+                    "processed_count": 8,
+                    "buffer_ttl": 3456,
+                    "processed_ttl": 3456
+                },
+                ...
+            }
+        """
+        buffer_keys = await self._client.keys("debug:telemetry:*:buffer")
+        result = {}
+
+        for buffer_key in buffer_keys:
+            truck_id = buffer_key.split(":")[
+                2
+            ]  # Extract from debug:telemetry:TK001:buffer
+            processed_key = f"debug:telemetry:{truck_id}:processed"
+
+            buffer_count = await self._client.zcard(buffer_key)
+            processed_count = await self._client.zcard(processed_key)
+            buffer_ttl = await self._client.ttl(buffer_key)
+            processed_ttl = await self._client.ttl(processed_key)
+
+            result[truck_id] = {
+                "buffer_count": buffer_count,
+                "processed_count": processed_count,
+                "buffer_ttl": buffer_ttl,
+                "processed_ttl": processed_ttl,
+            }
+
+        return result
 
     # ── Visualization Buffer (60-min TTL for observability) ──────────────────
 

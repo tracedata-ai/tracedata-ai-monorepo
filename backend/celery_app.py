@@ -38,6 +38,13 @@ app.conf.update(
     worker_prefetch_multiplier=settings.celery_worker_prefetch_multiplier,
     # task_reject_on_worker_lost: requeue task if worker loses heartbeat.
     task_reject_on_worker_lost=settings.celery_task_reject_on_worker_lost,
+    # ── Redis key organization ────────────────────────────────────────────────
+    # Kombu bindings use this prefix: celery:binding:{queue_name}
+    # Task results use this prefix: celery:result:{task_id}
+    broker_transport_options={
+        "master_name": "celery",  # Namespace for Kombu channels/bindings
+        "key_prefix": "celery:",  # Prefix for all Celery Redis keys
+    },
     # ── Queue routing ─────────────────────────────────────────────────────────
     # Each agent has its own queue. Independent scaling, no interference.
     task_routes={
@@ -63,12 +70,15 @@ app.conf.update(
 )
 
 # ── Task autodiscovery ────────────────────────────────────────────────────────
-# Celery will find tasks in agents/*/tasks.py when workers start.
+# Celery will find tasks in:
+# - agents/*/tasks.py (agent-specific tasks)
+# - tasks/*.py (standalone task files)
 app.autodiscover_tasks(
     [
         "agents.safety",
         "agents.scoring",
         "agents.driver_support",
         "agents.sentiment",
+        "tasks",  # Discover tasks from tasks/ package
     ]
 )

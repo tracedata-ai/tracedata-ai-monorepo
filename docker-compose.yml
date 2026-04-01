@@ -28,6 +28,7 @@ services:
     environment:
       - DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/tracedata
       - REDIS_URL=redis://redis:6379/0
+      - PYTHONPATH=/app
     depends_on:
       db:
         condition: service_healthy
@@ -57,58 +58,68 @@ services:
     command: python -m agents.worker orchestrator
     environment:
       - REDIS_URL=redis://redis:6379/0
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
     depends_on:
       - redis
     restart: always
 
-  # ── Container 4: Safety Worker ──────────────────────────────────────────────
+  # ── Container 4: Safety Worker (Celery) ─────────────────────────────────────
   safety_worker:
     build:
       context: ./backend
       dockerfile: Dockerfile
     container_name: td-safety
-    command: python -m agents.worker safety
+    working_dir: /app
+    command: celery -A celery_app worker -Q td:agent:safety -n safety@%h --loglevel=info
     environment:
       - REDIS_URL=redis://redis:6379/0
+      - PYTHONPATH=/app
     depends_on:
       - redis
     restart: always
 
-  # ── Container 5: Scoring Worker ─────────────────────────────────────────────
+  # ── Container 5: Scoring Worker (Celery) ────────────────────────────────────
   scoring_worker:
     build:
       context: ./backend
       dockerfile: Dockerfile
     container_name: td-scoring
-    command: python -m agents.worker scoring
+    working_dir: /app
+    command: celery -A celery_app worker -Q td:agent:scoring -n scoring@%h --loglevel=info
     environment:
       - REDIS_URL=redis://redis:6379/0
+      - PYTHONPATH=/app
     depends_on:
       - redis
     restart: always
 
-  # ── Container 6: Support Worker ─────────────────────────────────────────────
+  # ── Container 6: Support Worker (Celery) ────────────────────────────────────
   support_worker:
     build:
       context: ./backend
       dockerfile: Dockerfile
     container_name: td-support
-    command: python -m agents.worker support
+    working_dir: /app
+    command: celery -A celery_app worker -Q td:agent:support -n support@%h --loglevel=info
     environment:
       - REDIS_URL=redis://redis:6379/0
+      - PYTHONPATH=/app
     depends_on:
       - redis
     restart: always
 
-  # ── Container 7: Sentiment Worker ───────────────────────────────────────────
+  # ── Container 7: Sentiment Worker (Celery) ──────────────────────────────────
   sentiment_worker:
     build:
       context: ./backend
       dockerfile: Dockerfile
     container_name: td-sentiment
-    command: python -m agents.worker sentiment
+    working_dir: /app
+    command: celery -A celery_app worker -Q td:agent:sentiment -n sentiment@%h --loglevel=info
     environment:
       - REDIS_URL=redis://redis:6379/0
+      - PYTHONPATH=/app
     depends_on:
       - redis
     restart: always

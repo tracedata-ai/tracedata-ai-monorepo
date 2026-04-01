@@ -279,15 +279,16 @@ class IngestionSidecar:
             logger.warning({**ctx, "action": "unknown_event_type"})
             return False
 
-        if packet.event.priority != config.priority:
+        if packet.event.priority != config.priority.value:
             logger.info(
                 {
                     **ctx,
                     "action": "priority_override",
                     "device_priority": packet.event.priority,
-                    "governed_priority": config.priority,
+                    "governed_priority": config.priority.value,
                 }
             )
+            # Convert governed priority (from EventConfig) to event priority
             packet.event.priority = config.priority
 
         return True
