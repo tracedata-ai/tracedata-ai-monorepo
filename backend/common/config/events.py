@@ -570,3 +570,123 @@ THRESHOLDS = {
         "smooth_threshold": 0.05,
     },
 }
+
+
+# ==============================================================================
+# CACHE WARMING HELPERS (From improvement guide)
+# ==============================================================================
+
+
+def get_event_config(event_type: str) -> dict | None:
+    """
+    Get EventMatrix entry for event type.
+
+    Returns the full EventConfig for the event, or None if not found.
+    """
+    config = EVENT_MATRIX.get(event_type)
+    if config:
+        return {
+            "event_type": event_type,
+            "action": config.action,
+            "category": config.category,
+            "priority": config.priority,
+            "ml_weight": config.ml_weight,
+            "scope": {
+                "read_keys": [k.value for k in config.scope.read_keys],
+                "write_keys": [k.value for k in config.scope.write_keys],
+                "allowed_agents": [a.value for a in config.scope.allowed_agents],
+            },
+            "agents_from_action": config.agents_from_action,
+        }
+    return None
+
+
+def get_agents_to_dispatch(event_type: str) -> list[str]:
+    """
+    Get agents that should process this event.
+
+    Returns list of agent names (e.g., ["scoring", "support"]).
+    """
+    config = EVENT_MATRIX.get(event_type)
+    if config:
+        return [agent.value for agent in config.scope.allowed_agents]
+    return []
+
+
+def get_warming_type(event_type: str) -> str | None:
+    """
+    Determine warming strategy for event.
+
+    Returns:
+      - "event-driven": Minimal warming (1-2 ms) — Safety, Support
+      - "aggregation-driven": Heavy warming (1-2 sec) — Scoring
+      - None: No warming needed
+    """
+    config = EVENT_MATRIX.get(event_type)
+    if not config:
+        return None
+
+    # Map actions to warming types
+    if config.action in [
+        Action.EMERGENCY_ALERT_911,
+        Action.EMERGENCY_ALERT,
+        Action.FLEET_ALERT,
+    ]:
+        return "event-driven"  # Safety agent: minimal warming
+
+    elif config.action in [
+        Action.COACHING,
+        Action.REGULATORY,
+        Action.SCORING,
+    ]:
+        if event_type == "end_of_trip":
+            return "aggregation-driven"  # Scoring agent needs all pings
+        else:
+            return "event-driven"  # Other coaching events: minimal warming
+
+    elif config.action == Action.SUPPORT:
+        return "event-driven"  # Support agent: trip context only
+
+    elif config.action == Action.SENTIMENT:
+        return "event-driven"  # Sentiment agent: basic context
+
+    elif config.action == Action.HITL:
+        return "event-driven"  # HITL agent: trip context for review
+
+    else:
+        return None  # No warming for analytics, logging, etc.
+
+
+def get_cache_requirements(event_type: str, agent: str) -> dict:
+    """
+    Get cache warming requirements for specific agent.
+
+    Returns dict with keys like:
+      {
+        "needs": ["current_event", "trip_context"],
+        "ttl": 300
+      }
+    """
+    warming_type = get_warming_type(event_type)
+
+    if warming_type == "event-driven":
+        # Event-driven agents need: current event + trip context
+        return {
+            "needs": ["current_event", "trip_context"],
+            "ttl": 300,  # 5 minutes
+        }
+
+    elif warming_type == "aggregation-driven":
+        # Aggregation-driven agents need all trip data
+        if agent == "scoring":
+            return {
+                "needs": ["all_pings", "historical_avg"],
+                "ttl": 3600,  # 1 hour
+            }
+        elif agent == "support":
+            return {
+                "needs": ["trip_context", "coaching_history"],
+                "ttl": 3600,
+            }
+
+    return {"needs": [], "ttl": 0}

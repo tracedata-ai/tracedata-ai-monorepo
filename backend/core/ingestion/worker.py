@@ -1,8 +1,13 @@
 import asyncio
+import json
 import logging
+from datetime import UTC, datetime
 
+from common.config.events import PRIORITY_MAP
+from common.models.enums import Priority
 from common.redis.client import RedisClient
 from common.redis.keys import RedisSchema
+from core.buffer.ring_buffer import RingBuffer
 from core.ingestion.db import IngestionDB
 from core.ingestion.sidecar import IngestionSidecar
 
@@ -39,7 +44,14 @@ async def _discover_trucks(redis: RedisClient) -> list[str]:
 
 
 async def main():
-    logger.info("🚀 Ingestion worker started (dynamic truck discovery mode)")
+    logger.info("🚀 Ingestion worker started (with ring buffer batching)")
+
+    # Initialize ring buffer for batch processing
+    buffer = RingBuffer(
+        max_size=100,
+        batch_flush_size=10,  # Lower threshold for better responsiveness
+        max_wait_seconds=2,   # Shorter timeout for testing
+    )
 
     async with IngestionDB() as db:
         redis = RedisClient()
@@ -64,31 +76,89 @@ async def main():
                     raw_packet = await redis.pop_from_buffer(raw_key)
 
                     if raw_packet:
-                        event_type = raw_packet.get("event", {}).get(
-                            "event_type", "unknown"
-                        )
-                        truck_id_from_packet = raw_packet.get("event", {}).get(
-                            "truck_id", truck_id
-                        )
+                        # Push to ring buffer
+                        accepted = await buffer.push(raw_packet)
+                        if accepted:
+                            handled += 1
+                        else:
+                            logger.warning(
+                                {
+                                    "action": "packet_rejected_backpressure",
+                                    "truck_id": truck_id,
+                                }
+                            )
 
-                        logger.info(
-                            f"Processing {event_type} for truck {truck_id_from_packet}"
+                # Check if buffer should auto-flush
+                if await buffer.should_flush():
+                    packets = await buffer.flush()
+                    logger.info(
+                        {
+                            "action": "buffer_processing_start",
+                            "packets_to_process": len(packets),
+                        }
+                    )
+
+                    # Process all packets through sidecar
+                    for packet in packets:
+                        truck_id = packet.get("event", {}).get("truck_id", "unknown")
+                        event_type = packet.get("event", {}).get(
+                            "event_type", "unknown"
                         )
 
                         # ── The 7-Step Pipeline ──
                         result = await sidecar.process(
-                            raw=raw_packet,
-                            truck_id=truck_id_from_packet,
+                            raw=packet,
+                            truck_id=truck_id,
                         )
 
                         if result.ok:
+                            # Push clean TripEvent to processed queue (ZSET — matches pop_from_processed)
+                            processed_key = RedisSchema.Telemetry.processed(truck_id)
+                            priority_score = PRIORITY_MAP.get(
+                                result.trip_event.priority, 9
+                            )
+                            await redis.push_to_processed(
+                                processed_key,
+                                result.trip_event.model_dump_json(),
+                                priority_score,
+                            )
                             logger.info(
-                                f"Successfully ingested {event_type} (trip_id={result.trip_event.trip_id})"
+                                {
+                                    "action": "packet_processed",
+                                    "truck_id": truck_id,
+                                    "event_type": event_type,
+                                    "trip_id": result.trip_event.trip_id,
+                                }
                             )
                         else:
-                            logger.warning(f"Rejected packet: {result.reason}")
+                            # Push rejected packet to DLQ (ZSET + TTL)
+                            dlq_key = RedisSchema.Telemetry.rejected(truck_id)
+                            dlq_entry = {
+                                "raw_packet": packet,
+                                "reason": result.reason,
+                                "rejected_at": datetime.now(UTC).isoformat(),
+                            }
+                            pri_raw = packet.get("event", {}).get("priority", "low")
+                            try:
+                                pscore = PRIORITY_MAP.get(
+                                    Priority(str(pri_raw).lower()), 9
+                                )
+                            except ValueError:
+                                pscore = 9
+                            await redis.push_to_rejected(
+                                dlq_key,
+                                json.dumps(dlq_entry),
+                                pscore,
+                                ttl=RedisSchema.Telemetry.DLQ_TTL,
+                            )
 
-                        handled += 1
+                            logger.warning(
+                                {
+                                    "action": "packet_rejected",
+                                    "truck_id": truck_id,
+                                    "reason": result.reason,
+                                }
+                            )
 
                 if handled == 0:
                     # No events, small sleep to prevent CPU spinning

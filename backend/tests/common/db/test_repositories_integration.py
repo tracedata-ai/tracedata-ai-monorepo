@@ -30,7 +30,7 @@ async def test_db_engine():
     )
 
     async with engine.begin() as conn:
-        from common.models.orm import Base
+        from common.models.sa_base import Base
 
         await conn.run_sync(Base.metadata.create_all)
 

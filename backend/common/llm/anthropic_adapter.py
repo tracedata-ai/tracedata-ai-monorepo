@@ -3,8 +3,8 @@
 import os
 from typing import Any
 
-from backend.common.llm.adapter import LLMAdapter
-from backend.common.llm.models import AnthropicModel
+from common.llm.adapter import LLMAdapter
+from common.llm.models import AnthropicModel
 
 
 class AnthropicAdapter(LLMAdapter):

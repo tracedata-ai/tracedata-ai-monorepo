@@ -1,8 +1,8 @@
 """LLM factory for provider-agnostic model loading."""
 
-from backend.common.llm.anthropic_adapter import AnthropicAdapter
-from backend.common.llm.models import AnthropicModel, LLMConfig, OpenAIModel
-from backend.common.llm.openai_adapter import OpenAIAdapter
+from common.llm.anthropic_adapter import AnthropicAdapter
+from common.llm.models import AnthropicModel, LLMConfig, OpenAIModel
+from common.llm.openai_adapter import OpenAIAdapter
 
 
 def _infer_provider_from_model(model: OpenAIModel | AnthropicModel) -> str:

@@ -9,7 +9,7 @@ class TestLLMAdapterFactory:
 
     def test_load_openai_model(self):
         """Test loading OpenAI model via factory."""
-        from backend.common.llm import load_llm, OpenAIModel
+        from common.llm import load_llm, OpenAIModel
 
         # This will fail without OPENAI_API_KEY, which is expected
         # In CI/real env, the key should be set
@@ -25,7 +25,7 @@ class TestLLMAdapterFactory:
 
     def test_load_anthropic_model(self):
         """Test loading Anthropic model via factory."""
-        from backend.common.llm import load_llm, AnthropicModel
+        from common.llm import load_llm, AnthropicModel
 
         try:
             config = load_llm(AnthropicModel.CLAUDE_35_SONNET_20241022)
@@ -43,7 +43,7 @@ class TestWeatherTrafficTools:
 
     def test_weather_tool(self):
         """Test weather tool returns formatted string."""
-        from backend.agents.tools.weather_traffic import get_weather
+        from agents.tools.weather_traffic import get_weather
 
         # get_weather is a StructuredTool, call invoke method
         result = get_weather.invoke({"location": "Singapore"})
@@ -53,7 +53,7 @@ class TestWeatherTrafficTools:
 
     def test_traffic_tool(self):
         """Test traffic tool returns formatted string."""
-        from backend.agents.tools.weather_traffic import get_traffic
+        from agents.tools.weather_traffic import get_traffic
 
         # get_traffic is a StructuredTool, call invoke method
         result = get_traffic.invoke({"location": "Malaysia"})
@@ -63,7 +63,7 @@ class TestWeatherTrafficTools:
 
     def test_tools_with_unknown_location(self):
         """Test tools handle unknown locations gracefully."""
-        from backend.agents.tools.weather_traffic import get_weather, get_traffic
+        from agents.tools.weather_traffic import get_weather, get_traffic
 
         weather_result = get_weather.invoke({"location": "UnknownCity"})
         traffic_result = get_traffic.invoke({"location": "UnknownCity"})
@@ -77,7 +77,7 @@ class TestSystemPrompts:
 
     def test_all_prompts_exist(self):
         """Test that all expected prompts are defined."""
-        from backend.common.config.system_prompts import SYSTEM_PROMPTS, PromptType
+        from common.config.system_prompts import SYSTEM_PROMPTS, PromptType
 
         # Verify all PromptType enum values have corresponding prompts
         for prompt_type in PromptType:
@@ -88,7 +88,7 @@ class TestSystemPrompts:
 
     def test_get_prompt_function(self):
         """Test get_prompt helper function."""
-        from backend.common.config.system_prompts import get_prompt, PromptType
+        from common.config.system_prompts import get_prompt, PromptType
 
         prompt = get_prompt(PromptType.WEATHER_TRAFFIC)
         assert isinstance(prompt, str)
@@ -97,7 +97,7 @@ class TestSystemPrompts:
 
     def test_prompt_key_lookup(self):
         """Test prompt lookup by string key."""
-        from backend.common.config.system_prompts import get_prompt
+        from common.config.system_prompts import get_prompt
 
         prompt = get_prompt("weather_traffic")
         assert isinstance(prompt, str)
@@ -111,8 +111,8 @@ class TestAgentABC:
         """Test agent initialization with mock LLM."""
         from unittest.mock import Mock
 
-        from backend.agents.base.agent_llm import Agent
-        from backend.agents.tools import get_weather
+        from agents.base.agent import Agent
+        from agents.tools import get_weather
 
         mock_llm = Mock()
         agent = Agent(
@@ -124,14 +124,14 @@ class TestAgentABC:
 
         assert agent.agent_name == "TestAgent"
         assert len(agent.tools) == 1
-        assert agent._agent is None  # Lazy initialization
+        assert agent._graph is None  # Lazy initialization
 
     def test_agent_repr(self):
         """Test agent __repr__ method."""
         from unittest.mock import Mock
 
-        from backend.agents.base.agent_llm import Agent
-        from backend.agents.tools import get_weather
+        from agents.base.agent import Agent
+        from agents.tools import get_weather
 
         mock_llm = Mock()
         agent = Agent(
@@ -153,7 +153,7 @@ class TestWeatherTrafficAgentExample:
         """Test WeatherTrafficAgent initializes with correct tools."""
         from unittest.mock import Mock
 
-        from backend.agents.examples import WeatherTrafficAgent
+        from agents.examples import WeatherTrafficAgent
 
         mock_llm = Mock()
         agent = WeatherTrafficAgent(llm=mock_llm)
@@ -167,7 +167,7 @@ class TestWeatherTrafficAgentExample:
         """Test WeatherTrafficAgent has system prompt."""
         from unittest.mock import Mock
 
-        from backend.agents.examples import WeatherTrafficAgent
+        from agents.examples import WeatherTrafficAgent
 
         mock_llm = Mock()
         agent = WeatherTrafficAgent(llm=mock_llm)
@@ -185,7 +185,7 @@ class TestAgentInvocation:
         """Test agent __str__ shows agent details."""
         from unittest.mock import Mock
 
-        from backend.agents.examples import WeatherTrafficAgent
+        from agents.examples import WeatherTrafficAgent
 
         mock_llm = Mock()
         mock_llm.__class__.__name__ = "MockChatModel"
@@ -219,8 +219,8 @@ class TestIntegration:
             mock_llm_instance = Mock()
             mock_chat.return_value = mock_llm_instance
 
-            from backend.common.llm import load_llm, OpenAIModel
-            from backend.agents.examples import WeatherTrafficAgent
+            from common.llm import load_llm, OpenAIModel
+            from agents.examples import WeatherTrafficAgent
 
             config = load_llm(OpenAIModel.GPT_4O)
             llm = config.adapter.get_chat_model()

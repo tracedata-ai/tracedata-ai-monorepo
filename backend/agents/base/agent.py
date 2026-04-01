@@ -1,31 +1,100 @@
+"""
+Unified agent bases for TraceData.
+
+- ``Agent``: LangGraph ReAct, one-shot ``invoke`` (e.g. orchestrator LLM routing).
+- ``TDAgentBase``: Celery + ``IntentCapsule`` — cache, repos, lock release (domain agents).
+- ``TDQueueAgentBase`` / ``TDLLMAgentBase``: legacy Redis queue consumer loop + optional ReAct.
+- LLM adapter types: ``LLMAdapter``, ``LLMConfig``, model enums.
+"""
+
+from __future__ import annotations
+
 import json
 import logging
 from abc import ABC, abstractmethod
+from datetime import UTC, datetime
+from enum import StrEnum
 from typing import Any
 
-from common.config.settings import get_settings
+from pydantic import BaseModel, ConfigDict
+from sqlalchemy.ext.asyncio import AsyncEngine
+
+from common.db.write_validation import DatabaseWriteValidator
+from common.models.security import IntentCapsule
 from common.redis.client import RedisClient
+from common.redis.keys import RedisSchema
+
+from .logger import get_agent_logger
 
 logger = logging.getLogger(__name__)
-settings = get_settings()
 
 
-# ---------------------------------------------------------------------------
-# LLM adapter contracts (adapted from references/reference/adapters)
-# ---------------------------------------------------------------------------
+# ── LangGraph (shared factory) ────────────────────────────────────────────────
 
-from abc import abstractmethod as _abstractmethod
-from enum import StrEnum
 
-from pydantic import BaseModel, ConfigDict
+def build_react_graph(llm: Any, tools: list, system_prompt: str) -> Any:
+    """Create a LangGraph ReAct agent graph (single place for create_react_agent)."""
+    from langgraph.prebuilt import create_react_agent
+
+    return create_react_agent(
+        model=llm,
+        tools=tools,
+        prompt=system_prompt,
+    )
+
+
+class Agent(ABC):
+    """LangGraph ReAct helper: tools + LLM + ``invoke`` (orchestrator router pattern)."""
+
+    def __init__(
+        self,
+        llm: Any,
+        agent_name: str,
+        tools: list,
+        system_prompt: str,
+    ):
+        self.llm = llm
+        self.agent_name = agent_name
+        self.tools = tools
+        self.system_prompt = system_prompt
+        self._graph = None
+        self.logger = get_agent_logger(agent_name)
+        self.logger.info(
+            "initialized agent | tools=%s | llm=%s",
+            [t.name for t in self.tools],
+            type(self.llm).__name__,
+        )
+
+    def _ensure_graph(self) -> Any:
+        if self._graph is None:
+            self.logger.info("creating langgraph agent")
+            self._graph = build_react_graph(
+                self.llm, self.tools, self.system_prompt
+            )
+        return self._graph
+
+    def invoke(self, input_data: dict) -> dict:
+        self.logger.info("invoke start | keys=%s", list(input_data.keys()))
+        result = self._ensure_graph().invoke(input_data)
+        self.logger.info("invoke complete")
+        return result
+
+    def __repr__(self) -> str:
+        return f"{self.agent_name}(tools={len(self.tools)})"
+
+    def __str__(self) -> str:
+        tools_str = ", ".join([t.name for t in self.tools])
+        return f"{self.agent_name}\n  Tools: {tools_str}\n  LLM: {self.llm}"
+
+
+# ── LLM adapter contracts ───────────────────────────────────────────────────
 
 
 class LLMAdapter(ABC):
     """Abstract adapter for provider-specific LangChain chat models."""
 
-    @_abstractmethod
+    @abstractmethod
     def get_chat_model(self) -> Any:
-        """Return a LangChain-compatible chat model instance."""
         raise NotImplementedError
 
     def __repr__(self) -> str:
@@ -48,7 +117,7 @@ class AnthropicModel(StrEnum):
 
 
 class LLMConfig(BaseModel):
-    """Resolved LLM configuration returned by the factory."""
+    """Resolved LLM configuration returned by a factory."""
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
@@ -58,16 +127,9 @@ class LLMConfig(BaseModel):
 
 
 def _extract_event_meta(event_data: dict[str, Any]) -> dict[str, Any]:
-    """Normalizes event fields for consistent trace logging.
-
-    Handles both wrapped shape (TelemetryPacket with nested 'event' field)
-    and flat shape (direct TripEvent dict).
-    """
-    # Flat TripEvent — top-level trip_id key indicates unwrapped shape
     if "trip_id" in event_data and "event" not in event_data:
         event_obj: dict[str, Any] = event_data
     else:
-        # Wrapped TelemetryPacket or fallback
         event_obj = event_data.get("event", event_data) or {}
 
     return {
@@ -78,12 +140,14 @@ def _extract_event_meta(event_data: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-class TDAgentBase(ABC):
-    """
-    Thick base class for all TraceData agents.
+# ── Redis queue worker (legacy) ──────────────────────────────────────────────
 
-    Handles Redis connectivity, event consumption, and result publishing.
-    Subclasses only need to implement `process_event`.
+
+class TDQueueAgentBase(ABC):
+    """
+    Redis input queue consumer: pop → ``process_event`` → push to output queue.
+
+    Prefer ``TDAgentBase`` for Celery + ``IntentCapsule`` workers.
     """
 
     def __init__(self, agent_name: str, input_queue: str, output_queue: str):
@@ -94,15 +158,12 @@ class TDAgentBase(ABC):
         self._running = False
 
     @abstractmethod
-    async def process_event(self, event_data: dict[str, Any]) -> dict[str, Any] | None:
-        """
-        Business logic for the specific agent.
-        Returns a dictionary to be published, or None to skip publishing.
-        """
+    async def process_event(
+        self, event_data: dict[str, Any]
+    ) -> dict[str, Any] | None:
         pass
 
-    async def run(self):
-        """Infinite loop consuming events from the input queue."""
+    async def run(self) -> None:
         self._running = True
         logger.info(
             "[trace] agent_started agent=%s input_queue=%s output_queue=%s",
@@ -113,7 +174,6 @@ class TDAgentBase(ABC):
 
         try:
             while self._running:
-                # Blocking pop from Redis
                 raw_event = await self.redis.pop(self.input_queue, timeout=5)
                 if not raw_event:
                     continue
@@ -122,7 +182,8 @@ class TDAgentBase(ABC):
                     event_data = json.loads(raw_event)
                     meta = _extract_event_meta(event_data)
                     logger.info(
-                        "[trace] redis_pop agent=%s queue=%s event_id=%s device_event_id=%s trip_id=%s event_type=%s",
+                        "[trace] redis_pop agent=%s queue=%s event_id=%s "
+                        "device_event_id=%s trip_id=%s event_type=%s",
                         self.agent_name,
                         self.input_queue,
                         meta["event_id"],
@@ -131,7 +192,6 @@ class TDAgentBase(ABC):
                         meta["event_type"],
                     )
 
-                    # Core processing logic
                     result = await self.process_event(event_data)
                     logger.info(
                         "[trace] process_complete agent=%s event_id=%s status=%s",
@@ -141,13 +201,13 @@ class TDAgentBase(ABC):
                     )
 
                     if result:
-                        # Add metadata
                         result["source_agent"] = self.agent_name
                         if "event_id" not in result:
                             result["event_id"] = meta["event_id"]
 
-                        # Publish back to Redis
-                        await self.redis.push(self.output_queue, json.dumps(result))
+                        await self.redis.push(
+                            self.output_queue, json.dumps(result)
+                        )
                         logger.info(
                             "[trace] redis_push agent=%s queue=%s event_id=%s next_hop=%s",
                             self.agent_name,
@@ -158,33 +218,27 @@ class TDAgentBase(ABC):
 
                 except json.JSONDecodeError:
                     logger.error(
-                        f"[{self.agent_name}] Failed to decode event: {raw_event}"
+                        "[%s] Failed to decode event: %s",
+                        self.agent_name,
+                        raw_event,
                     )
                 except Exception as e:
                     logger.exception(
-                        f"[{self.agent_name}] Error processing event: {str(e)}"
+                        "[%s] Error processing event: %s",
+                        self.agent_name,
+                        str(e),
                     )
 
         finally:
             await self.redis.close()
             logger.info("[trace] agent_stopped agent=%s", self.agent_name)
 
-    def stop(self):
+    def stop(self) -> None:
         self._running = False
 
 
-# ---------------------------------------------------------------------------
-# LLM-capable base (adapted from references/reference/agents/base.py)
-# ---------------------------------------------------------------------------
-
-
-class TDLLMAgentBase(TDAgentBase):
-    """Extends TDAgentBase with a LangGraph ReAct agent.
-
-    Subclasses pass a LangChain chat model, a list of tools, and a system
-    prompt.  Call `self._invoke_llm(input_data)` from `process_event` to run
-    the ReAct loop.
-    """
+class TDLLMAgentBase(TDQueueAgentBase):
+    """Queue worker with LangGraph ReAct; call ``_invoke_llm`` from ``process_event``."""
 
     def __init__(
         self,
@@ -207,20 +261,15 @@ class TDLLMAgentBase(TDAgentBase):
             type(llm).__name__,
         )
 
-    def _get_react_agent(self):
+    def _get_react_agent(self) -> Any:
         if self._react_agent is None:
-            from langgraph.prebuilt import create_react_agent
-
             logger.info("[trace] creating_react_agent agent=%s", self.agent_name)
-            self._react_agent = create_react_agent(
-                model=self.llm,
-                tools=self.tools,
-                prompt=self.system_prompt,
+            self._react_agent = build_react_graph(
+                self.llm, self.tools, self.system_prompt
             )
         return self._react_agent
 
     def _invoke_llm(self, input_data: dict) -> dict:
-        """Run the ReAct agent synchronously and return its result dict."""
         logger.info(
             "[trace] llm_invoke_start agent=%s keys=%s",
             self.agent_name,
@@ -229,3 +278,245 @@ class TDLLMAgentBase(TDAgentBase):
         result = self._get_react_agent().invoke(input_data)
         logger.info("[trace] llm_invoke_complete agent=%s", self.agent_name)
         return result
+
+
+# ── Celery + IntentCapsule worker ────────────────────────────────────────────
+
+
+class TDAgentBase(ABC):
+    """
+    Domain agents: ``IntentCapsule`` from Celery, scoped cache read, repo writes,
+    lock release, completion publish.
+    """
+
+    AGENT_NAME: str
+
+    def __init__(
+        self,
+        engine: AsyncEngine,
+        redis_client: RedisClient | None = None,
+    ):
+        self._engine = engine
+        self._redis = redis_client or RedisClient()
+        self._write_validator = DatabaseWriteValidator.create_from_agent(
+            self.AGENT_NAME or self.__class__.__name__.lower()
+        )
+
+    async def run(self, capsule_data: dict) -> dict[str, Any]:
+        try:
+            capsule = IntentCapsule.model_validate(capsule_data)
+            trip_id = capsule.trip_id
+            agent_name = capsule.agent
+
+            logger.info(
+                {
+                    "action": "agent_run_start",
+                    "agent": agent_name,
+                    "trip_id": trip_id,
+                }
+            )
+
+            cache_data = await self._read_cache(trip_id, capsule)
+            result = await self._execute(trip_id, cache_data)
+
+            output_key = RedisSchema.Trip.output(trip_id, agent_name)
+            await self._redis._client.set(output_key, json.dumps(result))
+
+            logger.info(
+                {
+                    "action": "agent_result_stored",
+                    "agent": agent_name,
+                    "trip_id": trip_id,
+                    "output_key": output_key,
+                }
+            )
+
+            await self._release_lock(trip_id, capsule.device_event_id)
+            await self._publish_completion_event(
+                trip_id, agent_name, "success", result
+            )
+
+            logger.info(
+                {
+                    "action": "agent_run_complete",
+                    "agent": agent_name,
+                    "trip_id": trip_id,
+                    "status": "success",
+                }
+            )
+
+            return result
+
+        except Exception as e:
+            logger.error(
+                {
+                    "action": "agent_run_error",
+                    "agent": self.AGENT_NAME,
+                    "trip_id": capsule.trip_id
+                    if "capsule" in locals()
+                    else "unknown",
+                    "error": str(e),
+                    "error_type": type(e).__name__,
+                }
+            )
+
+            if "capsule" in locals():
+                await self._publish_completion_event(
+                    capsule.trip_id,
+                    capsule.agent,
+                    "failure",
+                    {"error": str(e)},
+                )
+
+            raise
+
+    @abstractmethod
+    async def _execute(
+        self,
+        trip_id: str,
+        cache_data: dict[str, Any],
+    ) -> dict[str, Any]:
+        raise NotImplementedError
+
+    async def _read_cache(
+        self,
+        trip_id: str,
+        capsule: IntentCapsule,
+    ) -> dict[str, Any]:
+        cache_data: dict[str, Any] = {}
+        read_keys = (
+            list(capsule.token.read_keys) if capsule.token else []
+        )
+
+        for key in read_keys:
+            try:
+                value = await self._redis._client.get(key)
+                if value:
+                    cache_data[key] = json.loads(value)
+                else:
+                    logger.warning(
+                        {
+                            "action": "cache_key_not_found",
+                            "trip_id": trip_id,
+                            "key": key,
+                        }
+                    )
+            except Exception as e:
+                logger.error(
+                    {
+                        "action": "cache_read_error",
+                        "trip_id": trip_id,
+                        "key": key,
+                        "error": str(e),
+                    }
+                )
+
+        logger.info(
+            {
+                "action": "cache_read_complete",
+                "trip_id": trip_id,
+                "agent": capsule.agent,
+                "keys_loaded": len(cache_data),
+                "keys_requested": len(read_keys),
+            }
+        )
+
+        return cache_data
+
+    async def _release_lock(
+        self,
+        trip_id: str,
+        device_event_id: str | None = None,
+    ) -> None:
+        try:
+            from agents.orchestrator.db_manager import DBManager
+
+            db_manager = DBManager()
+            resolved_id = (device_event_id or "").strip()
+
+            if not resolved_id:
+                from common.db.repositories.events_repo import EventsRepo
+
+                events_repo = EventsRepo(self._engine)
+                recent_event = await events_repo.get_latest_event_for_trip(
+                    trip_id
+                )
+                if recent_event:
+                    resolved_id = (
+                        recent_event.get("device_event_id") or ""
+                    ).strip()
+
+            if resolved_id:
+                await db_manager.release_lock(resolved_id)
+                logger.info(
+                    {
+                        "action": "lock_released",
+                        "trip_id": trip_id,
+                        "device_event_id": resolved_id,
+                    }
+                )
+            else:
+                logger.warning(
+                    {
+                        "action": "no_event_found_for_lock_release",
+                        "trip_id": trip_id,
+                    }
+                )
+
+        except Exception as e:
+            logger.error(
+                {
+                    "action": "lock_release_error",
+                    "trip_id": trip_id,
+                    "error": str(e),
+                }
+            )
+
+    async def _publish_completion_event(
+        self,
+        trip_id: str,
+        agent_name: str,
+        status: str,
+        result: dict,
+    ) -> None:
+        try:
+            completion_event = {
+                "trip_id": trip_id,
+                "agent": agent_name,
+                "status": status,
+                "completed_at": datetime.now(UTC).isoformat(),
+                "result": result,
+            }
+
+            channel = RedisSchema.Trip.events_channel(trip_id)
+            await self._redis._client.publish(
+                channel,
+                json.dumps(completion_event),
+            )
+
+            logger.info(
+                {
+                    "action": "completion_event_published",
+                    "trip_id": trip_id,
+                    "agent": agent_name,
+                    "status": status,
+                    "channel": channel,
+                }
+            )
+
+        except Exception as e:
+            logger.error(
+                {
+                    "action": "completion_event_publish_error",
+                    "trip_id": trip_id,
+                    "agent": agent_name,
+                    "error": str(e),
+                }
+            )
+
+    async def _validate_write(self, table_name: str) -> bool:
+        return self._write_validator.validate_write(table_name)
+
+    @abstractmethod
+    def _get_repos(self) -> dict[str, Any]:
+        raise NotImplementedError

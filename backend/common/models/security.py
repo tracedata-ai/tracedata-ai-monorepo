@@ -63,6 +63,10 @@ class IntentCapsule(BaseModel):
 
     trip_id: str
     agent: str
+    device_event_id: str = Field(
+        default="",
+        description="Locked device_events row id; used by agents to release_lock.",
+    )
     priority: int
     step_index_max: int = 1
     tool_whitelist: list[str] = Field(default_factory=list)

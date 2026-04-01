@@ -2,8 +2,8 @@
 
 import os
 
-from backend.common.llm.adapter import LLMAdapter
-from backend.common.llm.models import OpenAIModel
+from common.llm.adapter import LLMAdapter
+from common.llm.models import OpenAIModel
 
 
 class OpenAIAdapter(LLMAdapter):

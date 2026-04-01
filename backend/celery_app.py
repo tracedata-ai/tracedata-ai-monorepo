@@ -70,12 +70,15 @@ app.conf.update(
 )
 
 # ── Task autodiscovery ────────────────────────────────────────────────────────
-# Celery will find tasks in agents/*/tasks.py when workers start.
+# Celery will find tasks in:
+# - agents/*/tasks.py (agent-specific tasks)
+# - tasks/*.py (standalone task files)
 app.autodiscover_tasks(
     [
         "agents.safety",
         "agents.scoring",
         "agents.driver_support",
         "agents.sentiment",
+        "tasks",  # Discover tasks from tasks/ package
     ]
 )

@@ -1,6 +1,6 @@
 """Agent tools for LangChain integration."""
 
-from backend.agents.tools.weather_traffic import get_traffic, get_weather
+from agents.tools.weather_traffic import get_traffic, get_weather
 
 __all__ = [
     "get_weather",

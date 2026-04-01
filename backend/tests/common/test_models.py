@@ -9,6 +9,7 @@ from datetime import UTC, datetime
 import pytest
 from pydantic import ValidationError
 
+from common.models.enums import Priority
 from common.models.events import TelemetryPacket, TripEvent
 from common.models.trips import TripContext
 
@@ -151,7 +152,7 @@ class TestTripContext:
             driver_id="DRIVER-77",
             event_type="harsh_brake",
             category="harsh_events",
-            priority=3,
+            priority=Priority.HIGH,
             timestamp=datetime.now(UTC),
             offset_seconds=120,
             trip_meter_km=5.4,

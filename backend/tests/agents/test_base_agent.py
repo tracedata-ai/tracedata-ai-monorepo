@@ -1,8 +1,8 @@
 """
-Tests for TDAgentBase lifecycle.
+Tests for ``TDQueueAgentBase`` (Redis queue consumer) lifecycle.
 
 Strategy: inject a mock RedisClient instead of creating a real one.
-We patch `agents.base.agent.RedisClient` so constructing any TDAgentBase
+We patch ``agents.base.agent.RedisClient`` so constructing any queue agent
 subclass uses our mock automatically.
 """
 
@@ -10,26 +10,26 @@ import json
 from typing import Any
 from unittest.mock import AsyncMock, patch
 
-from agents.base.agent import TDAgentBase
+from agents.base.agent import TDQueueAgentBase
 
 # ── Concrete subclass for testing ─────────────────────────────────────────────
 
 
-class EchoAgent(TDAgentBase):
+class EchoAgent(TDQueueAgentBase):
     """Minimal agent that echoes the event back as its result."""
 
     async def process_event(self, event_data: dict[str, Any]) -> dict[str, Any] | None:
         return {"echoed": True, "trip_id": event_data.get("trip_id")}
 
 
-class NullAgent(TDAgentBase):
+class NullAgent(TDQueueAgentBase):
     """Agent that returns None — should NOT push to the output queue."""
 
     async def process_event(self, event_data: dict[str, Any]) -> dict[str, Any] | None:
         return None
 
 
-class ErrorAgent(TDAgentBase):
+class ErrorAgent(TDQueueAgentBase):
     """Agent whose process_event raises an exception — run() should survive."""
 
     async def process_event(self, event_data: dict[str, Any]) -> dict[str, Any] | None:

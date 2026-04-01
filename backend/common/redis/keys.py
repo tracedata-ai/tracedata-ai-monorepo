@@ -51,3 +51,56 @@ class RedisSchema:
         @staticmethod
         def events_channel(trip_id: str) -> str:
             return f"trip:{trip_id}:events"
+
+        # ── CACHE WARMING HELPERS (from improvement guide) ──────
+        @staticmethod
+        def agent_data(trip_id: str, agent: str, data_type: str) -> str:
+            """
+            Pre-warmed data for specific agent.
+
+            Format: trips:{trip_id}:{agent}:{data_type}
+            Examples:
+              trips:TRP-123:safety:current_event
+              trips:TRP-123:scoring:all_pings
+            """
+            return f"trips:{trip_id}:{agent}:{data_type}"
+
+        @staticmethod
+        def event_driven_cache(trip_id: str, agent: str) -> dict[str, str]:
+            """Keys for event-driven agents (Safety, Support)."""
+            return {
+                "current_event": RedisSchema.Trip.agent_data(trip_id, agent, "current_event"),
+                "trip_context": RedisSchema.Trip.agent_data(trip_id, agent, "trip_context"),
+            }
+
+        @staticmethod
+        def aggregation_driven_cache(trip_id: str, agent: str) -> dict[str, str]:
+            """Keys for aggregation-driven agents (Scoring, Support)."""
+            if agent == "scoring":
+                return {
+                    "all_pings": RedisSchema.Trip.agent_data(trip_id, agent, "all_pings"),
+                    "historical_avg": RedisSchema.Trip.agent_data(trip_id, agent, "historical_avg"),
+                }
+            elif agent == "support":
+                return {
+                    "trip_context": RedisSchema.Trip.agent_data(trip_id, agent, "trip_context"),
+                    "coaching_history": RedisSchema.Trip.agent_data(trip_id, agent, "coaching_history"),
+                }
+            else:
+                # Default for unknown agents
+                return {
+                    "all_pings": RedisSchema.Trip.agent_data(trip_id, agent, "all_pings"),
+                }
+
+    class Lock:
+        """Lock-related keys."""
+
+        @staticmethod
+        def trip_lock(trip_id: str) -> str:
+            """Distributed lock for trip processing."""
+            return f"lock:trip:{trip_id}"
+
+        @staticmethod
+        def lock_info(trip_id: str) -> str:
+            """Lock metadata (locked_by, locked_at)."""
+            return f"lock:info:{trip_id}"
