@@ -87,6 +87,9 @@ combine-as-imports = true
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+markers = [
+    "integration: SQLite in-memory DB or broader I/O than pure unit mocks",
+]
 
 [dependency-groups]
 dev = [

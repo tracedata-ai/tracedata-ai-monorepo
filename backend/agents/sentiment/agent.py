@@ -7,6 +7,7 @@ Uses SentimentRepository to ONLY write to sentiment_schema tables.
 import logging
 from typing import Any
 
+from common.cache.reader import CacheReader
 from common.db.engine import engine
 from common.db.repositories.support_repo import SentimentRepository
 from common.redis.client import RedisClient
@@ -36,14 +37,19 @@ class SentimentAgent(TDAgentBase):
     ) -> dict[str, Any]:
         """Analyze driver feedback sentiment."""
         try:
-            trip_context: dict[str, Any] | None = None
-            current_event: dict[str, Any] | None = None
-
-            for key, value in cache_data.items():
-                if "trip_context" in key:
-                    trip_context = value if isinstance(value, dict) else None
-                elif "current_event" in key:
-                    current_event = value if isinstance(value, dict) else None
+            raw = CacheReader.by_key_markers(
+                cache_data, "trip_context", "current_event"
+            )
+            trip_context = (
+                raw["trip_context"]
+                if isinstance(raw["trip_context"], dict)
+                else None
+            )
+            current_event = (
+                raw["current_event"]
+                if isinstance(raw["current_event"], dict)
+                else None
+            )
 
             driver_id = (
                 (trip_context or {}).get("driver_id", "driver_id_placeholder")

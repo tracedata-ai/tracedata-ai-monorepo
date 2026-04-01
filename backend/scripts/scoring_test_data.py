@@ -42,7 +42,8 @@ async def send_complete_trips_multi_truck():
     r = await redis.from_url("redis://redis:6379/0")
 
     try:
-        await r.delete("telemetry:TK001:buffer")
+        for tid in TRUCKS:
+            await r.delete(f"telemetry:{tid}:buffer")
 
         event_counter = 0
         trips_created = 0
@@ -111,8 +112,9 @@ async def send_complete_trips_multi_truck():
                         "schema_version": "event_v1",
                     },
                 }
+                buffer_key = f"telemetry:{truck_id}:buffer"
                 json_str = json.dumps(start_event)
-                await r.zadd("telemetry:TK001:buffer", {json_str: event_counter})
+                await r.zadd(buffer_key, {json_str: event_counter})
                 event_counter += 1
 
                 # ─── NORMAL OPERATIONS (mid-trip checkpoint)
@@ -150,7 +152,7 @@ async def send_complete_trips_multi_truck():
                     },
                 }
                 json_str = json.dumps(normal_event)
-                await r.zadd("telemetry:TK001:buffer", {json_str: event_counter})
+                await r.zadd(buffer_key, {json_str: event_counter})
                 event_counter += 1
 
                 # ─── END OF TRIP
@@ -201,7 +203,7 @@ async def send_complete_trips_multi_truck():
         print("\n" + "=" * 70)
         print("[OK] COMPLETE TRIPS TELEMETRY SENT TO REDIS")
         print("=" * 70)
-        print("Queue:               telemetry:TK001:buffer")
+        print(f"Queues:              telemetry:{{truck_id}}:buffer ({', '.join(TRUCKS)})")
         print(f"Trucks:              {len(TRUCKS)} ({', '.join(TRUCKS)})")
         print(f"Trips per truck:     {TRIPS_PER_TRUCK}")
         print("Events per trip:     3 (START, NORMAL_OP, END)")

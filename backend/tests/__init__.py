@@ -1,13 +1,18 @@
 """
 TraceData Backend — Test Suite.
 
-Tests are organised by layer:
-  tests/unit/       → Pure logic (schemas, utils) — no DB
-  tests/integration → API endpoints with a real test DB (spun up in CI via service container)
+Layout:
+  tests/agents, tests/common, tests/core  — unit + integration modules
 
-Run locally (requires a running DB):
-    DATABASE_URL=postgresql+asyncpg://... uv run pytest -v tests/
+SQLite integration (no Docker): ``@pytest.mark.integration`` on
+``test_repositories_integration``, ``test_ingestion_db_integration``,
+``test_full_pipeline_integration``, ``test_cache_warming_orchestrator_integration``.
 
-Run in CI:
-    The ci-backend-api.yaml job injects DATABASE_URL automatically.
+Run only integration-marked tests::
+
+    uv run pytest -m integration -v
+
+Full suite::
+
+    uv run pytest tests/ -v
 """

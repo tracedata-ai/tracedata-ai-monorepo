@@ -16,14 +16,6 @@ def mock_db():
 
 
 @pytest.fixture
-def mock_redis():
-    redis = MagicMock()
-    redis.push_to_processed = AsyncMock()
-    redis.push_to_rejected = AsyncMock()
-    return redis
-
-
-@pytest.fixture
 def sidecar(mock_db, mock_redis):
     return IngestionSidecar(db=mock_db, redis=mock_redis)
 

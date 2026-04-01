@@ -8,6 +8,7 @@ Layer 1 enforcement: repo injection makes it impossible to write elsewhere.
 import logging
 from typing import Any
 
+from common.cache.reader import CacheReader
 from common.db.engine import engine
 from common.db.repositories.safety_repo import SafetyRepository
 from common.redis.client import RedisClient
@@ -48,15 +49,11 @@ class SafetyAgent(TDAgentBase):
           - trip_context (1-2 KB)
         """
         try:
-            # Extract from cache
-            current_event = None
-            trip_context = None
-
-            for key, value in cache_data.items():
-                if "current_event" in key:
-                    current_event = value
-                elif "trip_context" in key:
-                    trip_context = value
+            found = CacheReader.by_key_markers(
+                cache_data, "current_event", "trip_context"
+            )
+            current_event = found["current_event"]
+            trip_context = found["trip_context"]
 
             if not current_event:
                 return {

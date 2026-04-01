@@ -15,6 +15,8 @@ from common.models.events import TripEvent, Location
 from common.models.enums import Priority
 from common.redis.keys import RedisSchema
 
+pytestmark = [pytest.mark.integration]
+
 
 @pytest.mark.asyncio
 class TestCacheWarmingIntegration:

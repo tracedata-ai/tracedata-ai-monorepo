@@ -8,6 +8,7 @@ Must use cross-domain coordination for coaching suggestions.
 import logging
 from typing import Any
 
+from common.cache.reader import CacheReader
 from common.db.engine import engine
 from common.db.repositories.scoring_repo import ScoringRepository
 from common.redis.client import RedisClient
@@ -52,15 +53,11 @@ class ScoringAgent(TDAgentBase):
           - historical_avg (driver's rolling average)
         """
         try:
-            # Extract from cache
-            all_pings = None
-            historical_avg = None
-
-            for key, value in cache_data.items():
-                if "all_pings" in key:
-                    all_pings = value
-                elif "historical_avg" in key:
-                    historical_avg = value
+            found = CacheReader.by_key_markers(
+                cache_data, "all_pings", "historical_avg"
+            )
+            all_pings = found["all_pings"]
+            historical_avg = found["historical_avg"]
 
             if not all_pings:
                 return {

@@ -89,7 +89,7 @@ class IngestionDB:
                 """),
                 {"device_event_id": device_event_id},
             )
-            return result.scalar()
+            return bool(result.scalar())
 
     # ── WRITE ─────────────────────────────────────────────────────────────────
 

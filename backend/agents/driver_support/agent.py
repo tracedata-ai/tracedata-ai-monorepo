@@ -8,6 +8,7 @@ Generates coaching messages for drivers.
 import logging
 from typing import Any
 
+from common.cache.reader import CacheReader
 from common.db.engine import engine
 from common.db.repositories.support_repo import SupportRepository
 from common.redis.client import RedisClient
@@ -37,17 +38,27 @@ class SupportAgent(TDAgentBase):
     ) -> dict[str, Any]:
         """Generate coaching message for driver."""
         try:
-            trip_context: dict[str, Any] | None = None
-            coaching_history: list[Any] | None = None
-            current_event: dict[str, Any] | None = None
-
-            for key, value in cache_data.items():
-                if "trip_context" in key:
-                    trip_context = value if isinstance(value, dict) else None
-                elif "coaching_history" in key:
-                    coaching_history = value if isinstance(value, list) else []
-                elif "current_event" in key:
-                    current_event = value if isinstance(value, dict) else None
+            raw = CacheReader.by_key_markers(
+                cache_data,
+                "trip_context",
+                "coaching_history",
+                "current_event",
+            )
+            trip_context = (
+                raw["trip_context"]
+                if isinstance(raw["trip_context"], dict)
+                else None
+            )
+            coaching_history = (
+                raw["coaching_history"]
+                if isinstance(raw["coaching_history"], list)
+                else []
+            )
+            current_event = (
+                raw["current_event"]
+                if isinstance(raw["current_event"], dict)
+                else None
+            )
 
             driver_id = (
                 (trip_context or {}).get("driver_id", "driver_id_placeholder")
