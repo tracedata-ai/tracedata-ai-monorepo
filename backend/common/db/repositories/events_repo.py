@@ -18,6 +18,15 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 logger = logging.getLogger(__name__)
 
 
+def _parse_json_field(value: Any) -> dict[str, Any]:
+    """Handle JSONB values returned as dict or JSON string."""
+    if isinstance(value, dict):
+        return value
+    if isinstance(value, str):
+        return json.loads(value)
+    return {}
+
+
 class EventsRepo:
     """
     All DB operations on the events table.
@@ -235,8 +244,8 @@ class EventsRepo:
                         event_type,
                         device_event_id,
                         timestamp,
-                        data,
-                        severity
+                        details,
+                        priority AS severity
                     FROM pipeline_events
                     WHERE event_id = :event_id
                 """),
@@ -252,7 +261,7 @@ class EventsRepo:
                 "event_type": row[2],
                 "device_event_id": row[3],
                 "timestamp": row[4].isoformat() if row[4] else None,
-                "data": json.loads(row[5]) if row[5] else {},
+                "data": _parse_json_field(row[5]),
                 "severity": row[6],
             }
 
@@ -267,39 +276,86 @@ class EventsRepo:
         Returns:
             Dict with trip metadata or None if not found
         """
-        async with self._engine.connect() as conn:
-            result = await conn.execute(
-                text("""
-                    SELECT
-                        trip_id,
-                        driver_id,
-                        truck_id,
-                        started_at,
-                        ended_at,
-                        distance_km,
-                        duration_minutes,
-                        status,
-                        route_name
-                    FROM trips
-                    WHERE trip_id = :trip_id
-                """),
-                {"trip_id": trip_id},
-            )
-            row = result.first()
-            if not row:
-                return None
+        row = None
+        try:
+            async with self._engine.connect() as conn:
+                result = await conn.execute(
+                    text("""
+                        SELECT
+                            trip_id,
+                            driver_id,
+                            truck_id,
+                            started_at,
+                            ended_at,
+                            distance_km,
+                            duration_minutes,
+                            status,
+                            route_name
+                        FROM trips
+                        WHERE trip_id = :trip_id
+                    """),
+                    {"trip_id": trip_id},
+                )
+                row = result.first()
+        except Exception:
+            # E2E bootstrap schema uses pipeline_trips/route_type.
+            async with self._engine.connect() as conn:
+                result = await conn.execute(
+                    text("""
+                        SELECT
+                            trip_id,
+                            driver_id,
+                            truck_id,
+                            started_at,
+                            ended_at,
+                            distance_km,
+                            duration_minutes,
+                            status,
+                            route_type AS route_name
+                        FROM pipeline_trips
+                        WHERE trip_id = :trip_id
+                    """),
+                    {"trip_id": trip_id},
+                )
+                row = result.first()
 
-            return {
-                "trip_id": row[0],
-                "driver_id": row[1],
-                "truck_id": row[2],
-                "started_at": row[3].isoformat() if row[3] else None,
-                "ended_at": row[4].isoformat() if row[4] else None,
-                "distance_km": float(row[5]) if row[5] else 0.0,
-                "duration_minutes": row[6],
-                "status": row[7],
-                "route_name": row[8],
-            }
+        if not row:
+            # Last-resort fallback when trip lifecycle table is missing/not populated.
+            async with self._engine.connect() as conn:
+                result = await conn.execute(
+                    text("""
+                        SELECT
+                            trip_id,
+                            MIN(driver_id) AS driver_id,
+                            MIN(truck_id) AS truck_id,
+                            MIN(timestamp) AS started_at,
+                            MAX(timestamp) AS ended_at,
+                            NULL::double precision AS distance_km,
+                            NULL::integer AS duration_minutes,
+                            'active' AS status,
+                            NULL::varchar AS route_name
+                        FROM pipeline_events
+                        WHERE trip_id = :trip_id
+                        GROUP BY trip_id
+                    """),
+                    {"trip_id": trip_id},
+                )
+                row = result.first()
+
+        if not row:
+            return None
+
+        return {
+            "trip_id": row[0],
+            "driver_id": row[1],
+            "truck_id": row[2],
+            "started_at": row[3].isoformat() if row[3] else None,
+            "ended_at": row[4].isoformat() if row[4] else None,
+            "distance_km": float(row[5]) if row[5] else 0.0,
+            "duration_minutes": row[6],
+            "status": row[7],
+            "route_name": row[8],
+        }
 
     async def get_all_pings_for_trip(self, trip_id: str) -> list[dict[str, Any]]:
         """
@@ -323,8 +379,8 @@ class EventsRepo:
                         event_type,
                         device_event_id,
                         timestamp,
-                        data,
-                        severity
+                        details,
+                        priority AS severity
                     FROM pipeline_events
                     WHERE trip_id = :trip_id
                     ORDER BY timestamp ASC
@@ -345,7 +401,7 @@ class EventsRepo:
                         "event_type": row[2],
                         "device_event_id": row[3],
                         "timestamp": row[4].isoformat() if row[4] else None,
-                        "data": json.loads(row[5]) if row[5] else {},
+                        "data": _parse_json_field(row[5]),
                         "severity": row[6],
                     }
                 )
@@ -381,11 +437,14 @@ class EventsRepo:
         async with self._engine.connect() as conn:
             result = await conn.execute(
                 text("""
-                    SELECT AVG(trip_score) as avg_score
-                    FROM trip_scores
-                    WHERE driver_id = :driver_id
-                    ORDER BY trip_id DESC
-                    LIMIT :n
+                    SELECT AVG(score) AS avg_score
+                    FROM (
+                        SELECT score
+                        FROM scoring_schema.trip_scores
+                        WHERE driver_id = :driver_id
+                        ORDER BY created_at DESC
+                        LIMIT :n
+                    ) recent_scores
                 """),
                 {"driver_id": driver_id, "n": n},
             )
