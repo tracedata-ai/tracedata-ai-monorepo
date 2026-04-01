@@ -20,6 +20,7 @@ import asyncio
 import json
 import logging
 from datetime import UTC, datetime
+from inspect import isawaitable
 
 from celery import Celery
 from langchain_anthropic import ChatAnthropic
@@ -41,6 +42,9 @@ from common.redis.keys import RedisSchema
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
+
+FLAGGED_EVENT_TYPES = {"harsh_brake", "hard_accel", "harsh_corner", "speeding"}
+CRITICAL_IMMEDIATE_SUPPORT_TYPES = {"collision", "rollover", "driver_sos"}
 
 
 def _get_celery() -> Celery:
@@ -300,6 +304,7 @@ class OrchestratorAgent:
         ctx = {
             "trip_id": event.trip_id,
             "event_id": event.event_id,
+            "device_event_id": event.device_event_id,
             "event_type": event.event_type,
             "truck_id": truck_id,
         }
@@ -328,6 +333,135 @@ class OrchestratorAgent:
                 status="scoring_pending",
                 action_sla="1_week",
             )
+            logger.info({**ctx, "action": "trip_marked_scoring_pending"})
+
+    async def _load_trip_runtime_context(self, trip_id: str) -> dict:
+        key = RedisSchema.Trip.context(trip_id)
+        raw_context = self.redis.get_trip_context(key)
+        context = await raw_context if isawaitable(raw_context) else raw_context
+        if isinstance(context, dict):
+            return context
+        return {}
+
+    async def _save_trip_runtime_context(self, trip_id: str, context: dict) -> None:
+        key = RedisSchema.Trip.context(trip_id)
+        await self.redis.store_trip_context(
+            key, context, ttl=RedisSchema.Trip.CONTEXT_TTL_HIGH
+        )
+
+    async def _append_flagged_event(self, event: TripEvent) -> None:
+        context = await self._load_trip_runtime_context(event.trip_id)
+        flagged_events = context.get("flagged_events", [])
+        if not isinstance(flagged_events, list):
+            flagged_events = []
+
+        flagged_events.append(
+            {
+                "event_id": event.event_id,
+                "device_event_id": event.device_event_id,
+                "event_type": event.event_type,
+                "timestamp": event.timestamp.isoformat(),
+                "priority": str(event.priority),
+            }
+        )
+        context["flagged_events"] = flagged_events
+        context.setdefault("trip_id", event.trip_id)
+        context.setdefault("driver_id", event.driver_id)
+        context.setdefault("truck_id", event.truck_id)
+        await self._save_trip_runtime_context(event.trip_id, context)
+
+        logger.info(
+            {
+                "action": "event_flagged_for_eot_coaching",
+                "trip_id": event.trip_id,
+                "event_id": event.event_id,
+                "device_event_id": event.device_event_id,
+                "event_type": event.event_type,
+                "flagged_count": len(flagged_events),
+            }
+        )
+
+    @staticmethod
+    def _estimate_trip_score(all_pings: list[dict]) -> float:
+        if not all_pings:
+            return 100.0
+        harsh_count = sum(
+            1
+            for ping in all_pings
+            if str(ping.get("event_type", "")).lower()
+            in {"harsh_brake", "hard_accel", "harsh_corner", "speeding"}
+        )
+        return float(max(0, 100 - (harsh_count * 10)))
+
+    async def _should_dispatch_coaching(self, event: TripEvent) -> bool:
+        context = await self._load_trip_runtime_context(event.trip_id)
+        flagged = context.get("flagged_events", [])
+        flagged_count = len(flagged) if isinstance(flagged, list) else 0
+
+        baseline = context.get("historical_avg_score")
+        if baseline is None:
+            baseline = await self._get_rolling_average_score(event.driver_id, n=3)
+        baseline_score = float(baseline) if isinstance(baseline, (int, float)) else 75.0
+
+        all_pings = await self._get_all_pings_for_trip(event.trip_id)
+        estimated_score = self._estimate_trip_score(all_pings)
+
+        triggered_rules: list[str] = []
+        if estimated_score < 60:
+            triggered_rules.append("absolute_score")
+        if (baseline_score - estimated_score) > 10:
+            triggered_rules.append("baseline_drop")
+        if flagged_count > 0:
+            triggered_rules.append("flagged_events")
+
+        logger.info(
+            {
+                "action": "coaching_rules_evaluated",
+                "trip_id": event.trip_id,
+                "event_id": event.event_id,
+                "device_event_id": event.device_event_id,
+                "estimated_score": estimated_score,
+                "historical_avg_score": baseline_score,
+                "flagged_events_count": flagged_count,
+                "triggered_rules": triggered_rules,
+                "coaching_needed": len(triggered_rules) > 0,
+            }
+        )
+        return len(triggered_rules) > 0
+
+    async def _apply_dispatch_policy(
+        self, event: TripEvent, agents_to_dispatch: list[str]
+    ) -> list[str]:
+        deduped = list(dict.fromkeys(agents_to_dispatch))
+
+        if event.event_type in FLAGGED_EVENT_TYPES:
+            await self._append_flagged_event(event)
+            deduped = [a for a in deduped if a not in {"support", "driver_support"}]
+
+        if event.event_type == "end_of_trip":
+            coaching_needed = await self._should_dispatch_coaching(event)
+            if coaching_needed and "support" not in deduped:
+                deduped.append("support")
+            if not coaching_needed:
+                deduped = [a for a in deduped if a not in {"support", "driver_support"}]
+
+        if (
+            event.event_type in CRITICAL_IMMEDIATE_SUPPORT_TYPES
+            and "support" not in deduped
+        ):
+            deduped.append("support")
+
+        logger.info(
+            {
+                "action": "dispatch_policy_applied",
+                "trip_id": event.trip_id,
+                "event_id": event.event_id,
+                "device_event_id": event.device_event_id,
+                "event_type": event.event_type,
+                "agents_after_policy": deduped,
+            }
+        )
+        return deduped
 
     async def _warm_cache(
         self,
@@ -361,6 +495,8 @@ class OrchestratorAgent:
                 {
                     "action": "cache_warming_skipped",
                     "trip_id": trip_id,
+                    "event_id": event.event_id,
+                    "device_event_id": event.device_event_id,
                     "event_type": event_type,
                     "reason": "no_warming_needed",
                 }
@@ -407,6 +543,8 @@ class OrchestratorAgent:
                     {
                         "action": "trip_metadata_fetch_failed",
                         "trip_id": trip_id,
+                        "event_id": event.event_id,
+                        "device_event_id": event.device_event_id,
                     }
                 )
                 return
@@ -538,10 +676,18 @@ class OrchestratorAgent:
                 context_key = RedisSchema.Trip.agent_data(
                     trip_id, agent, "trip_context"
                 )
+                runtime_context = await self._load_trip_runtime_context(trip_id)
+                support_context = {
+                    **trip_metadata,
+                    "historical_avg_score": runtime_context.get(
+                        "historical_avg_score", rolling_avg
+                    ),
+                    "flagged_events": runtime_context.get("flagged_events", []),
+                }
                 await self.redis._client.setex(
                     context_key,
                     3600,
-                    json.dumps(trip_metadata),
+                    json.dumps(support_context),
                 )
                 history_key = RedisSchema.Trip.agent_data(
                     trip_id, agent, "coaching_history"
@@ -558,6 +704,8 @@ class OrchestratorAgent:
                 {
                     "action": "cache_warmed_aggregation_driven",
                     "trip_id": trip_id,
+                    "event_id": event.event_id,
+                    "device_event_id": event.device_event_id,
                     "event_type": event_type,
                     "agents": agents_to_dispatch,
                     "ping_count": pings_count,
@@ -693,6 +841,10 @@ class OrchestratorAgent:
         # ── Get routing decision from LLM ──────────────────────────────────
         routing_decision = self._get_routing_decision(event)
         agents_to_dispatch = routing_decision.get("agents_to_dispatch", [])
+        agents_to_dispatch = await self._apply_dispatch_policy(
+            event, agents_to_dispatch
+        )
+        routing_decision["agents_to_dispatch"] = agents_to_dispatch
 
         if not agents_to_dispatch:
             # No agents to dispatch — release lock and return
@@ -885,6 +1037,9 @@ Return ONLY the JSON object, no additional text."""
                             logger.info(
                                 {
                                     "log_action": "routing_decision",
+                                    "trip_id": event.trip_id,
+                                    "event_id": event.event_id,
+                                    "device_event_id": event.device_event_id,
                                     "event_type": event.event_type,
                                     "agents": decision.get("agents_to_dispatch", []),
                                     "action": decision.get("action", "unknown"),
@@ -985,7 +1140,7 @@ Return ONLY the JSON object, no additional text."""
             elif agent_name == "scoring":
                 target_queue = settings.scoring_queue
                 task_name = "tasks.scoring_tasks.score_trip"
-            elif agent_name == "support":
+            elif agent_name == "support" or agent_name == "driver_support":
                 target_queue = settings.support_queue
                 task_name = "tasks.support_tasks.generate_coaching"
             elif agent_name == "sentiment":

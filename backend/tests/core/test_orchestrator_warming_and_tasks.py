@@ -188,6 +188,54 @@ async def test_warm_cache_skips_when_no_agents(orchestrator_mocks):
     fake_redis._client.setex.assert_not_awaited()
 
 
+@pytest.mark.asyncio
+async def test_dispatch_policy_defers_support_for_flagged_mid_trip(orchestrator_mocks):
+    orch, _ = orchestrator_mocks
+    event = _trip_event("harsh_brake")
+
+    orch._append_flagged_event = AsyncMock()
+    result = await orch._apply_dispatch_policy(event, ["scoring", "support"])
+
+    assert result == ["scoring"]
+    orch._append_flagged_event.assert_awaited_once_with(event)
+
+
+@pytest.mark.asyncio
+async def test_dispatch_policy_end_of_trip_adds_support_when_rules_trigger(
+    orchestrator_mocks,
+):
+    orch, _ = orchestrator_mocks
+    event = _trip_event("end_of_trip")
+
+    orch._should_dispatch_coaching = AsyncMock(return_value=True)
+    result = await orch._apply_dispatch_policy(event, ["scoring"])
+
+    assert result == ["scoring", "support"]
+
+
+@pytest.mark.asyncio
+async def test_dispatch_policy_end_of_trip_skips_support_when_rules_not_triggered(
+    orchestrator_mocks,
+):
+    orch, _ = orchestrator_mocks
+    event = _trip_event("end_of_trip")
+
+    orch._should_dispatch_coaching = AsyncMock(return_value=False)
+    result = await orch._apply_dispatch_policy(event, ["scoring", "support"])
+
+    assert result == ["scoring"]
+
+
+@pytest.mark.asyncio
+async def test_dispatch_policy_critical_adds_immediate_support(orchestrator_mocks):
+    orch, _ = orchestrator_mocks
+    event = _trip_event("collision")
+
+    result = await orch._apply_dispatch_policy(event, ["safety"])
+
+    assert result == ["safety", "support"]
+
+
 def test_seal_capsule_includes_device_event_id(orchestrator_mocks):
     orch, _ = orchestrator_mocks
     event = _trip_event(
