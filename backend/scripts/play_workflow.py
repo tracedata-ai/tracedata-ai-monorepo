@@ -9,6 +9,8 @@ From ``backend/``:
   python scripts/play_workflow.py --fixture minimal_trip --truck TK001 --trip-id TRP-MY-SMOKE
   python scripts/play_workflow.py --json path/to/events.json --truck T12345
   python scripts/play_workflow.py --fixture minimal_trip --no-reset
+  python scripts/play_workflow.py --fixture scoring_harsh_long_trip --segments start,smooth,end
+  python scripts/play_workflow.py --fixture scoring_harsh_long_trip --start-only
   python scripts/play_workflow.py --list-fixtures
 """
 
@@ -17,6 +19,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import importlib
+import inspect
 import json
 import os
 import sys
@@ -97,6 +100,24 @@ async def _run(args: argparse.Namespace) -> None:
             kw["truck_id"] = args.truck
         if args.driver:
             kw["driver_id"] = args.driver
+        if args.start_only and args.segments is not None:
+            raise SystemExit("Use either --start-only or --segments, not both")
+        if "segments" in inspect.signature(build).parameters:
+            if args.start_only:
+                kw["segments"] = frozenset({"start"})
+            elif args.segments is not None:
+                from common.workflow_fixtures.scoring_harsh_long_trip import (
+                    parse_trip_segments,
+                )
+
+                try:
+                    kw["segments"] = parse_trip_segments(args.segments)
+                except ValueError as e:
+                    raise SystemExit(str(e)) from e
+        elif args.start_only or args.segments is not None:
+            raise SystemExit(
+                f"--start-only / --segments not supported for fixture {args.fixture!r}"
+            )
         packets: list[dict[str, Any]] = build(**kw)
     elif args.json:
         packets = _load_json_events(Path(args.json))
@@ -108,6 +129,9 @@ async def _run(args: argparse.Namespace) -> None:
         )
     else:
         raise SystemExit("Pass --fixture <name> or --json <path> (or --list-fixtures)")
+
+    if (args.start_only or args.segments is not None) and not args.fixture:
+        raise SystemExit("--start-only / --segments require --fixture")
 
     if not packets:
         raise SystemExit("No events to push")
@@ -167,6 +191,19 @@ def main() -> None:
         help="When resetting: only flush Redis (clean_datastores)",
     )
     p.add_argument("--list-fixtures", action="store_true")
+    p.add_argument(
+        "--segments",
+        metavar="LIST",
+        help=(
+            "scoring_harsh_long_trip only: comma-separated subset of "
+            "start,smooth,harsh,end,feedback (default: all)"
+        ),
+    )
+    p.add_argument(
+        "--start-only",
+        action="store_true",
+        help="scoring_harsh_long_trip only: same as --segments start",
+    )
     args = p.parse_args()
     asyncio.run(_run(args))
 

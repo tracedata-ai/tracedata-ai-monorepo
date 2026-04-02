@@ -29,6 +29,37 @@ def new_ids(prefix: str) -> tuple[str, str]:
     return f"EVT-{prefix}-{u}", f"TEL-{prefix}-{u}"
 
 
+def doc_style_evt_tel(seq: int) -> tuple[str, str]:
+    """
+    IDs in the style of ``docs/03-agents/0_input_data.md`` (8-4-4-4-12 after prefix).
+
+    ``seq`` 0 matches the start-of-trip example:
+    ``EVT-6ba7b810-9dad-11d1-80b4-00c04fd430c8`` /
+    ``TEL-6ba7b811-9dad-11d1-80b4-00c04fd430c8``.
+    """
+    if seq < 0:
+        raise ValueError("seq must be non-negative")
+    first_evt = 0x6BA7B810 + seq
+    first_tel = 0x6BA7B811 + seq
+    mid = "9dad-11d1-80b4"
+    suffix = 0x00C04FD430C8 + seq
+    last12 = f"{suffix:012x}"
+    return (
+        f"EVT-{first_evt:08x}-{mid}-{last12}",
+        f"TEL-{first_tel:08x}-{mid}-{last12}",
+    )
+
+
+def doc_style_batch(seq: int) -> str:
+    """Batch id style aligned with the same doc (BAT- + UUID-like tail)."""
+    if seq < 0:
+        raise ValueError("seq must be non-negative")
+    hi = 0x6BA7B900 + seq
+    mid = "9dad-11d1-80b4"
+    tail = f"{(0x00C04FD430C8 + seq):012x}"
+    return f"BAT-{hi:08x}-{mid}-{tail}"
+
+
 def start_of_trip_packet(
     *,
     trip_id: str,
@@ -37,8 +68,13 @@ def start_of_trip_packet(
     at: datetime,
     odometer_km: float = 180_200.0,
     batch_id: str | None = None,
+    event_id: str | None = None,
+    device_event_id: str | None = None,
 ) -> dict[str, Any]:
-    eid, did = new_ids("start")
+    if event_id and device_event_id:
+        eid, did = event_id, device_event_id
+    else:
+        eid, did = new_ids("start")
     bid = batch_id or f"BAT-start-{uuid.uuid4().hex[:12]}"
     return {
         "batch_id": bid,
@@ -82,9 +118,15 @@ def hard_accel_packet(
     offset_seconds: int,
     trip_meter_km: float,
     odometer_km: float,
+    batch_id: str | None = None,
+    event_id: str | None = None,
+    device_event_id: str | None = None,
 ) -> dict[str, Any]:
-    eid, did = new_ids("haccel")
-    bid = f"BAT-haccel-{uuid.uuid4().hex[:12]}"
+    if event_id and device_event_id:
+        eid, did = event_id, device_event_id
+    else:
+        eid, did = new_ids("haccel")
+    bid = batch_id or f"BAT-haccel-{uuid.uuid4().hex[:12]}"
     return {
         "batch_id": bid,
         "ping_type": "high_speed",
@@ -130,9 +172,15 @@ def harsh_brake_packet(
     offset_seconds: int,
     trip_meter_km: float,
     odometer_km: float,
+    batch_id: str | None = None,
+    event_id: str | None = None,
+    device_event_id: str | None = None,
 ) -> dict[str, Any]:
-    eid, did = new_ids("hbrake")
-    bid = f"BAT-hbrake-{uuid.uuid4().hex[:12]}"
+    if event_id and device_event_id:
+        eid, did = event_id, device_event_id
+    else:
+        eid, did = new_ids("hbrake")
+    bid = batch_id or f"BAT-hbrake-{uuid.uuid4().hex[:12]}"
     return {
         "batch_id": bid,
         "ping_type": "high_speed",
@@ -179,9 +227,15 @@ def end_of_trip_packet(
     trip_meter_km: float,
     odometer_km: float,
     harsh_events_total: int = 0,
+    batch_id: str | None = None,
+    event_id: str | None = None,
+    device_event_id: str | None = None,
 ) -> dict[str, Any]:
-    eid, did = new_ids("end")
-    bid = f"BAT-end-{uuid.uuid4().hex[:12]}"
+    if event_id and device_event_id:
+        eid, did = event_id, device_event_id
+    else:
+        eid, did = new_ids("end")
+    bid = batch_id or f"BAT-end-{uuid.uuid4().hex[:12]}"
     return {
         "batch_id": bid,
         "ping_type": "end_of_trip",
@@ -226,9 +280,15 @@ def driver_feedback_packet(
     driver_id: str,
     at: datetime,
     offset_seconds: int,
+    batch_id: str | None = None,
+    event_id: str | None = None,
+    device_event_id: str | None = None,
 ) -> dict[str, Any]:
-    eid, did = new_ids("fb")
-    bid = f"BAT-fb-{uuid.uuid4().hex[:12]}"
+    if event_id and device_event_id:
+        eid, did = event_id, device_event_id
+    else:
+        eid, did = new_ids("fb")
+    bid = batch_id or f"BAT-fb-{uuid.uuid4().hex[:12]}"
     return {
         "batch_id": bid,
         "ping_type": "medium_speed",
@@ -269,10 +329,16 @@ def smoothness_at(
     trip_meter_km: float,
     odometer_km: float,
     variant_seed: int,
+    batch_id: str | None = None,
+    event_id: str | None = None,
+    device_event_id: str | None = None,
 ) -> dict[str, Any]:
     ts = anchor + timedelta(seconds=offset_seconds)
-    eid, did = new_ids(f"sm{variant_seed}")
-    bid = f"BAT-sm-{uuid.uuid4().hex[:10]}"
+    if event_id and device_event_id:
+        eid, did = event_id, device_event_id
+    else:
+        eid, did = new_ids(f"sm{variant_seed}")
+    bid = batch_id or f"BAT-sm-{uuid.uuid4().hex[:10]}"
     return build_smoothness_log_packet(
         trip_id=trip_id,
         truck_id=truck_id,
