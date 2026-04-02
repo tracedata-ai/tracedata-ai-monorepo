@@ -1,7 +1,8 @@
 """
-Unified TraceData test data management tool.
+Unified TraceData test data management tool (legacy DB seed + assorted Redis demos).
 
-Consolidates database seeding, telemetry event generation, and test data loading.
+For **pipeline** testing (validated ``TelemetryPacket`` sequences), prefer
+``scripts/play_workflow.py`` — see ``docs/workflow_testing.md``.
 
 Usage:
   python send_telemetry.py db              # Seed database with drivers, vehicles, routes, trips

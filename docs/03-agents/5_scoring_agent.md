@@ -366,7 +366,8 @@ Implemented in **`agents/scoring/features.py`** (`compute_components_and_baselin
 
 ## Local testing helpers
 
-- **`backend/scripts/push_smoothness_to_buffer.py`** — enqueue one **`smoothness_log`** batch onto **`telemetry:{truck}:buffer`** (ingestion input).
+- **`backend/scripts/play_workflow.py`** — push a validated multi-event trip (see **`backend/docs/workflow_testing.md`**).
+- **`backend/scripts/push_smoothness_to_buffer.py`** — enqueue a single **`smoothness_log`** only (ingestion input).
 - **`backend/scripts/clean_datastores.py`** — **FLUSHALL** Redis + recreate ORM tables (dev only).
 
 For an **end-to-end** scoring run you still need a full trip lifecycle (**`start_of_trip`**, pings, **`end_of_trip`**) so the orchestrator can warm **`all_pings`** and dispatch scoring; a lone smoothness ping is useful for **ingestion / processed** debugging only.

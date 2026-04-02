@@ -1,6 +1,9 @@
 """
 Push one ``smoothness_log`` (10-min batch stats) packet onto a truck buffer ZSET.
 
+For full trip sequences (validated, ordered), use ``scripts/play_workflow.py``; see
+``docs/workflow_testing.md``.
+
 Ingestion reads: telemetry:{truck_id}:buffer
 
 Usage (from ``backend/``):

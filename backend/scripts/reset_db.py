@@ -2,6 +2,7 @@
 Postgres-only schema reset (legacy).
 
 For Redis + Postgres together, use ``scripts/clean_datastores.py``.
+See ``docs/workflow_testing.md`` for fixture-based pipeline tests.
 """
 
 import asyncio

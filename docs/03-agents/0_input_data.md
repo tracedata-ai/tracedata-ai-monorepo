@@ -12,6 +12,24 @@ Events
          end_of_trip → driver_feedback
 ────────────────────────────────────────────────────────────────────────── -->
 
+### App contract (same shape for prod, scripts, and tests)
+
+Each block below is a **`TelemetryPacket`**: top-level `ping_type`, `source`, `is_emergency`, nested **`event`** (`TripEvent`), and optional top-level **`evidence`**. Ingestion validates with `TelemetryPacket.model_validate(...)`, then **`PacketTransformer`** emits a flat **`TripEvent`** for Redis / orchestrator (category may be overwritten from `EVENT_MATRIX`).
+
+**Use this everywhere** you mean “device / app sent telemetry”: push scripts, integration tests, and fixtures. Prefer loading JSON and validating with Pydantic rather than hand-building divergent dicts.
+
+**How to push sequences to Redis / reset DB:** [`backend/docs/workflow_testing.md`](../../backend/docs/workflow_testing.md) (`play_workflow.py`, `common/workflow_fixtures/`).
+
+**Must match the models:**
+
+| Field | Rule |
+|--------|------|
+| `event.priority` | String enum only: **`"critical"` \| `"high"` \| `"medium"` \| `"low"`** — not numeric queue scores (those are derived later). |
+| `event.offset_seconds` | **Integer** seconds since trip start (use `0` or a concrete offset; avoid `null` — the model requires `int`). |
+| Inner `event.batch_id` | Optional convenience; **ignored** by Pydantic if present (not stored on `TripEvent`). |
+| Extra keys (e.g. `video_codec` on `evidence`) | Ignored by validation unless you add them to the model. |
+
+---
 
 // 1 — START OF TRIP EVENT
 ```
@@ -66,7 +84,7 @@ Events
     "batch_id": "BAT-6ba7b812-9dad-11d1-80b4-00c04fd430c8",
     "event_type": "smoothness_log",
     "category": "normal_operation",
-    "priority": 9,
+    "priority": "low",
     "timestamp": "2026-03-07T08:10:00Z",
     "offset_seconds": 600,
     "trip_meter_km": 12.4,
@@ -132,7 +150,7 @@ Events
     "batch_id": "BAT-6ba7b815-9dad-11d1-80b4-00c04fd430c8",
     "event_type": "smoothness_log",
     "category": "normal_operation",
-    "priority": 9,
+    "priority": "low",
     "timestamp": "2026-03-07T08:20:00Z",
     "offset_seconds": 1200,
     "trip_meter_km": 24.8,
@@ -280,7 +298,7 @@ Events
     "batch_id": "BAT-6ba7b818-9dad-11d1-80b4-00c04fd430c8",
     "event_type": "end_of_trip",
     "category": "trip_lifecycle",
-    "priority": 9,
+    "priority": "low",
     "timestamp": "2026-03-07T10:45:32Z",
     "offset_seconds": 9932,
     "trip_meter_km": 78.3,
@@ -304,7 +322,7 @@ Events
 }
 ```
 
-// 7 — DRIVER FEEDBACK EVENT (after trip ends, same trip_id for correlation)
+// 7 — DRIVER FEEDBACK EVENT (after trip ends; offset_seconds = seconds since same trip start)
 ```
 {
   "batch_id": "BAT-6ba7b81b-9dad-11d1-80b4-00c04fd430c8",
@@ -320,9 +338,9 @@ Events
     "batch_id": "BAT-6ba7b81b-9dad-11d1-80b4-00c04fd430c8",
     "event_type": "driver_feedback",
     "category": "driver_feedback",
-    "priority": 6,
+    "priority": "medium",
     "timestamp": "2026-03-07T11:00:00Z",
-    "offset_seconds": null,
+    "offset_seconds": 10800,
     "trip_meter_km": null,
     "odometer_km": null,
     "location": null,
