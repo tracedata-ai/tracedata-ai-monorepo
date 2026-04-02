@@ -12,7 +12,7 @@ WHY a separate module instead of `logging.basicConfig()`?
     without a code deploy (just restart the container with a mounted config).
 
 Usage in any module:
-    from app.core.logging import get_logger
+    from api.core.logging import get_logger
     logger = get_logger(__name__)
     logger.info("Vehicle %s ingested telemetry ping", vehicle_id)
 """
@@ -20,17 +20,17 @@ Usage in any module:
 import logging
 import logging.config
 import logging.handlers
-from enum import Enum
 from contextvars import ContextVar, Token
+from enum import StrEnum
 from pathlib import Path
 
 import yaml
 
 
-class LogToken(str, Enum):
+class LogToken(StrEnum):
     """
     Standardised tokens for automated log monitoring and alerting.
-    Inheriting from `str` allows these to be used directly in f-strings.
+    Inheriting from `StrEnum` allows these to be used directly in f-strings.
     """
 
     STARTUP = "[STARTUP]"
@@ -44,9 +44,6 @@ class LogToken(str, Enum):
     FAIL = "[FAIL]"
     ERROR = "[ERROR]"
     SUCCESS = "[SUCCESS]"
-
-    def __str__(self) -> str:
-        return self.value
 
 
 # Path to the logging configuration file at the backend root
@@ -118,7 +115,9 @@ def setup_logging() -> None:
             level=logging.INFO,
             format="%(asctime)s %(levelname)s %(name)s %(message)s",
         )
-        logging.warning("logging.yaml not found at %s — using basicConfig fallback", _CONFIG_PATH)
+        logging.warning(
+            "logging.yaml not found at %s — using basicConfig fallback", _CONFIG_PATH
+        )
 
 
 def get_logger(name: str) -> logging.Logger:

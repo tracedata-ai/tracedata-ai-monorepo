@@ -10,21 +10,27 @@ dependencies = [
     # Web framework — Swagger UI is bundled at /docs, ReDoc at /redoc
     "fastapi>=0.115.0",
     "uvicorn[standard]>=0.32.0",
-
     # Database — async SQLAlchemy 2.0 + asyncpg driver for PostgreSQL
     "sqlalchemy>=2.0.36",
     "asyncpg>=0.30.0",
     "greenlet>=3.1.1",          # Required by SQLAlchemy async internals
-
     # Schema migration
     "alembic>=1.14.0",
-
     # Data validation & settings
     "pydantic>=2.10.0",
     "pydantic-settings>=2.7.0",
-
     # Environment variables
     "python-dotenv>=1.0.1",
+    # Redis client
+    "redis[hiredis]>=5.2.0",
+    # Message broker & distributed tasks (Sprint 2)
+    "celery>=5.6.0",
+    "langgraph>=1.1.3",
+    # LLM routing (orchestrator)
+    "langchain-core>=0.3.0",
+    "langchain-openai>=0.2.0",
+    "langchain-anthropic>=0.2.0",
+    "anthropic>=0.87.0",
 ]
 
 [project.optional-dependencies]
@@ -34,7 +40,11 @@ dev = [
     "pytest-asyncio>=0.24.0",
     "pytest-cov>=6.0.0",          # Coverage plugin used by CI --cov flag
     "httpx>=0.28.0",              # Async test client for FastAPI
-    "ruff>=0.8.0",                # Linter + formatter
+    "fakeredis>=2.26.0",          # In-memory Redis for unit tests (no Docker)
+    "aiosqlite>=0.20.0",          # SQLite async driver for integration tests
+    "black>=24.0.0",              # Formatter
+    "ruff>=0.8.0",               # Linter (industry standard)
+    "bandit>=1.7.0",             # Security SAST
     "mypy>=1.13.0",               # Static type checker
     "types-PyYAML>=6.0.0",        # Stubs for PyYAML (needed by logging.py)
 ]
@@ -46,12 +56,43 @@ build-backend = "hatchling.build"
 
 # Tell hatchling which package to include in the wheel
 [tool.hatch.build.targets.wheel]
-packages = ["app", "agents", "core"]
+packages = ["api", "agents", "core"]
 
 # ─── Tool Config ─────────────────────────────────────────────────────────────
+[tool.black]
+line-length = 88
+target-version = ["py311"]
+
 [tool.ruff]
-line-length = 100
+line-length = 88
 target-version = "py311"
+# Enable auto-fix by default
+fix = true
+
+[tool.ruff.lint]
+# E501: ignore line length (Black handles it)
+# S101: allow assert in tests (project preference)
+# B008: allow function calls in argument defaults (common in FastAPI)
+ignore = ["E501", "S101", "B008"]
+select = [
+    "E",   # Pycodestyle errors
+    "F",   # Pyflakes
+    "I",   # Import sorting (handled by Ruff's isort)
+    "B",   # Bugbear
+    "UP",  # pyupgrade
+    "SIM", # simplify
+]
+
+[tool.ruff.lint.isort]
+combine-as-imports = true
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+markers = [
+    "integration: SQLite in-memory DB or broader I/O than pure unit mocks",
+]
+
+[dependency-groups]
+dev = [
+    "fakeredis>=2.34.1",
+]

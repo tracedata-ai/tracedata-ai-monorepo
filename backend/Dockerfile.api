@@ -32,16 +32,31 @@ FROM python:3.11-slim AS runtime
 
 WORKDIR /app
 
+# Apply Debian security updates in the runtime image.
+RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Refresh Python packaging tools to patched versions scanned by Trivy.
+RUN python -m pip install --no-cache-dir --upgrade \
+    "setuptools>=80.9.0" \
+    "wheel>=0.46.2" \
+    "jaraco.context>=6.1.0"
+
 # Copy the virtual environment from the builder stage
 COPY --from=builder /app/.venv /app/.venv
 
 # Prepend venv's bin directory to PATH so `python` and `uvicorn` resolve correctly
 ENV PATH="/app/.venv/bin:$PATH"
 
-# Copy application source
-COPY app/ ./app/
+# Copy application source (all modules)
+COPY api/ ./api/
 COPY agents/ ./agents/
+COPY common/ ./common/
+COPY core/ ./core/
+COPY security/ ./security/
 COPY scripts/ ./scripts/
+COPY celery_app.py ./
 COPY entrypoint.sh ./
 
 # Ensure the entrypoint script is executable

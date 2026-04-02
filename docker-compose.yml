@@ -16,28 +16,126 @@
 
 services:
 
-  # ── Backend (FastAPI + Agents) ───────────────────────────────────────────────
-  backend:
+  # ── Container 1: API (FastAPI) ────────────────────────────────────────────────
+  api:
     build:
       context: ./backend
-      dockerfile: Dockerfile.api
-    container_name: tracedata-backend
+      dockerfile: Dockerfile
+    container_name: td-api
+    command: uvicorn api.main:app --host 0.0.0.0 --port 8000
     ports:
       - "8000:8000"
     environment:
       - DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/tracedata
       - REDIS_URL=redis://redis:6379/0
-      - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
-      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
-      - RESET_DB=${RESET_DB:-false}
-      - DEBUG=true
-      - APP_ENV=development
+      - PYTHONPATH=/app
     depends_on:
       db:
         condition: service_healthy
       redis:
         condition: service_started
     restart: on-failure
+
+  # ── Container 2: Ingestion ──────────────────────────────────────────────────
+  ingestion:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: td-ingestion
+    command: python -m core.ingestion.worker
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/tracedata
+    depends_on:
+      redis:
+        condition: service_started
+      db:
+        condition: service_healthy
+    restart: always
+
+  # ── Container 3: Orchestrator ───────────────────────────────────────────────
+  orchestrator:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: td-orchestrator
+    command: python -m agents.worker orchestrator
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/tracedata
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+    depends_on:
+      redis:
+        condition: service_started
+      db:
+        condition: service_healthy
+    restart: always
+
+  # ── Container 4: Safety Worker (Celery) ─────────────────────────────────────
+  safety_worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: td-safety
+    working_dir: /app
+    command: celery -A celery_app worker -Q td:agent:safety -n safety@%h --loglevel=info
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - PYTHONPATH=/app
+    depends_on:
+      - redis
+    restart: always
+
+  # ── Container 5: Scoring Worker (Celery) ────────────────────────────────────
+  scoring_worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: td-scoring
+    working_dir: /app
+    command: celery -A celery_app worker -Q td:agent:scoring -n scoring@%h --loglevel=info
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/tracedata
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - PYTHONPATH=/app
+    depends_on:
+      redis:
+        condition: service_started
+      db:
+        condition: service_healthy
+    restart: always
+
+  # ── Container 6: Support Worker (Celery) ────────────────────────────────────
+  support_worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: td-support
+    working_dir: /app
+    command: celery -A celery_app worker -Q td:agent:support -n support@%h --loglevel=info
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - PYTHONPATH=/app
+    depends_on:
+      - redis
+    restart: always
+
+  # ── Container 7: Sentiment Worker (Celery) ──────────────────────────────────
+  sentiment_worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: td-sentiment
+    working_dir: /app
+    command: celery -A celery_app worker -Q td:agent:sentiment -n sentiment@%h --loglevel=info
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - PYTHONPATH=/app
+    depends_on:
+      - redis
+    restart: always
 
   # ── Frontend (Next.js) ───────────────────────────────────────────────────────
   frontend:

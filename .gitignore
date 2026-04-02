@@ -34,7 +34,6 @@ out/
 docker-compose.override.yml
 
 # ─── IDE ─────────────────────────────────────────────────────────────────────
-.vscode/
 .idea/
 *.suo
 *.swp
