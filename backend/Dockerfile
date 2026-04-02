@@ -1,25 +1,30 @@
-FROM python:3.11-slim
+# ── Stage 1: Builder ──────────────────────────────────────────────────────────
+FROM python:3.11-slim AS builder
+
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+
+WORKDIR /app
+COPY pyproject.toml .
+RUN uv sync --no-dev
+
+# ── Stage 2: Runtime ──────────────────────────────────────────────────────────
+FROM python:3.11-slim AS runtime
 
 WORKDIR /app
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    libpq-dev \
+# Apply Debian security updates in the runtime image.
+RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends \
+    ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Python dependencies
-COPY pyproject.toml .
-RUN pip install .
+COPY --from=builder /app/.venv /app/.venv
+ENV PATH="/app/.venv/bin:$PATH"
 
-# Copy everything from backend context
+# Copy backend source used by workers/API commands.
 COPY . .
 
-# Convert line endings from CRLF to LF (Windows → Unix)
-RUN sed -i 's/\r$//' entrypoint.sh
+# Convert line endings from CRLF to LF (Windows -> Unix)
+RUN sed -i 's/\r$//' entrypoint.sh && chmod +x entrypoint.sh
 
-# Make entrypoint script executable
-RUN chmod +x entrypoint.sh
-
-# Default command (will be overridden by docker-compose)
+# Default command (overridden by docker-compose services)
 CMD ["python", "-m", "api.main"]

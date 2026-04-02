@@ -32,6 +32,11 @@ FROM python:3.11-slim AS runtime
 
 WORKDIR /app
 
+# Apply Debian security updates in the runtime image.
+RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
 # Copy the virtual environment from the builder stage
 COPY --from=builder /app/.venv /app/.venv
 
