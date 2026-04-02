@@ -300,5 +300,5 @@ sequenceDiagram
 
 ## Related docs
 
-- **[Scoring Agent](./5_scoring_agent.md)** — consumes orchestrator-warmed **`trips:…:scoring:*`** keys.
-- **[Input data](./0_input_data.md)** — telemetry shapes into ingestion.
+- **[Scoring Agent](./35_scoring_agent.md)** — consumes orchestrator-warmed **`trips:…:scoring:*`** keys.
+- **[Input data](./30_input_data.md)** — telemetry shapes into ingestion.

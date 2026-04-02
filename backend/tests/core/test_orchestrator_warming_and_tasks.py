@@ -104,6 +104,8 @@ def orchestrator_mocks():
     fake_redis = MagicMock()
     fake_redis._client = MagicMock()
     fake_redis._client.setex = AsyncMock(return_value=True)
+    fake_redis.get_trip_context = AsyncMock(return_value={})
+    fake_redis.store_trip_context = AsyncMock(return_value=True)
 
     with (
         patch.object(orch_mod, "_get_llm", return_value=MagicMock()),

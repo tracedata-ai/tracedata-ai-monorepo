@@ -1,6 +1,7 @@
 """Offline tests for scoring feature bundle and merge logic (no LLM)."""
 
 from agents.scoring.features import (
+    compute_driver_score,
     deterministic_payload_from_bundle,
     extract_feature_bundle,
     merge_graph_json_with_baseline,
@@ -112,3 +113,11 @@ def test_build_scoring_tools_returns_four_tools():
     names = [t.name for t in tools]
     assert "get_trip_context_json" in names
     assert "compute_behaviour_score_from_features" in names
+
+
+def test_compute_driver_score_uses_historical_avg_when_available():
+    assert compute_driver_score(80.0, {"rolling_avg_score": 70.0}) == 77.0
+
+
+def test_compute_driver_score_falls_back_to_trip_score():
+    assert compute_driver_score(88.2, {}) == 88.2

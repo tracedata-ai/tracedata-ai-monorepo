@@ -2,10 +2,10 @@
 
 The Scoring Agent is TraceData’s **trip-level analytical engine**. It runs **once per trip** when the pipeline has processed an **`end_of_trip`** (driver or fleet marks the trip complete in the telemetry flow). The orchestrator dispatches it; the agent does not subscribe to raw buffers.
 
-It answers two product questions (outputs are intentionally separable in the design, even if the **published Redis JSON is still evolving**):
+It answers two product questions (outputs are intentionally separable in the design):
 
 1. **“How smooth was this driver on this trip?”** → **Trip score (0–100)** from **smoothness signals only**.
-2. **“How does this trip compare to history?”** → Uses **orchestrator-warmed `historical_avg`** (e.g. rolling average fields) for hints and coaching flags; a full **0–5 star driver rating over N trips** is a **roadmap** item, not yet emitted as a first-class field.
+2. **“How does this trip compare to history?”** → Uses **orchestrator-warmed `historical_avg`** to compute and emit **`driver_score`** (currently a deterministic blend of trip score + rolling baseline). This keeps the output contract stable while allowing an ML model swap later.
 
 ---
 
@@ -231,8 +231,8 @@ erDiagram
   }
 
   pipeline_trips ||--o{ pipeline_events : "trip_id"
-  scoring_trip_scores ||--o{ scoring_shap_explanations : "score_id"
-  scoring_trip_scores ||--o{ scoring_fairness_audit : "score_id"
+  scoring_trip_scores ||--|| scoring_shap_explanations : "trip_id unique"
+  scoring_trip_scores ||--|| scoring_fairness_audit : "trip_id unique"
 ```
 
 Note: Physical schema names are **`public.pipeline_events`**, **`public.pipeline_trips`**, and **`scoring_schema.trip_scores`** (etc.). The diagram shortens labels for readability.
@@ -323,17 +323,17 @@ Implemented in **`agents/scoring/features.py`** (`compute_components_and_baselin
 
 | Table | Written by | Content (conceptual) |
 |-------|------------|----------------------|
-| `trip_scores` | `ScoringRepository.write_trip_score` | Trip id, driver id, numeric score, JSON breakdown. |
-| `shap_explanations` | `write_shap_explanations` | Explanations JSON linked to `score_id`. |
-| `fairness_audit` | `write_fairness_audit` | Audit JSON linked to `score_id`. |
+| `trip_scores` | `ScoringRepository.write_trip_score` | Trip id, driver id, numeric score, JSON breakdown; **upsert on `trip_id`**. |
+| `shap_explanations` | `write_shap_explanations` | Explanations JSON; **upsert on `trip_id`**. |
+| `fairness_audit` | `write_fairness_audit` | Audit JSON; **upsert on `trip_id`**. |
 
 ---
 
 ## Current vs target result shape
 
-**Today**, the object stored on **`trip:{trip_id}:scoring_output`** is a **compact** dict (e.g. `status`, `score`, `score_id`, `trip_id`, `score_label`, `score_breakdown`, `fairness_audit`, optional `suggested_coaching`, …).
+**Today**, the object stored on **`trip:{trip_id}:scoring_output`** is a compact dict including `status`, `score`, `trip_score`, `driver_score`, `score_id`, `trip_id`, `score_label`, `score_breakdown`, `fairness_audit`, and optional `suggested_coaching`.
 
-**Target** (product / API contract) may include richer fields such as **`extracted_features`**, structured **`coaching_flags`** (rates per 100 km, incident locations), **`peer_group_avg`**, explicit **driver star rating**, and **`fairness_flags`**. Those should be tracked as schema evolution work; this document describes **behaviour as implemented** unless noted as roadmap.
+**Target** (product / API contract) may include richer fields such as **`extracted_features`**, structured **`coaching_flags`** (rates per 100 km, incident locations), **`peer_group_avg`**, and richer **`fairness_flags`**. Those should be tracked as schema evolution work; this document describes **behaviour as implemented** unless noted as roadmap.
 
 ---
 
