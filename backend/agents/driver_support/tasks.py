@@ -8,12 +8,16 @@ import asyncio
 import logging
 
 from celery import shared_task
+from sqlalchemy.ext.asyncio import create_async_engine
+from sqlalchemy.pool import NullPool
 
 from agents.driver_support.agent import SupportAgent
+from common.config.settings import get_settings
 from common.redis.client import RedisClient
 from common.redis.keys import RedisSchema
 
 logger = logging.getLogger(__name__)
+settings = get_settings()
 
 
 @shared_task(
@@ -38,10 +42,16 @@ def generate_coaching(self, intent_capsule: dict) -> dict:
     )
 
     try:
+        task_engine = create_async_engine(
+            settings.database_url,
+            poolclass=NullPool,
+            echo=settings.debug,
+        )
         redis = RedisClient()
-        agent = SupportAgent()
+        agent = SupportAgent(engine_param=task_engine, redis_client=redis)
 
         result = asyncio.run(agent.run(intent_capsule))
+        asyncio.run(task_engine.dispose())
 
         completion = {
             "trip_id": trip_id,

@@ -481,6 +481,16 @@ class OrchestratorAgent:
             deduped = [a for a in deduped if a in {"support", "driver_support"}] or [
                 "driver_support"
             ]
+        if event.event_type == "sentiment_ready":
+            deduped = [a for a in deduped if a in {"support", "driver_support"}] or [
+                "driver_support"
+            ]
+            context = await self._load_trip_runtime_context(event.trip_id)
+            context["sentiment_support_pending"] = False
+            context.setdefault("trip_id", event.trip_id)
+            context.setdefault("driver_id", event.driver_id)
+            context.setdefault("truck_id", event.truck_id)
+            await self._save_trip_runtime_context(event.trip_id, context)
 
         if (
             event.event_type in CRITICAL_IMMEDIATE_SUPPORT_TYPES
@@ -529,6 +539,8 @@ class OrchestratorAgent:
 
         elif warming_type == "post_scoring_support":
             await self._warm_post_scoring_support(event, agents_to_dispatch)
+        elif warming_type == "post_sentiment_support":
+            await self._warm_post_sentiment_support(event, agents_to_dispatch)
 
         else:
             logger.info(
@@ -863,6 +875,65 @@ class OrchestratorAgent:
                 }
             )
 
+    async def _warm_post_sentiment_support(
+        self,
+        event: TripEvent,
+        agents_to_dispatch: list[str],
+    ) -> None:
+        """
+        Support after sentiment: trip metadata + sentiment output snapshot.
+        """
+        trip_id = event.trip_id
+        try:
+            if not any(a in agents_to_dispatch for a in ("support", "driver_support")):
+                return
+
+            trip_metadata = await self._get_trip_metadata(trip_id)
+            if not trip_metadata:
+                logger.warning(
+                    {"action": "post_sentiment_warm_no_metadata", "trip_id": trip_id}
+                )
+                return
+
+            runtime_context = await self._load_trip_runtime_context(trip_id)
+            sentiment_raw = await self.redis._client.get(
+                RedisSchema.Trip.output(trip_id, "sentiment")
+            )
+            sentiment_payload: dict | list | None = None
+            if sentiment_raw:
+                try:
+                    sentiment_payload = json.loads(sentiment_raw)
+                except json.JSONDecodeError:
+                    sentiment_payload = None
+
+            support_context = {
+                **trip_metadata,
+                "flagged_events": runtime_context.get("flagged_events", []),
+                "sentiment_output": sentiment_payload,
+            }
+            context_key = RedisSchema.Trip.agent_data(trip_id, "support", "trip_context")
+            await self.redis._client.setex(
+                context_key,
+                3600,
+                json.dumps(support_context),
+            )
+
+            logger.info(
+                {
+                    "action": "cache_warmed_post_sentiment_support",
+                    "trip_id": trip_id,
+                    "has_sentiment_output": sentiment_payload is not None,
+                }
+            )
+        except Exception as e:
+            logger.error(
+                {
+                    "action": "post_sentiment_support_warming_error",
+                    "trip_id": trip_id,
+                    "error": str(e),
+                }
+            )
+
     # ── Cache Warming Helper Methods ────────────────────────────────────────
 
     async def _get_event_data(self, event: TripEvent) -> dict | None:
@@ -1062,6 +1133,8 @@ class OrchestratorAgent:
                 RedisSchema.Trip.agent_data(trip_id, "support", "trip_context"),
                 RedisSchema.Trip.agent_data(trip_id, "support", "coaching_history"),
             ]
+        elif warming_type == "post_sentiment_support":
+            read_keys = [RedisSchema.Trip.agent_data(trip_id, "support", "trip_context")]
         else:
             # No warming needed — provide generic trip context
             read_keys = [

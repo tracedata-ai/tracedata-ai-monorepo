@@ -11,6 +11,7 @@ from agents.base.agent import TDAgentBase
 from common.cache.reader import CacheReader
 from common.db.engine import engine
 from common.db.repositories.support_repo import SentimentRepository
+from common.models.security import IntentCapsule
 from common.redis.client import RedisClient
 
 logger = logging.getLogger(__name__)
@@ -29,6 +30,23 @@ class SentimentAgent(TDAgentBase):
         """Initialize with sentiment-specific repo."""
         super().__init__(engine_param or engine, redis_client)
         self.sentiment_repo = SentimentRepository(self._engine)
+
+    async def run(self, capsule_data: dict) -> dict[str, Any]:
+        capsule = IntentCapsule.model_validate(capsule_data)
+        result = await super().run(capsule_data)
+        if result.get("status") != "success":
+            return result
+
+        from agents.orchestrator.sentiment_followup import (
+            schedule_sentiment_ready_if_success,
+        )
+
+        await schedule_sentiment_ready_if_success(
+            redis=self._redis,
+            engine=self._engine,
+            trip_id=capsule.trip_id,
+        )
+        return result
 
     async def _execute(
         self,

@@ -490,6 +490,27 @@ EVENT_MATRIX: dict[str, EventConfig] = {
             requires_hmac=False,
         ),
     ),
+    # Internal follow-up: enqueued by Sentiment after successful
+    # driver_feedback analysis. Support receives sentiment output context.
+    "sentiment_ready": EventConfig(
+        action=Action.SUPPORT,
+        category="driver_feedback",
+        priority=PriorityLevel.MEDIUM,
+        ml_weight=0.0,
+        scope=ScopeSpecification(
+            read_keys={
+                DataKey.DRIVER_ID,
+                DataKey.TRIP_ID,
+                DataKey.TRIP_CONTEXT,
+                DataKey.SENTIMENT_ANALYSIS,
+            },
+            write_keys={DataKey.COACHING_MESSAGE},
+            allowed_agents={AgentType.DRIVER_SUPPORT},
+            data_classification=DataClassification.SENSITIVE,
+            requires_audit=True,
+            requires_hmac=False,
+        ),
+    ),
     "start_of_trip": EventConfig(
         action=Action.LOGGING,
         category="trip_lifecycle",
@@ -644,10 +665,13 @@ def get_warming_type(event_type: str) -> str | None:
       - "event-driven": Minimal warming (1-2 ms) — Safety, Support
       - "aggregation-driven": Heavy warming (1-2 sec) — Scoring
       - "post_scoring_support": Support after scoring — trip context + Redis outputs
+      - "post_sentiment_support": Support after sentiment — trip context + sentiment output
       - None: No warming needed
     """
     if event_type == "coaching_ready":
         return "post_scoring_support"
+    if event_type == "sentiment_ready":
+        return "post_sentiment_support"
 
     config = EVENT_MATRIX.get(event_type)
     if not config:
