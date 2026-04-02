@@ -5,6 +5,8 @@ from uuid import uuid4
 import pytest
 from sqlalchemy import text
 
+import api.models as _models  # noqa: F401 - ensure ORM table registration
+from api.models.base import Base
 from common.db.engine import engine
 from common.db.repositories.scoring_repo import ScoringRepository
 
@@ -19,6 +21,11 @@ async def test_scoring_repo_upsert_is_one_row_per_trip():
             await conn.execute(text("SELECT 1"))
     except Exception as exc:  # pragma: no cover - environment-dependent
         pytest.skip(f"Postgres unavailable for integration test: {exc}")
+
+    # CI test DB may be fresh; ensure scoring schema tables exist.
+    async with engine.begin() as conn:
+        await conn.execute(text("CREATE SCHEMA IF NOT EXISTS scoring_schema"))
+        await conn.run_sync(Base.metadata.create_all)
 
     repo = ScoringRepository(engine)
     trip_id = f"TRP-IT-{uuid4().hex[:10]}"
