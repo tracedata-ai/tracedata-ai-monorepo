@@ -26,9 +26,9 @@ _BACKEND_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _BACKEND_ROOT not in sys.path:
     sys.path.insert(0, _BACKEND_ROOT)
 
-import redis.asyncio as redis
+import redis.asyncio as redis  # noqa: E402
 
-from common.samples.smoothness_batch import (
+from common.samples.smoothness_batch import (  # noqa: E402
     build_smoothness_log_packet,
     reference_smoothness_batch_details,
     smoothness_details_mild_variant,

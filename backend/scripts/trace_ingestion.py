@@ -34,12 +34,12 @@ _BACKEND_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _BACKEND_ROOT not in sys.path:
     sys.path.insert(0, _BACKEND_ROOT)
 
-import redis.asyncio as redis
-from sqlalchemy import text
-from sqlalchemy.ext.asyncio import create_async_engine
+import redis.asyncio as redis  # noqa: E402
+from sqlalchemy import text  # noqa: E402
+from sqlalchemy.ext.asyncio import create_async_engine  # noqa: E402
 
-from common.config.settings import get_settings
-from common.redis.keys import RedisSchema
+from common.config.settings import get_settings  # noqa: E402
+from common.redis.keys import RedisSchema  # noqa: E402
 
 
 async def _run(*, truck_id: str, trip_id: str | None, limit: int) -> None:

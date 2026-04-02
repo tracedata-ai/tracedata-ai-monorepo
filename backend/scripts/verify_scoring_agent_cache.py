@@ -20,7 +20,7 @@ os.environ["REDIS_URL"] = REDIS_URL
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from langchain_core.messages import AIMessage
+from langchain_core.messages import AIMessage  # noqa: E402
 
 from agents.scoring.agent import ScoringAgent  # noqa: E402
 from common.db.engine import engine  # noqa: E402
