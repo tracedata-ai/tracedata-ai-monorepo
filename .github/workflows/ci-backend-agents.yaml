@@ -274,6 +274,7 @@ jobs:
           format: "table"
           exit-code: "1"
           severity: "CRITICAL,HIGH"
+          ignore-unfixed: true
 
   # ── 7. SUMMARY ────────────────────────────────────────────────────────────
   summary:

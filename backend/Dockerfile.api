@@ -37,6 +37,12 @@ RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-reco
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
+# Refresh Python packaging tools to patched versions scanned by Trivy.
+RUN python -m pip install --no-cache-dir --upgrade \
+    "setuptools>=80.9.0" \
+    "wheel>=0.46.2" \
+    "jaraco.context>=6.1.0"
+
 # Copy the virtual environment from the builder stage
 COPY --from=builder /app/.venv /app/.venv
 

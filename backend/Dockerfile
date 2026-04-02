@@ -17,6 +17,11 @@ RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-reco
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
+RUN python -m pip install --no-cache-dir --upgrade \
+    "setuptools>=80.9.0" \
+    "wheel>=0.46.2" \
+    "jaraco.context>=6.1.0"
+
 COPY --from=builder /app/.venv /app/.venv
 ENV PATH="/app/.venv/bin:$PATH"
 
