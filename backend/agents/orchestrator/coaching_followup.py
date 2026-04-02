@@ -12,14 +12,15 @@ import logging
 import uuid
 from datetime import UTC, datetime
 
+from sqlalchemy.ext.asyncio import AsyncEngine
+
 from common.config.events import EVENT_MATRIX, PRIORITY_MAP
 from common.db.repositories.events_repo import EventsRepo
 from common.db.repositories.trips_repo import TripsRepo
-from common.models.events import TripEvent
 from common.models.enums import Priority, Source
+from common.models.events import TripEvent
 from common.redis.client import RedisClient
 from common.redis.keys import RedisSchema
-from sqlalchemy.ext.asyncio import AsyncEngine
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +55,9 @@ async def _schedule_coaching_ready_if_pending_impl(
         context = json.loads(raw)
     except json.JSONDecodeError:
         return
-    if not isinstance(context, dict) or not context.get("coaching_pending_after_scoring"):
+    if not isinstance(context, dict) or not context.get(
+        "coaching_pending_after_scoring"
+    ):
         return
 
     trips_repo = TripsRepo(engine)
@@ -119,7 +122,9 @@ async def _schedule_coaching_ready_if_pending_impl(
     await redis.push_to_processed(proc_key, payload, score=score)
 
     context["coaching_pending_after_scoring"] = False
-    await redis.store_trip_context(ctx_key, context, ttl=RedisSchema.Trip.CONTEXT_TTL_HIGH)
+    await redis.store_trip_context(
+        ctx_key, context, ttl=RedisSchema.Trip.CONTEXT_TTL_HIGH
+    )
 
     logger.info(
         {

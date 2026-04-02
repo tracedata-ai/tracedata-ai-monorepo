@@ -64,8 +64,16 @@ def _location_and_evidence_for_event_row(
             loc = ev_nested.get("location")
             if isinstance(loc, dict):
                 try:
-                    la = loc.get("lat") if loc.get("lat") is not None else loc.get("latitude")
-                    lo = loc.get("lon") if loc.get("lon") is not None else loc.get("longitude")
+                    la = (
+                        loc.get("lat")
+                        if loc.get("lat") is not None
+                        else loc.get("latitude")
+                    )
+                    lo = (
+                        loc.get("lon")
+                        if loc.get("lon") is not None
+                        else loc.get("longitude")
+                    )
                     if la is not None and lo is not None:
                         location = {"lat": float(la), "lon": float(lo)}
                 except (TypeError, ValueError):
@@ -493,9 +501,9 @@ class EventsRepo:
                         "trip_id": row["trip_id"],
                         "event_type": row["event_type"],
                         "device_event_id": row["device_event_id"],
-                        "timestamp": row["timestamp"].isoformat()
-                        if row["timestamp"]
-                        else None,
+                        "timestamp": (
+                            row["timestamp"].isoformat() if row["timestamp"] else None
+                        ),
                         "data": _parse_json_field(row["details"]),
                         "severity": row["severity"],
                         "location": location,

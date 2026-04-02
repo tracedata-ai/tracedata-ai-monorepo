@@ -95,9 +95,11 @@ def build_smoothness_log_packet(
             "event_type": "smoothness_log",
             "category": "normal_operation",
             "priority": "low",
-            "timestamp": timestamp.isoformat().replace("+00:00", "Z")
-            if timestamp.tzinfo
-            else timestamp.isoformat(),
+            "timestamp": (
+                timestamp.isoformat().replace("+00:00", "Z")
+                if timestamp.tzinfo
+                else timestamp.isoformat()
+            ),
             "offset_seconds": offset_seconds,
             "trip_meter_km": trip_meter_km,
             "odometer_km": odometer_km,

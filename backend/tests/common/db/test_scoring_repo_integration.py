@@ -80,7 +80,9 @@ async def test_scoring_repo_upsert_is_one_row_per_trip():
             {"trip_id": trip_id},
         )
         updated_score = await conn.execute(
-            text("SELECT score FROM scoring_schema.trip_scores WHERE trip_id = :trip_id"),
+            text(
+                "SELECT score FROM scoring_schema.trip_scores WHERE trip_id = :trip_id"
+            ),
             {"trip_id": trip_id},
         )
         updated_shap = await conn.execute(
@@ -103,7 +105,9 @@ async def test_scoring_repo_upsert_is_one_row_per_trip():
             {"trip_id": trip_id},
         )
         await conn.execute(
-            text("DELETE FROM scoring_schema.shap_explanations WHERE trip_id = :trip_id"),
+            text(
+                "DELETE FROM scoring_schema.shap_explanations WHERE trip_id = :trip_id"
+            ),
             {"trip_id": trip_id},
         )
         await conn.execute(

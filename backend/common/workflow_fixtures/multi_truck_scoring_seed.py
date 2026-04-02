@@ -129,9 +129,7 @@ async def push_multi_truck_scoring_seed(
                     batch_id=f"BATCH-{truck_id}-{trip_id[:24]}-m{trip_num}",
                     event_id=normal_event_id,
                     device_event_id=f"DEVICE-ID-{uuid.uuid4()}",
-                    details=smoothness_details_mild_variant(
-                        trip_num + truck_idx * 100
-                    ),
+                    details=smoothness_details_mild_variant(trip_num + truck_idx * 100),
                 )
                 await r.zadd(buffer_key, {_dump_packet(smooth_event): event_counter})
                 event_counter += 1

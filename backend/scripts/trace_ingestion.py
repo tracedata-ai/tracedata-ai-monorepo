@@ -68,7 +68,9 @@ async def _run(*, truck_id: str, trip_id: str | None, limit: int) -> None:
             if row:
                 te = json.loads(row[0])
                 print("\n  Latest processed TripEvent (lowest score):")
-                print(f"    event_type={te.get('event_type')} trip_id={te.get('trip_id')}")
+                print(
+                    f"    event_type={te.get('event_type')} trip_id={te.get('trip_id')}"
+                )
         if zr > 0:
             row = await r.zrange(rej, 0, 0)
             if row:
@@ -83,30 +85,28 @@ async def _run(*, truck_id: str, trip_id: str | None, limit: int) -> None:
         async with engine.connect() as conn:
             print("\nPostgres pipeline_events")
             if trip_id:
-                q = text(
-                    """
+                q = text("""
                     SELECT id, event_type, trip_id, truck_id, status, device_event_id, ingested_at
                     FROM pipeline_events
                     WHERE trip_id = :trip_id
                     ORDER BY id DESC
                     LIMIT :lim
-                    """
-                )
+                    """)
                 res = await conn.execute(q, {"trip_id": trip_id, "lim": limit})
             else:
-                q = text(
-                    """
+                q = text("""
                     SELECT id, event_type, trip_id, truck_id, status, device_event_id, ingested_at
                     FROM pipeline_events
                     WHERE truck_id = :truck_id
                     ORDER BY id DESC
                     LIMIT :lim
-                    """
-                )
+                    """)
                 res = await conn.execute(q, {"truck_id": truck_id, "lim": limit})
             rows = res.mappings().all()
             if not rows:
-                print("  (no rows — worker not run, rejected, or wrong trip/truck filter)")
+                print(
+                    "  (no rows — worker not run, rejected, or wrong trip/truck filter)"
+                )
             for row in rows:
                 print(
                     f"  id={row['id']} {row['event_type']!s:16} "
@@ -118,7 +118,9 @@ async def _run(*, truck_id: str, trip_id: str | None, limit: int) -> None:
 
 
 def main() -> None:
-    p = argparse.ArgumentParser(description="Trace Redis telemetry queues → pipeline_events")
+    p = argparse.ArgumentParser(
+        description="Trace Redis telemetry queues → pipeline_events"
+    )
     p.add_argument("--truck", "-t", default="T12345", help="Truck id (default: T12345)")
     p.add_argument(
         "--trip-id",

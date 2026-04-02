@@ -12,10 +12,11 @@ import sys
 # Add app root to path for imports
 sys.path.append(os.getcwd())
 
+from sqlalchemy import text
+
 import api.models as _models  # noqa: F401
 from api.models.base import Base
 from common.db.engine import engine
-from sqlalchemy import text
 
 
 async def reset_db():

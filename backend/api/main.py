@@ -18,8 +18,8 @@ ReDoc:      http://localhost:8000/redoc
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
-from sqlalchemy import text
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
 
 # Import all models so their metadata is registered with Base.
 # Aliased as _models to prevent `app` name from being bound to the package

@@ -7,7 +7,7 @@ Shared by domain agents. LLM reasoning and tool calls occur only inside this gra
 from __future__ import annotations
 
 import json
-from typing import Annotated, Any, List, TypedDict
+from typing import Annotated, Any, TypedDict
 
 from langchain_core.messages import AnyMessage, BaseMessage
 from langgraph.checkpoint.memory import MemorySaver
@@ -17,7 +17,7 @@ from langgraph.prebuilt import ToolNode, tools_condition
 
 
 class ToolLoopState(TypedDict):
-    messages: Annotated[List[AnyMessage], add_messages]
+    messages: Annotated[list[AnyMessage], add_messages]
 
 
 def build_tool_loop_graph(

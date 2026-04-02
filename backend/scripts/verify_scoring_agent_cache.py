@@ -20,13 +20,16 @@ os.environ["REDIS_URL"] = REDIS_URL
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from agents.scoring.agent import ScoringAgent
-from common.db.engine import engine
-from common.models.security import IntentCapsule, ScopedToken
-from common.redis.client import RedisClient
-from common.redis.keys import RedisSchema
-from common.samples.smoothness_batch import smoothness_details_mild_variant
 from langchain_core.messages import AIMessage
+
+from agents.scoring.agent import ScoringAgent  # noqa: E402
+from common.db.engine import engine  # noqa: E402
+from common.models.security import IntentCapsule, ScopedToken  # noqa: E402
+from common.redis.client import RedisClient  # noqa: E402
+from common.redis.keys import RedisSchema  # noqa: E402
+from common.samples.smoothness_batch import (
+    smoothness_details_mild_variant,
+)  # noqa: E402
 
 
 async def main() -> None:

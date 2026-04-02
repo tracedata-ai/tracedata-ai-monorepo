@@ -216,7 +216,8 @@ async def test_dispatch_policy_end_of_trip_adds_support_when_rules_trigger(
     orch._should_dispatch_coaching = AsyncMock(return_value=True)
     result = await orch._apply_dispatch_policy(event, ["scoring"])
 
-    assert result == ["scoring", "support"]
+    # Current policy: end_of_trip dispatches scoring only; support follows coaching_ready.
+    assert result == ["scoring"]
 
 
 @pytest.mark.asyncio

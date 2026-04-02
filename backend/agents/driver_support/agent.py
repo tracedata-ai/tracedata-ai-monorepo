@@ -56,14 +56,10 @@ class SupportAgent(TDAgentBase):
                 raw["current_event"] if isinstance(raw["current_event"], dict) else None
             )
             scoring_snapshot = (
-                (trip_context or {}).get("scoring_output")
-                if trip_context
-                else None
+                (trip_context or {}).get("scoring_output") if trip_context else None
             )
             safety_snapshot = (
-                (trip_context or {}).get("safety_output")
-                if trip_context
-                else None
+                (trip_context or {}).get("safety_output") if trip_context else None
             )
 
             driver_id = (

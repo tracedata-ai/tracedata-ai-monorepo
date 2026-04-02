@@ -92,7 +92,7 @@ async def _run(args: argparse.Namespace) -> None:
     if args.fixture:
         mod_path = resolve_fixture(args.fixture)
         mod = importlib.import_module(mod_path)
-        build = getattr(mod, "build_events")
+        build = mod.build_events
         kw: dict[str, Any] = {"anchor": datetime.now(UTC).replace(microsecond=0)}
         if args.trip_id:
             kw["trip_id"] = args.trip_id
@@ -174,7 +174,9 @@ async def _run(args: argparse.Namespace) -> None:
 
 def main() -> None:
     p = argparse.ArgumentParser(description="Play a workflow fixture into Redis buffer")
-    p.add_argument("--fixture", "-f", help="Registered fixture name (see --list-fixtures)")
+    p.add_argument(
+        "--fixture", "-f", help="Registered fixture name (see --list-fixtures)"
+    )
     p.add_argument("--json", "-j", help="Path to JSON packet list or {events: [...]}")
     p.add_argument("--truck", "-t", help="Override truck_id on all events / buffer key")
     p.add_argument("--trip-id", help="Override trip_id on all events")

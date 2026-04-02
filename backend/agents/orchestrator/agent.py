@@ -478,9 +478,9 @@ class OrchestratorAgent:
             deduped = [a for a in deduped if a not in {"support", "driver_support"}]
 
         if event.event_type == "coaching_ready":
-            deduped = [
-                a for a in deduped if a in {"support", "driver_support"}
-            ] or ["driver_support"]
+            deduped = [a for a in deduped if a in {"support", "driver_support"}] or [
+                "driver_support"
+            ]
 
         if (
             event.event_type in CRITICAL_IMMEDIATE_SUPPORT_TYPES
@@ -789,9 +789,7 @@ class OrchestratorAgent:
         """
         trip_id = event.trip_id
         try:
-            if not any(
-                a in agents_to_dispatch for a in ("support", "driver_support")
-            ):
+            if not any(a in agents_to_dispatch for a in ("support", "driver_support")):
                 return
 
             trip_metadata = await self._get_trip_metadata(trip_id)
@@ -1051,9 +1049,7 @@ class OrchestratorAgent:
             elif agent_name in ("support", "driver_support"):
                 read_keys = [
                     RedisSchema.Trip.agent_data(trip_id, "support", "trip_context"),
-                    RedisSchema.Trip.agent_data(
-                        trip_id, "support", "coaching_history"
-                    ),
+                    RedisSchema.Trip.agent_data(trip_id, "support", "coaching_history"),
                 ]
             else:
                 # Fallback for unknown agents

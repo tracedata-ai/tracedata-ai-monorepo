@@ -7,8 +7,8 @@ from agents.scoring.features import (
     merge_graph_json_with_baseline,
     metrics_from_smoothness_details,
 )
-from common.samples.smoothness_batch import reference_smoothness_batch_details
 from agents.scoring.tools import build_scoring_tools
+from common.samples.smoothness_batch import reference_smoothness_batch_details
 
 
 def test_metrics_from_nested_batch_details():

@@ -104,6 +104,10 @@ try {
 
     Write-Step "Running Unit Tests (Pytest)..."
     Write-Host "NOTE: Requires PostgreSQL with pgvector on port 5432." -ForegroundColor Gray
+    Write-Step "Test marker summary (unit/integration)..."
+    uv run python -c "import pathlib,re; root=pathlib.Path('tests'); files=list(root.rglob('test_*.py')); t=[p.read_text(encoding='utf-8',errors='ignore') for p in files]; integ=sum(1 for x in t if re.search(r'pytest\\.mark\\.integration|pytestmark\\s*=\\s*pytest\\.mark\\.integration', x)); unit=sum(1 for x in t if re.search(r'pytest\\.mark\\.unit|pytestmark\\s*=\\s*pytest\\.mark\\.unit', x)); print(f'Test files scanned: {len(files)}'); print(f'Integration-marked files: {integ}'); print(f'Unit-marked files: {unit}'); print(f'Unmarked files: {len(files)-integ-unit}')"
+    # Avoid stale/locked .coverage file collisions on Windows.
+    $env:COVERAGE_FILE = ".coverage.ci.$PID"
     uv run pytest --cov=api --cov-report=term-missing --cov-fail-under=1 -v tests/
     Write-Success "All tests passed."
 

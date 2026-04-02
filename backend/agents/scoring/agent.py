@@ -25,8 +25,8 @@ from agents.scoring.tools import build_scoring_tools
 from common.cache.reader import CacheReader
 from common.db.engine import engine
 from common.db.repositories.scoring_repo import ScoringRepository
-from common.models.security import IntentCapsule
 from common.llm import OpenAIModel, load_llm
+from common.models.security import IntentCapsule
 from common.redis.client import RedisClient
 
 logger = logging.getLogger(__name__)
@@ -196,9 +196,8 @@ class ScoringAgent(TDAgentBase):
         score: float,
     ) -> None:
         """If score dropped vs historical average, flag coaching."""
-        raw = (
-            historical_avg.get("historical_avg_score")
-            or historical_avg.get("rolling_avg_score")
+        raw = historical_avg.get("historical_avg_score") or historical_avg.get(
+            "rolling_avg_score"
         )
         if raw is None:
             return

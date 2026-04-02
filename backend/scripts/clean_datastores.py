@@ -63,7 +63,7 @@ async def main(*, skip_redis: bool, skip_postgres: bool) -> None:
         print("Redis: skipped")
 
     if not skip_postgres:
-        print(f"Resetting PostgreSQL (drop_all + create_all) ...")
+        print("Resetting PostgreSQL (drop_all + create_all) ...")
         await _reset_postgres()
         print("Postgres: OK")
     else:

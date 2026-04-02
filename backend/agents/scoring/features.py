@@ -93,9 +93,7 @@ def _trip_duration_seconds_for_idle(
 def extract_feature_bundle(all_pings: list[dict]) -> dict[str, Any]:
     """Aggregate smoothness / harsh metrics from warmed `all_pings` cache."""
     smoothness_pings = [
-        p
-        for p in all_pings
-        if str(p.get("event_type", "")).lower() == "smoothness_log"
+        p for p in all_pings if str(p.get("event_type", "")).lower() == "smoothness_log"
     ]
     harsh_events = [
         p
@@ -130,11 +128,11 @@ def extract_feature_bundle(all_pings: list[dict]) -> dict[str, Any]:
             "mean_lateral_g_avg": (
                 round(mean(lateral_means), 3) if lateral_means else 0.0
             ),
-            "max_lateral_g_peak": round(max(lateral_maxes), 3) if lateral_maxes else 0.0,
-            "mean_rpm_avg": round(mean(mean_rpms), 0) if mean_rpms else 0.0,
-            "idle_ratio": round(
-                sum(idle_seconds) / max(trip_duration_seconds, 1.0), 3
+            "max_lateral_g_peak": (
+                round(max(lateral_maxes), 3) if lateral_maxes else 0.0
             ),
+            "mean_rpm_avg": round(mean(mean_rpms), 0) if mean_rpms else 0.0,
+            "idle_ratio": round(sum(idle_seconds) / max(trip_duration_seconds, 1.0), 3),
             "harsh_event_count": len(harsh_events) + window_harsh_sum,
         },
         "raw_harsh_events": harsh_events,
@@ -153,7 +151,9 @@ def score_label_from_value(behaviour_score: float) -> str:
     return "Poor"
 
 
-def compute_components_and_baseline(sf: dict[str, Any]) -> tuple[float, dict[str, float]]:
+def compute_components_and_baseline(
+    sf: dict[str, Any],
+) -> tuple[float, dict[str, float]]:
     jerk_component = max(
         0.0,
         min(40.0, 40.0 - (sf["jerk_mean_avg"] * 800.0 + sf["jerk_max_peak"] * 8.0)),
@@ -163,17 +163,14 @@ def compute_components_and_baseline(sf: dict[str, Any]) -> tuple[float, dict[str
         0.0,
         min(
             20.0,
-            20.0
-            - (sf["mean_lateral_g_avg"] * 70.0 + sf["max_lateral_g_peak"] * 15.0),
+            20.0 - (sf["mean_lateral_g_avg"] * 70.0 + sf["max_lateral_g_peak"] * 15.0),
         ),
     )
     engine_component = max(
         0.0,
         min(
             15.0,
-            15.0
-            - abs(sf["mean_rpm_avg"] - 1500.0) / 200.0
-            - sf["idle_ratio"] * 20.0,
+            15.0 - abs(sf["mean_rpm_avg"] - 1500.0) / 200.0 - sf["idle_ratio"] * 20.0,
         ),
     )
     baseline = round(
@@ -198,9 +195,7 @@ def deterministic_payload_from_bundle(bundle: dict[str, Any]) -> dict[str, Any]:
     if harsh_count > 0:
         coaching_reasons.append("Harsh events detected; coaching recommended.")
     if sf["idle_ratio"] > 0.25:
-        coaching_reasons.append(
-            "High idle ratio detected; improve idle management."
-        )
+        coaching_reasons.append("High idle ratio detected; improve idle management.")
     return {
         "behaviour_score": baseline_score,
         "score_label": label,

@@ -24,11 +24,15 @@ if _BACKEND_ROOT not in sys.path:
     sys.path.insert(0, _BACKEND_ROOT)
 
 from common.config.settings import get_settings
-from common.workflow_fixtures.multi_truck_scoring_seed import push_multi_truck_scoring_seed
+from common.workflow_fixtures.multi_truck_scoring_seed import (
+    push_multi_truck_scoring_seed,
+)
 
 
 async def main() -> None:
-    p = argparse.ArgumentParser(description="Push multi-truck scoring seed to Redis buffers")
+    p = argparse.ArgumentParser(
+        description="Push multi-truck scoring seed to Redis buffers"
+    )
     p.add_argument(
         "--redis-url",
         default=None,

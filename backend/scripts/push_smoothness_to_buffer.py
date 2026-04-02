@@ -74,17 +74,25 @@ async def _run(args: argparse.Namespace) -> None:
     print(f"  trip_id:     {trip_id}")
     print(f"  truck_id:    {args.truck}")
     print(f"  device_ev:   {dev}")
-    print(f"  event_type:  smoothness_log")
+    print("  event_type:  smoothness_log")
     print()
     print("Watch ingestion/orchestrator logs; processed queue key will be:")
     print(f"  telemetry:{args.truck}:processed")
 
 
 def main() -> None:
-    p = argparse.ArgumentParser(description="ZADD one smoothness_log to telemetry buffer")
-    p.add_argument("--redis-url", default=os.environ.get("REDIS_URL", "redis://127.0.0.1:6379/0"))
-    p.add_argument("--truck", default="TK001", help="Truck id → telemetry:{truck}:buffer")
-    p.add_argument("--trip-id", default=None, help="Fixed trip id (default: random TRIP-MANUAL-*)")
+    p = argparse.ArgumentParser(
+        description="ZADD one smoothness_log to telemetry buffer"
+    )
+    p.add_argument(
+        "--redis-url", default=os.environ.get("REDIS_URL", "redis://127.0.0.1:6379/0")
+    )
+    p.add_argument(
+        "--truck", default="TK001", help="Truck id → telemetry:{truck}:buffer"
+    )
+    p.add_argument(
+        "--trip-id", default=None, help="Fixed trip id (default: random TRIP-MANUAL-*)"
+    )
     p.add_argument("--driver", default="DRV-DEMO-001")
     p.add_argument("--offset-seconds", type=int, default=600)
     p.add_argument("--trip-meter-km", type=float, default=12.0)
@@ -92,7 +100,12 @@ def main() -> None:
     p.add_argument("--lat", type=float, default=1.325)
     p.add_argument("--lon", type=float, default=103.875)
     p.add_argument("--batch-id", default=None)
-    p.add_argument("--variant-seed", type=int, default=0, help="Jitter seed for smoothness_details_mild_variant")
+    p.add_argument(
+        "--variant-seed",
+        type=int,
+        default=0,
+        help="Jitter seed for smoothness_details_mild_variant",
+    )
     p.add_argument(
         "--exact-reference",
         action="store_true",
