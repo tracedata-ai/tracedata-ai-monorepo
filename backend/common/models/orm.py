@@ -17,8 +17,9 @@ class EventORM(Base):
     __tablename__ = "pipeline_events"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    event_id: Mapped[str] = mapped_column(String(36), unique=True)
-    device_event_id: Mapped[str] = mapped_column(String(50), unique=True)
+    # Prefix + UUID-shaped segments (see docs/03-agents/0_input_data.md); >36 chars.
+    event_id: Mapped[str] = mapped_column(String(64), unique=True)
+    device_event_id: Mapped[str] = mapped_column(String(64), unique=True)
     trip_id: Mapped[str] = mapped_column(String(100))
     truck_id: Mapped[str] = mapped_column(String(50))
     driver_id: Mapped[str] = mapped_column(String(50))  # REAL ID — audit only

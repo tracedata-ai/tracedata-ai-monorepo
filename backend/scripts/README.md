@@ -48,3 +48,7 @@ python scripts/play_workflow.py --fixture scoring_harsh_long_trip --segments sta
 - Add **`--no-reset`** to skip a full DB/Redis reset and only clear this truck’s buffer (see **`workflow_testing.md`**).
 
 Fixture code: **`common/workflow_fixtures/scoring_harsh_long_trip.py`**. Payload shape: **`docs/03-agents/0_input_data.md`**.
+
+After pushing events, with the **ingestion worker** running (`python -m core.ingestion.worker` or the `docker compose` service), trace Redis → Postgres:
+
+`python scripts/trace_ingestion.py --truck T12345 --trip-id TRP-2026-a1b2c3d4-e5f6-47g8-h9i0-j1k2l3m4n5o6`

@@ -58,33 +58,28 @@ async def main():
                 # Dynamically discover trucks from Redis keys
                 truck_ids = await _discover_trucks(redis)
 
-                if not truck_ids:
-                    # No trucks yet — sleep and retry
-                    logger.debug("No trucks found, sleeping 1s before retry...")
-                    await asyncio.sleep(1.0)
-                    continue
-
                 handled = 0
 
-                # Poll all discovered trucks in round-robin
-                for truck_id in truck_ids:
-                    raw_key = RedisSchema.Telemetry.buffer(truck_id)
-                    raw_packet = await redis.pop_from_buffer(raw_key)
+                if truck_ids:
+                    # Poll all discovered trucks in round-robin
+                    for truck_id in truck_ids:
+                        raw_key = RedisSchema.Telemetry.buffer(truck_id)
+                        raw_packet = await redis.pop_from_buffer(raw_key)
 
-                    if raw_packet:
-                        # Push to ring buffer
-                        accepted = await buffer.push(raw_packet)
-                        if accepted:
-                            handled += 1
-                        else:
-                            logger.warning(
-                                {
-                                    "action": "packet_rejected_backpressure",
-                                    "truck_id": truck_id,
-                                }
-                            )
+                        if raw_packet:
+                            accepted = await buffer.push(raw_packet)
+                            if accepted:
+                                handled += 1
+                            else:
+                                logger.warning(
+                                    {
+                                        "action": "packet_rejected_backpressure",
+                                        "truck_id": truck_id,
+                                    }
+                                )
 
-                # Check if buffer should auto-flush
+                # Flush even when Redis buffers are empty — a lone packet pops the
+                # last member so the key disappears; we must still drain the ring.
                 if await buffer.should_flush():
                     packets = await buffer.flush()
                     logger.info(
@@ -128,8 +123,7 @@ async def main():
                             )
 
                 if handled == 0:
-                    # No events, small sleep to prevent CPU spinning
-                    await asyncio.sleep(0.1)
+                    await asyncio.sleep(1.0 if not truck_ids else 0.1)
 
         except asyncio.CancelledError:
             logger.info("Ingestion worker stopping...")
