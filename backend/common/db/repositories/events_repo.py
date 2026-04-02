@@ -27,6 +27,67 @@ def _parse_json_field(value: Any) -> dict[str, Any]:
     return {}
 
 
+def _safe_parse_json_object(value: Any) -> dict[str, Any]:
+    """Like _parse_json_field but never raises (empty dict on failure)."""
+    try:
+        return _parse_json_field(value)
+    except (json.JSONDecodeError, TypeError, ValueError):
+        return {}
+
+
+def _location_and_evidence_for_event_row(
+    lat: Any,
+    lon: Any,
+    evidence_video_url: Any,
+    evidence_voice_url: Any,
+    evidence_sensor_url: Any,
+    raw_payload: Any,
+) -> tuple[dict[str, float] | None, dict[str, Any]]:
+    """
+    Build location {lat, lon} and evidence URLs/metadata for cache warming / agents.
+
+    Prefer DB columns; fall back to TelemetryPacket JSON in raw_payload (event.location,
+    top-level evidence block). Column URLs override packet fields when both exist.
+    """
+    location: dict[str, float] | None = None
+    if lat is not None and lon is not None:
+        try:
+            location = {"lat": float(lat), "lon": float(lon)}
+        except (TypeError, ValueError):
+            location = None
+
+    pkg = _safe_parse_json_object(raw_payload)
+
+    if location is None:
+        ev_nested = pkg.get("event") if isinstance(pkg, dict) else None
+        if isinstance(ev_nested, dict):
+            loc = ev_nested.get("location")
+            if isinstance(loc, dict):
+                try:
+                    la = loc.get("lat") if loc.get("lat") is not None else loc.get("latitude")
+                    lo = loc.get("lon") if loc.get("lon") is not None else loc.get("longitude")
+                    if la is not None and lo is not None:
+                        location = {"lat": float(la), "lon": float(lo)}
+                except (TypeError, ValueError):
+                    pass
+
+    evidence: dict[str, Any] = {}
+    pkg_ev = pkg.get("evidence") if isinstance(pkg, dict) else None
+    if isinstance(pkg_ev, dict):
+        for k, v in pkg_ev.items():
+            if v is not None:
+                evidence[k] = v
+
+    if evidence_video_url:
+        evidence["video_url"] = evidence_video_url
+    if evidence_voice_url:
+        evidence["voice_url"] = evidence_voice_url
+    if evidence_sensor_url:
+        evidence["sensor_dump_url"] = evidence_sensor_url
+
+    return location, evidence
+
+
 class EventsRepo:
     """
     All DB operations on the events table.
@@ -245,24 +306,42 @@ class EventsRepo:
                         device_event_id,
                         timestamp,
                         details,
-                        priority AS severity
+                        priority AS severity,
+                        lat,
+                        lon,
+                        evidence_video_url,
+                        evidence_voice_url,
+                        evidence_sensor_url,
+                        raw_payload
                     FROM pipeline_events
                     WHERE event_id = :event_id
                 """),
                 {"event_id": event_id},
             )
-            row = result.first()
+            row = result.mappings().first()
             if not row:
                 return None
 
+            details = row["details"]
+            location, evidence = _location_and_evidence_for_event_row(
+                row["lat"],
+                row["lon"],
+                row["evidence_video_url"],
+                row["evidence_voice_url"],
+                row["evidence_sensor_url"],
+                row["raw_payload"],
+            )
+
             return {
-                "event_id": row[0],
-                "trip_id": row[1],
-                "event_type": row[2],
-                "device_event_id": row[3],
-                "timestamp": row[4].isoformat() if row[4] else None,
-                "data": _parse_json_field(row[5]),
-                "severity": row[6],
+                "event_id": row["event_id"],
+                "trip_id": row["trip_id"],
+                "event_type": row["event_type"],
+                "device_event_id": row["device_event_id"],
+                "timestamp": row["timestamp"].isoformat() if row["timestamp"] else None,
+                "data": _parse_json_field(details),
+                "severity": row["severity"],
+                "location": location,
+                "evidence": evidence,
             }
 
     async def get_trip_metadata(self, trip_id: str) -> dict[str, Any] | None:

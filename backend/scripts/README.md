@@ -44,6 +44,7 @@ python scripts/play_workflow.py --fixture scoring_harsh_long_trip --segments sta
 **Notes**
 
 - **`--segments`** / **`--start-only`** only work for fixtures whose **`build_events`** accepts **`segments`** (right now **`scoring_harsh_long_trip`**).
+- **`scoring_harsh_long_trip`** assigns **new UUID-style `event_id` / `device_event_id` per packet**; **`trip_id`** stays the same for the whole trip (override with **`--trip-id`**).
 - Override ids when needed: **`--truck`**, **`--trip-id`**, **`--driver`**.
 - Add **`--no-reset`** to skip a full DB/Redis reset and only clear this truck’s buffer (see **`workflow_testing.md`**).
 

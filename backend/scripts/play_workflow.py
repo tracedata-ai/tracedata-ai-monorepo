@@ -102,7 +102,10 @@ async def _run(args: argparse.Namespace) -> None:
             kw["driver_id"] = args.driver
         if args.start_only and args.segments is not None:
             raise SystemExit("Use either --start-only or --segments, not both")
-        if "segments" in inspect.signature(build).parameters:
+
+        sig_params = inspect.signature(build).parameters
+
+        if "segments" in sig_params:
             if args.start_only:
                 kw["segments"] = frozenset({"start"})
             elif args.segments is not None:
@@ -118,6 +121,7 @@ async def _run(args: argparse.Namespace) -> None:
             raise SystemExit(
                 f"--start-only / --segments not supported for fixture {args.fixture!r}"
             )
+
         packets: list[dict[str, Any]] = build(**kw)
     elif args.json:
         packets = _load_json_events(Path(args.json))

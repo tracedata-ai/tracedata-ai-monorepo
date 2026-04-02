@@ -583,10 +583,15 @@ class OrchestratorAgent:
                 context_key = RedisSchema.Trip.agent_data(
                     trip_id, agent, "trip_context"
                 )
+                trip_context_payload = {
+                    **trip_metadata,
+                    "primary_event_location": current_event.get("location"),
+                    "primary_event_evidence": current_event.get("evidence") or {},
+                }
                 await self.redis._client.setex(
                     context_key,
                     300,  # 5 minute TTL
-                    json.dumps(trip_metadata),
+                    json.dumps(trip_context_payload),
                 )
 
             logger.info(
@@ -596,7 +601,7 @@ class OrchestratorAgent:
                     "event_type": event_type,
                     "agents": agents_to_dispatch,
                     "data_size_bytes": len(json.dumps(current_event))
-                    + len(json.dumps(trip_metadata)),
+                    + len(json.dumps(trip_context_payload)),
                     "load_time_ms": 1,
                 }
             )
