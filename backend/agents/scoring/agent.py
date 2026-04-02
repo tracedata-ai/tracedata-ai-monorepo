@@ -15,6 +15,7 @@ from agents.base.langgraph_runner import (
     parse_json_from_last_ai_message,
 )
 from agents.scoring.features import (
+    compute_driver_score,
     deterministic_payload_from_bundle,
     extract_feature_bundle,
     merge_graph_json_with_baseline,
@@ -116,6 +117,7 @@ class ScoringAgent(TDAgentBase):
             )
 
             score = float(score_payload["behaviour_score"])
+            driver_score = compute_driver_score(score, hist_dict)
             explanations = score_payload["shap_explanation"]
             fairness_audit = score_payload["fairness_audit"]
             score_breakdown = score_payload["score_breakdown"]
@@ -155,7 +157,8 @@ class ScoringAgent(TDAgentBase):
                 {
                     "action": "scoring_complete",
                     "trip_id": trip_id,
-                    "score": score,
+                    "trip_score": score,
+                    "driver_score": driver_score,
                     "score_id": score_id,
                 }
             )
@@ -163,6 +166,8 @@ class ScoringAgent(TDAgentBase):
             out: dict[str, Any] = {
                 "status": "success",
                 "score": score,
+                "trip_score": score,
+                "driver_score": driver_score,
                 "score_id": score_id,
                 "trip_id": trip_id,
                 "ping_count": len(all_pings),

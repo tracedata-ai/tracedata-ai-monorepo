@@ -363,15 +363,35 @@ class OrchestratorAgent:
         if not isinstance(flagged_events, list):
             flagged_events = []
 
-        flagged_events.append(
-            {
-                "event_id": event.event_id,
-                "device_event_id": event.device_event_id,
-                "event_type": event.event_type,
-                "timestamp": event.timestamp.isoformat(),
-                "priority": str(event.priority),
-            }
-        )
+        entry: dict = {
+            "event_id": event.event_id,
+            "device_event_id": event.device_event_id,
+            "event_type": event.event_type,
+            "timestamp": event.timestamp.isoformat(),
+            "priority": str(event.priority),
+        }
+        try:
+            from common.db.repositories.events_repo import EventsRepo
+
+            full = await EventsRepo(engine).get_event_by_id(event.event_id)
+            if full:
+                loc = full.get("location")
+                if loc is not None:
+                    entry["location"] = loc
+                ev = full.get("evidence")
+                if ev:
+                    entry["evidence"] = ev
+        except Exception as e:
+            logger.warning(
+                {
+                    "action": "flagged_event_enrichment_skipped",
+                    "trip_id": event.trip_id,
+                    "event_id": event.event_id,
+                    "error": str(e),
+                }
+            )
+
+        flagged_events.append(entry)
         context["flagged_events"] = flagged_events
         context.setdefault("trip_id", event.trip_id)
         context.setdefault("driver_id", event.driver_id)

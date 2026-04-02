@@ -225,6 +225,23 @@ def deterministic_payload_from_bundle(bundle: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def compute_driver_score(
+    trip_score: float,
+    historical_avg: dict[str, Any],
+) -> float:
+    """Blend current trip score with rolling history for driver-level scoring."""
+    raw = historical_avg.get("historical_avg_score") or historical_avg.get(
+        "rolling_avg_score"
+    )
+    try:
+        baseline = float(raw) if raw is not None else float(trip_score)
+    except (TypeError, ValueError):
+        baseline = float(trip_score)
+
+    blended = 0.7 * float(trip_score) + 0.3 * baseline
+    return round(max(0.0, min(100.0, blended)), 1)
+
+
 def clamp_behaviour_score(payload: dict[str, Any], baseline: float) -> None:
     """Clamp behaviour_score to [0, 100] in place."""
     try:

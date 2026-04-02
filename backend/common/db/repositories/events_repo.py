@@ -459,29 +459,47 @@ class EventsRepo:
                         device_event_id,
                         timestamp,
                         details,
-                        priority AS severity
+                        priority AS severity,
+                        lat,
+                        lon,
+                        evidence_video_url,
+                        evidence_voice_url,
+                        evidence_sensor_url,
+                        raw_payload
                     FROM pipeline_events
                     WHERE trip_id = :trip_id
                     ORDER BY timestamp ASC
                 """),
                 {"trip_id": trip_id},
             )
-            rows = result.fetchall()
+            rows = result.mappings().fetchall()
 
             if not rows:
                 return []
 
             pings = []
             for row in rows:
+                location, evidence = _location_and_evidence_for_event_row(
+                    row["lat"],
+                    row["lon"],
+                    row["evidence_video_url"],
+                    row["evidence_voice_url"],
+                    row["evidence_sensor_url"],
+                    row["raw_payload"],
+                )
                 pings.append(
                     {
-                        "event_id": row[0],
-                        "trip_id": row[1],
-                        "event_type": row[2],
-                        "device_event_id": row[3],
-                        "timestamp": row[4].isoformat() if row[4] else None,
-                        "data": _parse_json_field(row[5]),
-                        "severity": row[6],
+                        "event_id": row["event_id"],
+                        "trip_id": row["trip_id"],
+                        "event_type": row["event_type"],
+                        "device_event_id": row["device_event_id"],
+                        "timestamp": row["timestamp"].isoformat()
+                        if row["timestamp"]
+                        else None,
+                        "data": _parse_json_field(row["details"]),
+                        "severity": row["severity"],
+                        "location": location,
+                        "evidence": evidence,
                     }
                 )
 
