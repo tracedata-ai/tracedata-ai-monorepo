@@ -171,6 +171,10 @@ async def test_warm_aggregation_driven_scoring_and_support(orchestrator_mocks):
         in keys_called
     )
     assert (
+        RedisSchema.Trip.agent_data(event.trip_id, "scoring", "trip_context")
+        in keys_called
+    )
+    assert (
         RedisSchema.Trip.agent_data(event.trip_id, "support", "trip_context")
         in keys_called
     )

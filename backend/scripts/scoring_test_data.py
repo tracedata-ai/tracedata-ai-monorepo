@@ -1,22 +1,30 @@
 """
 Complete trips telemetry generator for multi-truck, multi-trip scenarios.
 
-Sends START → NORMAL_OPERATION → END_OF_TRIP events for:
+Sends START → SMOOTHNESS_LOG (10-min batch stats) → END_OF_TRIP events for:
   - 5 trucks (TK001 - TK005)
   - 10 trips per truck (to and fro)
-  - 3 events per trip (START, NORMAL_OP, END)
+  - 3 events per trip (START, smoothness batch, END)
   - Total: 150 events
 
 Usage:
-  python send_complete_trips.py
+  REDIS_URL=redis://localhost:6379/0 python scripts/scoring_test_data.py
 """
 
 import asyncio
 import json
+import os
 import uuid
 from datetime import UTC, datetime, timedelta
 
 import redis.asyncio as redis
+
+from common.samples.smoothness_batch import (
+    build_smoothness_log_packet,
+    smoothness_details_mild_variant,
+)
+
+REDIS_URL = os.environ.get("REDIS_URL", "redis://redis:6379/0")
 
 
 async def send_complete_trips_multi_truck():
@@ -39,7 +47,7 @@ async def send_complete_trips_multi_truck():
         "end": {"lat": 1.3400, "lon": 103.8600},
     }
 
-    r = await redis.from_url("redis://redis:6379/0")
+    r = await redis.from_url(REDIS_URL)
 
     try:
         for tid in TRUCKS:
@@ -117,41 +125,30 @@ async def send_complete_trips_multi_truck():
                 await r.zadd(buffer_key, {json_str: event_counter})
                 event_counter += 1
 
-                # ─── NORMAL OPERATIONS (mid-trip checkpoint)
+                # ─── 1Hz / 10-min smoothness batch (positive reinforcement layer)
                 mid_time = trip_start + timedelta(minutes=trip_duration_minutes // 2)
                 mid_odometer = start_odometer + int(trip_distance_km / 2)
                 mid_lat = (start_location["lat"] + end_location["lat"]) / 2
                 mid_lon = (start_location["lon"] + end_location["lon"]) / 2
 
-                normal_event = {
-                    "ping_type": "batch",
-                    "source": "telematics_device",
-                    "is_emergency": False,
-                    "event": {
-                        "event_id": normal_event_id,
-                        "device_event_id": f"DEVICE-ID-{uuid.uuid4()}",
-                        "trip_id": trip_id,
-                        "truck_id": truck_id,
-                        "driver_id": driver_id,
-                        "event_type": "normal_operation",
-                        "category": "normal_operation",
-                        "priority": "low",
-                        "timestamp": mid_time.isoformat(),
-                        "offset_seconds": int((trip_duration_minutes // 2) * 60),
-                        "trip_meter_km": trip_distance_km / 2,
-                        "odometer_km": float(mid_odometer),
-                        "lat": mid_lat,
-                        "lon": mid_lon,
-                        "details": {
-                            "checkpoint_number": trip_num + 1,
-                            "distance_km": trip_distance_km / 2,
-                            "speed_avg_kmh": 55 + (trip_num % 15),
-                            "fuel_consumed_litres": 2.5 + (trip_num * 0.1),
-                        },
-                        "schema_version": "event_v1",
-                    },
-                }
-                json_str = json.dumps(normal_event)
+                smooth_event = build_smoothness_log_packet(
+                    trip_id=trip_id,
+                    truck_id=truck_id,
+                    driver_id=driver_id,
+                    timestamp=mid_time,
+                    offset_seconds=int((trip_duration_minutes // 2) * 60),
+                    trip_meter_km=trip_distance_km / 2,
+                    odometer_km=float(mid_odometer),
+                    lat=mid_lat,
+                    lon=mid_lon,
+                    batch_id=f"BATCH-{truck_id}-{trip_id[:24]}-m{trip_num}",
+                    event_id=normal_event_id,
+                    device_event_id=f"DEVICE-ID-{uuid.uuid4()}",
+                    details=smoothness_details_mild_variant(
+                        trip_num + truck_idx * 100
+                    ),
+                )
+                json_str = json.dumps(smooth_event)
                 await r.zadd(buffer_key, {json_str: event_counter})
                 event_counter += 1
 
@@ -189,7 +186,7 @@ async def send_complete_trips_multi_truck():
                     },
                 }
                 json_str = json.dumps(end_event)
-                await r.zadd("telemetry:TK001:buffer", {json_str: event_counter})
+                await r.zadd(buffer_key, {json_str: event_counter})
                 event_counter += 1
 
                 trips_created += 1
@@ -216,7 +213,7 @@ async def send_complete_trips_multi_truck():
         print("\n[INFO] Expected pipeline flow:")
         print("   1. Ingestion sidecar validates and stores in pipeline_events")
         print("   2. Orchestrator processes START events -> creates pipeline_trips")
-        print("   3. Orchestrator processes NORMAL_OP events -> updates trip status")
+        print("   3. Orchestrator processes smoothness_log events -> trip analytics")
         print("   4. Orchestrator processes END events -> triggers scoring agent")
         print(
             "   5. Scoring worker calculates trip score -> writes back to pipeline_trips"

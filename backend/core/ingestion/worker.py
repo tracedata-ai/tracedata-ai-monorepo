@@ -1,10 +1,6 @@
 import asyncio
-import json
 import logging
-from datetime import UTC, datetime
 
-from common.config.events import PRIORITY_MAP
-from common.models.enums import Priority
 from common.redis.client import RedisClient
 from common.redis.keys import RedisSchema
 from core.buffer.ring_buffer import RingBuffer
@@ -111,51 +107,22 @@ async def main():
                             truck_id=truck_id,
                         )
 
+                        # Sidecar pushes to processed (success) or rejected (failure); avoid duplicate enqueues.
                         if result.ok:
-                            # Push clean TripEvent to processed queue (ZSET — matches pop_from_processed)
-                            processed_key = RedisSchema.Telemetry.processed(truck_id)
-                            priority_score = PRIORITY_MAP.get(
-                                result.trip_event.priority, 9
-                            )
-                            await redis.push_to_processed(
-                                processed_key,
-                                result.trip_event.model_dump_json(),
-                                priority_score,
-                            )
                             logger.info(
                                 {
-                                    "action": "packet_processed",
+                                    "action": "batch_item_processed",
                                     "truck_id": truck_id,
                                     "event_type": event_type,
                                     "trip_id": result.trip_event.trip_id,
                                 }
                             )
                         else:
-                            # Push rejected packet to DLQ (ZSET + TTL)
-                            dlq_key = RedisSchema.Telemetry.rejected(truck_id)
-                            dlq_entry = {
-                                "raw_packet": packet,
-                                "reason": result.reason,
-                                "rejected_at": datetime.now(UTC).isoformat(),
-                            }
-                            pri_raw = packet.get("event", {}).get("priority", "low")
-                            try:
-                                pscore = PRIORITY_MAP.get(
-                                    Priority(str(pri_raw).lower()), 9
-                                )
-                            except ValueError:
-                                pscore = 9
-                            await redis.push_to_rejected(
-                                dlq_key,
-                                json.dumps(dlq_entry),
-                                pscore,
-                                ttl=RedisSchema.Telemetry.DLQ_TTL,
-                            )
-
                             logger.warning(
                                 {
-                                    "action": "packet_rejected",
+                                    "action": "batch_item_rejected",
                                     "truck_id": truck_id,
+                                    "event_type": event_type,
                                     "reason": result.reason,
                                 }
                             )

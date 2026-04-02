@@ -197,3 +197,74 @@ export const telemetrySeedRows: TelemetryEventRow[] = [
     emittedAt: "2026-03-19 07:41:03",
   },
 ];
+
+/** 10-minute 1Hz batch — edge stats only; aligns with backend `common/samples/smoothness_batch.py`. */
+export type SmoothnessBatchDetails = {
+  sample_count: number;
+  window_seconds: number;
+  speed: {
+    mean_kmh: number;
+    std_dev: number;
+    max_kmh: number;
+    variance: number;
+  };
+  longitudinal: {
+    mean_accel_g: number;
+    std_dev: number;
+    max_decel_g: number;
+    harsh_brake_count: number;
+    harsh_accel_count: number;
+  };
+  lateral: {
+    mean_lateral_g: number;
+    max_lateral_g: number;
+    harsh_corner_count: number;
+  };
+  jerk: { mean: number; max: number; std_dev: number };
+  engine: {
+    mean_rpm: number;
+    max_rpm: number;
+    idle_seconds: number;
+    idle_events: number;
+    longest_idle_seconds: number;
+    over_rev_count: number;
+    over_rev_seconds: number;
+  };
+  incident_event_ids: string[];
+  raw_log_url: string;
+};
+
+export const smoothnessLogBatchDetailsSample: SmoothnessBatchDetails = {
+  sample_count: 600,
+  window_seconds: 600,
+  speed: {
+    mean_kmh: 72.3,
+    std_dev: 8.1,
+    max_kmh: 94.0,
+    variance: 65.6,
+  },
+  longitudinal: {
+    mean_accel_g: 0.04,
+    std_dev: 0.12,
+    max_decel_g: -0.31,
+    harsh_brake_count: 0,
+    harsh_accel_count: 0,
+  },
+  lateral: {
+    mean_lateral_g: 0.02,
+    max_lateral_g: 0.18,
+    harsh_corner_count: 0,
+  },
+  jerk: { mean: 0.008, max: 0.041, std_dev: 0.006 },
+  engine: {
+    mean_rpm: 1820,
+    max_rpm: 2340,
+    idle_seconds: 45,
+    idle_events: 1,
+    longest_idle_seconds: 38,
+    over_rev_count: 0,
+    over_rev_seconds: 0,
+  },
+  incident_event_ids: ["DEV-HB-002", "DEV-SPD-006"],
+  raw_log_url: "s3://tracedata-sensors/T12345-batch-20260307-1010.bin",
+};

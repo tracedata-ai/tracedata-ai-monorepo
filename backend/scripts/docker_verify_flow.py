@@ -18,10 +18,12 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 
 from common.config.settings import get_settings
-from common.models.enums import PingType, Priority, Source
-from common.models.events import Location, TripEvent
 from common.redis.client import RedisClient
 from common.redis.keys import RedisSchema
+from common.samples.smoothness_batch import (
+    build_smoothness_log_packet,
+    smoothness_details_mild_variant,
+)
 
 settings = get_settings()
 TRUCK_ID = "VERIFY-TRUCK-001"
@@ -30,26 +32,21 @@ TRUCK_ID = "VERIFY-TRUCK-001"
 def _packet() -> dict:
     now = datetime.now(UTC)
     trip_id = f"TRIP-VERIFY-{uuid.uuid4().hex[:8]}"
-    ev_id = str(uuid.uuid4())
-    te = TripEvent(
-        event_id=ev_id,
-        device_event_id=f"DEV-{uuid.uuid4().hex[:12]}",
+    return build_smoothness_log_packet(
         trip_id=trip_id,
         truck_id=TRUCK_ID,
         driver_id="DRV-VERIFY-1",
-        event_type="normal_operation",
-        category="telemetry",
-        priority=Priority.LOW,
         timestamp=now,
         offset_seconds=0,
-        location=Location(lat=40.71, lon=-74.0),
+        trip_meter_km=12.0,
+        odometer_km=100000.0,
+        lat=40.71,
+        lon=-74.0,
+        batch_id=f"BATCH-VERIFY-{trip_id}",
+        event_id=str(uuid.uuid4()),
+        device_event_id=f"DEV-{uuid.uuid4().hex[:12]}",
+        details=smoothness_details_mild_variant(0),
     )
-    return {
-        "ping_type": PingType.MEDIUM_SPEED.value,
-        "source": Source.TELEMATICS_DEVICE.value,
-        "is_emergency": False,
-        "event": json.loads(te.model_dump_json()),
-    }
 
 
 async def main() -> None:

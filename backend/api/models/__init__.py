@@ -17,6 +17,7 @@ from api.models.route import Route
 from api.models.tenant import Tenant
 from api.models.trip import Trip
 from common.models.orm import EventORM, TripORM
+from common.models.scoring_orm import FairnessAuditORM, ShapExplanationORM, TripScoreORM
 
 __all__ = [
     "Vehicle",
@@ -28,4 +29,7 @@ __all__ = [
     "Tenant",
     "EventORM",
     "TripORM",
+    "TripScoreORM",
+    "ShapExplanationORM",
+    "FairnessAuditORM",
 ]

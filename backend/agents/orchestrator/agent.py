@@ -670,6 +670,16 @@ class OrchestratorAgent:
                     3600,
                     json.dumps({"rolling_avg_score": rolling_avg}),
                 )
+                ctx_key = RedisSchema.Trip.agent_data(trip_id, agent, "trip_context")
+                scoring_context = {
+                    **trip_metadata,
+                    "historical_avg_score": rolling_avg,
+                }
+                await self.redis._client.setex(
+                    ctx_key,
+                    3600,
+                    json.dumps(scoring_context),
+                )
 
             if need_support:
                 agent = "support"
@@ -904,6 +914,7 @@ class OrchestratorAgent:
                 read_keys = [
                     RedisSchema.Trip.agent_data(trip_id, agent_name, "all_pings"),
                     RedisSchema.Trip.agent_data(trip_id, agent_name, "historical_avg"),
+                    RedisSchema.Trip.agent_data(trip_id, agent_name, "trip_context"),
                 ]
             elif agent_name == "support":
                 read_keys = [

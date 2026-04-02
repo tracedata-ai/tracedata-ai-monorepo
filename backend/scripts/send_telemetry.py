@@ -29,6 +29,10 @@ from api.models.route import Route
 from api.models.tenant import Tenant
 from api.models.trip import Trip
 from common.db.engine import AsyncSessionLocal
+from common.samples.smoothness_batch import (
+    build_smoothness_log_packet,
+    smoothness_details_mild_variant,
+)
 from core.logging import get_logger
 
 logger = get_logger(__name__)
@@ -202,7 +206,7 @@ EVENT_TYPES_CONFIG = {
     "smoothness_log": {
         "priority": "low",
         "category": "normal_operation",
-        "details": {"smoothness_score": 0.85},
+        "details": smoothness_details_mild_variant(3),
     },
 }
 
@@ -373,39 +377,24 @@ async def send_complete_trips(r, event_counter=0):
         await r.zadd("telemetry:TK001:buffer", {json_str: event_counter})
         event_counter += 1
 
-        # ─── NORMAL OPERATIONS
-        normal_event = {
-            "ping_type": "batch",
-            "source": "telematics_device",
-            "is_emergency": False,
-            "event": {
-                "event_id": f"evt-normal-{trip_num:02d}",
-                "device_event_id": f"DEV-NORMAL-{trip_num:02d}",
-                "trip_id": trip_id,
-                "truck_id": truck_id,
-                "driver_id": driver_id,
-                "event_type": "normal_operation",
-                "category": "normal_operation",
-                "priority": "low",
-                "timestamp": (
-                    trip_start + timedelta(minutes=trip_duration_minutes // 2)
-                ).isoformat(),
-                "offset_seconds": int((trip_duration_minutes // 2) * 60),
-                "trip_meter_km": trip_distance_km / 2,
-                "odometer_km": float(start_odometer + int(trip_distance_km / 2)),
-                "location": {
-                    "lat": 1.2800 + (trip_num * 0.005) + 0.01,
-                    "lon": 103.8400 + (trip_num * 0.005) + 0.01,
-                },
-                "details": {
-                    "checkpoint_number": trip_num + 1,
-                    "distance_km": trip_distance_km / 2,
-                    "speed_avg_kmh": 40 + (trip_num % 20),
-                },
-                "schema_version": "event_v1",
-            },
-        }
-        json_str = json.dumps(normal_event)
+        # ─── 10-min smoothness batch (1Hz aggregate)
+        mid = trip_start + timedelta(minutes=trip_duration_minutes // 2)
+        smooth_event = build_smoothness_log_packet(
+            trip_id=trip_id,
+            truck_id=truck_id,
+            driver_id=driver_id,
+            timestamp=mid,
+            offset_seconds=int((trip_duration_minutes // 2) * 60),
+            trip_meter_km=trip_distance_km / 2,
+            odometer_km=float(start_odometer + int(trip_distance_km / 2)),
+            lat=1.2800 + (trip_num * 0.005) + 0.01,
+            lon=103.8400 + (trip_num * 0.005) + 0.01,
+            batch_id=f"BATCH-{truck_id}-demo-{trip_num:02d}",
+            event_id=f"evt-smooth-{trip_num:02d}",
+            device_event_id=f"DEV-SMOOTH-{trip_num:02d}",
+            details=smoothness_details_mild_variant(trip_num),
+        )
+        json_str = json.dumps(smooth_event)
         await r.zadd("telemetry:TK001:buffer", {json_str: event_counter})
         event_counter += 1
 
@@ -629,7 +618,7 @@ async def send_telemetry(mode="all"):
             if trips_sent > 0:
                 print("\n📊 COMPLETE TRIPS:")
                 print(f"   • Trips sent:           {trips_sent}")
-                print("   • Events per trip:      3 (start, normal_op, end)")
+                print("   • Events per trip:      3 (start, smoothness_log, end)")
 
             if diverse_events > 0:
                 print("\n🎯 DIVERSE EVENTS:")

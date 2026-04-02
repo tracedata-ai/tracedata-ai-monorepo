@@ -8,6 +8,11 @@ from datetime import UTC, datetime, timedelta
 
 import redis.asyncio as redis
 
+from common.samples.smoothness_batch import (
+    build_smoothness_log_packet,
+    smoothness_details_mild_variant,
+)
+
 
 async def send_one_trip():
     """Send a single fresh trip with unique IDs."""
@@ -57,37 +62,26 @@ async def send_one_trip():
         event_counter += 1
         events.append("START")
 
-        # NORMAL OPERATION
-        normal_event = {
-            "ping_type": "batch",
-            "source": "telematics_device",
-            "is_emergency": False,
-            "event": {
-                "event_id": f"evt-normal-{str(uuid.uuid4())[:6]}",
-                "device_event_id": f"DEV-NORMAL-{str(uuid.uuid4())[:6]}",
-                "trip_id": trip_id,
-                "truck_id": truck_id,
-                "driver_id": driver_id,
-                "event_type": "normal_operation",
-                "category": "normal_operation",
-                "priority": "low",
-                "timestamp": (base_time + timedelta(minutes=15)).isoformat(),
-                "offset_seconds": 900,
-                "trip_meter_km": 7.5,
-                "odometer_km": 180007.5,
-                "location": {"lat": 1.2810, "lon": 103.8410},
-                "details": {
-                    "checkpoint_number": 1,
-                    "distance_km": 7.5,
-                    "speed_avg_kmh": 45,
-                },
-                "schema_version": "event_v1",
-            },
-        }
-        json_str = json.dumps(normal_event)
+        # 10-min smoothness batch (edge stats → scoring input)
+        smooth_event = build_smoothness_log_packet(
+            trip_id=trip_id,
+            truck_id=truck_id,
+            driver_id=driver_id,
+            timestamp=base_time + timedelta(minutes=15),
+            offset_seconds=900,
+            trip_meter_km=7.5,
+            odometer_km=180007.5,
+            lat=1.2810,
+            lon=103.8410,
+            batch_id=f"BATCH-{truck_id}-flowtest",
+            event_id=f"evt-smooth-{str(uuid.uuid4())[:6]}",
+            device_event_id=f"DEV-SMOOTH-{str(uuid.uuid4())[:6]}",
+            details=smoothness_details_mild_variant(1),
+        )
+        json_str = json.dumps(smooth_event)
         await r.zadd("telemetry:TK001:buffer", {json_str: event_counter})
         event_counter += 1
-        events.append("NORMAL_OP")
+        events.append("SMOOTHNESS")
 
         # END OF TRIP
         end_event = {

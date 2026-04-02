@@ -8,6 +8,8 @@ class Settings(BaseSettings):
         env_file=".env",
         env_file_encoding="utf-8",
         case_sensitive=False,
+        # Docker / shell often sets unrelated vars (e.g. RESET_DB); do not fail on them.
+        extra="ignore",
     )
 
     # ── API ────────────────────────────────────────────────────────────────

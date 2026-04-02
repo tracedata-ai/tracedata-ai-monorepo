@@ -5,6 +5,7 @@ Layer 1 Enforcement:
   ScoringAgent receives ONLY this repo → impossible to write to other schemas
 """
 
+import json
 from typing import Any
 
 from common.db.schema_repository import SchemaRepository
@@ -32,7 +33,7 @@ class ScoringRepository(SchemaRepository):
                 "trip_id": trip_id,
                 "driver_id": driver_id,
                 "score": score,
-                "breakdown": score_breakdown,
+                "breakdown": json.dumps(score_breakdown),
             },
         )
 
@@ -52,7 +53,7 @@ class ScoringRepository(SchemaRepository):
             {
                 "score_id": score_id,
                 "trip_id": trip_id,
-                "explanations": explanations,
+                "explanations": json.dumps(explanations),
             },
         )
 
@@ -74,7 +75,7 @@ class ScoringRepository(SchemaRepository):
                 "score_id": score_id,
                 "trip_id": trip_id,
                 "driver_id": driver_id,
-                "audit_result": audit_result,
+                "audit_result": json.dumps(audit_result),
             },
         )
 

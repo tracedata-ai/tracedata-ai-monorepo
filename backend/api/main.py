@@ -18,6 +18,7 @@ ReDoc:      http://localhost:8000/redoc
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from sqlalchemy import text
 from fastapi.middleware.cors import CORSMiddleware
 
 # Import all models so their metadata is registered with Base.
@@ -58,6 +59,7 @@ async def lifespan(app: FastAPI):  # type: ignore[type-arg]
 
     # ── 2. Database ─────────────────────────────────────────────────────────
     async with engine.begin() as conn:
+        await conn.execute(text("CREATE SCHEMA IF NOT EXISTS scoring_schema"))
         await conn.run_sync(Base.metadata.create_all)
     logger.info(f"{LogToken.DATABASE_INIT} Database tables created / verified.")
 
