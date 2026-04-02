@@ -191,7 +191,6 @@ jobs:
     defaults:
       run:
         working-directory: ${{ env.WORKING_DIR }}
-    continue-on-error: true
 
     steps:
       - name: Checkout code
