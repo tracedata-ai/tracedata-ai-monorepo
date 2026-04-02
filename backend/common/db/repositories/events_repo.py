@@ -483,3 +483,106 @@ class EventsRepo:
             )
             rows = result.fetchall()
             return [dict(row._mapping) for row in rows] if rows else []
+
+    async def insert_synthetic_received_event(
+        self,
+        *,
+        device_event_id: str,
+        event_id: str,
+        trip_id: str,
+        truck_id: str,
+        driver_id: str,
+        event_type: str,
+        category: str,
+        priority: str,
+        timestamp: datetime,
+        details: dict[str, Any] | None = None,
+    ) -> bool:
+        """
+        Insert a pipeline_events row for an orchestrator-emitted follow-up.
+
+        Row starts as status='received' so acquire_lock can claim it.
+        """
+        now = datetime.now(UTC).replace(tzinfo=None)
+        ts = timestamp.replace(tzinfo=None) if timestamp.tzinfo else timestamp
+        payload_hint = json.dumps({"synthetic": True, "event_type": event_type})
+        detail_blob = json.dumps(details or {})
+
+        async with self._engine.begin() as conn:
+            result = await conn.execute(
+                text("""
+                    INSERT INTO pipeline_events (
+                        device_event_id,
+                        event_id,
+                        trip_id,
+                        driver_id,
+                        truck_id,
+                        event_type,
+                        category,
+                        priority,
+                        ping_type,
+                        source,
+                        is_emergency,
+                        timestamp,
+                        offset_seconds,
+                        trip_meter_km,
+                        odometer_km,
+                        lat,
+                        lon,
+                        details,
+                        raw_payload,
+                        status,
+                        retry_count,
+                        ingested_at
+                    ) VALUES (
+                        :device_event_id,
+                        :event_id,
+                        :trip_id,
+                        :driver_id,
+                        :truck_id,
+                        :event_type,
+                        :category,
+                        :priority,
+                        NULL,
+                        NULL,
+                        false,
+                        :timestamp,
+                        0,
+                        NULL,
+                        NULL,
+                        NULL,
+                        NULL,
+                        CAST(:details AS jsonb),
+                        :raw_payload,
+                        'received',
+                        0,
+                        :ingested_at
+                    )
+                    ON CONFLICT (device_event_id) DO NOTHING
+                """),
+                {
+                    "device_event_id": device_event_id,
+                    "event_id": event_id,
+                    "trip_id": trip_id,
+                    "driver_id": driver_id,
+                    "truck_id": truck_id,
+                    "event_type": event_type,
+                    "category": category,
+                    "priority": priority,
+                    "timestamp": ts,
+                    "details": detail_blob,
+                    "raw_payload": payload_hint,
+                    "ingested_at": now,
+                },
+            )
+            inserted = result.rowcount == 1 if result.rowcount is not None else False
+        if inserted:
+            logger.info(
+                {
+                    "action": "synthetic_event_inserted",
+                    "device_event_id": device_event_id,
+                    "trip_id": trip_id,
+                    "event_type": event_type,
+                }
+            )
+        return inserted

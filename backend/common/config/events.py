@@ -467,6 +467,29 @@ EVENT_MATRIX: dict[str, EventConfig] = {
             requires_hmac=False,
         ),
     ),
+    # Internal follow-up: enqueued by Scoring after a successful end_of_trip run
+    # when trip context has coaching_pending_after_scoring. Warms Support with
+    # scoring + safety Redis outputs before dispatch.
+    "coaching_ready": EventConfig(
+        action=Action.SUPPORT,
+        category="trip_lifecycle",
+        priority=PriorityLevel.MEDIUM,
+        ml_weight=0.0,
+        scope=ScopeSpecification(
+            read_keys={
+                DataKey.DRIVER_ID,
+                DataKey.TRIP_ID,
+                DataKey.TRIP_CONTEXT,
+                DataKey.TRIP_SCORES,
+                DataKey.SAFETY_ENRICHMENT,
+            },
+            write_keys={DataKey.COACHING_MESSAGE},
+            allowed_agents={AgentType.DRIVER_SUPPORT},
+            data_classification=DataClassification.SENSITIVE,
+            requires_audit=True,
+            requires_hmac=False,
+        ),
+    ),
     "start_of_trip": EventConfig(
         action=Action.LOGGING,
         category="trip_lifecycle",
@@ -620,8 +643,12 @@ def get_warming_type(event_type: str) -> str | None:
     Returns:
       - "event-driven": Minimal warming (1-2 ms) — Safety, Support
       - "aggregation-driven": Heavy warming (1-2 sec) — Scoring
+      - "post_scoring_support": Support after scoring — trip context + Redis outputs
       - None: No warming needed
     """
+    if event_type == "coaching_ready":
+        return "post_scoring_support"
+
     config = EVENT_MATRIX.get(event_type)
     if not config:
         return None

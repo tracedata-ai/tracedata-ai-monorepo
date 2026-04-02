@@ -1,5 +1,20 @@
 Events
-// START OF TRIP EVENT
+
+<!-- ───────────────────────────────────────────────────────────────────────────
+  SINGLE-TRIP WORKFLOW FIXTURE — replay JSON objects in order for integration tests.
+
+  trip_id:     TRP-2026-a1b2c3d4-e5f6-47g8-h9i0-j1k2l3m4n5o6
+  truck_id:    T12345
+  driver_id:   DRV-ANON-7829
+  anchor:      trip start 2026-03-07T08:00:00Z (all offsets / times derive from this)
+
+  Order: start_of_trip → smoothness windows → harsh_accel → harsh_brake →
+         end_of_trip → driver_feedback
+────────────────────────────────────────────────────────────────────────── -->
+
+
+// 1 — START OF TRIP EVENT
+```
 {
   "batch_id": "BAT-550e8400-e29b-41d4-a716-446655440000",
   "ping_type": "start_of_trip",
@@ -32,9 +47,11 @@ Events
     "evidence": null
   }
 }
+```
 
 
-// SMOOTHNESS LOG EVENT #1 (10 min window)
+// 2 — SMOOTHNESS LOG EVENT (first 10 min window)
+```
 {
   "batch_id": "BAT-6ba7b812-9dad-11d1-80b4-00c04fd430c8",
   "ping_type": "batch",
@@ -97,9 +114,10 @@ Events
     "evidence": null
   }
 }
+```
 
-
-// SMOOTHNESS LOG EVENT #2 (20 min mark)
+// 3 — SMOOTHNESS LOG EVENT (20 min mark)
+```
 {
   "batch_id": "BAT-6ba7b815-9dad-11d1-80b4-00c04fd430c8",
   "ping_type": "batch",
@@ -162,9 +180,92 @@ Events
     "evidence": null
   }
 }
+```
 
+// 4 — HARSH ACCELERATION EVENT (mid-trip)
+```
+{
+  "batch_id": "BAT-7ca7b800-9dad-11d1-80b4-00c04fd430c8",
+  "ping_type": "high_speed",
+  "source": "telematics_device",
+  "is_emergency": false,
+  "event": {
+    "event_id": "EVT-7ca7b801-9dad-11d1-80b4-00c04fd430c8",
+    "device_event_id": "TEL-7ca7b802-9dad-11d1-80b4-00c04fd430c8",
+    "trip_id": "TRP-2026-a1b2c3d4-e5f6-47g8-h9i0-j1k2l3m4n5o6",
+    "driver_id": "DRV-ANON-7829",
+    "truck_id": "T12345",
+    "batch_id": "BAT-7ca7b800-9dad-11d1-80b4-00c04fd430c8",
+    "event_type": "hard_accel",
+    "category": "harsh_events",
+    "priority": "high",
+    "timestamp": "2026-03-07T09:35:00Z",
+    "offset_seconds": 5700,
+    "trip_meter_km": 56.1,
+    "odometer_km": 180256.1,
+    "location": { "lat": 1.3100, "lon": 103.8600 },
+    "schema_version": "event_v1",
+    "details": {
+      "g_force_x": 0.82,
+      "speed_kmh": 42,
+      "duration_seconds": 3,
+      "confidence": 0.91
+    },
+    "evidence": null
+  },
+  "evidence": {
+    "video_url": "s3://tracedata-clips/BAT-7ca7b800-9dad-11d1-80b4-00c04fd430c8.mp4",
+    "video_duration_seconds": 30,
+    "capture_offset_seconds": -15,
+    "video_codec": "h264",
+    "video_resolution": "1280x720"
+  }
+}
+```
 
-// END OF TRIP EVENT
+// 5 — HARSH BRAKE EVENT (~7 min after harsh accel on same trip)
+```
+{
+  "batch_id": "BAT-7ca7b803-9dad-11d1-80b4-00c04fd430c8",
+  "ping_type": "high_speed",
+  "source": "telematics_device",
+  "is_emergency": false,
+  "event": {
+    "event_id": "EVT-7ca7b804-9dad-11d1-80b4-00c04fd430c8",
+    "device_event_id": "TEL-7ca7b805-9dad-11d1-80b4-00c04fd430c8",
+    "trip_id": "TRP-2026-a1b2c3d4-e5f6-47g8-h9i0-j1k2l3m4n5o6",
+    "driver_id": "DRV-ANON-7829",
+    "truck_id": "T12345",
+    "batch_id": "BAT-7ca7b803-9dad-11d1-80b4-00c04fd430c8",
+    "event_type": "harsh_brake",
+    "category": "harsh_events",
+    "priority": "high",
+    "timestamp": "2026-03-07T09:42:18Z",
+    "offset_seconds": 6138,
+    "trip_meter_km": 58.2,
+    "odometer_km": 180258.2,
+    "location": { "lat": 1.3112, "lon": 103.8610 },
+    "schema_version": "event_v1",
+    "details": {
+      "g_force_x": -0.82,
+      "speed_kmh": 42,
+      "duration_seconds": 3,
+      "confidence": 0.91
+    },
+    "evidence": null
+  },
+  "evidence": {
+    "video_url": "s3://tracedata-clips/BAT-7ca7b803-9dad-11d1-80b4-00c04fd430c8.mp4",
+    "video_duration_seconds": 30,
+    "capture_offset_seconds": -15,
+    "video_codec": "h264",
+    "video_resolution": "1280x720"
+  }
+}
+```
+
+// 6 — END OF TRIP EVENT
+```
 {
   "batch_id": "BAT-6ba7b818-9dad-11d1-80b4-00c04fd430c8",
   "ping_type": "end_of_trip",
@@ -201,9 +302,10 @@ Events
     "evidence": null
   }
 }
+```
 
-
-// DRIVER FEEDBACK EVENT
+// 7 — DRIVER FEEDBACK EVENT (after trip ends, same trip_id for correlation)
+```
 {
   "batch_id": "BAT-6ba7b81b-9dad-11d1-80b4-00c04fd430c8",
   "ping_type": "medium_speed",
@@ -233,5 +335,5 @@ Events
     "evidence": null
   }
 }
-
+```
 

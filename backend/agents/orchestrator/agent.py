@@ -112,6 +112,7 @@ YOUR WORKFLOW:
    - "Scoring" → dispatch ["scoring"]
    - "Sentiment" → dispatch ["sentiment"]
    - "Support" → dispatch ["support"]
+     (internal event type "coaching_ready" uses this — Support only, after scoring output exists)
    - "HITL" → dispatch ["human_in_the_loop"]
    - "Analytics" → dispatch []
    - "Logging" → dispatch []
@@ -335,6 +336,13 @@ class OrchestratorAgent:
             )
             logger.info({**ctx, "action": "trip_marked_scoring_pending"})
 
+        elif event.event_type == "coaching_ready":
+            await self.db.update_trip(
+                trip_id=event.trip_id,
+                status="coaching_pending",
+            )
+            logger.info({**ctx, "action": "trip_marked_coaching_pending"})
+
     async def _load_trip_runtime_context(self, trip_id: str) -> dict:
         key = RedisSchema.Trip.context(trip_id)
         raw_context = self.redis.get_trip_context(key)
@@ -440,10 +448,19 @@ class OrchestratorAgent:
 
         if event.event_type == "end_of_trip":
             coaching_needed = await self._should_dispatch_coaching(event)
-            if coaching_needed and "support" not in deduped:
-                deduped.append("support")
-            if not coaching_needed:
-                deduped = [a for a in deduped if a not in {"support", "driver_support"}]
+            context = await self._load_trip_runtime_context(event.trip_id)
+            context["coaching_pending_after_scoring"] = coaching_needed
+            context.setdefault("trip_id", event.trip_id)
+            context.setdefault("driver_id", event.driver_id)
+            context.setdefault("truck_id", event.truck_id)
+            await self._save_trip_runtime_context(event.trip_id, context)
+            # Scoring only on this event; Support runs later via coaching_ready
+            deduped = [a for a in deduped if a not in {"support", "driver_support"}]
+
+        if event.event_type == "coaching_ready":
+            deduped = [
+                a for a in deduped if a in {"support", "driver_support"}
+            ] or ["driver_support"]
 
         if (
             event.event_type in CRITICAL_IMMEDIATE_SUPPORT_TYPES
@@ -489,6 +506,9 @@ class OrchestratorAgent:
 
         elif warming_type == "aggregation-driven":
             await self._warm_aggregation_driven(event, agents_to_dispatch)
+
+        elif warming_type == "post_scoring_support":
+            await self._warm_post_scoring_support(event, agents_to_dispatch)
 
         else:
             logger.info(
@@ -733,6 +753,93 @@ class OrchestratorAgent:
                 }
             )
 
+    async def _warm_post_scoring_support(
+        self,
+        event: TripEvent,
+        agents_to_dispatch: list[str],
+    ) -> None:
+        """
+        Support after scoring: trip metadata, coaching history, plus latest
+        scoring_output and safety_output from Redis (Safety may have run mid-trip).
+        """
+        trip_id = event.trip_id
+        try:
+            if not any(
+                a in agents_to_dispatch for a in ("support", "driver_support")
+            ):
+                return
+
+            trip_metadata = await self._get_trip_metadata(trip_id)
+            if not trip_metadata:
+                logger.warning(
+                    {"action": "post_scoring_warm_no_metadata", "trip_id": trip_id}
+                )
+                return
+
+            driver_id = trip_metadata.get("driver_id")
+            coaching_history: list[dict] = []
+            if driver_id:
+                coaching_history = await self._get_coaching_history(trip_id)
+
+            runtime_context = await self._load_trip_runtime_context(trip_id)
+            scoring_raw = await self.redis._client.get(
+                RedisSchema.Trip.output(trip_id, "scoring")
+            )
+            safety_raw = await self.redis._client.get(
+                RedisSchema.Trip.output(trip_id, "safety")
+            )
+            scoring_payload: dict | list | None = None
+            safety_payload: dict | list | None = None
+            if scoring_raw:
+                try:
+                    scoring_payload = json.loads(scoring_raw)
+                except json.JSONDecodeError:
+                    scoring_payload = None
+            if safety_raw:
+                try:
+                    safety_payload = json.loads(safety_raw)
+                except json.JSONDecodeError:
+                    safety_payload = None
+
+            support_context = {
+                **trip_metadata,
+                "historical_avg_score": runtime_context.get("historical_avg_score"),
+                "flagged_events": runtime_context.get("flagged_events", []),
+                "scoring_output": scoring_payload,
+                "safety_output": safety_payload,
+            }
+            agent = "support"
+            context_key = RedisSchema.Trip.agent_data(trip_id, agent, "trip_context")
+            await self.redis._client.setex(
+                context_key,
+                3600,
+                json.dumps(support_context),
+            )
+            history_key = RedisSchema.Trip.agent_data(
+                trip_id, agent, "coaching_history"
+            )
+            await self.redis._client.setex(
+                history_key,
+                3600,
+                json.dumps(coaching_history),
+            )
+            logger.info(
+                {
+                    "action": "cache_warmed_post_scoring_support",
+                    "trip_id": trip_id,
+                    "has_scoring_output": scoring_payload is not None,
+                    "has_safety_output": safety_payload is not None,
+                }
+            )
+        except Exception as e:
+            logger.error(
+                {
+                    "action": "post_scoring_support_warming_error",
+                    "trip_id": trip_id,
+                    "error": str(e),
+                }
+            )
+
     # ── Cache Warming Helper Methods ────────────────────────────────────────
 
     async def _get_event_data(self, event: TripEvent) -> dict | None:
@@ -916,11 +1023,11 @@ class OrchestratorAgent:
                     RedisSchema.Trip.agent_data(trip_id, agent_name, "historical_avg"),
                     RedisSchema.Trip.agent_data(trip_id, agent_name, "trip_context"),
                 ]
-            elif agent_name == "support":
+            elif agent_name in ("support", "driver_support"):
                 read_keys = [
-                    RedisSchema.Trip.agent_data(trip_id, agent_name, "trip_context"),
+                    RedisSchema.Trip.agent_data(trip_id, "support", "trip_context"),
                     RedisSchema.Trip.agent_data(
-                        trip_id, agent_name, "coaching_history"
+                        trip_id, "support", "coaching_history"
                     ),
                 ]
             else:
@@ -929,6 +1036,11 @@ class OrchestratorAgent:
                     RedisSchema.Trip.context(trip_id),
                     RedisSchema.Trip.smoothness_logs(trip_id),
                 ]
+        elif warming_type == "post_scoring_support":
+            read_keys = [
+                RedisSchema.Trip.agent_data(trip_id, "support", "trip_context"),
+                RedisSchema.Trip.agent_data(trip_id, "support", "coaching_history"),
+            ]
         else:
             # No warming needed — provide generic trip context
             read_keys = [

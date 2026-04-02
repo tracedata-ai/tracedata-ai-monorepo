@@ -55,6 +55,16 @@ class SupportAgent(TDAgentBase):
             current_event = (
                 raw["current_event"] if isinstance(raw["current_event"], dict) else None
             )
+            scoring_snapshot = (
+                (trip_context or {}).get("scoring_output")
+                if trip_context
+                else None
+            )
+            safety_snapshot = (
+                (trip_context or {}).get("safety_output")
+                if trip_context
+                else None
+            )
 
             driver_id = (
                 (trip_context or {}).get("driver_id", "driver_id_placeholder")
@@ -79,6 +89,18 @@ class SupportAgent(TDAgentBase):
                     if str(evt_type).lower() in ("harsh_brake", "collision")
                     else "normal"
                 )
+            elif scoring_snapshot is not None or safety_snapshot is not None:
+                coaching_category = "post_trip"
+                score_hint = ""
+                if isinstance(scoring_snapshot, dict):
+                    s = scoring_snapshot.get("score")
+                    if s is not None:
+                        score_hint = f" Trip score: {s}."
+                coaching_message = (
+                    "Post-trip coaching using your score and latest safety summary."
+                    + score_hint
+                )
+                priority = "normal"
             else:
                 coaching_category = "general"
                 coaching_message = "Keep safe driving practices!"

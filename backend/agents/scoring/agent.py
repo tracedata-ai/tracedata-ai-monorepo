@@ -24,6 +24,7 @@ from agents.scoring.tools import build_scoring_tools
 from common.cache.reader import CacheReader
 from common.db.engine import engine
 from common.db.repositories.scoring_repo import ScoringRepository
+from common.models.security import IntentCapsule
 from common.llm import OpenAIModel, load_llm
 from common.redis.client import RedisClient
 
@@ -48,6 +49,22 @@ class ScoringAgent(TDAgentBase):
         super().__init__(engine_param or engine, redis_client)
         self.scoring_repo = ScoringRepository(self._engine)
         self.llm = llm or load_llm(OpenAIModel.GPT_4O_MINI).adapter.get_chat_model()
+
+    async def run(self, capsule_data: dict) -> dict[str, Any]:
+        capsule = IntentCapsule.model_validate(capsule_data)
+        result = await super().run(capsule_data)
+        if result.get("status") != "success":
+            return result
+        from agents.orchestrator.coaching_followup import (
+            schedule_coaching_ready_if_pending,
+        )
+
+        await schedule_coaching_ready_if_pending(
+            redis=self._redis,
+            engine=self._engine,
+            trip_id=capsule.trip_id,
+        )
+        return result
 
     async def _execute(
         self,

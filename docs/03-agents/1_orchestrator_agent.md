@@ -6,7 +6,7 @@ The **Orchestrator** is TraceData’s **central router and dispatcher**. It does
 2. Owns **trip lifecycle** side effects in Postgres (**`pipeline_trips`**: create on `start_of_trip`, mark **scoring_pending** on `end_of_trip`).
 3. **Acquires a DB lease** on the event (`device_event_id`) **before** dispatching work.
 4. Asks a **LangGraph ReAct-style LLM router** (with **EventMatrix** via tools) **which agents** should run.
-5. Applies **deterministic dispatch policy** (e.g. defer support on harsh events until trip end, add support on `end_of_trip` when coaching heuristics fire, force support on critical types).
+5. Applies **deterministic dispatch policy** (e.g. defer support on harsh events until after scoring; **never** dispatch Support on the same `end_of_trip` event as Scoring; **force** immediate Support on critical types).
 6. **Warms Redis** with scoped keys per agent (`trips:{trip_id}:{agent}:{...}`).
 7. Builds **`IntentCapsule`** + **`ScopedToken`** (`read_keys` / `write_keys`) and **sends Celery tasks** to worker queues.
 
@@ -21,9 +21,11 @@ Workers (**Safety**, **Scoring**, **Support**, **Sentiment**) execute asynchrono
 | **Which agents run for this event?** | Orchestrator (LLM + EventMatrix + policy). |
 | **Trip score 0–100** | Scoring Agent (after warmup). |
 | **Harsh-event enrichment / safety classification** | Safety Agent. |
-| **Coaching narrative / recommendations** | Support Agent (orchestrator may **add** support to dispatch list; it does not write the coaching text). |
+| **Coaching narrative / recommendations** | Support Agent — for normal end-of-trip coaching, **after** Scoring (see `coaching_ready` chain below). |
 
-**Roadmap / design alignment:** You may want the orchestrator (or a small policy service) to become the **only** place that decides *post-scoring* coaching and then invokes Support using **Safety + Scoring outputs**. Today, **`end_of_trip`** can dispatch **Scoring and Support in the same wave** when **`_should_dispatch_coaching`** is true, and coaching gating uses a **separate heuristic** (including `_estimate_trip_score` from harsh-event counts) that is **not** the same as the Scoring Agent’s smoothness-only score. Treat that as **technical debt** to converge with product rules.
+**End-of-trip coaching chain (implemented):** On **`end_of_trip`**, the orchestrator only dispatches **Scoring** and persists **`coaching_pending_after_scoring`** on **`trip:{trip_id}:context`** when **`_should_dispatch_coaching`** is true (preflight heuristic; not the final LLM score). After Scoring **succeeds**, **`schedule_coaching_ready_if_pending`** inserts a synthetic **`pipeline_events`** row and enqueues an internal **`coaching_ready`** `TripEvent` onto **`telemetry:{truck_id}:processed`**. The orchestrator then warms Support with **`trips:…:support:trip_context`** that embeds **`scoring_output`** (from **`trip:{id}:scoring_output`**) and **`safety_output`** (latest **`trip:{id}:safety_output`** from mid-trip Safety runs — not a full trip aggregation yet), then dispatches Support only.
+
+**Heuristic vs scored coaching:** Decide whether to enqueue the second wave still uses **`_estimate_trip_score`** / flagged counts at trip end; converging that gate with the **actual** score returned by Scoring is a reasonable follow-up (e.g. re-evaluate after scoring before enqueueing `coaching_ready`).
 
 ---
 
@@ -53,10 +55,11 @@ Workers (**Safety**, **Scoring**, **Support**, **Sentiment**) execute asynchrono
 2. **`_get_routing_decision`** — LLM **`invoke`** with `get_event_config` tool; expect JSON with **`agents_to_dispatch`**, **`action`**, etc.
 3. **`_apply_dispatch_policy`** — adjust list:
    - **Flagged harsh types** (`harsh_brake`, …): append to **`trip:{trip_id}:context`** (`flagged_events`); **strip Support** from this event’s dispatch (Support deferred toward trip completion).
-   - **`end_of_trip`**: **`_should_dispatch_coaching`** — may **append `support`**; or remove Support if not needed.
-   - **Critical types** (`collision`, `rollover`, `driver_sos`): ensure **Support** present.
+   - **`end_of_trip`**: set **`coaching_pending_after_scoring`** on **`trip:{trip_id}:context`** when **`_should_dispatch_coaching`**; **always strip** Support (second wave only).
+   - **`coaching_ready`**: normalize dispatch list to **Support** only.
+   - **Critical types** (`collision`, `rollover`, `driver_sos`): ensure **Support** present (immediate path unchanged).
 4. If no agents → **release lock** and return.
-5. **`_warm_cache`** — event-driven vs aggregation-driven (`get_warming_type` from Event Matrix).
+5. **`_warm_cache`** — event-driven, aggregation-driven, or **`post_scoring_support`** for **`coaching_ready`** (`get_warming_type` from Event Matrix).
 6. **`_seal_capsule`** per agent — **read_keys** match warmed keys.
 7. **`_dispatch`** — **`celery.send_task`** per agent with **`capsule.model_dump()`**.
 8. If dispatch fails → **`fail_event`**.
@@ -68,11 +71,12 @@ Workers (**Safety**, **Scoring**, **Support**, **Sentiment**) execute asynchrono
 | Strategy | When (`get_warming_type`) | Data loaded | Typical TTL |
 |----------|---------------------------|-------------|-------------|
 | **Event-driven** | Safety-style / single-event paths | Current event row + trip metadata from Postgres → per-agent **`current_event`**, **`trip_context`** | ~300s |
-| **Aggregation-driven** | `end_of_trip` (Scoring / Support) | **All pings** for trip, rolling avg, trip metadata, **`flagged_events`** from **`trip:{trip_id}:context`**, coaching history (Support) | 3600s for aggregation keys |
+| **Aggregation-driven** | `end_of_trip` (Scoring only on that event) | **All pings** for trip, rolling avg, trip metadata | 3600s for aggregation keys |
+| **post_scoring_support** | Internal **`coaching_ready`** | Trip metadata, **`flagged_events`**, coaching history, plus **`trip:{trip_id}:scoring_output`** and **`trip:{trip_id}:safety_output`** merged into **`trips:{trip_id}:support:trip_context`** | 3600s |
 
-**Scoring** (when in dispatch list): `trips:{trip_id}:scoring:all_pings`, `historical_avg`, `trip_context`.
+**Scoring** on **`end_of_trip`**: `trips:{trip_id}:scoring:all_pings`, `historical_avg`, `trip_context`.
 
-**Support** (when in dispatch list): `trips:{trip_id}:support:trip_context`, `coaching_history`.
+**Support** on **`coaching_ready`**: `trips:{trip_id}:support:trip_context` (includes embedded scoring + safety snapshots), `coaching_history`.
 
 ---
 
@@ -283,6 +287,7 @@ sequenceDiagram
 | Area | Path |
 |------|------|
 | Orchestrator | `backend/agents/orchestrator/agent.py` |
+| Post-scoring → Support enqueue | `backend/agents/orchestrator/coaching_followup.py` |
 | DB facade | `backend/agents/orchestrator/db_manager.py` |
 | Router tools | `backend/agents/orchestrator/tools.py` |
 | Event Matrix | `backend/common/config/events.py` |
