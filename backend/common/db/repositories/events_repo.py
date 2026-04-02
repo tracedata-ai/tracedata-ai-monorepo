@@ -27,6 +27,75 @@ def _parse_json_field(value: Any) -> dict[str, Any]:
     return {}
 
 
+def _safe_parse_json_object(value: Any) -> dict[str, Any]:
+    """Like _parse_json_field but never raises (empty dict on failure)."""
+    try:
+        return _parse_json_field(value)
+    except (json.JSONDecodeError, TypeError, ValueError):
+        return {}
+
+
+def _location_and_evidence_for_event_row(
+    lat: Any,
+    lon: Any,
+    evidence_video_url: Any,
+    evidence_voice_url: Any,
+    evidence_sensor_url: Any,
+    raw_payload: Any,
+) -> tuple[dict[str, float] | None, dict[str, Any]]:
+    """
+    Build location {lat, lon} and evidence URLs/metadata for cache warming / agents.
+
+    Prefer DB columns; fall back to TelemetryPacket JSON in raw_payload (event.location,
+    top-level evidence block). Column URLs override packet fields when both exist.
+    """
+    location: dict[str, float] | None = None
+    if lat is not None and lon is not None:
+        try:
+            location = {"lat": float(lat), "lon": float(lon)}
+        except (TypeError, ValueError):
+            location = None
+
+    pkg = _safe_parse_json_object(raw_payload)
+
+    if location is None:
+        ev_nested = pkg.get("event") if isinstance(pkg, dict) else None
+        if isinstance(ev_nested, dict):
+            loc = ev_nested.get("location")
+            if isinstance(loc, dict):
+                try:
+                    la = (
+                        loc.get("lat")
+                        if loc.get("lat") is not None
+                        else loc.get("latitude")
+                    )
+                    lo = (
+                        loc.get("lon")
+                        if loc.get("lon") is not None
+                        else loc.get("longitude")
+                    )
+                    if la is not None and lo is not None:
+                        location = {"lat": float(la), "lon": float(lo)}
+                except (TypeError, ValueError):
+                    pass
+
+    evidence: dict[str, Any] = {}
+    pkg_ev = pkg.get("evidence") if isinstance(pkg, dict) else None
+    if isinstance(pkg_ev, dict):
+        for k, v in pkg_ev.items():
+            if v is not None:
+                evidence[k] = v
+
+    if evidence_video_url:
+        evidence["video_url"] = evidence_video_url
+    if evidence_voice_url:
+        evidence["voice_url"] = evidence_voice_url
+    if evidence_sensor_url:
+        evidence["sensor_dump_url"] = evidence_sensor_url
+
+    return location, evidence
+
+
 class EventsRepo:
     """
     All DB operations on the events table.
@@ -245,24 +314,42 @@ class EventsRepo:
                         device_event_id,
                         timestamp,
                         details,
-                        priority AS severity
+                        priority AS severity,
+                        lat,
+                        lon,
+                        evidence_video_url,
+                        evidence_voice_url,
+                        evidence_sensor_url,
+                        raw_payload
                     FROM pipeline_events
                     WHERE event_id = :event_id
                 """),
                 {"event_id": event_id},
             )
-            row = result.first()
+            row = result.mappings().first()
             if not row:
                 return None
 
+            details = row["details"]
+            location, evidence = _location_and_evidence_for_event_row(
+                row["lat"],
+                row["lon"],
+                row["evidence_video_url"],
+                row["evidence_voice_url"],
+                row["evidence_sensor_url"],
+                row["raw_payload"],
+            )
+
             return {
-                "event_id": row[0],
-                "trip_id": row[1],
-                "event_type": row[2],
-                "device_event_id": row[3],
-                "timestamp": row[4].isoformat() if row[4] else None,
-                "data": _parse_json_field(row[5]),
-                "severity": row[6],
+                "event_id": row["event_id"],
+                "trip_id": row["trip_id"],
+                "event_type": row["event_type"],
+                "device_event_id": row["device_event_id"],
+                "timestamp": row["timestamp"].isoformat() if row["timestamp"] else None,
+                "data": _parse_json_field(details),
+                "severity": row["severity"],
+                "location": location,
+                "evidence": evidence,
             }
 
     async def get_trip_metadata(self, trip_id: str) -> dict[str, Any] | None:
@@ -380,29 +467,47 @@ class EventsRepo:
                         device_event_id,
                         timestamp,
                         details,
-                        priority AS severity
+                        priority AS severity,
+                        lat,
+                        lon,
+                        evidence_video_url,
+                        evidence_voice_url,
+                        evidence_sensor_url,
+                        raw_payload
                     FROM pipeline_events
                     WHERE trip_id = :trip_id
                     ORDER BY timestamp ASC
                 """),
                 {"trip_id": trip_id},
             )
-            rows = result.fetchall()
+            rows = result.mappings().fetchall()
 
             if not rows:
                 return []
 
             pings = []
             for row in rows:
+                location, evidence = _location_and_evidence_for_event_row(
+                    row["lat"],
+                    row["lon"],
+                    row["evidence_video_url"],
+                    row["evidence_voice_url"],
+                    row["evidence_sensor_url"],
+                    row["raw_payload"],
+                )
                 pings.append(
                     {
-                        "event_id": row[0],
-                        "trip_id": row[1],
-                        "event_type": row[2],
-                        "device_event_id": row[3],
-                        "timestamp": row[4].isoformat() if row[4] else None,
-                        "data": _parse_json_field(row[5]),
-                        "severity": row[6],
+                        "event_id": row["event_id"],
+                        "trip_id": row["trip_id"],
+                        "event_type": row["event_type"],
+                        "device_event_id": row["device_event_id"],
+                        "timestamp": (
+                            row["timestamp"].isoformat() if row["timestamp"] else None
+                        ),
+                        "data": _parse_json_field(row["details"]),
+                        "severity": row["severity"],
+                        "location": location,
+                        "evidence": evidence,
                     }
                 )
 
@@ -483,3 +588,106 @@ class EventsRepo:
             )
             rows = result.fetchall()
             return [dict(row._mapping) for row in rows] if rows else []
+
+    async def insert_synthetic_received_event(
+        self,
+        *,
+        device_event_id: str,
+        event_id: str,
+        trip_id: str,
+        truck_id: str,
+        driver_id: str,
+        event_type: str,
+        category: str,
+        priority: str,
+        timestamp: datetime,
+        details: dict[str, Any] | None = None,
+    ) -> bool:
+        """
+        Insert a pipeline_events row for an orchestrator-emitted follow-up.
+
+        Row starts as status='received' so acquire_lock can claim it.
+        """
+        now = datetime.now(UTC).replace(tzinfo=None)
+        ts = timestamp.replace(tzinfo=None) if timestamp.tzinfo else timestamp
+        payload_hint = json.dumps({"synthetic": True, "event_type": event_type})
+        detail_blob = json.dumps(details or {})
+
+        async with self._engine.begin() as conn:
+            result = await conn.execute(
+                text("""
+                    INSERT INTO pipeline_events (
+                        device_event_id,
+                        event_id,
+                        trip_id,
+                        driver_id,
+                        truck_id,
+                        event_type,
+                        category,
+                        priority,
+                        ping_type,
+                        source,
+                        is_emergency,
+                        timestamp,
+                        offset_seconds,
+                        trip_meter_km,
+                        odometer_km,
+                        lat,
+                        lon,
+                        details,
+                        raw_payload,
+                        status,
+                        retry_count,
+                        ingested_at
+                    ) VALUES (
+                        :device_event_id,
+                        :event_id,
+                        :trip_id,
+                        :driver_id,
+                        :truck_id,
+                        :event_type,
+                        :category,
+                        :priority,
+                        NULL,
+                        NULL,
+                        false,
+                        :timestamp,
+                        0,
+                        NULL,
+                        NULL,
+                        NULL,
+                        NULL,
+                        CAST(:details AS jsonb),
+                        :raw_payload,
+                        'received',
+                        0,
+                        :ingested_at
+                    )
+                    ON CONFLICT (device_event_id) DO NOTHING
+                """),
+                {
+                    "device_event_id": device_event_id,
+                    "event_id": event_id,
+                    "trip_id": trip_id,
+                    "driver_id": driver_id,
+                    "truck_id": truck_id,
+                    "event_type": event_type,
+                    "category": category,
+                    "priority": priority,
+                    "timestamp": ts,
+                    "details": detail_blob,
+                    "raw_payload": payload_hint,
+                    "ingested_at": now,
+                },
+            )
+            inserted = result.rowcount == 1 if result.rowcount is not None else False
+        if inserted:
+            logger.info(
+                {
+                    "action": "synthetic_event_inserted",
+                    "device_event_id": device_event_id,
+                    "trip_id": trip_id,
+                    "event_type": event_type,
+                }
+            )
+        return inserted

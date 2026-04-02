@@ -85,6 +85,23 @@ class TripsRepo:
             {"action": "trip_status_updated", "trip_id": trip_id, "status": status}
         )
 
+    async def get_truck_and_driver(self, trip_id: str) -> tuple[str, str] | None:
+        """Return (truck_id, driver_id) for a trip if the row exists."""
+        async with self._engine.connect() as conn:
+            result = await conn.execute(
+                text("""
+                    SELECT truck_id, driver_id
+                    FROM   pipeline_trips
+                    WHERE  trip_id = :trip_id
+                """),
+                {"trip_id": trip_id},
+            )
+            row = result.first()
+            if not row:
+                return None
+            m = row._mapping
+            return (str(m["truck_id"]), str(m["driver_id"]))
+
     async def close_trip(self, trip_id: str) -> None:
         """Mark trip as complete and capsule as closed after final CompletionEvent."""
         async with self._engine.begin() as conn:

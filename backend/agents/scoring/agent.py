@@ -1,17 +1,32 @@
 """
-Scoring Agent — with scoped repository.
+Scoring Agent — TDAgentBase lifecycle + explicit LangGraph tool loop.
 
-Uses ScoringRepository to ONLY write to scoring_schema tables.
-Must use cross-domain coordination for coaching suggestions.
+Reasoning and tool use happen only inside the compiled graph (chatbot + ToolNode).
 """
 
 import logging
 from typing import Any
 
+from langchain_core.messages import HumanMessage, SystemMessage
+
 from agents.base.agent import TDAgentBase
+from agents.base.langgraph_runner import (
+    build_tool_loop_graph,
+    parse_json_from_last_ai_message,
+)
+from agents.scoring.features import (
+    compute_driver_score,
+    deterministic_payload_from_bundle,
+    extract_feature_bundle,
+    merge_graph_json_with_baseline,
+)
+from agents.scoring.prompts import SCORING_SYSTEM_PROMPT, build_user_message
+from agents.scoring.tools import build_scoring_tools
 from common.cache.reader import CacheReader
 from common.db.engine import engine
 from common.db.repositories.scoring_repo import ScoringRepository
+from common.llm import OpenAIModel, load_llm
+from common.models.security import IntentCapsule
 from common.redis.client import RedisClient
 
 logger = logging.getLogger(__name__)
@@ -19,14 +34,9 @@ logger = logging.getLogger(__name__)
 
 class ScoringAgent(TDAgentBase):
     """
-    Scores entire trips based on all pings/events.
+    Scores trips using LangGraph (StateGraph + ToolNode + tools_condition).
 
-    Uses ScoringRepository for database writes.
-    Layer 1 enforcement: can ONLY write to scoring_schema tables.
-
-    For cross-domain writes (e.g., coaching suggestions):
-      - Return as result
-      - Orchestrator handles routing to appropriate agent
+    Uses ScoringRepository for scoring_schema writes only.
     """
 
     AGENT_NAME = "scoring"
@@ -35,28 +45,40 @@ class ScoringAgent(TDAgentBase):
         self,
         engine_param=None,
         redis_client: RedisClient | None = None,
+        llm: Any | None = None,
     ):
-        """Initialize with scoring-specific repo."""
         super().__init__(engine_param or engine, redis_client)
         self.scoring_repo = ScoringRepository(self._engine)
+        self.llm = llm or load_llm(OpenAIModel.GPT_4O_MINI).adapter.get_chat_model()
+
+    async def run(self, capsule_data: dict) -> dict[str, Any]:
+        capsule = IntentCapsule.model_validate(capsule_data)
+        result = await super().run(capsule_data)
+        if result.get("status") != "success":
+            return result
+        from agents.orchestrator.coaching_followup import (
+            schedule_coaching_ready_if_pending,
+        )
+
+        await schedule_coaching_ready_if_pending(
+            redis=self._redis,
+            engine=self._engine,
+            trip_id=capsule.trip_id,
+        )
+        return result
 
     async def _execute(
         self,
         trip_id: str,
         cache_data: dict[str, Any],
     ) -> dict[str, Any]:
-        """
-        Score trip using full history.
-
-        Data comes from pre-warmed cache (aggregation-driven):
-          - all_pings (all events from trip)
-          - historical_avg (driver's rolling average)
-        """
         try:
             found = CacheReader.by_key_markers(
-                cache_data, "all_pings", "historical_avg"
+                cache_data, "all_pings", "historical_avg", "trip_context"
             )
             all_pings = found["all_pings"]
+            historical_avg = found["historical_avg"]
+            trip_context = found["trip_context"]
 
             if not all_pings:
                 return {
@@ -65,66 +87,97 @@ class ScoringAgent(TDAgentBase):
                     "trip_id": trip_id,
                 }
 
-            # Compute trip score
-            score = await self._compute_score(all_pings)
+            trip_ctx_dict = trip_context if isinstance(trip_context, dict) else {}
+            hist_dict = historical_avg if isinstance(historical_avg, dict) else {}
 
-            # Generate explanations
-            explanations = await self._generate_explanations(all_pings, score)
+            tools = build_scoring_tools(all_pings, trip_ctx_dict, hist_dict)
+            graph = build_tool_loop_graph(self.llm, tools)
 
-            # Write to scoring_schema (Layer 1: only this repo available)
-            score_id = await self.scoring_repo.write_trip_score(
-                trip_id=trip_id,
-                driver_id="driver_id_placeholder",  # Get from trip_context
-                score=score,
-                score_breakdown=explanations,
+            driver_hint = str(trip_ctx_dict.get("driver_id", "unknown"))
+            user_content = build_user_message(trip_id, len(all_pings), driver_hint)
+            messages = [
+                SystemMessage(content=SCORING_SYSTEM_PROMPT),
+                HumanMessage(content=user_content),
+            ]
+
+            thread_id = f"{trip_id}:scoring:run"
+            config = {"configurable": {"thread_id": thread_id}}
+
+            result = await graph.ainvoke({"messages": messages}, config=config)
+
+            bundle = extract_feature_bundle(all_pings)
+            parsed = parse_json_from_last_ai_message(result)
+            if parsed is None:
+                score_payload = deterministic_payload_from_bundle(bundle)
+            else:
+                score_payload = merge_graph_json_with_baseline(parsed, bundle)
+
+            self._apply_historical_coaching_flags(
+                score_payload, hist_dict, float(score_payload["behaviour_score"])
             )
 
-            # Write SHAP explanations
+            score = float(score_payload["behaviour_score"])
+            driver_score = compute_driver_score(score, hist_dict)
+            explanations = score_payload["shap_explanation"]
+            fairness_audit = score_payload["fairness_audit"]
+            score_breakdown = score_payload["score_breakdown"]
+            coaching_reasons = list(score_payload.get("coaching_reasons") or [])
+            coaching_required = bool(score_payload.get("coaching_required", False))
+
+            score_id = await self.scoring_repo.write_trip_score(
+                trip_id=trip_id,
+                driver_id=trip_ctx_dict.get("driver_id", "driver_id_placeholder"),
+                score=score,
+                score_breakdown=score_breakdown,
+            )
+
             await self.scoring_repo.write_shap_explanations(
                 score_id=score_id,
                 trip_id=trip_id,
                 explanations=explanations,
             )
 
-            # Fairness audit
             await self.scoring_repo.write_fairness_audit(
                 score_id=score_id,
                 trip_id=trip_id,
-                driver_id="driver_id_placeholder",
-                audit_result={"method": "demographic_parity", "passed": True},
+                driver_id=trip_ctx_dict.get("driver_id", "driver_id_placeholder"),
+                audit_result=fairness_audit,
             )
 
-            # Check if coaching is needed
             suggested_coaching = None
-            if score < 60:
+            if coaching_required or score < 60:
                 suggested_coaching = {
-                    "category": "low_score",
-                    "message": "Trip score indicates need for coaching",
+                    "category": "smoothness_improvement",
+                    "message": "Trip score indicates need for coaching on smoothness.",
                     "priority": "high",
+                    "reasons": coaching_reasons,
                 }
 
             logger.info(
                 {
                     "action": "scoring_complete",
                     "trip_id": trip_id,
-                    "score": score,
+                    "trip_score": score,
+                    "driver_score": driver_score,
                     "score_id": score_id,
                 }
             )
 
-            result = {
+            out: dict[str, Any] = {
                 "status": "success",
                 "score": score,
+                "trip_score": score,
+                "driver_score": driver_score,
                 "score_id": score_id,
                 "trip_id": trip_id,
                 "ping_count": len(all_pings),
+                "score_label": score_payload["score_label"],
+                "score_breakdown": score_breakdown,
+                "fairness_audit": fairness_audit,
             }
-
-            # If coaching needed, add as cross-domain request (orchestrator will handle)
             if suggested_coaching:
-                result["suggested_coaching"] = suggested_coaching
-
-            return result
+                out["suggested_coaching"] = suggested_coaching
+            return out
 
         except Exception as e:
             logger.error(
@@ -136,46 +189,29 @@ class ScoringAgent(TDAgentBase):
             )
             raise
 
-    async def _compute_score(self, all_pings: list[dict]) -> float:
-        """
-        Compute trip score (0-100).
-
-        Simple heuristic for now.
-        """
-        if not all_pings:
-            return 50.0
-
-        # Count harsh events
-        harsh_count = sum(
-            1
-            for ping in all_pings
-            if ping.get("event_type") in ["harsh_brake", "hard_accel", "harsh_corner"]
-        )
-
-        # Score = 100 - (harsh_count * 10)
-        score = max(0, 100 - (harsh_count * 10))
-        return float(score)
-
-    async def _generate_explanations(
-        self,
-        all_pings: list[dict],
+    @staticmethod
+    def _apply_historical_coaching_flags(
+        score_payload: dict[str, Any],
+        historical_avg: dict[str, Any],
         score: float,
-    ) -> dict[str, Any]:
-        """
-        Generate SHAP explanations for score.
-        """
-        return {
-            "method": "simple_heuristic",
-            "score": score,
-            "ping_count": len(all_pings),
-            "harsh_events": sum(
-                1
-                for ping in all_pings
-                if ping.get("event_type")
-                in ["harsh_brake", "hard_accel", "harsh_corner"]
-            ),
-        }
+    ) -> None:
+        """If score dropped vs historical average, flag coaching."""
+        raw = historical_avg.get("historical_avg_score") or historical_avg.get(
+            "rolling_avg_score"
+        )
+        if raw is None:
+            return
+        try:
+            baseline = float(raw)
+        except (TypeError, ValueError):
+            return
+        if score < baseline - 10.0:
+            reasons = list(score_payload.get("coaching_reasons") or [])
+            reasons.append(
+                f"Score dropped more than 10 points vs historical average ({baseline:.1f})."
+            )
+            score_payload["coaching_reasons"] = reasons
+            score_payload["coaching_required"] = True
 
     def _get_repos(self) -> dict[str, Any]:
-        """Return ScoringAgent's owned repos."""
         return {"scoring_repo": self.scoring_repo}

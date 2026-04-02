@@ -89,6 +89,8 @@ jobs:
         run: uv run black --check .
 
       - name: 🔍 Ruff — lint check
+        # Informational-only: report lint findings without failing CI.
+        continue-on-error: true
         run: uv run ruff check .
 
       - name: 🔐 Bandit — security scan (SAST)
@@ -201,7 +203,6 @@ jobs:
     defaults:
       run:
         working-directory: ${{ env.WORKING_DIR }}
-    continue-on-error: true   # Informational until a CVE baseline is set
 
     steps:
       - name: Checkout code

@@ -20,7 +20,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 
 from common.db.write_validation import DatabaseWriteValidator
 from common.models.security import IntentCapsule
-from common.redis.client import RedisClient
+from common.redis.client import DateTimeEncoder, RedisClient
 from common.redis.keys import RedisSchema
 
 from .logger import get_agent_logger
@@ -163,7 +163,9 @@ class TDAgentBase(ABC):
             result = await self._execute(trip_id, cache_data)
 
             output_key = RedisSchema.Trip.output(trip_id, agent_name)
-            await self._redis._client.set(output_key, json.dumps(result))
+            await self._redis._client.set(
+                output_key, json.dumps(result, cls=DateTimeEncoder)
+            )
 
             logger.info(
                 {

@@ -61,7 +61,7 @@ CREATE SCHEMA scoring_schema;
 
 CREATE TABLE scoring_schema.trip_scores (
   score_id SERIAL PRIMARY KEY,
-  trip_id VARCHAR(80) NOT NULL,
+  trip_id VARCHAR(80) NOT NULL UNIQUE,
   driver_id VARCHAR(80) NOT NULL,
   score DOUBLE PRECISION NOT NULL,
   score_breakdown JSONB,
@@ -71,7 +71,7 @@ CREATE TABLE scoring_schema.trip_scores (
 CREATE TABLE scoring_schema.shap_explanations (
   id SERIAL PRIMARY KEY,
   score_id INTEGER NOT NULL REFERENCES scoring_schema.trip_scores(score_id),
-  trip_id VARCHAR(80) NOT NULL,
+  trip_id VARCHAR(80) NOT NULL UNIQUE,
   explanations JSONB,
   created_at TIMESTAMP
 );
@@ -79,7 +79,7 @@ CREATE TABLE scoring_schema.shap_explanations (
 CREATE TABLE scoring_schema.fairness_audit (
   id SERIAL PRIMARY KEY,
   score_id INTEGER NOT NULL REFERENCES scoring_schema.trip_scores(score_id),
-  trip_id VARCHAR(80) NOT NULL,
+  trip_id VARCHAR(80) NOT NULL UNIQUE,
   driver_id VARCHAR(80) NOT NULL,
   audit_result JSONB,
   created_at TIMESTAMP

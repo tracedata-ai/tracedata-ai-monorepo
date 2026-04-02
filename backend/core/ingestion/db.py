@@ -109,6 +109,10 @@ class IngestionDB:
         config = EVENT_MATRIX[event.event_type]
         lat = event.location.lat if event.location else None
         lon = event.location.lon if event.location else None
+        ev = packet.evidence
+        evidence_video_url = ev.video_url if ev else None
+        evidence_voice_url = ev.voice_url if ev else None
+        evidence_sensor_url = ev.sensor_dump_url if ev else None
 
         async with self._engine.begin() as conn:
             await conn.execute(
@@ -132,6 +136,9 @@ class IngestionDB:
                         lat,
                         lon,
                         details,
+                        evidence_video_url,
+                        evidence_voice_url,
+                        evidence_sensor_url,
                         raw_payload,
                         status,
                         retry_count,
@@ -155,6 +162,9 @@ class IngestionDB:
                         :lat,
                         :lon,
                         :details,
+                        :evidence_video_url,
+                        :evidence_voice_url,
+                        :evidence_sensor_url,
                         :raw_payload,
                         'received',
                         :retry_count,
@@ -185,6 +195,9 @@ class IngestionDB:
                     "lat": lat,
                     "lon": lon,
                     "details": json.dumps(event.details or {}),
+                    "evidence_video_url": evidence_video_url,
+                    "evidence_voice_url": evidence_voice_url,
+                    "evidence_sensor_url": evidence_sensor_url,
                     "raw_payload": json.dumps(packet.model_dump(), cls=DateTimeEncoder),
                     "retry_count": 0,
                     "ingested_at": datetime.now(UTC).replace(tzinfo=None),

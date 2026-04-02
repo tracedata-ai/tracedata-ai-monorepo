@@ -1,5 +1,6 @@
 import json
 from datetime import datetime
+from uuid import UUID
 
 import redis.asyncio as redis
 
@@ -9,11 +10,13 @@ settings = get_settings()
 
 
 class DateTimeEncoder(json.JSONEncoder):
-    """Custom JSON encoder that handles datetime serialization."""
+    """JSON encoder for Redis payloads: datetime, UUID, etc."""
 
     def default(self, obj):
         if isinstance(obj, datetime):
             return obj.isoformat()
+        if isinstance(obj, UUID):
+            return str(obj)
         return super().default(obj)
 
 

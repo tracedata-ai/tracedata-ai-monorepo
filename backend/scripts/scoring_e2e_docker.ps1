@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-  Reset Docker stack (optional), apply DB bootstrap, flush Redis, run scoring_test_data.py, print counts.
+  Reset Docker stack (optional), apply DB bootstrap, flush Redis, run multi-truck scoring seed, print counts.
 
 .DESCRIPTION
   One-shot E2E smoke for ingestion → orchestrator → scoring without involving an AI assistant.
@@ -67,8 +67,8 @@ if ($ApplyAgentSchemas) {
 Write-Host "`n=== Redis FLUSHALL ===" -ForegroundColor Cyan
 docker compose exec -T redis redis-cli FLUSHALL | Out-Host
 
-Write-Host "`n=== scoring_test_data.py (via api container) ===" -ForegroundColor Cyan
-docker compose exec -T api python scripts/scoring_test_data.py
+Write-Host "`n=== push_multi_truck_scoring_seed.py (via api container) ===" -ForegroundColor Cyan
+docker compose exec -T api python scripts/push_multi_truck_scoring_seed.py
 
 Write-Host "`n=== wait ${WaitSeconds}s for workers ===" -ForegroundColor Cyan
 Start-Sleep -Seconds $WaitSeconds
