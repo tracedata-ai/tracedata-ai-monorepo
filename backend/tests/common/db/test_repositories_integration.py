@@ -15,7 +15,6 @@ from common.db.repositories.events_repo import EventsRepo
 from common.models.enums import PingType, Priority, Source
 from common.models.events import TelemetryPacket, TripEvent
 from common.models.orm import EventORM
-from common.models.sa_base import Base
 from core.ingestion.db import IngestionDB
 
 pytestmark = pytest.mark.integration
@@ -25,7 +24,7 @@ pytestmark = pytest.mark.integration
 async def test_db_engine():
     engine = create_async_engine("sqlite+aiosqlite:///:memory:", echo=False)
     async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+        await conn.run_sync(EventORM.__table__.create)
     yield engine
     await engine.dispose()
 
