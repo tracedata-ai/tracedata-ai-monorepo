@@ -911,7 +911,9 @@ class OrchestratorAgent:
                 "flagged_events": runtime_context.get("flagged_events", []),
                 "sentiment_output": sentiment_payload,
             }
-            context_key = RedisSchema.Trip.agent_data(trip_id, "support", "trip_context")
+            context_key = RedisSchema.Trip.agent_data(
+                trip_id, "support", "trip_context"
+            )
             await self.redis._client.setex(
                 context_key,
                 3600,
@@ -1134,7 +1136,9 @@ class OrchestratorAgent:
                 RedisSchema.Trip.agent_data(trip_id, "support", "coaching_history"),
             ]
         elif warming_type == "post_sentiment_support":
-            read_keys = [RedisSchema.Trip.agent_data(trip_id, "support", "trip_context")]
+            read_keys = [
+                RedisSchema.Trip.agent_data(trip_id, "support", "trip_context")
+            ]
         else:
             # No warming needed — provide generic trip context
             read_keys = [

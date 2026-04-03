@@ -55,7 +55,10 @@ async def _schedule_sentiment_ready_if_success_impl(
         sentiment_output = json.loads(sentiment_raw)
     except json.JSONDecodeError:
         return
-    if not isinstance(sentiment_output, dict) or sentiment_output.get("status") != "success":
+    if (
+        not isinstance(sentiment_output, dict)
+        or sentiment_output.get("status") != "success"
+    ):
         return
 
     ctx_key = RedisSchema.Trip.context(trip_id)

@@ -6,7 +6,6 @@ Layer 1 Enforcement:
 """
 
 import json
-
 from typing import Any
 
 from common.db.schema_repository import SchemaRepository

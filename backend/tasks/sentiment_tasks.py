@@ -5,12 +5,13 @@ Sentiment Agent Celery Tasks
 import asyncio
 import logging
 
+from sqlalchemy.ext.asyncio import create_async_engine
+from sqlalchemy.pool import NullPool
+
 from agents.sentiment.agent import SentimentAgent
 from celery_app import app
 from common.config.settings import get_settings
 from common.redis.client import RedisClient
-from sqlalchemy.ext.asyncio import create_async_engine
-from sqlalchemy.pool import NullPool
 
 logger = logging.getLogger(__name__)
 settings = get_settings()

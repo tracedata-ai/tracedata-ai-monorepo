@@ -12,7 +12,9 @@ from agents.base.agent import TDAgentBase
 from common.cache.reader import CacheReader
 from common.db.engine import engine
 from common.db.repositories.support_repo import SupportRepository
+from common.models.security import IntentCapsule
 from common.redis.client import RedisClient
+from common.redis.keys import RedisSchema
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +32,15 @@ class SupportAgent(TDAgentBase):
         """Initialize with support-specific repo."""
         super().__init__(engine_param or engine, redis_client)
         self.support_repo = SupportRepository(self._engine)
+
+    async def run(self, capsule_data: dict) -> dict[str, Any]:
+        capsule = IntentCapsule.model_validate(capsule_data)
+        result = await super().run(capsule_data)
+        if result.get("status") != "success":
+            return result
+
+        await self._update_trip_context_with_support_output(capsule.trip_id, result)
+        return result
 
     async def _execute(
         self,
@@ -139,3 +150,23 @@ class SupportAgent(TDAgentBase):
     def _get_repos(self) -> dict[str, Any]:
         """Return SupportAgent's owned repos."""
         return {"support_repo": self.support_repo}
+
+    async def _update_trip_context_with_support_output(
+        self, trip_id: str, support_output: dict[str, Any]
+    ) -> None:
+        """Persist latest support output summary into trip runtime context."""
+        context_key = RedisSchema.Trip.context(trip_id)
+        existing = await self._redis.get_trip_context(context_key)
+        context = existing if isinstance(existing, dict) else {}
+        context["latest_support_output"] = {
+            "status": support_output.get("status"),
+            "coaching_id": support_output.get("coaching_id"),
+            "message": support_output.get("message"),
+            "trip_id": support_output.get("trip_id", trip_id),
+        }
+        context.setdefault("trip_id", trip_id)
+        await self._redis.store_trip_context(
+            context_key,
+            context,
+            ttl=RedisSchema.Trip.CONTEXT_TTL_HIGH,
+        )

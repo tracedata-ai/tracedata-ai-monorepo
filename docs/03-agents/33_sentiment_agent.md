@@ -1,91 +1,60 @@
 # Sentiment Agent
 
-The Sentiment Agent is TraceData's feedback analyzer for post-trip driver text.
-It runs on `driver_feedback` events and persists sentiment results to
-`sentiment_schema`, then hands control back to the orchestrator for follow-up
-dispatch.
+## Overview
+
+The Sentiment Agent processes end-of-trip `driver_feedback` text and produces
+a simple sentiment result for the trip.
+
+Primary question:
+
+**"What is the driver's emotional condition after this trip?"**
 
 ---
 
-## Product role
+## Implemented Flow
 
-The Sentiment Agent answers:
-
-1. **"What is the emotional signal in this feedback?"**
-2. **"Should this feedback trigger a downstream support action?"**
-
-It does not write coaching narratives itself. Support decisions remain owned by
-the orchestrator + Support Agent chain.
+`driver_feedback -> orchestrator -> sentiment -> sentiment_ready -> orchestrator -> support`
 
 ---
 
-## Trigger and handoff flow
+## Responsibilities
 
-1. Ingestion stores `driver_feedback` in `pipeline_events` and pushes the clean
-   event to `telemetry:{truck_id}:processed`.
-2. Orchestrator routes `driver_feedback` to **Sentiment** (Event Matrix action
-   is `SENTIMENT`).
-3. Orchestrator warms sentiment keys and dispatches
-   `tasks.sentiment_tasks.analyse_feedback`.
-4. Sentiment analyzes feedback and writes `trip:{trip_id}:sentiment_output` +
-   completion pub/sub event.
-5. After successful sentiment run, the worker enqueues synthetic
-   **`sentiment_ready`**.
-6. Orchestrator consumes `sentiment_ready`, warms Support context including
-   `sentiment_output`, and dispatches Support.
-
-This makes driver feedback processing explicitly two-wave:
-
-`driver_feedback -> sentiment -> sentiment_ready -> orchestrator -> support`
+- Analyze feedback text from `driver_feedback`.
+- Persist sentiment result in `sentiment_schema.feedback_sentiment`.
+- Write `trip:{trip_id}:sentiment_output` for downstream consumption.
+- Trigger synthetic `sentiment_ready` for orchestrator handoff to support.
 
 ---
 
-## Runtime architecture
+## Runtime Components
 
 | Layer | Responsibility |
-|--------|----------------|
-| **Celery** | `tasks.sentiment_tasks.analyse_feedback` invokes `SentimentAgent.run(IntentCapsule)` |
-| **`TDAgentBase`** | Scoped Redis reads via `read_keys`, executes `_execute`, stores `trip:{trip_id}:sentiment_output`, releases lock, publishes completion |
-| **`SentimentRepository`** | Writes only to `sentiment_schema` tables |
-| **Sentiment follow-up helper** | `schedule_sentiment_ready_if_success` inserts synthetic `sentiment_ready` and pushes to `telemetry:{truck_id}:processed` |
+|------|----------------|
+| Celery task | `tasks.sentiment_tasks.analyse_feedback` runs `SentimentAgent.run(IntentCapsule)` |
+| Agent base | Scoped Redis read via capsule keys, executes analysis, writes output, releases lock, publishes completion |
+| Repository | `SentimentRepository` writes sentiment records to `sentiment_schema` |
+| Follow-up helper | `schedule_sentiment_ready_if_success` inserts synthetic `sentiment_ready` and enqueues it to processed queue |
 
 ---
 
-## Redis and warming
+## Redis Keys
 
-### Warmed input (orchestrator -> capsule `read_keys`)
-
-For `driver_feedback` (event-driven warming):
+### Inputs (warmed by orchestrator)
 
 - `trips:{trip_id}:sentiment:current_event`
 - `trips:{trip_id}:sentiment:trip_context`
 
-For `sentiment_ready` (post-sentiment support warming):
+### Sentiment output
 
-- `trips:{trip_id}:support:trip_context` (contains `sentiment_output`)
+- Key: `trip:{trip_id}:sentiment_output`
+- Type: String (JSON)
+- Consumer: Orchestrator, then Support Agent
 
-### Output and completion
+### Downstream support output
 
-- `trip:{trip_id}:sentiment_output` (SET JSON)
-- `trip:{trip_id}:events` (PUBLISH completion payload)
-
----
-
-## Current output shape
-
-The sentiment worker currently returns a compact result:
-
-```json
-{
-  "status": "success",
-  "sentiment": "neutral",
-  "sentiment_id": "UUID",
-  "trip_id": "TRP-..."
-}
-```
-
-This contract is intentionally minimal for now; Support consumes the warmed
-`sentiment_output` snapshot during `sentiment_ready`.
+- Key: `trip:{trip_id}:support_output`
+- Type: String (JSON)
+- Consumer: Orchestrator and downstream app flows
 
 ---
 
@@ -93,27 +62,16 @@ This contract is intentionally minimal for now; Support consumes the warmed
 
 **Schema:** `sentiment_schema`
 
-| Table | Written by | Content |
-|-------|------------|---------|
-| `driver_feedback_analysis` | `SentimentRepository` | Feedback text + sentiment score/label + analysis metadata |
+| Table | Purpose |
+|------|---------|
+| `feedback_sentiment` | Stores trip-level sentiment record (`trip_id`, `driver_id`, `feedback_text`, `sentiment_score`, `sentiment_label`, `analysis`) |
 
-Orchestrator-side synthetic follow-up events are written to `public.pipeline_events`
-as `event_type='sentiment_ready'`.
+Orchestrator synthetic follow-up event is persisted in `pipeline_events` as
+`event_type='sentiment_ready'`.
 
 ---
 
-## Event matrix contract (implemented)
+## Event Matrix Contract
 
 - `driver_feedback` -> action `SENTIMENT` -> dispatch `sentiment`
 - `sentiment_ready` -> action `SUPPORT` -> dispatch `driver_support`
-
-This guarantees all driver feedback is analyzed by Sentiment first, then
-re-evaluated by Orchestrator for downstream support flow.
-
----
-
-## Limitations
-
-- Current sentiment classifier is a simple keyword heuristic (not full NLP model).
-- Sentiment output is compact; richer theme extraction is not yet persisted.
-- Support handoff is currently deterministic via `sentiment_ready` mapping.
