@@ -90,6 +90,9 @@ combine-as-imports = true
 asyncio_mode = "auto"
 markers = [
     "integration: SQLite in-memory DB or broader I/O than pure unit mocks",
+    "xai: explainability and fairness focused test suites",
+    "eval: evaluation-oriented tests (may be optional or slower)",
+    "external: tests requiring optional external tools or API keys",
 ]
 
 [dependency-groups]
