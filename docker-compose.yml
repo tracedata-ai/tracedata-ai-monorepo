@@ -14,9 +14,13 @@
 #   Frontend only:   docker compose up frontend
 # ─────────────────────────────────────────────────────────────────────────────
 
+# ─────────────────────────────────────────────────────────────────────────────
+# TraceData — Docker Compose (optimized)
+# ─────────────────────────────────────────────────────────────────────────────
+
 services:
 
-  # ── Backend (FastAPI + Agents) ───────────────────────────────────────────────
+  # ── Backend (FastAPI + Agents) ─────────────────────────────────────────────
   backend:
     build:
       context: ./backend
@@ -24,69 +28,121 @@ services:
     container_name: tracedata-backend
     ports:
       - "8000:8000"
+    env_file:
+      - .env                          # secrets live here, never in compose
     environment:
-      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/tracedata
+      - DATABASE_URL=postgresql+asyncpg://postgres:${POSTGRES_PASSWORD}@db:5432/tracedata
       - REDIS_URL=redis://redis:6379/0
-      - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
-      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - RESET_DB=${RESET_DB:-false}
-      - DEBUG=true
-      - APP_ENV=development
+      - DEBUG=${DEBUG:-false}
+      - APP_ENV=${APP_ENV:-production}
     depends_on:
       db:
         condition: service_healthy
       redis:
-        condition: service_started
-    restart: on-failure
+        condition: service_healthy    # upgraded from service_started
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 60s              # give FastAPI time to start up
+    restart: on-failure:5            # max 5 retries before giving up
+    networks:
+      - tracedata-net
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1G
 
-  # ── Frontend (Next.js) ───────────────────────────────────────────────────────
+  # ── Frontend (Next.js) ────────────────────────────────────────────────────
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        - NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
+        # Use service name, not localhost — localhost is the frontend container
+        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://backend:8000/api/v1}
     container_name: tracedata-frontend
     ports:
       - "3000:3000"
     environment:
-      - NODE_ENV=production
-      - NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
+      - NODE_ENV=${NODE_ENV:-production}
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://backend:8000/api/v1}
     depends_on:
-      - backend
-    restart: always
+      backend:
+        condition: service_healthy    # wait for FastAPI to be truly ready
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3000 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: on-failure:3
+    networks:
+      - tracedata-net
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
 
-  # ── PostgreSQL + pgvector ────────────────────────────────────────────────────
+  # ── PostgreSQL + pgvector ──────────────────────────────────────────────────
   db:
-    image: ankane/pgvector:latest
+    image: pgvector/pgvector:pg16     # pinned tag — no more floating :latest
     container_name: tracedata-db
     environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=tracedata
-    ports:
-      - "5432:5432"
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+      - POSTGRES_DB=${POSTGRES_DB:-tracedata}
+    # No ports: block — db is internal only; not reachable from the host
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d tracedata"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-tracedata}"]
       interval: 10s
       timeout: 5s
       retries: 5
-    restart: always
+      start_period: 10s
+    restart: on-failure:5
+    networks:
+      - tracedata-net
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
 
-  # ── Redis ────────────────────────────────────────────────────────────────────
-  # Used as the Celery message broker and result backend.
-  # Also used for agent context caching (future: conversation state).
+  # ── Redis ─────────────────────────────────────────────────────────────────
   redis:
-    image: redis:7-alpine
+    image: redis:7.2-alpine           # pinned minor version
     container_name: tracedata-redis
-    ports:
-      - "6379:6379"
+    command: redis-server --save 60 1 --loglevel warning
+    # No ports: block — redis is internal only
     volumes:
       - redis_data:/data
-    restart: always
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]   # was missing entirely
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    restart: on-failure:5
+    networks:
+      - tracedata-net
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 256M
 
 volumes:
   postgres_data:
+    driver: local
   redis_data:
+    driver: local
+
+networks:
+  tracedata-net:
+    driver: bridge

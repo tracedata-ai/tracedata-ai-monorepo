@@ -30,6 +30,11 @@ RUN uv sync --no-dev
 # ── Stage 2: Runtime ──────────────────────────────────────────────────────────
 FROM python:3.11-slim AS runtime
 
+# Install curl for healthcheck (slim image excludes it by default)
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 
 # Copy the virtual environment from the builder stage
@@ -41,6 +46,7 @@ ENV PATH="/app/.venv/bin:$PATH"
 # Copy application source
 COPY app/ ./app/
 COPY agents/ ./agents/
+COPY core/ ./core/
 COPY scripts/ ./scripts/
 COPY entrypoint.sh ./
 
@@ -50,8 +56,10 @@ RUN chmod +x entrypoint.sh
 # Expose the API port
 EXPOSE 8000
 
-# Docker healthcheck — hits /health every 30s
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-  CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"
+# Docker healthcheck — curl is more reliable than python urllib for health probes
+# start-period: 60s gives entrypoint time to run pg wait + migrations before
+# failed checks count against the retry budget
+HEALTHCHECK --interval=15s --timeout=5s --start-period=60s --retries=5 \
+  CMD curl -f http://localhost:8000/health || exit 1
 
 ENTRYPOINT ["./entrypoint.sh"]
