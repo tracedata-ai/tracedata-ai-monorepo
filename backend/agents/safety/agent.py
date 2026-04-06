@@ -137,22 +137,20 @@ class SafetyAgent(TDAgentBase):
             lat = None
             lon = None
             if isinstance(location, dict):
-                try:
-                    lat = (
-                        float(location.get("lat"))
-                        if location.get("lat") is not None
-                        else None
-                    )
-                except (TypeError, ValueError):
-                    lat = None
-                try:
-                    lon = (
-                        float(location.get("lon"))
-                        if location.get("lon") is not None
-                        else None
-                    )
-                except (TypeError, ValueError):
-                    lon = None
+                lat_raw = location.get("lat")
+                lon_raw = location.get("lon")
+                lat = None
+                lon = None
+                if lat_raw is not None:
+                    try:
+                        lat = float(lat_raw)
+                    except (TypeError, ValueError):
+                        lat = None
+                if lon_raw is not None:
+                    try:
+                        lon = float(lon_raw)
+                    except (TypeError, ValueError):
+                        lon = None
 
             event_timestamp = None
             ts_raw = current_event.get("timestamp")
