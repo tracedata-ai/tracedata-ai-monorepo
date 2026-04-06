@@ -4,29 +4,35 @@ import { DashboardPageTemplate } from "@/components/shared/DashboardPageTemplate
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/data-table";
-import { telemetrySeedRows, type TelemetryEventRow } from "@/lib/sample-data";
+import { emitTelemetrySimulatorEvent, type SimulatorEventKind } from "@/lib/api";
 import { ColumnDef } from "@tanstack/react-table";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
-const columns: ColumnDef<TelemetryEventRow>[] = [
+type SimulatorLogRow = {
+  id: string;
+  kind: SimulatorEventKind;
+  tripId: string;
+  truckId: string;
+  driverId: string;
+  eventTypes: string;
+  emittedAt: string;
+  status: "ok" | "error";
+};
+
+const columns: ColumnDef<SimulatorLogRow>[] = [
   {
-    accessorKey: "vehicleId",
-    header: "Vehicle ID",
+    accessorKey: "kind",
+    header: "Event Kind",
     size: 120,
   },
   {
-    accessorKey: "speedKph",
-    header: "Speed (kph)",
-    size: 110,
-  },
-  {
-    accessorKey: "harshBrakeCount",
-    header: "Harsh Brakes",
+    accessorKey: "tripId",
+    header: "Trip ID",
     size: 120,
   },
   {
-    accessorKey: "location",
-    header: "Location",
+    accessorKey: "eventTypes",
+    header: "Event Type(s)",
     size: 140,
   },
   {
@@ -37,35 +43,108 @@ const columns: ColumnDef<TelemetryEventRow>[] = [
 ];
 
 export default function TelemetrySimulatorPage() {
-  const [events, setEvents] = useState(telemetrySeedRows);
+  const [tripId, setTripId] = useState(`TRP-UI-${Date.now()}`);
+  const [truckId, setTruckId] = useState("T12345");
+  const [driverId, setDriverId] = useState("DRV-ANON-7829");
+  const [sending, setSending] = useState<SimulatorEventKind | null>(null);
+  const [events, setEvents] = useState<SimulatorLogRow[]>([]);
 
-  const handleEmitEvent = () => {
-    const newEvent: TelemetryEventRow = {
-      id: `evt-${Date.now()}`,
-      vehicleId: `SGX-${Math.floor(2000 + Math.random() * 400)}`,
-      speedKph: Math.floor(40 + Math.random() * 40),
-      harshBrakeCount: Math.floor(Math.random() * 3),
-      location: `1.${Math.floor(3000 + Math.random() * 500)}, 103.${Math.floor(8000 + Math.random() * 500)}`,
-      emittedAt: new Date().toISOString().replace("T", " ").slice(0, 19),
-    };
+  const actions = useMemo(
+    () =>
+      [
+        { kind: "start", label: "Send Start" },
+        { kind: "harsh", label: "Send Harsh" },
+        { kind: "smooth", label: "Send Smooth" },
+        { kind: "feedback", label: "Send Feedback" },
+        { kind: "end", label: "Send End Trip" },
+      ] as const,
+    []
+  );
 
-    setEvents((prev) => [newEvent, ...prev].slice(0, 50));
+  const handleEmitEvent = async (kind: SimulatorEventKind) => {
+    setSending(kind);
+    try {
+      const result = await emitTelemetrySimulatorEvent({
+        kind,
+        trip_id: tripId,
+        truck_id: truckId,
+        driver_id: driverId,
+      });
+      const newEvent: SimulatorLogRow = {
+        id: `evt-${Date.now()}`,
+        kind,
+        tripId,
+        truckId,
+        driverId,
+        eventTypes: result.event_types.join(", "),
+        emittedAt: new Date().toISOString().replace("T", " ").slice(0, 19),
+        status: "ok",
+      };
+      setEvents((prev) => [newEvent, ...prev].slice(0, 50));
+    } catch {
+      const failed: SimulatorLogRow = {
+        id: `err-${Date.now()}`,
+        kind,
+        tripId,
+        truckId,
+        driverId,
+        eventTypes: "—",
+        emittedAt: new Date().toISOString().replace("T", " ").slice(0, 19),
+        status: "error",
+      };
+      setEvents((prev) => [failed, ...prev].slice(0, 50));
+    } finally {
+      setSending(null);
+    }
+  };
+
+  const resetTrip = () => {
+    setTripId(`TRP-UI-${Date.now()}`);
   };
 
   return (
     <DashboardPageTemplate
       title="Telemetry Simulator"
-      subtitle="Emit and monitor real-time telemetry events"
+      subtitle="Send workflow events directly from UI"
     >
       <Card className="glass rounded-xl">
-        <CardHeader className="flex flex-row items-center justify-between">
+        <CardHeader className="space-y-3">
           <CardTitle>Telemetry Event Emitter</CardTitle>
-          <Button
-            onClick={handleEmitEvent}
-            className="bg-[var(--info)] text-white hover:bg-[hsl(210_100%_45%)]"
-          >
-            Emit Event
-          </Button>
+          <div className="grid gap-2 md:grid-cols-3">
+            <input
+              value={tripId}
+              onChange={(e) => setTripId(e.target.value)}
+              placeholder="Trip ID"
+              className="rounded-md border border-[#e5e7eb] px-3 py-2 text-sm"
+            />
+            <input
+              value={truckId}
+              onChange={(e) => setTruckId(e.target.value)}
+              placeholder="Truck ID"
+              className="rounded-md border border-[#e5e7eb] px-3 py-2 text-sm"
+            />
+            <input
+              value={driverId}
+              onChange={(e) => setDriverId(e.target.value)}
+              placeholder="Driver ID"
+              className="rounded-md border border-[#e5e7eb] px-3 py-2 text-sm"
+            />
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {actions.map((action) => (
+              <Button
+                key={action.kind}
+                onClick={() => handleEmitEvent(action.kind)}
+                disabled={!!sending}
+                className="bg-[var(--info)] text-white hover:bg-[hsl(210_100%_45%)] disabled:opacity-60"
+              >
+                {sending === action.kind ? "Sending..." : action.label}
+              </Button>
+            ))}
+            <Button variant="outline" onClick={resetTrip}>
+              New Trip ID
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           <DataTable columns={columns} data={events} />

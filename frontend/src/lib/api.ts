@@ -4,6 +4,45 @@ export type BackendHealth = {
   payload: Record<string, unknown>;
 };
 
+export type AgentFlowEvent = {
+  event_type: "agent_queued" | "agent_running" | "agent_done" | "worker_health";
+  status:
+    | "idle"
+    | "queued"
+    | "running"
+    | "success"
+    | "error"
+    | "healthy"
+    | "degraded"
+    | "unhealthy";
+  agent: "orchestrator" | "safety" | "scoring" | "sentiment" | "support";
+  seq: number;
+  ts: string;
+  trip_id?: string | null;
+  meta?: Record<string, unknown>;
+};
+
+export type AgentFlowSnapshot = {
+  seq: number;
+  updated_at: string;
+  execution: Record<string, "idle" | "queued" | "running" | "success" | "error">;
+  worker_health: Record<string, "healthy" | "degraded" | "unhealthy">;
+  active_trip_id?: string | null;
+};
+
+export type SimulatorEventKind = "start" | "harsh" | "feedback" | "smooth" | "end";
+
+export type SimulatorEmitResponse = {
+  status: "ok";
+  pushed_count: number;
+  queue: string;
+  emitted_kind: SimulatorEventKind;
+  trip_id: string;
+  truck_id: string;
+  driver_id: string;
+  event_types: string[];
+};
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
 const USE_MOCK_API = process.env.NEXT_PUBLIC_USE_MOCK_API === "true";
 
@@ -32,6 +71,17 @@ export type Driver = {
   experience_level: string;
 };
 
+export type Route = {
+  id: string;
+  tenant_id: string;
+  name: string;
+  start_location: string;
+  end_location: string;
+  distance_km?: string | number | null;
+  route_type: string;
+  created_at: string;
+};
+
 export type Trip = {
   id: string;
   tenant_id: string;
@@ -40,6 +90,28 @@ export type Trip = {
   route_id: string;
   status: string;
   created_at: string;
+};
+
+export type Maintenance = {
+  id: string;
+  tenant_id: string;
+  vehicle_id: string;
+  maintenance_type: string;
+  status: string;
+  scheduled_date?: string | null;
+  completed_date?: string | null;
+  notes?: string | null;
+  triggered_by: string;
+  created_at: string;
+};
+
+export type WorkflowTrip = {
+  trip_id: string;
+  driver_id: string;
+  truck_id: string;
+  status: string;
+  started_at?: string | null;
+  updated_at?: string | null;
 };
 
 export type Issue = {
@@ -103,6 +175,18 @@ async function apiGet<T>(path: string): Promise<T> {
   }
 }
 
+async function apiPost<T>(path: string, payload: unknown): Promise<T> {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) {
+    throw new Error(`Request failed: ${response.status}`);
+  }
+  return (await response.json()) as T;
+}
+
 export async function getBackendHealth(): Promise<BackendHealth> {
   const safeBaseUrl = API_BASE_URL || "mock://local";
 
@@ -158,6 +242,16 @@ export async function getTrips(tenantId?: string, status?: string): Promise<Trip
   return apiGet<Trip[]>(`/trips${query}`);
 }
 
+export async function getWorkflowTrips(status?: string): Promise<WorkflowTrip[]> {
+  const query = status ? `?status=${encodeURIComponent(status)}` : "";
+  return apiGet<WorkflowTrip[]>(`/workflow/trips${query}`);
+}
+
+export async function getRoutes(tenantId?: string): Promise<Route[]> {
+  const query = tenantId ? `?tenant_id=${tenantId}` : "";
+  return apiGet<Route[]>(`/routes${query}`);
+}
+
 export async function getIssues(tenantId?: string, tripId?: string): Promise<Issue[]> {
   const params = new URLSearchParams();
   if (tenantId) params.append("tenant_id", tenantId);
@@ -168,4 +262,48 @@ export async function getIssues(tenantId?: string, tripId?: string): Promise<Iss
 
 export async function getTenants(): Promise<Tenant[]> {
   return apiGet<Tenant[]>("/tenants");
+}
+
+export async function getMaintenance(vehicleId?: string): Promise<Maintenance[]> {
+  const query = vehicleId ? `?vehicle_id=${vehicleId}` : "";
+  return apiGet<Maintenance[]>(`/maintenance${query}`);
+}
+
+type AgentFlowHandlers = {
+  onSnapshot?: (snapshot: AgentFlowSnapshot) => void;
+  onEvent: (event: AgentFlowEvent) => void;
+  onError?: () => void;
+};
+
+export function connectAgentFlowStream(handlers: AgentFlowHandlers): EventSource {
+  const rootUrl = API_BASE_URL.replace("/api/v1", "");
+  const source = new EventSource(`${rootUrl}/api/v1/agent-flow/stream`);
+  source.addEventListener("snapshot", (e) => {
+    if (!handlers.onSnapshot) return;
+    try {
+      handlers.onSnapshot(JSON.parse((e as MessageEvent).data) as AgentFlowSnapshot);
+    } catch {
+      // Ignore malformed payloads to keep stream alive.
+    }
+  });
+  source.addEventListener("agentflow", (e) => {
+    try {
+      handlers.onEvent(JSON.parse((e as MessageEvent).data) as AgentFlowEvent);
+    } catch {
+      // Ignore malformed payloads to keep stream alive.
+    }
+  });
+  source.onerror = () => {
+    handlers.onError?.();
+  };
+  return source;
+}
+
+export async function emitTelemetrySimulatorEvent(input: {
+  kind: SimulatorEventKind;
+  trip_id: string;
+  truck_id: string;
+  driver_id: string;
+}): Promise<SimulatorEmitResponse> {
+  return apiPost<SimulatorEmitResponse>("/simulator/emit", input);
 }

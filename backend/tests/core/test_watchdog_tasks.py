@@ -1,4 +1,4 @@
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -46,11 +46,17 @@ def test_publish_queue_depths_calls_collector():
         patch.object(
             watchdog_tasks, "_collect_queue_sizes", new=AsyncMock()
         ) as collector,
+        patch.object(
+            watchdog_tasks, "_publish_worker_health", new=AsyncMock()
+        ) as publish_health,
     ):
         collector.return_value = {"td:agent:safety": 1}
-        MockRedis.return_value = object()
+        MockRedis.return_value = MagicMock()
         result = watchdog_tasks.publish_queue_depths.run()
 
+    collector.assert_awaited_once()
+    publish_health.assert_awaited_once()
+    assert publish_health.await_args[0][1] == {"td:agent:safety": 1}
     assert result["status"] == "ok"
     assert result["task"] == "publish_queue_depths"
     assert result["queues"]["td:agent:safety"] == 1

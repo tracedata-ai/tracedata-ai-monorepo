@@ -118,3 +118,10 @@ class RedisSchema:
         def lock_info(trip_id: str) -> str:
             """Lock metadata (locked_by, locked_at)."""
             return f"lock:info:{trip_id}"
+
+    class AgentFlow:
+        """Global Agent Flow observability keys."""
+
+        EVENTS_CHANNEL: str = "agentflow:events"
+        STATE_KEY: str = "agentflow:state:current"
+        SEQ_KEY: str = "agentflow:seq"

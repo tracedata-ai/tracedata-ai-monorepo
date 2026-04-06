@@ -341,7 +341,13 @@ def test_safety_task_calls_run_async():
         mock_run_async.side_effect = lambda c: _close_coro_and_return(c, ret)
         out = safety_tasks.analyse_event.run(intent_capsule=capsule)
 
-    mock_run_async.assert_called_once()
+    assert mock_run_async.call_count == 3
+    names = [c.args[0].__name__ for c in mock_run_async.call_args_list]
+    assert names == [
+        "_publish_agent_flow",
+        "_analyse_event_async",
+        "_publish_agent_flow",
+    ]
     assert out["trip_id"] == "T1"
 
 
@@ -364,7 +370,13 @@ def test_sentiment_task_calls_run_async():
         mock_run_async.side_effect = lambda c: _close_coro_and_return(c, ret)
         out = sentiment_tasks.analyse_feedback.run(intent_capsule=capsule)
 
-    mock_run_async.assert_called_once()
+    assert mock_run_async.call_count == 3
+    names = [c.args[0].__name__ for c in mock_run_async.call_args_list]
+    assert names == [
+        "_publish_agent_flow",
+        "_analyse_feedback_async",
+        "_publish_agent_flow",
+    ]
     assert out["agent"] == "sentiment"
 
 
@@ -387,5 +399,11 @@ def test_support_task_calls_run_async():
         mock_run_async.side_effect = lambda c: _close_coro_and_return(c, ret)
         out = support_tasks.generate_coaching.run(intent_capsule=capsule)
 
-    mock_run_async.assert_called_once()
+    assert mock_run_async.call_count == 3
+    names = [c.args[0].__name__ for c in mock_run_async.call_args_list]
+    assert names == [
+        "_publish_agent_flow",
+        "_generate_coaching_async",
+        "_publish_agent_flow",
+    ]
     assert out["trip_id"] == "T1"

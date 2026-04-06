@@ -1,11 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getTrips, type Trip } from "@/lib/api";
+import { getWorkflowTrips, type WorkflowTrip } from "@/lib/api";
 import { DashboardPageTemplate } from "@/components/shared/DashboardPageTemplate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DataTable } from "@/components/data-table";
-import { type TripRow } from "@/lib/sample-data";
 import { ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -54,6 +53,15 @@ const columns: ColumnDef<TripRow>[] = [
   },
 ];
 
+type TripRow = {
+  id: string;
+  driver: string;
+  routeName: string;
+  startedAt: string;
+  etaMinutes: number;
+  status: "In Transit" | "Delayed" | "Completed";
+};
+
 export default function TripsPage() {
   const [trips, setTrips] = useState<TripRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -61,15 +69,23 @@ export default function TripsPage() {
   useEffect(() => {
     async function loadTrips() {
       try {
-        const data = await getTrips();
-        const mapped: TripRow[] = data.map((t: Trip) => ({
-          id: t.id.substring(0, 8),
-          routeName: "Singapore Hub Corridor", // Placeholder
-          driver: "Assigned Driver", // Placeholder
+        const tripsData = await getWorkflowTrips();
+        const now = Date.now();
+        const mapped: TripRow[] = tripsData.map((t: WorkflowTrip) => {
+          const started = new Date(t.started_at || t.updated_at || new Date().toISOString());
+          const minutesRunning = Math.max(
+            0,
+            Math.floor((now - started.getTime()) / 60000)
+          );
+          return ({
+          id: t.trip_id.slice(0, 12),
+          routeName: t.truck_id,
+          driver: t.driver_id,
           status: t.status === "active" ? "In Transit" : "Completed",
-          startedAt: new Date(t.created_at).toLocaleTimeString(),
-          etaMinutes: t.status === "active" ? 45 : 0,
-        }));
+          startedAt: started.toLocaleTimeString(),
+          etaMinutes: t.status === "active" ? Math.max(5, 120 - minutesRunning) : 0,
+        });
+        });
         setTrips(mapped);
       } catch (error) {
         console.error("Failed to fetch trips:", error);
