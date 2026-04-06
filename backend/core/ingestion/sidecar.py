@@ -29,7 +29,11 @@ from typing import Any
 
 from pydantic import ValidationError
 
-from common.config.events import EVENT_MATRIX, PRIORITY_MAP
+from common.config.events import (
+    EVENT_MATRIX,
+    PRIORITY_MAP,
+    processed_queue_sort_score,
+)
 from common.models.enums import Priority
 from common.models.events import TelemetryPacket, TripEvent
 from common.redis.keys import RedisSchema
@@ -170,10 +174,13 @@ class IngestionSidecar:
         trip_event = self._transformer.transform(packet)
         trip_event_json = trip_event.model_dump_json()
 
+        processed_score = processed_queue_sort_score(
+            trip_event.timestamp, priority_score
+        )
         await self._redis.push_to_processed(
             RedisSchema.Telemetry.processed(truck_id),
             trip_event_json,
-            priority_score,
+            processed_score,
         )
 
         logger.info(

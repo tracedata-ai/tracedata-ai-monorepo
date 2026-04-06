@@ -34,7 +34,7 @@ class PacketTransformer:
     def transform(self, packet: TelemetryPacket) -> TripEvent:
         """
         Converts a validated, scrubbed TelemetryPacket into a flat TripEvent.
-        Resolves category and numeric priority from EVENT_MATRIX.
+        Resolves category and priority from EVENT_MATRIX (governance overrides device).
         """
         event = packet.event
         config = EVENT_MATRIX[event.event_type]
@@ -50,7 +50,7 @@ class PacketTransformer:
             # ── Classification (governed by EVENT_MATRIX) ──────────────────
             event_type=event.event_type,
             category=config.category,
-            priority=event.priority,
+            priority=config.priority,
             # ── Temporal anchor ────────────────────────────────────────────
             timestamp=event.timestamp,
             offset_seconds=event.offset_seconds,

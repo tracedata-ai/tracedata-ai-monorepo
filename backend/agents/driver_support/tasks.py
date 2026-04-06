@@ -4,7 +4,6 @@ Driver Support Agent — Celery task definition.
 Location: backend/agents/driver_support/tasks.py
 """
 
-import asyncio
 import logging
 
 from celery import shared_task
@@ -12,12 +11,44 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.pool import NullPool
 
 from agents.driver_support.agent import SupportAgent
+from common.celery_async import run_async
 from common.config.settings import get_settings
 from common.redis.client import RedisClient
 from common.redis.keys import RedisSchema
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
+
+
+async def _generate_coaching_async(intent_capsule: dict) -> dict:
+    trip_id = intent_capsule.get("trip_id", "unknown")
+    task_engine = create_async_engine(
+        settings.database_url,
+        poolclass=NullPool,
+        echo=settings.debug,
+    )
+    redis = RedisClient()
+    try:
+        agent = SupportAgent(engine_param=task_engine, redis_client=redis)
+        result = await agent.run(intent_capsule)
+        completion = {
+            "trip_id": trip_id,
+            "agent": "driver_support",
+            "status": "done",
+            "action_sla": "3_days",
+            "final": True,
+            "result": result,
+        }
+        channel = RedisSchema.Trip.events_channel(trip_id)
+        await redis.publish_completion(
+            channel=channel,
+            event=completion,
+            ttl=RedisSchema.Trip.EVENT_TTL,
+        )
+        return completion
+    finally:
+        await redis.close()
+        await task_engine.dispose()
 
 
 @shared_task(
@@ -30,10 +61,7 @@ settings = get_settings()
 def generate_coaching(self, intent_capsule: dict) -> dict:
     """
     Driver Support Agent Celery task.
-    Coaching is always batched to end-of-trip — never dispatched mid-trip.
-
-    Sprint 2: stub — returns dummy coaching tips.
-    Sprint 3: LLM call with SHAP features + flagged_events.
+    Coaching is batched to end-of-trip — never dispatched mid-trip.
     """
     trip_id = intent_capsule.get("trip_id", "unknown")
 
@@ -42,34 +70,7 @@ def generate_coaching(self, intent_capsule: dict) -> dict:
     )
 
     try:
-        task_engine = create_async_engine(
-            settings.database_url,
-            poolclass=NullPool,
-            echo=settings.debug,
-        )
-        redis = RedisClient()
-        agent = SupportAgent(engine_param=task_engine, redis_client=redis)
-
-        result = asyncio.run(agent.run(intent_capsule))
-        asyncio.run(task_engine.dispose())
-
-        completion = {
-            "trip_id": trip_id,
-            "agent": "driver_support",
-            "status": "done",
-            "action_sla": "3_days",
-            "final": True,  # DSP is last in end-of-trip chain
-            "result": result,
-        }
-        channel = RedisSchema.Trip.events_channel(trip_id)
-        asyncio.run(
-            redis.publish_completion(
-                channel=channel,
-                event=completion,
-                ttl=RedisSchema.Trip.EVENT_TTL,
-            )
-        )
-
+        completion = run_async(_generate_coaching_async(intent_capsule))
         logger.info(
             {"action": "task_complete", "task": "generate_coaching", "trip_id": trip_id}
         )

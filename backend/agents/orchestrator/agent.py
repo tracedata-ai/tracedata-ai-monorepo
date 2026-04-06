@@ -28,6 +28,10 @@ from langchain_openai import ChatOpenAI
 
 from agents.base.agent import Agent
 from agents.orchestrator.db_manager import DBManager
+from agents.orchestrator.prompts import (
+    ORCHESTRATOR_SYSTEM_PROMPT,
+    build_orchestrator_routing_user_message,
+)
 from agents.orchestrator.tools import ORCHESTRATOR_TOOLS
 from common.config.events import (
     PRIORITY_MAP,
@@ -72,108 +76,6 @@ def _get_llm():
         raise ValueError(
             "No LLM API key configured. Set OPENAI_API_KEY or ANTHROPIC_API_KEY"
         )
-
-
-# ── System Prompt for Orchestrator ────────────────────────────────────────────
-ORCHESTRATOR_SYSTEM_PROMPT = """
-You are the TraceData OrchestratorAgent. Your job is to make routing decisions 
-for events flowing through the multi-agent system.
-
-ARCHITECTURE:
-- EventMatrix is the SINGLE SOURCE OF TRUTH for event behavior
-- You validate decisions using LLM reasoning
-- You use the tools to look up event configuration
-
-YOUR WORKFLOW:
-═════════════════════════════════════════════════════════════════════════════
-
-1. LOOKUP EVENT IN EVENTMATRIX
-   
-   Use tool: get_event_config(trigger_event_type)
-   
-   This returns:
-   - event_type: The event name
-   - category: Event category (critical, harsh_events, trip_lifecycle, etc.)
-   - priority: Event priority (CRITICAL, HIGH, MEDIUM, LOW)
-   - priority_score: Redis ZSet score (0=CRITICAL, 3=HIGH, 6=MEDIUM, 9=LOW)
-   - ml_weight: Machine learning weighting factor
-   - action: What should happen (source of truth!)
-   - agents_from_action: List of agents that should run
-
-2. INTERPRET THE ACTION FIELD (This is the key!)
-   
-   The 'action' field tells you which agents should run:
-   
-   - "Emergency Alert & 911" → dispatch ["safety"]
-   - "Emergency Alert" → dispatch ["safety"]
-   - "Fleet Alert" → dispatch ["safety"]
-   - "Coaching" → dispatch ["scoring", "support"]
-   - "Regulatory" → dispatch ["scoring"]
-   - "Scoring" → dispatch ["scoring"]
-   - "Sentiment" → dispatch ["sentiment"]
-   - "Support" → dispatch ["support"]
-     (internal event type "coaching_ready" uses this — Support only, after scoring output exists)
-   - "HITL" → dispatch ["human_in_the_loop"]
-   - "Analytics" → dispatch []
-   - "Logging" → dispatch []
-   - "Reward Bonus" → dispatch []
-   - "Reject & Log" → dispatch []
-
-3. RETURN YOUR DECISION (JSON ONLY)
-   
-   Return ONLY valid JSON, no extra text:
-   
-   {
-     "trip_id": "TRIP-...",
-     "event_type": "harsh_brake",
-     "priority_score": 3,
-     "agents_to_dispatch": ["scoring", "support"],
-     "action": "Coaching",
-     "reasoning": "EventMatrix lookup returned action='Coaching'. 
-                   Maps to [scoring, support] agents per standard mapping."
-   }
-
-KEY PRINCIPLES:
-═════════════════════════════════════════════════════════════════════════════
-
-✓ EventMatrix is SINGLE SOURCE OF TRUTH
-  - Always look it up using get_event_config tool
-  - Don't guess or hallucinate agent names
-
-✓ Deterministic routing
-  - Same event type → same actions (unless edge cases detected)
-  - Use tool first, then decide
-
-✓ Return JSON only
-  - Valid JSON with required fields
-  - No markdown, no extra text
-
-✓ Empty dispatch list is valid
-  - Some events (like "smoothness_log") don't need agents
-  - Just return empty agents_to_dispatch list
-
-EXAMPLE:
-═════════════════════════════════════════════════════════════════════════════
-
-Trip receives event: "harsh_brake"
-
-1. Call get_event_config("harsh_brake")
-   → Returns: action="Coaching", priority="HIGH", priority_score=3
-
-2. Map action "Coaching" → agents ["scoring", "support"]
-
-3. Return:
-   {
-     "trip_id": "TRIP-abc123...",
-     "event_type": "harsh_brake",
-     "priority_score": 3,
-     "agents_to_dispatch": ["scoring", "support"],
-     "action": "Coaching",
-     "reasoning": "EventMatrix action 'Coaching' maps to [scoring, support] agents."
-   }
-
-Let's route this event!
-"""
 
 
 class OrchestratorAgent:
@@ -533,6 +435,10 @@ class OrchestratorAgent:
 
         if warming_type == "event-driven":
             await self._warm_event_driven(event, agents_to_dispatch)
+            # COACHING / REGULATORY events use event-driven warming, but if routing
+            # still dispatches scoring (e.g. harsh_brake), ScoringAgent needs all_pings.
+            if "scoring" in agents_to_dispatch:
+                await self._warm_aggregation_driven(event, ["scoring"])
 
         elif warming_type == "aggregation-driven":
             await self._warm_aggregation_driven(event, agents_to_dispatch)
@@ -1110,6 +1016,18 @@ class OrchestratorAgent:
                 RedisSchema.Trip.agent_data(trip_id, agent_name, "current_event"),
                 RedisSchema.Trip.agent_data(trip_id, agent_name, "trip_context"),
             ]
+            # For harsh-event coaching paths, Scoring is also warmed with
+            # aggregation keys. Include them so the scoring task can read
+            # all_pings/historical_avg instead of falling back to no_pings_data.
+            if agent_name == "scoring":
+                read_keys.extend(
+                    [
+                        RedisSchema.Trip.agent_data(trip_id, agent_name, "all_pings"),
+                        RedisSchema.Trip.agent_data(
+                            trip_id, agent_name, "historical_avg"
+                        ),
+                    ]
+                )
 
         elif warming_type == "aggregation-driven":
             # Aggregation-driven agents get specific keys based on agent type
@@ -1206,23 +1124,7 @@ class OrchestratorAgent:
         Returns:
             dict with keys: agents_to_dispatch, priority_score, action, reasoning
         """
-        user_prompt = f"""
-You are routing an event from a vehicle telematics system.
-
-Event Details:
-- Trip ID: {event.trip_id}
-- Event Type: {event.event_type}
-- Driver ID: {event.driver_id}
-- Truck ID: {event.truck_id}
-- Priority: {event.priority}
-- Timestamp: {event.timestamp}
-
-Your task:
-1. Use get_event_config tool to look up this event type in EventMatrix
-2. Interpret the action field and determine which agents should run
-3. Return your routing decision as valid JSON
-
-Return ONLY the JSON object, no additional text."""
+        user_prompt = build_orchestrator_routing_user_message(event)
 
         input_data = {
             "messages": [

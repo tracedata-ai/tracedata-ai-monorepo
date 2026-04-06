@@ -15,19 +15,12 @@ import logging
 from langchain_core.tools import tool
 
 from common.config.events import (
-    ACTION_TO_AGENTS,
     EVENT_MATRIX,
     PRIORITY_MAP,
-    Action,
+    compute_routing_agents,
 )
 
 logger = logging.getLogger(__name__)
-
-
-def _action_to_agents(action: Action) -> list[str]:
-    """Convert Action enum to list of agents that should run."""
-    agents = ACTION_TO_AGENTS.get(action, set())
-    return [agent.value for agent in agents]
 
 
 # ==============================================================================
@@ -64,8 +57,8 @@ def get_event_config(trigger_event_type: str) -> str:
             }
         )
 
-    # Get agents from action
-    agents_from_action = _action_to_agents(event_config.action)
+    # Routing: action mapping + safety for all HIGH/CRITICAL events
+    agents_from_action = compute_routing_agents(event_config)
 
     # Convert priority to score
     priority_score = PRIORITY_MAP.get(event_config.priority, 9)

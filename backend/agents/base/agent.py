@@ -326,7 +326,7 @@ class TDAgentBase(ABC):
             channel = RedisSchema.Trip.events_channel(trip_id)
             await self._redis._client.publish(
                 channel,
-                json.dumps(completion_event),
+                json.dumps(completion_event, cls=DateTimeEncoder),
             )
 
             logger.info(

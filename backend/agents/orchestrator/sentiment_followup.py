@@ -14,7 +14,7 @@ from datetime import UTC, datetime
 
 from sqlalchemy.ext.asyncio import AsyncEngine
 
-from common.config.events import EVENT_MATRIX, PRIORITY_MAP
+from common.config.events import EVENT_MATRIX, PRIORITY_MAP, processed_queue_sort_score
 from common.db.repositories.events_repo import EventsRepo
 from common.db.repositories.trips_repo import TripsRepo
 from common.models.enums import Priority, Source
@@ -131,7 +131,8 @@ async def _schedule_sentiment_ready_if_success_impl(
         source=Source.SYSTEM,
     )
     proc_key = RedisSchema.Telemetry.processed(str(truck_id))
-    score = PRIORITY_MAP.get(cfg.priority.value, 6)
+    tier = PRIORITY_MAP.get(str(cfg.priority.value), 6)
+    score = processed_queue_sort_score(event.timestamp, tier)
     await redis.push_to_processed(proc_key, event.model_dump_json(), score=score)
 
     context["sentiment_support_pending"] = True

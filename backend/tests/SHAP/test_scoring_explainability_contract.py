@@ -36,7 +36,9 @@ def test_deterministic_payload_exposes_shap_explanation_shape():
     assert explanation["method"] == "deterministic_heuristic"
     assert isinstance(explanation["top_features"], list)
     assert len(explanation["top_features"]) >= 3
-    assert all("feature" in item and "impact" in item for item in explanation["top_features"])
+    assert all(
+        "feature" in item and "impact" in item for item in explanation["top_features"]
+    )
 
 
 @pytest.mark.xai

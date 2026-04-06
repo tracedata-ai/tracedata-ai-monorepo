@@ -2,7 +2,6 @@
 Unit tests: orchestrator cache warming (mocked Redis/DB) and Celery task async wiring.
 """
 
-import asyncio
 import importlib
 import sys
 import types
@@ -195,6 +194,44 @@ async def test_warm_cache_skips_when_no_agents(orchestrator_mocks):
 
 
 @pytest.mark.asyncio
+async def test_warm_cache_event_driven_with_scoring_also_warms_all_pings(
+    orchestrator_mocks,
+):
+    """harsh_brake is event-driven; scoring still needs aggregation cache."""
+    orch, fake_redis = orchestrator_mocks
+    event = _trip_event("harsh_brake", trip_id="TRP-SCORE-MID")
+
+    orch._get_event_data = AsyncMock(
+        return_value={
+            "event_id": event.event_id,
+            "event_type": "harsh_brake",
+            "severity": "high",
+        }
+    )
+    orch._get_trip_metadata = AsyncMock(
+        return_value={
+            "trip_id": event.trip_id,
+            "driver_id": "DRV-MID",
+        }
+    )
+    orch._get_all_pings_for_trip = AsyncMock(
+        return_value=[
+            {"event_type": "smoothness_log", "trip_id": event.trip_id, "details": {}}
+        ]
+    )
+    orch._get_rolling_average_score = AsyncMock(return_value=None)
+    orch._get_coaching_history = AsyncMock(return_value=[])
+
+    await orch._warm_cache(event, ["safety", "scoring"])
+
+    keys_called = {c.args[0] for c in fake_redis._client.setex.await_args_list}
+    assert (
+        RedisSchema.Trip.agent_data(event.trip_id, "scoring", "all_pings")
+        in keys_called
+    )
+
+
+@pytest.mark.asyncio
 async def test_dispatch_policy_defers_support_for_flagged_mid_trip(orchestrator_mocks):
     orch, _ = orchestrator_mocks
     event = _trip_event("harsh_brake")
@@ -279,7 +316,13 @@ async def test_release_lock_uses_device_event_id_from_capsule():
     inst.release_lock.assert_awaited_once_with("DEV-from-capsule")
 
 
-def test_safety_task_calls_asyncio_run():
+def _close_coro_and_return(coro, value):
+    """Stub for ``run_async`` in tests: avoid 'coroutine was never awaited' warnings."""
+    coro.close()
+    return value
+
+
+def test_safety_task_calls_run_async():
     import tasks.safety_tasks as safety_tasks
 
     capsule = {
@@ -293,19 +336,16 @@ def test_safety_task_calls_asyncio_run():
         "token": None,
     }
 
-    async def fake_run(_capsule):
-        return {"status": "success"}
+    ret = {"trip_id": "T1", "agent": "safety"}
+    with patch("agents.safety.tasks.run_async") as mock_run_async:
+        mock_run_async.side_effect = lambda c: _close_coro_and_return(c, ret)
+        out = safety_tasks.analyse_event.run(intent_capsule=capsule)
 
-    with patch.object(safety_tasks, "asyncio") as mock_asyncio:
-        mock_asyncio.run.side_effect = lambda coro: asyncio.run(coro)
-        with patch("tasks.safety_tasks.SafetyAgent") as MockAgent:
-            MockAgent.return_value.run = fake_run
-            safety_tasks.analyse_event.run(intent_capsule=capsule)
-
-    mock_asyncio.run.assert_called_once()
+    mock_run_async.assert_called_once()
+    assert out["trip_id"] == "T1"
 
 
-def test_sentiment_task_calls_asyncio_run():
+def test_sentiment_task_calls_run_async():
     import tasks.sentiment_tasks as sentiment_tasks
 
     capsule = {
@@ -319,19 +359,16 @@ def test_sentiment_task_calls_asyncio_run():
         "token": None,
     }
 
-    async def fake_run(_capsule):
-        return {"status": "success"}
+    ret = {"trip_id": "T1", "agent": "sentiment", "status": "done"}
+    with patch("agents.sentiment.tasks.run_async") as mock_run_async:
+        mock_run_async.side_effect = lambda c: _close_coro_and_return(c, ret)
+        out = sentiment_tasks.analyse_feedback.run(intent_capsule=capsule)
 
-    with patch.object(sentiment_tasks, "asyncio") as mock_asyncio:
-        mock_asyncio.run.side_effect = lambda coro: asyncio.run(coro)
-        with patch("tasks.sentiment_tasks.SentimentAgent") as MockAgent:
-            MockAgent.return_value.run = fake_run
-            sentiment_tasks.analyse_feedback.run(intent_capsule=capsule)
-
-    mock_asyncio.run.assert_called_once()
+    mock_run_async.assert_called_once()
+    assert out["agent"] == "sentiment"
 
 
-def test_support_task_calls_asyncio_run():
+def test_support_task_calls_run_async():
     import tasks.support_tasks as support_tasks
 
     capsule = {
@@ -345,13 +382,10 @@ def test_support_task_calls_asyncio_run():
         "token": None,
     }
 
-    async def fake_run(_capsule):
-        return {"status": "success"}
+    ret = {"trip_id": "T1", "agent": "driver_support"}
+    with patch("agents.driver_support.tasks.run_async") as mock_run_async:
+        mock_run_async.side_effect = lambda c: _close_coro_and_return(c, ret)
+        out = support_tasks.generate_coaching.run(intent_capsule=capsule)
 
-    with patch.object(support_tasks, "asyncio") as mock_asyncio:
-        mock_asyncio.run.side_effect = lambda coro: asyncio.run(coro)
-        with patch("tasks.support_tasks.SupportAgent") as MockAgent:
-            MockAgent.return_value.run = fake_run
-            support_tasks.generate_coaching.run(intent_capsule=capsule)
-
-    mock_asyncio.run.assert_called_once()
+    mock_run_async.assert_called_once()
+    assert out["trip_id"] == "T1"

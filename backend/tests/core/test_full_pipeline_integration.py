@@ -12,6 +12,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
+from common.config.events import PRIORITY_MAP, processed_queue_sort_score
 from common.models.events import TripEvent
 from core.ingestion.sidecar import IngestionSidecar
 
@@ -82,7 +83,11 @@ class TestFullPipelineFlow:
         mock_db.insert_event.assert_called_once()
         mock_redis.push_to_processed.assert_called_once()
         args = mock_redis.push_to_processed.call_args[0]
-        assert args[2] == 0
+        routed = TripEvent(**json.loads(args[1]))
+        tier = PRIORITY_MAP[str(routed.priority)]
+        assert args[2] == pytest.approx(
+            processed_queue_sort_score(routed.timestamp, tier)
+        )
 
     @pytest.mark.asyncio
     async def test_sidecar_rejects_duplicates(self, mock_redis):

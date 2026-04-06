@@ -10,6 +10,7 @@ NO magic strings - everything is Enum or StrEnum.
 """
 
 from dataclasses import dataclass, field
+from datetime import datetime
 from enum import Enum, StrEnum, auto
 
 from common.models.enums import Priority as PriorityLevel
@@ -144,8 +145,8 @@ class EventConfig:
     Event configuration: Unified routing + security governance
 
     Single source of truth for:
-    - What agents run (action + allowed_agents)
-    - What data they access (read_keys, write_keys)
+    - What agents run (``compute_routing_agents``: action + HIGH/CRITICAL → safety)
+    - Scope: allowed_agents, read_keys, write_keys
     - How it's secured (HMAC, capsule expiry, step_index)
     - How it's audited (requires_audit, forensic_capture)
     """
@@ -169,9 +170,9 @@ class EventConfig:
 
     # ── CONVENIENCE PROPERTIES ────────────────────────────
     @property
-    def agents_from_action(self) -> list[AgentType]:
-        """Get agents that should run based on action"""
-        return list(self.scope.allowed_agents)
+    def agents_from_action(self) -> list[str]:
+        """Agents to dispatch: action mapping plus safety for all HIGH/CRITICAL events."""
+        return compute_routing_agents(self)
 
     @property
     def is_critical(self) -> bool:
@@ -201,6 +202,21 @@ PRIORITY_MAP = {
 }
 
 
+def processed_queue_sort_score(timestamp: datetime, priority_tier: int) -> float:
+    """
+    Redis ZSET score for ``telemetry:*:processed``.
+
+    ``zpopmin`` returns the smallest score first, so we use event time as the
+    dominant component. Among equal timestamps, a lower ``priority_tier``
+    (more urgent, per ``PRIORITY_MAP``) sorts slightly earlier.
+
+    This avoids dispatching ``end_of_trip`` / scoring before earlier trip pings
+    have been ingested (previously the queue used only ``priority_tier``, so
+    HIGH events always ran before LOW regardless of clock time).
+    """
+    return float(timestamp.timestamp()) + (float(priority_tier) / 1_000_000.0)
+
+
 # ==============================================================================
 # ACTION → AGENTS MAPPING (Type-Safe)
 # ==============================================================================
@@ -220,6 +236,44 @@ ACTION_TO_AGENTS = {
     Action.REWARD_BONUS: set(),
     Action.REJECT_AND_LOG: set(),
 }
+
+
+# Dispatch order when multiple agents run (after safety prefix for HIGH/CRITICAL).
+_ROUTING_AGENT_ORDER: tuple[str, ...] = (
+    "safety",
+    "human_in_the_loop",
+    "scoring",
+    "support",
+    "sentiment",
+)
+
+
+def compute_routing_agents(config: "EventConfig") -> list[str]:
+    """
+    Agents to run for this event: ACTION_TO_AGENTS, then ensure safety for
+    every HIGH and CRITICAL priority event (rated trip-risk events).
+
+    Uses short dispatch id ``support`` (not ``driver_support``) to match
+    capsules, cache keys, and Celery routing.
+    """
+    members = ACTION_TO_AGENTS.get(config.action, set())
+    names: list[str] = []
+    for a in members:
+        v = "support" if a == AgentType.DRIVER_SUPPORT else a.value
+        if v not in names:
+            names.append(v)
+
+    if config.priority in (PriorityLevel.CRITICAL, PriorityLevel.HIGH):
+        if AgentType.SAFETY.value not in names:
+            names.insert(0, AgentType.SAFETY.value)
+
+    order = {n: i for i, n in enumerate(_ROUTING_AGENT_ORDER)}
+    safety = AgentType.SAFETY.value
+    if safety in names:
+        others = [n for n in names if n != safety]
+        others = sorted(others, key=lambda x: (order.get(x, 50), x))
+        return [safety, *others]
+    return sorted(names, key=lambda x: (order.get(x, 50), x))
 
 
 # ==============================================================================
@@ -312,8 +366,13 @@ EVENT_MATRIX: dict[str, EventConfig] = {
                 DataKey.TRIP_SCORES,
                 DataKey.COACHING_MESSAGE,
                 DataKey.COACHING_RULES_TRIGGERED,
+                DataKey.SAFETY_ENRICHMENT,
             },
-            allowed_agents={AgentType.SCORING, AgentType.DRIVER_SUPPORT},
+            allowed_agents={
+                AgentType.SAFETY,
+                AgentType.SCORING,
+                AgentType.DRIVER_SUPPORT,
+            },
             data_classification=DataClassification.SENSITIVE,
             requires_audit=True,
             # requires_hmac=True (default - secure by default)
@@ -338,8 +397,13 @@ EVENT_MATRIX: dict[str, EventConfig] = {
                 DataKey.TRIP_SCORES,
                 DataKey.COACHING_MESSAGE,
                 DataKey.COACHING_RULES_TRIGGERED,
+                DataKey.SAFETY_ENRICHMENT,
             },
-            allowed_agents={AgentType.SCORING, AgentType.DRIVER_SUPPORT},
+            allowed_agents={
+                AgentType.SAFETY,
+                AgentType.SCORING,
+                AgentType.DRIVER_SUPPORT,
+            },
             data_classification=DataClassification.SENSITIVE,
             requires_audit=True,
         ),
@@ -361,8 +425,13 @@ EVENT_MATRIX: dict[str, EventConfig] = {
                 DataKey.TRIP_SCORES,
                 DataKey.COACHING_MESSAGE,
                 DataKey.COACHING_RULES_TRIGGERED,
+                DataKey.SAFETY_ENRICHMENT,
             },
-            allowed_agents={AgentType.SCORING, AgentType.DRIVER_SUPPORT},
+            allowed_agents={
+                AgentType.SAFETY,
+                AgentType.SCORING,
+                AgentType.DRIVER_SUPPORT,
+            },
             data_classification=DataClassification.SENSITIVE,
             requires_audit=True,
         ),
@@ -386,17 +455,18 @@ EVENT_MATRIX: dict[str, EventConfig] = {
     "speeding": EventConfig(
         action=Action.REGULATORY,
         category="speed_compliance",
-        priority=PriorityLevel.MEDIUM,
+        priority=PriorityLevel.HIGH,
         ml_weight=0.5,
         scope=ScopeSpecification(
             read_keys={
                 DataKey.DRIVER_ID,
                 DataKey.TRIP_ID,
                 DataKey.TRIP_CONTEXT,
+                DataKey.FLAGGED_EVENTS,
             },
-            write_keys={DataKey.TRIP_SCORES},
-            allowed_agents={AgentType.SCORING},
-            data_classification=DataClassification.INTERNAL,
+            write_keys={DataKey.TRIP_SCORES, DataKey.SAFETY_ENRICHMENT},
+            allowed_agents={AgentType.SAFETY, AgentType.SCORING},
+            data_classification=DataClassification.SENSITIVE,
             requires_audit=True,
         ),
     ),
@@ -649,11 +719,11 @@ def get_agents_to_dispatch(event_type: str) -> list[str]:
     """
     Get agents that should process this event.
 
-    Returns list of agent names (e.g., ["scoring", "support"]).
+    Returns list of agent names (e.g., ["safety", "scoring", "driver_support"]).
     """
     config = EVENT_MATRIX.get(event_type)
     if config:
-        return [agent.value for agent in config.scope.allowed_agents]
+        return compute_routing_agents(config)
     return []
 
 

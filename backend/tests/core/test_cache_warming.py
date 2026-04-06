@@ -49,6 +49,12 @@ class TestEventMatrixHelpers:
         agents = get_agents_to_dispatch("harsh_brake")
         assert isinstance(agents, list)
         assert len(agents) > 0
+        assert "safety" in agents
+        assert "scoring" in agents
+
+    def test_get_agents_to_dispatch_speeding_includes_safety(self):
+        agents = get_agents_to_dispatch("speeding")
+        assert "safety" in agents
         assert "scoring" in agents
 
     def test_get_agents_to_dispatch_safety_event(self):
