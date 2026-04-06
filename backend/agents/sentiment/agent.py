@@ -204,7 +204,7 @@ class SentimentAgent(TDAgentBase):
         emotion_scores: dict[str, float],
     ) -> str:
         """LLM explanation with deterministic fallback."""
-        dominant = max(emotion_scores, key=emotion_scores.get)
+        dominant = max(emotion_scores, key=lambda key: emotion_scores[key])
         dominant_score = emotion_scores.get(dominant, 0.0)
         if self._llm is None:
             return (
