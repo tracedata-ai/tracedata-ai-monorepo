@@ -11,8 +11,8 @@ from celery import shared_task
 
 from agents.orchestrator.db_manager import DBManager
 from common.agent_flow.service import AgentFlowService
-from common.models.agent_flow import AgentFlowEvent
 from common.config.settings import get_settings
+from common.models.agent_flow import AgentFlowEvent
 from common.redis.client import RedisClient
 
 logger = logging.getLogger(__name__)

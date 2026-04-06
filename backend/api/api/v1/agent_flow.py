@@ -1,6 +1,6 @@
 import asyncio
 import json
-from typing import AsyncGenerator
+from collections.abc import AsyncGenerator
 
 from fastapi import APIRouter, Request
 from fastapi.responses import StreamingResponse
@@ -13,7 +13,9 @@ from common.redis.keys import RedisSchema
 router = APIRouter(prefix="/agent-flow", tags=["System"])
 
 
-@router.get("/state", response_model=AgentFlowSnapshot, summary="Get Agent Flow snapshot")
+@router.get(
+    "/state", response_model=AgentFlowSnapshot, summary="Get Agent Flow snapshot"
+)
 async def get_agent_flow_state() -> AgentFlowSnapshot:
     service = AgentFlowService()
     try:

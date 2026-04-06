@@ -28,12 +28,12 @@ from langchain_openai import ChatOpenAI
 
 from agents.base.agent import Agent
 from agents.orchestrator.db_manager import DBManager
-from common.agent_flow.service import AgentFlowService
 from agents.orchestrator.prompts import (
     ORCHESTRATOR_SYSTEM_PROMPT,
     build_orchestrator_routing_user_message,
 )
 from agents.orchestrator.tools import ORCHESTRATOR_TOOLS
+from common.agent_flow.service import AgentFlowService
 from common.config.events import (
     PRIORITY_MAP,
     get_warming_type,

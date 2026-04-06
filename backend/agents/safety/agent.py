@@ -158,7 +158,9 @@ class SafetyAgent(TDAgentBase):
             ts_raw = current_event.get("timestamp")
             if isinstance(ts_raw, str):
                 try:
-                    event_timestamp = datetime.fromisoformat(ts_raw.replace("Z", "+00:00"))
+                    event_timestamp = datetime.fromisoformat(
+                        ts_raw.replace("Z", "+00:00")
+                    )
                 except ValueError:
                     event_timestamp = None
 

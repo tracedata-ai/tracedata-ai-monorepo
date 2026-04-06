@@ -5,8 +5,8 @@ Scoring Agent Celery Tasks
 import logging
 
 from agents.scoring.agent import ScoringAgent
-from common.agent_flow.service import AgentFlowService
 from celery_app import app
+from common.agent_flow.service import AgentFlowService
 from common.celery_async import run_async
 from common.config.settings import get_settings
 from common.db.engine import engine

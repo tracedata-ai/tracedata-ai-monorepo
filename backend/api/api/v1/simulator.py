@@ -40,13 +40,17 @@ class SimulatorEmitResponse(BaseModel):
 
 def _select_packets(kind: EventKind, packets: list[dict]) -> list[dict]:
     if kind == "start":
-        return [p for p in packets if p.get("event", {}).get("event_type") == "start_of_trip"][
-            :1
-        ]
+        return [
+            p
+            for p in packets
+            if p.get("event", {}).get("event_type") == "start_of_trip"
+        ][:1]
     if kind == "smooth":
-        return [p for p in packets if p.get("event", {}).get("event_type") == "smoothness_log"][
-            :1
-        ]
+        return [
+            p
+            for p in packets
+            if p.get("event", {}).get("event_type") == "smoothness_log"
+        ][:1]
     if kind == "harsh":
         harsh = [
             p
@@ -54,16 +58,18 @@ def _select_packets(kind: EventKind, packets: list[dict]) -> list[dict]:
             if p.get("event", {}).get("event_type") in {"harsh_brake", "hard_accel"}
         ]
         # Prefer harsh_brake for predictable UI behavior.
-        brake = [p for p in harsh if p.get("event", {}).get("event_type") == "harsh_brake"]
+        brake = [
+            p for p in harsh if p.get("event", {}).get("event_type") == "harsh_brake"
+        ]
         return (brake or harsh)[:1]
     if kind == "end":
-        return [p for p in packets if p.get("event", {}).get("event_type") == "end_of_trip"][
-            :1
-        ]
+        return [
+            p for p in packets if p.get("event", {}).get("event_type") == "end_of_trip"
+        ][:1]
     # feedback
-    return [p for p in packets if p.get("event", {}).get("event_type") == "driver_feedback"][
-        :1
-    ]
+    return [
+        p for p in packets if p.get("event", {}).get("event_type") == "driver_feedback"
+    ][:1]
 
 
 @router.post(
@@ -84,7 +90,8 @@ async def emit_simulator_event(payload: SimulatorEmitRequest) -> SimulatorEmitRe
         packets = [all_packets[0]]
 
     validated_packets = [
-        TelemetryPacket.model_validate(packet).model_dump(mode="json") for packet in packets
+        TelemetryPacket.model_validate(packet).model_dump(mode="json")
+        for packet in packets
     ]
 
     client = redis.from_url(settings.redis_url, decode_responses=True)
