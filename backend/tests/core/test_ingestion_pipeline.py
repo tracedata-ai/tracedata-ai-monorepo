@@ -3,6 +3,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
+from common.config.events import PRIORITY_MAP, processed_queue_sort_score
 from common.models.events import TripEvent
 from core.ingestion.sidecar import IngestionSidecar
 
@@ -37,10 +38,12 @@ async def test_pipeline_success_harsh_brake(sidecar, telemetry_packet):
     sidecar._redis.push_to_processed.assert_called_once()
     args = sidecar._redis.push_to_processed.call_args[0]
 
-    # Priority for harsh brake should be 3 (HIGH)
-    assert args[2] == 3
-
     pushed_event = TripEvent(**json.loads(args[1]))
+    tier = PRIORITY_MAP[str(pushed_event.priority)]
+    assert args[2] == pytest.approx(
+        processed_queue_sort_score(pushed_event.timestamp, tier)
+    )
+
     assert pushed_event.driver_id.startswith("DRV-ANON-")
 
     # Check GPS rounding (2dp)

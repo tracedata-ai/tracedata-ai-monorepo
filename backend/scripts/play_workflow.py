@@ -6,6 +6,7 @@ See ``docs/workflow_testing.md`` for the full testing guide.
 From ``backend/``:
 
   python scripts/play_workflow.py --fixture scoring_harsh_long_trip
+  python scripts/play_workflow.py --fixture safety_collision_trip
   python scripts/play_workflow.py --fixture minimal_trip --truck TK001 --trip-id TRP-MY-SMOKE
   python scripts/play_workflow.py --json path/to/events.json --truck T12345
   python scripts/play_workflow.py --fixture minimal_trip --no-reset

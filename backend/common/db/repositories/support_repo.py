@@ -2,9 +2,10 @@
 SENTIMENT & SUPPORT AGENT REPOSITORIES
 
 Layer 1 Enforcement:
-  Each agent receives ONLY its repo → impossible to write to other schemas
+  Each agent receives ONLY its repo -> impossible to write to other schemas
 """
 
+import json
 from typing import Any
 
 from common.db.schema_repository import SchemaRepository
@@ -36,7 +37,7 @@ class SentimentRepository(SchemaRepository):
                 "feedback_text": feedback_text,
                 "score": sentiment_score,
                 "label": sentiment_label,
-                "analysis": analysis,
+                "analysis": json.dumps(analysis),
             },
         )
 

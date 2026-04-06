@@ -217,6 +217,60 @@ def harsh_brake_packet(
     }
 
 
+def collision_packet(
+    *,
+    trip_id: str,
+    truck_id: str,
+    driver_id: str,
+    at: datetime,
+    offset_seconds: int,
+    trip_meter_km: float,
+    odometer_km: float,
+    batch_id: str | None = None,
+    event_id: str | None = None,
+    device_event_id: str | None = None,
+) -> dict[str, Any]:
+    if event_id and device_event_id:
+        eid, did = event_id, device_event_id
+    else:
+        eid, did = new_ids("collision")
+    bid = batch_id or f"BAT-collision-{uuid.uuid4().hex[:12]}"
+    return {
+        "batch_id": bid,
+        "ping_type": "emergency",
+        "source": "telematics_device",
+        "is_emergency": True,
+        "event": {
+            "event_id": eid,
+            "device_event_id": did,
+            "trip_id": trip_id,
+            "truck_id": truck_id,
+            "driver_id": driver_id,
+            "batch_id": bid,
+            "event_type": "collision",
+            "category": "critical",
+            "priority": "critical",
+            "severity": "critical",
+            "timestamp": _iso(at),
+            "offset_seconds": offset_seconds,
+            "trip_meter_km": trip_meter_km,
+            "odometer_km": odometer_km,
+            "location": {"lat": 1.31, "lon": 103.86},
+            "schema_version": "event_v1",
+            "details": {
+                "impact_force_g": 2.4,
+                "speed_kmh": 35,
+                "airbags_deployed": False,
+            },
+        },
+        "evidence": {
+            "video_url": f"s3://tracedata-clips/{bid}.mp4",
+            "video_duration_seconds": 60,
+            "capture_offset_seconds": -20,
+        },
+    }
+
+
 def end_of_trip_packet(
     *,
     trip_id: str,

@@ -495,6 +495,7 @@ class EventsRepo:
                     row["evidence_sensor_url"],
                     row["raw_payload"],
                 )
+                details = _parse_json_field(row["details"])
                 pings.append(
                     {
                         "event_id": row["event_id"],
@@ -504,7 +505,8 @@ class EventsRepo:
                         "timestamp": (
                             row["timestamp"].isoformat() if row["timestamp"] else None
                         ),
-                        "data": _parse_json_field(row["details"]),
+                        "data": details,
+                        "details": details,
                         "severity": row["severity"],
                         "location": location,
                         "evidence": evidence,

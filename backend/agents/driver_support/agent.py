@@ -1,24 +1,41 @@
 """
-Support Agent — with scoped repository.
+Support Agent — TDAgentBase + LangGraph tool loop (+ deterministic fallback).
 
-Uses SupportRepository to ONLY write to coaching_schema tables.
-Generates coaching messages for drivers.
+Uses SupportRepository for coaching_schema writes only.
 """
 
 import logging
 from typing import Any
 
+from langchain_core.messages import HumanMessage, SystemMessage
+
 from agents.base.agent import TDAgentBase
+from agents.base.langgraph_runner import (
+    build_tool_loop_graph,
+    parse_json_from_last_ai_message,
+)
+from agents.driver_support.prompts import (
+    SUPPORT_SYSTEM_PROMPT,
+    build_support_user_message,
+)
+from agents.driver_support.tools import (
+    baseline_support_coaching,
+    build_support_tools,
+    merge_support_json_with_baseline,
+)
 from common.cache.reader import CacheReader
 from common.db.engine import engine
 from common.db.repositories.support_repo import SupportRepository
+from common.llm import OpenAIModel, load_llm
+from common.models.security import IntentCapsule
 from common.redis.client import RedisClient
+from common.redis.keys import RedisSchema
 
 logger = logging.getLogger(__name__)
 
 
 class SupportAgent(TDAgentBase):
-    """Generates coaching messages for drivers."""
+    """Post-trip and event-driven coaching via LangGraph tools + SupportRepository."""
 
     AGENT_NAME = "support"
 
@@ -26,17 +43,35 @@ class SupportAgent(TDAgentBase):
         self,
         engine_param=None,
         redis_client: RedisClient | None = None,
+        llm: Any | None = None,
     ):
-        """Initialize with support-specific repo."""
         super().__init__(engine_param or engine, redis_client)
         self.support_repo = SupportRepository(self._engine)
+        if llm is not None:
+            self._llm = llm
+        else:
+            try:
+                self._llm = load_llm(OpenAIModel.GPT_4O_MINI).adapter.get_chat_model()
+            except Exception as exc:
+                logger.warning(
+                    {"action": "support_llm_unavailable", "error": str(exc)},
+                )
+                self._llm = None
+
+    async def run(self, capsule_data: dict) -> dict[str, Any]:
+        capsule = IntentCapsule.model_validate(capsule_data)
+        result = await super().run(capsule_data)
+        if result.get("status") != "success":
+            return result
+
+        await self._update_trip_context_with_support_output(capsule.trip_id, result)
+        return result
 
     async def _execute(
         self,
         trip_id: str,
         cache_data: dict[str, Any],
     ) -> dict[str, Any]:
-        """Generate coaching message for driver."""
         try:
             raw = CacheReader.by_key_markers(
                 cache_data,
@@ -68,41 +103,41 @@ class SupportAgent(TDAgentBase):
                 else "driver_id_placeholder"
             )
 
-            history_n = len(coaching_history or [])
-            if history_n > 0:
-                coaching_category = "follow_up"
-                coaching_message = (
-                    f"Continuing coaching — {history_n} prior notes on this trip. "
-                    "Keep applying prior guidance and drive safely."
-                )
-                priority = "normal"
-            elif current_event:
-                coaching_category = "event_based"
-                evt_type = current_event.get("event_type", "event")
-                coaching_message = f"Coaching for {evt_type}: focus on smooth braking, speed, and follow distance."
-                priority = (
-                    "high"
-                    if str(evt_type).lower() in ("harsh_brake", "collision")
-                    else "normal"
-                )
-            elif scoring_snapshot is not None or safety_snapshot is not None:
-                coaching_category = "post_trip"
-                score_hint = ""
-                if isinstance(scoring_snapshot, dict):
-                    s = scoring_snapshot.get("score")
-                    if s is not None:
-                        score_hint = f" Trip score: {s}."
-                coaching_message = (
-                    "Post-trip coaching using your score and latest safety summary."
-                    + score_hint
-                )
-                priority = "normal"
-            else:
-                coaching_category = "general"
-                coaching_message = "Keep safe driving practices!"
-                priority = "normal"
+            baseline = baseline_support_coaching(
+                trip_context,
+                coaching_history,
+                current_event,
+                scoring_snapshot,
+                safety_snapshot,
+            )
+            merged = baseline
 
-            # Write to coaching_schema (Layer 1: only this repo available)
+            if self._llm is not None:
+                tools = build_support_tools(
+                    trip_context,
+                    coaching_history,
+                    current_event,
+                    scoring_snapshot,
+                    safety_snapshot,
+                )
+                graph = build_tool_loop_graph(self._llm, tools)
+                driver_hint = str(driver_id)
+                messages = [
+                    SystemMessage(content=SUPPORT_SYSTEM_PROMPT),
+                    HumanMessage(
+                        content=build_support_user_message(trip_id, driver_hint)
+                    ),
+                ]
+                thread_id = f"{trip_id}:support:run"
+                config = {"configurable": {"thread_id": thread_id}}
+                result = await graph.ainvoke({"messages": messages}, config=config)
+                parsed = parse_json_from_last_ai_message(result)
+                merged = merge_support_json_with_baseline(parsed, baseline)
+
+            coaching_category = merged["coaching_category"]
+            coaching_message = merged["message"]
+            priority = merged["priority"]
+
             coaching_id = await self.support_repo.write_coaching(
                 trip_id=trip_id,
                 driver_id=driver_id,
@@ -123,6 +158,8 @@ class SupportAgent(TDAgentBase):
                 "status": "success",
                 "coaching_id": coaching_id,
                 "message": coaching_message,
+                "coaching_category": coaching_category,
+                "priority": priority,
                 "trip_id": trip_id,
             }
 
@@ -137,5 +174,24 @@ class SupportAgent(TDAgentBase):
             raise
 
     def _get_repos(self) -> dict[str, Any]:
-        """Return SupportAgent's owned repos."""
         return {"support_repo": self.support_repo}
+
+    async def _update_trip_context_with_support_output(
+        self, trip_id: str, support_output: dict[str, Any]
+    ) -> None:
+        """Persist latest support output summary into trip runtime context."""
+        context_key = RedisSchema.Trip.context(trip_id)
+        existing = await self._redis.get_trip_context(context_key)
+        context = existing if isinstance(existing, dict) else {}
+        context["latest_support_output"] = {
+            "status": support_output.get("status"),
+            "coaching_id": support_output.get("coaching_id"),
+            "message": support_output.get("message"),
+            "trip_id": support_output.get("trip_id", trip_id),
+        }
+        context.setdefault("trip_id", trip_id)
+        await self._redis.store_trip_context(
+            context_key,
+            context,
+            ttl=RedisSchema.Trip.CONTEXT_TTL_HIGH,
+        )

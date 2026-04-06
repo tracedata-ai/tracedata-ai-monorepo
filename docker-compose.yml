@@ -22,6 +22,8 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: td-api
+    env_file:
+      - .env
     command: uvicorn api.main:app --host 0.0.0.0 --port 8000
     ports:
       - "8000:8000"
@@ -42,6 +44,8 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: td-ingestion
+    env_file:
+      - .env
     command: python -m core.ingestion.worker
     environment:
       - REDIS_URL=redis://redis:6379/0
@@ -59,6 +63,8 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: td-orchestrator
+    env_file:
+      - .env
     command: python -m agents.worker orchestrator
     environment:
       - REDIS_URL=redis://redis:6379/0
@@ -78,6 +84,8 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: td-safety
+    env_file:
+      - .env
     working_dir: /app
     command: celery -A celery_app worker -Q td:agent:safety -n safety@%h --loglevel=info
     environment:
@@ -93,6 +101,8 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: td-scoring
+    env_file:
+      - .env
     working_dir: /app
     command: celery -A celery_app worker -Q td:agent:scoring -n scoring@%h --loglevel=info
     environment:
@@ -113,6 +123,8 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: td-support
+    env_file:
+      - .env
     working_dir: /app
     command: celery -A celery_app worker -Q td:agent:support -n support@%h --loglevel=info
     environment:
@@ -128,6 +140,8 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: td-sentiment
+    env_file:
+      - .env
     working_dir: /app
     command: celery -A celery_app worker -Q td:agent:sentiment -n sentiment@%h --loglevel=info
     environment:

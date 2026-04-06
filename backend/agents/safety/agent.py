@@ -1,82 +1,145 @@
 """
-Safety Agent — with scoped repository.
+Safety Agent — TDAgentBase + LangGraph tool loop (+ deterministic fallback).
 
-Uses SafetyRepository to ONLY write to safety_schema tables.
-Layer 1 enforcement: repo injection makes it impossible to write elsewhere.
+Uses SafetyRepository for safety_schema writes only.
 """
 
 import logging
 from typing import Any
 
+from langchain_core.messages import HumanMessage, SystemMessage
+
 from agents.base.agent import TDAgentBase
+from agents.base.langgraph_runner import (
+    build_tool_loop_graph,
+    parse_json_from_last_ai_message,
+)
+from agents.safety.prompts import SAFETY_SYSTEM_PROMPT, build_safety_user_message
+from agents.safety.tools import (
+    baseline_safety_assessment,
+    build_safety_tools,
+    merge_safety_json_with_baseline,
+)
 from common.cache.reader import CacheReader
+from common.db.engine import engine as default_db_engine
 from common.db.repositories.safety_repo import SafetyRepository
+from common.llm import OpenAIModel, load_llm
+from common.models.security import IntentCapsule
 from common.redis.client import RedisClient
+from common.redis.keys import RedisSchema
 
 logger = logging.getLogger(__name__)
 
 
 class SafetyAgent(TDAgentBase):
     """
-    Analyzes safety-critical events (collisions, harsh braking, etc).
-
-    Uses SafetyRepository for database writes.
-    Layer 1 enforcement: can ONLY write to safety_schema tables.
+    Safety-critical event triage via LangGraph (tools + optional LLM), then repo writes.
     """
 
     AGENT_NAME = "safety"
 
     def __init__(
         self,
-        engine=None,
+        engine_param=None,
         redis_client: RedisClient | None = None,
+        llm: Any | None = None,
     ):
-        """Initialize with safety-specific repo."""
-        super().__init__(engine or engine, redis_client)
+        super().__init__(engine_param or default_db_engine, redis_client)
         self.safety_repo = SafetyRepository(self._engine)
+        if llm is not None:
+            self._llm = llm
+        else:
+            try:
+                self._llm = load_llm(OpenAIModel.GPT_4O_MINI).adapter.get_chat_model()
+            except Exception as exc:
+                logger.warning(
+                    {"action": "safety_llm_unavailable", "error": str(exc)},
+                )
+                self._llm = None
+
+    async def run(self, capsule_data: dict) -> dict[str, Any]:
+        capsule = IntentCapsule.model_validate(capsule_data)
+        result = await super().run(capsule_data)
+        if result.get("status") != "success":
+            return result
+        await self._update_trip_context_with_safety_output(capsule.trip_id, result)
+        return result
+
+    async def _update_trip_context_with_safety_output(
+        self, trip_id: str, safety_output: dict[str, Any]
+    ) -> None:
+        """Merge latest safety summary into trip runtime context (Redis)."""
+        context_key = RedisSchema.Trip.context(trip_id)
+        existing = await self._redis.get_trip_context(context_key)
+        context = existing if isinstance(existing, dict) else {}
+        context["latest_safety_output"] = {
+            "status": safety_output.get("status"),
+            "decision_id": safety_output.get("decision_id"),
+            "decision": safety_output.get("decision"),
+            "action": safety_output.get("action"),
+            "severity": safety_output.get("severity"),
+            "trip_id": safety_output.get("trip_id", trip_id),
+        }
+        context.setdefault("trip_id", trip_id)
+        await self._redis.store_trip_context(
+            context_key,
+            context,
+            ttl=RedisSchema.Trip.CONTEXT_TTL_HIGH,
+        )
 
     async def _execute(
         self,
         trip_id: str,
         cache_data: dict[str, Any],
     ) -> dict[str, Any]:
-        """
-        Analyze safety event.
-
-        Data comes from pre-warmed cache (no DB queries during analysis!):
-          - current_event (1-2 KB from event-driven warming)
-          - trip_context (1-2 KB)
-        """
         try:
             found = CacheReader.by_key_markers(
                 cache_data, "current_event", "trip_context"
             )
             current_event = found["current_event"]
             trip_context = found["trip_context"]
+            trip_ctx_dict = trip_context if isinstance(trip_context, dict) else {}
 
-            if not current_event:
+            if not current_event or not isinstance(current_event, dict):
                 return {
                     "status": "error",
                     "reason": "no_event_data",
                     "trip_id": trip_id,
                 }
 
-            # Analyze severity
-            severity = await self._assess_severity(current_event)
+            baseline = baseline_safety_assessment(current_event, trip_ctx_dict)
+            merged = baseline
 
-            # Determine action
-            action = await self._determine_action(severity)
+            if self._llm is not None:
+                tools = build_safety_tools(current_event, trip_ctx_dict)
+                graph = build_tool_loop_graph(self._llm, tools)
+                evt_type = str(current_event.get("event_type", "unknown"))
+                messages = [
+                    SystemMessage(content=SAFETY_SYSTEM_PROMPT),
+                    HumanMessage(content=build_safety_user_message(trip_id, evt_type)),
+                ]
+                thread_id = (
+                    f"{trip_id}:safety:run:{current_event.get('event_id', 'evt')}"
+                )
+                config = {"configurable": {"thread_id": thread_id}}
+                result = await graph.ainvoke({"messages": messages}, config=config)
+                parsed = parse_json_from_last_ai_message(result)
+                merged = merge_safety_json_with_baseline(parsed, baseline)
 
-            # Write to safety_schema (Layer 1: only this repo available)
+            severity = float(merged["severity"])
+            action = str(merged["action"])
+            decision = str(merged["decision"])
+            reason = str(merged["reason"])
+
             decision_id = await self.safety_repo.write_safety_decision(
                 event_id=current_event.get("event_id"),
                 trip_id=trip_id,
-                decision="escalate" if severity >= 0.9 else "monitor",
+                decision=decision,
                 action=action,
-                reason=f"Severity: {severity:.2f}",
+                reason=reason,
+                recommended_action=action,
             )
 
-            # Also write analysis
             await self.safety_repo.write_harsh_event_analysis(
                 event_id=current_event.get("event_id"),
                 trip_id=trip_id,
@@ -84,8 +147,10 @@ class SafetyAgent(TDAgentBase):
                 severity=current_event.get("severity", "unknown"),
                 analysis={
                     "assessed_severity": severity,
-                    "trip_context": trip_context,
+                    "trip_context": trip_ctx_dict,
                     "recommended_action": action,
+                    "llm_path": bool(self._llm),
+                    "reason": reason,
                 },
             )
 
@@ -102,6 +167,7 @@ class SafetyAgent(TDAgentBase):
                 "status": "success",
                 "severity": severity,
                 "action": action,
+                "decision": decision,
                 "decision_id": decision_id,
                 "trip_id": trip_id,
             }
@@ -116,33 +182,5 @@ class SafetyAgent(TDAgentBase):
             )
             raise
 
-    async def _assess_severity(self, event_data: dict) -> float:
-        """
-        Assess severity of safety event.
-
-        Returns:
-            0.0-1.0 severity score
-        """
-        # Simple heuristic for now
-        severity_map = event_data.get("severity", "medium")
-        return {"critical": 1.0, "high": 0.8, "medium": 0.5, "low": 0.2}.get(
-            severity_map, 0.5
-        )
-
-    async def _determine_action(self, severity: float) -> str:
-        """
-        Determine action based on severity.
-
-        Returns:
-            Action string (e.g., "emergency_alert", "coaching")
-        """
-        if severity >= 0.9:
-            return "emergency_alert"
-        elif severity >= 0.7:
-            return "coaching"
-        else:
-            return "monitoring"
-
     def _get_repos(self) -> dict[str, Any]:
-        """Return SafetyAgent's owned repos."""
         return {"safety_repo": self.safety_repo}

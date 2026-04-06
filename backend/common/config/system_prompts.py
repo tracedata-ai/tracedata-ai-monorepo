@@ -2,6 +2,8 @@
 
 from enum import StrEnum
 
+from agents.orchestrator.prompts import ORCHESTRATOR_SYSTEM_PROMPT
+
 
 class PromptType(StrEnum):
     """Types of system prompts."""
@@ -104,28 +106,7 @@ Provide coaching with:
 """.strip()
 
 
-ORCHESTRATOR_SYSTEM_PROMPT = """
-You are the TraceData Orchestrator Agent.
-
-Your job:
-1. Receive trip event and determine which agents to dispatch
-2. Coordinate execution of Safety Agent for incident assessment
-3. Coordinate Scoring Agent for trip/driver evaluation  
-4. Coordinate Sentiment Agent for feedback analysis
-5. Coordinate Support Agent for coaching recommendations
-6. Synthesize final recommendation and action plan
-
-Use observations from each agent to make the final decision:
-- event_type: What triggered this orchestration?
-- agents_to_dispatch: Which agents should run?
-- priority_level: CRITICAL, HIGH, MEDIUM, LOW
-- recommended_actions: List of recommended next steps
-- escalation_to_management: True/False if needs human review
-- summary: Executive summary for operational team
-""".strip()
-
-
-# Mapping for convenient access
+# Mapping for convenient access (ORCHESTRATOR_SYSTEM_PROMPT lives in agents.orchestrator.prompts).
 SYSTEM_PROMPTS = {
     PromptType.WEATHER_TRAFFIC: WEATHER_TRAFFIC_SYSTEM_PROMPT,
     PromptType.SAFETY: SAFETY_SYSTEM_PROMPT,

@@ -23,6 +23,7 @@ import argparse
 import asyncio
 import os
 import sys
+from pathlib import Path
 
 # App root on path when run as ``python scripts/clean_datastores.py`` from backend/
 _BACKEND_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -46,11 +47,27 @@ async def _flush_redis(url: str) -> None:
         await client.aclose()
 
 
+_AGENT_SCHEMA_SQL = Path(__file__).resolve().parent / "agent_schemas.sql"
+
+
+async def _apply_agent_schema_sql(conn) -> None:
+    """Create safety / coaching / sentiment agent tables (not on SQLAlchemy Base)."""
+    if not _AGENT_SCHEMA_SQL.is_file():
+        return
+    raw = _AGENT_SCHEMA_SQL.read_text(encoding="utf-8")
+    for stmt in raw.split(";"):
+        fragment = stmt.strip()
+        if not fragment:
+            continue
+        await conn.execute(text(fragment))
+
+
 async def _reset_postgres() -> None:
     async with engine.begin() as conn:
         await conn.execute(text("CREATE SCHEMA IF NOT EXISTS scoring_schema"))
         await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)
+        await _apply_agent_schema_sql(conn)
 
 
 async def main(*, skip_redis: bool, skip_postgres: bool) -> None:

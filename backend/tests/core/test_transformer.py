@@ -93,9 +93,9 @@ class TestTransformerPriorityType:
         assert result.priority != 3
 
     def test_priority_medium_is_string(self):
-        """MEDIUM priority produces 'medium' string, not 6."""
+        """MEDIUM priority produces 'medium' string, not 6 (matrix-driven)."""
         transformer = PacketTransformer()
-        packet = make_packet("speeding", Priority.MEDIUM)
+        packet = make_packet("driver_feedback", Priority.MEDIUM)
 
         result = transformer.transform(packet)
 
@@ -120,15 +120,13 @@ class TestTransformerPriorityType:
         event_priority_pairs = [
             ("collision", Priority.CRITICAL),
             ("harsh_brake", Priority.HIGH),
-            ("speeding", Priority.MEDIUM),
+            ("speeding", Priority.HIGH),
             ("end_of_trip", Priority.LOW),
         ]
-        for event_type, priority in event_priority_pairs:
-            packet = make_packet(event_type, priority)
+        for event_type, _matrix_priority in event_priority_pairs:
+            packet = make_packet(event_type, Priority.LOW)
             result = transformer.transform(packet)
-            assert isinstance(
-                result, TripEvent
-            ), f"transform failed for {event_type}/{priority}"
+            assert isinstance(result, TripEvent), f"transform failed for {event_type}"
 
     def test_priority_survives_json_roundtrip(self):
         """Priority value is preserved correctly through JSON serialisation."""
@@ -178,6 +176,15 @@ class TestTransformerCategory:
         result = transformer.transform(packet)
 
         assert result.category == "harsh_events"
+
+    def test_speeding_priority_from_matrix_high(self):
+        """speeding uses HIGH priority from EVENT_MATRIX (not device packet)."""
+        transformer = PacketTransformer()
+        packet = make_packet("speeding", Priority.MEDIUM)
+
+        result = transformer.transform(packet)
+
+        assert result.priority == Priority.HIGH
 
     def test_category_speeding(self):
         """speeding maps to speed_compliance category."""

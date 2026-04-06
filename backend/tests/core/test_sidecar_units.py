@@ -3,22 +3,24 @@ Unit tests for sidecar validation pipeline components.
 Tests individual helper methods and transformations in isolation.
 """
 
+import json
 from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
+from common.config.events import PRIORITY_MAP, processed_queue_sort_score
 from common.models.events import TripEvent
 from common.redis.keys import RedisSchema
 from core.ingestion.sidecar import IngestionSidecar
 
 
 class TestPriorityMapping:
-    """Tests for priority field mapping to Redis scores."""
+    """Processed-queue ZSET scores: chronological with priority tier tie-break."""
 
     @pytest.mark.asyncio
     async def test_priority_critical_maps_to_score_0(self):
-        """CRITICAL priority maps to score 0 (highest priority)."""
+        """CRITICAL tier is embedded in sort score (zpopmin ≈ time order)."""
         mock_db = AsyncMock()
         mock_db.event_exists.return_value = False
 
@@ -54,11 +56,15 @@ class TestPriorityMapping:
         assert result.ok is True
 
         args = mock_redis.push_to_processed.call_args[0]
-        assert args[2] == 0  # Score 0 = CRITICAL
+        routed = TripEvent(**json.loads(args[1]))
+        tier = PRIORITY_MAP[str(routed.priority)]
+        assert args[2] == pytest.approx(
+            processed_queue_sort_score(routed.timestamp, tier)
+        )
 
     @pytest.mark.asyncio
     async def test_priority_high_maps_to_score_3(self):
-        """HIGH priority maps to score 3."""
+        """HIGH tier embedded in sort score."""
         mock_db = AsyncMock()
         mock_db.event_exists.return_value = False
 
@@ -94,11 +100,15 @@ class TestPriorityMapping:
         assert result.ok is True
 
         args = mock_redis.push_to_processed.call_args[0]
-        assert args[2] == 3  # Score 3 = HIGH
+        routed = TripEvent(**json.loads(args[1]))
+        tier = PRIORITY_MAP[str(routed.priority)]
+        assert args[2] == pytest.approx(
+            processed_queue_sort_score(routed.timestamp, tier)
+        )
 
     @pytest.mark.asyncio
     async def test_priority_low_maps_to_score_9_variant(self):
-        """LOW priority maps to score 9 (lowest priority) - variant test."""
+        """LOW tier embedded in sort score — variant."""
         mock_db = AsyncMock()
         mock_db.event_exists.return_value = False
 
@@ -134,11 +144,15 @@ class TestPriorityMapping:
         assert result.ok is True
 
         args = mock_redis.push_to_processed.call_args[0]
-        assert args[2] == 9  # Score 9 = LOW
+        routed = TripEvent(**json.loads(args[1]))
+        tier = PRIORITY_MAP[str(routed.priority)]
+        assert args[2] == pytest.approx(
+            processed_queue_sort_score(routed.timestamp, tier)
+        )
 
     @pytest.mark.asyncio
     async def test_priority_low_maps_to_score_9(self):
-        """LOW priority maps to score 9 (lowest priority)."""
+        """LOW tier embedded in sort score."""
         mock_db = AsyncMock()
         mock_db.event_exists.return_value = False
 
@@ -174,7 +188,11 @@ class TestPriorityMapping:
         assert result.ok is True
 
         args = mock_redis.push_to_processed.call_args[0]
-        assert args[2] == 9  # Score 9 = LOW
+        routed = TripEvent(**json.loads(args[1]))
+        tier = PRIORITY_MAP[str(routed.priority)]
+        assert args[2] == pytest.approx(
+            processed_queue_sort_score(routed.timestamp, tier)
+        )
 
 
 class TestGPSRounding:

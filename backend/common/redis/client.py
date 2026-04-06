@@ -104,14 +104,14 @@ class RedisClient:
         return json.loads(raw_json)
 
     async def push_to_processed(
-        self, key: str, payload: str, score: int, debug: bool = True
+        self, key: str, payload: str, score: float | int, debug: bool = True
     ):
         """Stage 2 — push clean TripEvent to processed queue.
 
         Args:
             key: Production queue key (e.g., telemetry:TK001:processed)
             payload: Clean trip event JSON
-            score: Priority score for sorting
+            score: ZSET member score (chronological + tie-break; see ``processed_queue_sort_score``)
             debug: If True, also push to debug copy with 1h TTL for observability
         """
         from common.redis.keys import RedisSchema

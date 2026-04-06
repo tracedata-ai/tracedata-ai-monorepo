@@ -5,6 +5,7 @@ Layer 1 Enforcement:
   SafetyAgent receives ONLY this repo → impossible to write to other schemas
 """
 
+import json
 from typing import Any
 
 from common.db.schema_repository import SchemaRepository
@@ -33,7 +34,7 @@ class SafetyRepository(SchemaRepository):
                 "trip_id": trip_id,
                 "event_type": event_type,
                 "severity": severity,
-                "analysis": analysis,
+                "analysis": json.dumps(analysis),
             },
         )
 
