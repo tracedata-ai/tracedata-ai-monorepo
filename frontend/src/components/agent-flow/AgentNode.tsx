@@ -10,11 +10,18 @@ const statusConfig: Record<
   { ring: string; label: string; icon: string; bg: string }
 > = {
   idle:    { ring: "ring-[#d1d5db]/60", label: "text-[#6b7280]", icon: "○", bg: "bg-[#f3f4f6]" },
+  queued:  { ring: "ring-[#60a5fa]/40", label: "text-[#2563eb]", icon: "◍", bg: "bg-[#dbeafe]" },
   running: { ring: "ring-[#f59e0b]/40", label: "text-[#d97706]", icon: "◌", bg: "bg-[#fef3c7]" },
   success: { ring: "ring-[#22c55e]/40", label: "text-[#16a34a]", icon: "✓", bg: "bg-[#dcfce7]" },
   warning: { ring: "ring-[#fb923c]/40", label: "text-[#ea580c]", icon: "⚠", bg: "bg-[#ffedd5]" },
   error:   { ring: "ring-[#ef4444]/40", label: "text-[#dc2626]", icon: "✕", bg: "bg-[#fee2e2]" },
 };
+
+const healthConfig = {
+  healthy: "bg-[#22c55e]",
+  degraded: "bg-[#f59e0b]",
+  unhealthy: "bg-[#ef4444]",
+} as const;
 
 const typeAccent: Record<AgentNodeData["type"], string> = {
   source: "border-l-[#3b82f6]",
@@ -81,9 +88,19 @@ function AgentNodeComponent(props: NodeProps) {
           <span className={`text-[9px] font-semibold uppercase tracking-wide ${cfg.label}`}>
             {String(data.status)}
           </span>
-          {data.elapsed && (
-            <span className="text-[9px] text-[#9ca3af]">{String(data.elapsed)}</span>
-          )}
+          <div className="flex items-center gap-2">
+            {data.workerHealth && (
+              <span className="inline-flex items-center gap-1 text-[8px] uppercase tracking-wide text-[#9ca3af]">
+                <span
+                  className={`inline-block h-1.5 w-1.5 rounded-full ${healthConfig[data.workerHealth]}`}
+                />
+                {data.workerHealth}
+              </span>
+            )}
+            {data.elapsed && (
+              <span className="text-[9px] text-[#9ca3af]">{String(data.elapsed)}</span>
+            )}
+          </div>
         </div>
       </div>
 

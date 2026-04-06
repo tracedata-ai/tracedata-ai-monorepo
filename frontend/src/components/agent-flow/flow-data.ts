@@ -1,12 +1,14 @@
 import type { Node, Edge } from "@xyflow/react";
 
-export type AgentStatus = "idle" | "running" | "success" | "warning" | "error";
+export type AgentStatus = "idle" | "queued" | "running" | "success" | "warning" | "error";
+export type WorkerHealthStatus = "healthy" | "degraded" | "unhealthy";
 
 export interface AgentNodeData {
   label: string;
   subtitle: string;
   status: AgentStatus;
   elapsed?: string;
+  workerHealth?: WorkerHealthStatus;
   type: "source" | "tool" | "agent" | "queue" | "output";
   [key: string]: unknown;
 }

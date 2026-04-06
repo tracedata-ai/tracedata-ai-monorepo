@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Pause, Play, RefreshCw } from "lucide-react";
 import dynamic from "next/dynamic";
+import type { AgentNodeInspectDetails } from "@/components/agent-flow/AgentFlowCanvas";
 
 const AgentFlowCanvas = dynamic(
   () => import("@/components/agent-flow/AgentFlowCanvas").then((m) => m.AgentFlowCanvas),
@@ -26,8 +27,10 @@ const TYPE_LEGEND = [
 ] as const;
 
 export default function AgentFlowPage() {
-  const [simulating, setSimulating] = useState(true);
+  const [live, setLive] = useState(true);
+  const [connection, setConnection] = useState<"connected" | "offline">("offline");
   const [key, setKey] = useState(0);
+  const [selectedNode, setSelectedNode] = useState<AgentNodeInspectDetails | null>(null);
 
   return (
     <div className="flex h-screen flex-col bg-white text-[#111827]">
@@ -66,24 +69,27 @@ export default function AgentFlowPage() {
         {/* Controls */}
         <div className="flex items-center gap-2">
           <button
-            onClick={() => setKey((k) => k + 1)}
+            onClick={() => {
+              setSelectedNode(null);
+              setKey((k) => k + 1);
+            }}
             className="flex items-center gap-1.5 rounded-md border border-[#e5e7eb] bg-white px-3 py-1.5 text-[11px] font-medium text-[#6b7280] transition hover:border-[#d1d5db] hover:bg-[#f9fafb] hover:text-[#111827]"
           >
             <RefreshCw className="h-3 w-3" />
             Reset
           </button>
           <button
-            onClick={() => setSimulating((s) => !s)}
+            onClick={() => setLive((s) => !s)}
             className={`flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-[11px] font-medium transition ${
-              simulating
+              live
                 ? "border-[#fde68a] bg-[#fef3c7] text-[#d97706] hover:bg-[#fde68a]"
                 : "border-[#bbf7d0] bg-[#dcfce7] text-[#16a34a] hover:bg-[#bbf7d0]"
             }`}
           >
-            {simulating ? (
+            {live ? (
               <><Pause className="h-3 w-3" /> Pause</>
             ) : (
-              <><Play className="h-3 w-3" /> Simulate</>
+              <><Play className="h-3 w-3" /> Live</>
             )}
           </button>
         </div>
@@ -99,20 +105,79 @@ export default function AgentFlowPage() {
           agent-pipeline.workflow
         </span>
         <span className="ml-auto flex items-center gap-1.5 text-[10px] text-[#9ca3af]">
-          <span className={`inline-block h-1.5 w-1.5 rounded-full ${simulating ? "animate-pulse bg-[#f59e0b]" : "bg-[#d1d5db]"}`} />
-          {simulating ? "Simulation active" : "Paused"}
+          <span
+            className={`inline-block h-1.5 w-1.5 rounded-full ${
+              live && connection === "connected"
+                ? "animate-pulse bg-[#22c55e]"
+                : live
+                  ? "animate-pulse bg-[#f59e0b]"
+                  : "bg-[#d1d5db]"
+            }`}
+          />
+          {live ? (connection === "connected" ? "Live connected" : "Reconnecting...") : "Paused"}
         </span>
       </div>
 
       {/* ── Canvas ──────────────────────────────────────────────── */}
       <div className="flex-1 p-4 bg-[#f9fafb]">
-        <AgentFlowCanvas key={key} simulating={simulating} />
+        <div className="h-full grid grid-cols-1 gap-4 lg:grid-cols-[1fr_320px]">
+          <AgentFlowCanvas
+            key={key}
+            live={live}
+            onConnectionChange={setConnection}
+            onNodeInspect={setSelectedNode}
+          />
+
+          <aside className="rounded-xl border border-[#e5e7eb] bg-white p-4 shadow-sm">
+            {!selectedNode ? (
+              <div className="text-[11px] text-[#9ca3af]">
+                Click a node to inspect its latest status and events.
+              </div>
+            ) : (
+              <div className="flex h-full flex-col gap-3">
+                <div>
+                  <h2 className="text-sm font-semibold text-[#111827]">{selectedNode.label}</h2>
+                  <p className="text-[10px] uppercase tracking-wide text-[#9ca3af]">
+                    Agent: {selectedNode.agent}
+                  </p>
+                </div>
+                <div className="rounded-md bg-[#f9fafb] p-2 text-[11px] text-[#374151]">
+                  <div>Status: <span className="font-semibold">{selectedNode.status}</span></div>
+                  <div>Worker health: <span className="font-semibold">{selectedNode.workerHealth ?? "n/a"}</span></div>
+                  <div>Trip: <span className="font-semibold">{selectedNode.tripId ?? "n/a"}</span></div>
+                </div>
+                <div className="min-h-0 flex-1">
+                  <p className="mb-2 text-[11px] font-semibold text-[#374151]">Recent events</p>
+                  <div className="max-h-full overflow-auto space-y-2 pr-1">
+                    {selectedNode.events.length === 0 ? (
+                      <p className="text-[11px] text-[#9ca3af]">No events yet for this node.</p>
+                    ) : (
+                      selectedNode.events.map((event, idx) => (
+                        <div key={`${event.seq}-${idx}`} className="rounded-md border border-[#e5e7eb] p-2">
+                          <div className="text-[10px] text-[#6b7280]">
+                            {new Date(event.ts).toLocaleTimeString()}
+                          </div>
+                          <div className="text-[11px] text-[#111827]">
+                            {event.event_type} · <span className="font-semibold">{event.status}</span>
+                          </div>
+                          {event.trip_id && (
+                            <div className="text-[10px] text-[#6b7280]">trip: {event.trip_id}</div>
+                          )}
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+          </aside>
+        </div>
       </div>
 
       {/* ── Footer ──────────────────────────────────────────────── */}
       <div className="border-t border-[#e5e7eb] bg-white px-6 py-2">
         <p className="text-[10px] text-[#9ca3af]">
-          Frontend-only placeholder · No live backend connection · Statuses are simulated
+          Real-time view via SSE · Event stream: /api/v1/agent-flow/stream
         </p>
       </div>
     </div>

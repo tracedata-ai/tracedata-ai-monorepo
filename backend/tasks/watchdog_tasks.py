@@ -10,9 +10,13 @@ import logging
 from celery import shared_task
 
 from agents.orchestrator.db_manager import DBManager
+from common.agent_flow.service import AgentFlowService
+from common.models.agent_flow import AgentFlowEvent
+from common.config.settings import get_settings
 from common.redis.client import RedisClient
 
 logger = logging.getLogger(__name__)
+settings = get_settings()
 
 
 @shared_task(
@@ -50,6 +54,7 @@ def publish_queue_depths(self) -> dict:
     try:
         redis = RedisClient()
         queue_sizes = asyncio.run(_collect_queue_sizes(redis))
+        asyncio.run(_publish_worker_health(redis, queue_sizes))
         logger.info({"action": "queue_depths", "queues": queue_sizes})
         return {"status": "ok", "task": "publish_queue_depths", "queues": queue_sizes}
     except Exception as exc:
@@ -73,3 +78,33 @@ async def _collect_queue_sizes(redis: RedisClient) -> dict[str, int]:
         zset_count = await client.zcard(key)
         out[key] = zset_count if zset_count > 0 else await client.llen(key)
     return out
+
+
+async def _publish_worker_health(
+    redis: RedisClient,
+    queue_sizes: dict[str, int],
+) -> None:
+    service = AgentFlowService(redis)
+    queue_to_agent = {
+        settings.orchestrator_queue: "orchestrator",
+        settings.safety_queue: "safety",
+        settings.scoring_queue: "scoring",
+        settings.sentiment_queue: "sentiment",
+        settings.support_queue: "support",
+    }
+    for queue_name, agent in queue_to_agent.items():
+        depth = int(queue_sizes.get(queue_name, 0))
+        status = "healthy"
+        if depth > 100:
+            status = "unhealthy"
+        elif depth > 20:
+            status = "degraded"
+
+        await service.publish_event(
+            AgentFlowEvent(
+                event_type="worker_health",
+                status=status,  # type: ignore[arg-type]
+                agent=agent,  # type: ignore[arg-type]
+                meta={"queue": queue_name, "depth": depth},
+            )
+        )

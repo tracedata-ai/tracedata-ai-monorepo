@@ -5,6 +5,7 @@ Uses SafetyRepository for safety_schema writes only.
 """
 
 import logging
+from datetime import datetime
 from typing import Any
 
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -131,6 +132,53 @@ class SafetyAgent(TDAgentBase):
             decision = str(merged["decision"])
             reason = str(merged["reason"])
 
+            # Capture structured incident fields for audit/reporting.
+            location = current_event.get("location")
+            lat = None
+            lon = None
+            if isinstance(location, dict):
+                try:
+                    lat = (
+                        float(location.get("lat"))
+                        if location.get("lat") is not None
+                        else None
+                    )
+                except (TypeError, ValueError):
+                    lat = None
+                try:
+                    lon = (
+                        float(location.get("lon"))
+                        if location.get("lon") is not None
+                        else None
+                    )
+                except (TypeError, ValueError):
+                    lon = None
+
+            event_timestamp = None
+            ts_raw = current_event.get("timestamp")
+            if isinstance(ts_raw, str):
+                try:
+                    event_timestamp = datetime.fromisoformat(ts_raw.replace("Z", "+00:00"))
+                except ValueError:
+                    event_timestamp = None
+
+            details = current_event.get("details")
+            traffic_conditions = None
+            weather_conditions = None
+            if isinstance(details, dict):
+                traffic_val = details.get("traffic_conditions")
+                weather_val = details.get("weather_conditions")
+                traffic_conditions = (
+                    str(traffic_val).strip()
+                    if isinstance(traffic_val, (str, int, float))
+                    else None
+                )
+                weather_conditions = (
+                    str(weather_val).strip()
+                    if isinstance(weather_val, (str, int, float))
+                    else None
+                )
+
             decision_id = await self.safety_repo.write_safety_decision(
                 event_id=current_event.get("event_id"),
                 trip_id=trip_id,
@@ -145,12 +193,21 @@ class SafetyAgent(TDAgentBase):
                 trip_id=trip_id,
                 event_type=current_event.get("event_type"),
                 severity=current_event.get("severity", "unknown"),
+                event_timestamp=event_timestamp,
+                lat=lat,
+                lon=lon,
+                traffic_conditions=traffic_conditions,
+                weather_conditions=weather_conditions,
                 analysis={
                     "assessed_severity": severity,
                     "trip_context": trip_ctx_dict,
                     "recommended_action": action,
                     "llm_path": bool(self._llm),
                     "reason": reason,
+                    "event_timestamp": ts_raw,
+                    "location": {"lat": lat, "lon": lon},
+                    "traffic_conditions": traffic_conditions,
+                    "weather_conditions": weather_conditions,
                 },
             )
 

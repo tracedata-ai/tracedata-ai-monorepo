@@ -28,6 +28,7 @@ from langchain_openai import ChatOpenAI
 
 from agents.base.agent import Agent
 from agents.orchestrator.db_manager import DBManager
+from common.agent_flow.service import AgentFlowService
 from agents.orchestrator.prompts import (
     ORCHESTRATOR_SYSTEM_PROMPT,
     build_orchestrator_routing_user_message,
@@ -39,6 +40,7 @@ from common.config.events import (
 )
 from common.config.settings import get_settings
 from common.db.engine import engine
+from common.models.agent_flow import AgentFlowEvent
 from common.models.events import TripEvent
 from common.models.security import IntentCapsule, ScopedToken
 from common.redis.client import RedisClient
@@ -212,12 +214,30 @@ class OrchestratorAgent:
             "truck_id": truck_id,
         }
         logger.info({**ctx, "action": "event_received"})
+        await AgentFlowService(self.redis).publish_event(
+            AgentFlowEvent(
+                event_type="agent_running",
+                status="running",
+                agent="orchestrator",
+                trip_id=event.trip_id,
+                meta={"event_type": event.event_type},
+            )
+        )
 
         # ── Step 1: Trip lifecycle ─────────────────────────────────────────
         await self._handle_trip_lifecycle(event, ctx)
 
         # ── Step 2: Acquire lease → routing → warm cache for routed agents → dispatch
         await self._acquire_and_dispatch(event, ctx)
+        await AgentFlowService(self.redis).publish_event(
+            AgentFlowEvent(
+                event_type="agent_done",
+                status="success",
+                agent="orchestrator",
+                trip_id=event.trip_id,
+                meta={"event_type": event.event_type},
+            )
+        )
 
     async def _handle_trip_lifecycle(self, event: TripEvent, ctx: dict) -> None:
         """Create trip row on start_of_trip. Update status on end_of_trip."""
@@ -1286,6 +1306,18 @@ class OrchestratorAgent:
                     "target": agent_name,
                     "llm_action": action,
                 }
+            )
+            await AgentFlowService(self.redis).publish_event(
+                AgentFlowEvent(
+                    event_type="agent_queued",
+                    status="queued",
+                    agent="support" if agent_name in ("support", "driver_support") else agent_name,  # type: ignore[arg-type]
+                    trip_id=event.trip_id,
+                    meta={
+                        "queue": target_queue,
+                        "event_type": event.event_type,
+                    },
+                )
             )
             celery.send_task(
                 task_name,

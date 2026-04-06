@@ -11,6 +11,7 @@ import {
   Radar,
   Home,
   Workflow,
+  Wrench,
 } from "lucide-react";
 
 import { BrandMark } from "@/components/shared/BrandMark";
@@ -30,10 +31,12 @@ import {
 
 const fleetManagerItems = [
   { label: "Dashboard", href: "/fleet-manager", icon: LayoutDashboard },
+  { label: "Fleet", href: "/fleet-manager/fleet", icon: CarFront },
   { label: "Routes", href: "/fleet-manager/routes", icon: Route },
   { label: "Trips", href: "/fleet-manager/trips", icon: CarFront },
   { label: "Drivers", href: "/fleet-manager/drivers", icon: Users },
   { label: "Issues", href: "/fleet-manager/issues", icon: AlertTriangle },
+  { label: "Maintenance", href: "/fleet-manager/maintenance", icon: Wrench },
   {
     label: "Telemetry Simulator",
     href: "/fleet-manager/telemetry-simulator",
