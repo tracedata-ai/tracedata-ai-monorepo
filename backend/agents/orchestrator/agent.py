@@ -292,6 +292,21 @@ class OrchestratorAgent:
             )
         )
 
+        # ── Step 1: Trip lifecycle ─────────────────────────────────────────
+        await self._handle_trip_lifecycle(event, ctx)
+
+        # ── Step 2: Acquire lease → routing → warm cache for routed agents → dispatch
+        await self._acquire_and_dispatch(event, ctx)
+        await AgentFlowService(self.redis).publish_event(
+            AgentFlowEvent(
+                event_type="agent_done",
+                status="success",
+                agent="orchestrator",
+                trip_id=event.trip_id,
+                meta={"event_type": event.event_type},
+            )
+        )
+
     async def _send_ops_alert_once(
         self,
         *,
@@ -311,21 +326,6 @@ class OrchestratorAgent:
             severity=severity,
             message=message,
             details=details,
-        )
-
-        # ── Step 1: Trip lifecycle ─────────────────────────────────────────
-        await self._handle_trip_lifecycle(event, ctx)
-
-        # ── Step 2: Acquire lease → routing → warm cache for routed agents → dispatch
-        await self._acquire_and_dispatch(event, ctx)
-        await AgentFlowService(self.redis).publish_event(
-            AgentFlowEvent(
-                event_type="agent_done",
-                status="success",
-                agent="orchestrator",
-                trip_id=event.trip_id,
-                meta={"event_type": event.event_type},
-            )
         )
 
     async def _handle_trip_lifecycle(self, event: TripEvent, ctx: dict) -> None:

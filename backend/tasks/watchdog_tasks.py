@@ -153,7 +153,9 @@ async def _alert_worker_health_transitions(
             current_state = "online"
 
         state_key = f"{HEALTH_STATE_KEY_PREFIX}:{agent}:state"
-        previous_state_raw = await client.get(state_key)
+        previous_state_raw = client.get(state_key)
+        if isawaitable(previous_state_raw):
+            previous_state_raw = await previous_state_raw
         previous_state = (
             previous_state_raw.decode("utf-8")
             if isinstance(previous_state_raw, (bytes, bytearray))
@@ -163,7 +165,9 @@ async def _alert_worker_health_transitions(
         if previous_state == current_state:
             continue
 
-        await client.set(state_key, current_state)
+        set_result = client.set(state_key, current_state)
+        if isawaitable(set_result):
+            await set_result
 
         if previous_state is None and current_state == "online":
             await slack.send_ops_alert(
