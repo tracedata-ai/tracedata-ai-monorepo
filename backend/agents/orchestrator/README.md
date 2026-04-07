@@ -283,8 +283,9 @@ sequenceDiagram
     alt high/critical invalid or empty and mode is enforce
         Res->>EM: compute_routing_agents
         EM-->>Res: fallback list
-    else shadow mode (observe only)
-        Res-->>Res: log fallback; may keep filtered list
+    end
+    opt shadow mode (observe only)
+        Res-->>Res: log fallback and keep filtered list
     end
 
     Res->>Pol: validated list
