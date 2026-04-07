@@ -23,9 +23,7 @@ class SlackNotifier:
         trips_webhook_url: str | None = None,
     ) -> None:
         self.webhook_url = webhook_url or settings.slack_webhook_url
-        self.ops_webhook_url = (
-            ops_webhook_url or settings.slack_webhook_url_ops_alerts or self.webhook_url
-        )
+        self.ops_webhook_url = ops_webhook_url or settings.slack_webhook_url_ops_alerts
         self.trips_webhook_url = (
             trips_webhook_url or settings.slack_webhook_url_tracedata_trips
         )
