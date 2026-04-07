@@ -35,7 +35,9 @@ from agents.orchestrator.prompts import (
 from agents.orchestrator.tools import ORCHESTRATOR_TOOLS
 from common.agent_flow.service import AgentFlowService
 from common.config.events import (
+    EVENT_MATRIX,
     PRIORITY_MAP,
+    compute_routing_agents,
     get_warming_type,
 )
 from common.config.settings import get_settings
@@ -979,7 +981,7 @@ class OrchestratorAgent:
 
         # ── Get routing decision from LLM ──────────────────────────────────
         routing_decision = self._get_routing_decision(event)
-        agents_to_dispatch = routing_decision.get("agents_to_dispatch", [])
+        agents_to_dispatch = self._resolve_agents_for_dispatch(event, routing_decision)
         agents_to_dispatch = await self._apply_dispatch_policy(
             event, agents_to_dispatch
         )
@@ -1012,6 +1014,66 @@ class OrchestratorAgent:
         if not dispatched:
             # Release lock if dispatch failed — event will be retried
             await self.db.fail_event(device_event_id)
+
+    def _resolve_agents_for_dispatch(
+        self, event: TripEvent, routing_decision: dict
+    ) -> list[str]:
+        """
+        Resolve final candidate agents from routing decision with optional fallback.
+
+        Modes via settings.orchestrator_routing_fallback_mode:
+          - off: keep current behavior (no routing fallback changes)
+          - shadow: log fallback candidate but keep original result
+          - enforce: replace invalid/empty critical output with EventMatrix fallback
+        """
+        raw_agents = routing_decision.get("agents_to_dispatch", [])
+        fallback_mode = (settings.orchestrator_routing_fallback_mode or "off").lower()
+        allowed_agents = {"safety", "scoring", "support", "driver_support", "sentiment"}
+        normalized: list[str] = []
+        if isinstance(raw_agents, list):
+            normalized = [a for a in raw_agents if isinstance(a, str)]
+        filtered = [a for a in normalized if a in allowed_agents]
+
+        config = EVENT_MATRIX.get(event.event_type)
+        fallback_agents = compute_routing_agents(config) if config is not None else []
+        is_high_or_critical = bool(
+            config and str(config.priority.value).lower() in {"high", "critical"}
+        )
+
+        needs_fallback = (not isinstance(raw_agents, list)) or (
+            is_high_or_critical and len(filtered) == 0
+        )
+
+        if fallback_mode == "shadow" and needs_fallback:
+            logger.warning(
+                {
+                    "action": "routing_fallback_shadow",
+                    "trip_id": event.trip_id,
+                    "event_id": event.event_id,
+                    "device_event_id": event.device_event_id,
+                    "event_type": event.event_type,
+                    "raw_agents_type": type(raw_agents).__name__,
+                    "filtered_agents": filtered,
+                    "fallback_agents": fallback_agents,
+                }
+            )
+            return filtered
+
+        if fallback_mode == "enforce" and needs_fallback:
+            logger.warning(
+                {
+                    "action": "routing_fallback_enforced",
+                    "trip_id": event.trip_id,
+                    "event_id": event.event_id,
+                    "device_event_id": event.device_event_id,
+                    "event_type": event.event_type,
+                    "raw_agents_type": type(raw_agents).__name__,
+                    "fallback_agents": fallback_agents,
+                }
+            )
+            return fallback_agents
+
+        return filtered
 
     def _seal_capsule(self, event: TripEvent, agent_name: str) -> IntentCapsule:
         """

@@ -93,6 +93,7 @@ markers = [
     "xai: explainability and fairness focused test suites",
     "eval: evaluation-oriented tests (may be optional or slower)",
     "external: tests requiring optional external tools or API keys",
+    "nightly: heavier eval matrices — run on main schedule (ci-backend-eval-nightly); excluded from backend-api PR pytest",
 ]
 
 [dependency-groups]

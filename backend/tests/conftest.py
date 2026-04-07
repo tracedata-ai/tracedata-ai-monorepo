@@ -77,6 +77,7 @@ def mock_redis() -> MagicMock:
     client.zpop = AsyncMock(return_value=None)
     inner = MagicMock()
     inner.get = AsyncMock(return_value=None)
+    inner.incr = AsyncMock(return_value=1)
     inner.set = AsyncMock()
     inner.setex = AsyncMock()
     inner.publish = AsyncMock()

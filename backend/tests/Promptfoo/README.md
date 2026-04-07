@@ -35,13 +35,14 @@ uv run pytest tests/Promptfoo/test_promptfoo_50_case_scale.py -v
 - All Promptfoo tests: `xai`, `eval`
 - Parameterized adversarial scale: also `external` (reserved for future CLI / API-gated runs; today
   the tests stay offline)
+- **`nightly`** on the 48-case scale: excluded from **PR** backend API pytest (`-m "not nightly"`); included in the scheduled workflow `.github/workflows/ci-backend-eval-nightly.yaml` on **`main`**.
 
 See `[tool.pytest.ini_options]` in `pyproject.toml`.
 
 ## CI
 
-**Not integrated into CI yet.** Run locally until a pipeline step is added (e.g. PR vs nightly split
-for any future real Promptfoo CLI or live-model evals).
+- **PR** (`ci-backend-api`): runs `pytest … -m "not nightly" tests/` — the 48-case file is **skipped** on PR; `test_prompt_safety_contract.py` (2 tests) still runs on PR.
+- **`main` nightly**: `ci-backend-eval-nightly` runs **full** `pytest tests/` (includes `nightly`).
 
 ## Future extension
 

@@ -1,0 +1,67 @@
+# Scheduled + manual full eval suite (includes nightly-marked tests).
+# PR CI (ci-backend-api) runs `pytest -m "not nightly"` for speed; this workflow
+# keeps main deployability signal for heavier matrices (Promptfoo scale, XAI).
+
+name: "🌙 CI Backend — Eval nightly (main)"
+
+on:
+  schedule:
+    - cron: "0 2 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: eval-nightly-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  PYTHON_VERSION: "3.11"
+  UV_PYTHON: "3.11"
+  WORKING_DIR: backend
+
+jobs:
+  eval-full:
+    name: Full pytest (including nightly)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ env.WORKING_DIR }}
+
+    services:
+      postgres:
+        image: ankane/pgvector:latest
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: tracedata_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/tracedata_test
+      APP_ENV: test
+      DEBUG: "false"
+      RESET_DB: "false"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "backend/uv.lock"
+
+      - name: Set up Python
+        run: uv python install ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: uv sync --frozen --extra dev
+
+      - name: Run full pytest
+        run: uv run pytest tests/ -v --tb=short
