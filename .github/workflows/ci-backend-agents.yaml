@@ -309,7 +309,6 @@ jobs:
     if: always()
     steps:
       - name: Post CI result to Slack
-        if: ${{ secrets.SLACK_CI_WEBHOOK_URL != '' }}
         env:
           SLACK_WEBHOOK: ${{ secrets.SLACK_CI_WEBHOOK_URL }}
           LINT_RESULT: ${{ needs.lint.result }}
@@ -324,6 +323,10 @@ jobs:
           RUN_ID: ${{ github.run_id }}
           SERVER_URL: ${{ github.server_url }}
         run: |
+          if [ -z "$SLACK_WEBHOOK" ]; then
+            echo "SLACK_CI_WEBHOOK_URL not set; skipping notification."
+            exit 0
+          fi
           STATUS="PASS"
           for r in "$LINT_RESULT" "$TYPE_RESULT" "$TEST_RESULT" "$SCA_RESULT" "$BUILD_RESULT" "$DOCKER_RESULT"; do
             if [ "$r" = "failure" ] || [ "$r" = "cancelled" ]; then
