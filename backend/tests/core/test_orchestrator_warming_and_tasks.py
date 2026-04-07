@@ -280,6 +280,59 @@ async def test_dispatch_policy_critical_adds_immediate_support(orchestrator_mock
     assert result == ["safety", "support"]
 
 
+@pytest.mark.asyncio
+async def test_dispatch_policy_coaching_ready_keeps_support_only(orchestrator_mocks):
+    """UC1 follow-up: internal coaching_ready dispatches support only."""
+    orch, _ = orchestrator_mocks
+    event = _trip_event("coaching_ready")
+    result = await orch._apply_dispatch_policy(
+        event, ["safety", "scoring", "support"]
+    )
+    assert result == ["support"]
+
+
+@pytest.mark.asyncio
+async def test_dispatch_policy_coaching_ready_fallback_driver_support(
+    orchestrator_mocks,
+):
+    orch, _ = orchestrator_mocks
+    event = _trip_event("coaching_ready")
+    result = await orch._apply_dispatch_policy(event, [])
+    assert result == ["driver_support"]
+
+
+@pytest.mark.asyncio
+async def test_dispatch_policy_sentiment_ready_keeps_support_only(orchestrator_mocks):
+    """UC2: internal sentiment_ready dispatches support only."""
+    orch, _ = orchestrator_mocks
+    event = _trip_event("sentiment_ready")
+    orch._load_trip_runtime_context = AsyncMock(
+        return_value={
+            "trip_id": event.trip_id,
+            "driver_id": "DRV-1",
+            "truck_id": "TRK-1",
+        }
+    )
+    orch._save_trip_runtime_context = AsyncMock()
+    result = await orch._apply_dispatch_policy(
+        event, ["sentiment", "scoring", "support"]
+    )
+    assert result == ["support"]
+    orch._save_trip_runtime_context.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_dispatch_policy_sentiment_ready_fallback_driver_support(
+    orchestrator_mocks,
+):
+    orch, _ = orchestrator_mocks
+    event = _trip_event("sentiment_ready")
+    orch._load_trip_runtime_context = AsyncMock(return_value={})
+    orch._save_trip_runtime_context = AsyncMock()
+    result = await orch._apply_dispatch_policy(event, [])
+    assert result == ["driver_support"]
+
+
 def test_seal_capsule_includes_device_event_id(orchestrator_mocks):
     orch, _ = orchestrator_mocks
     event = _trip_event(
