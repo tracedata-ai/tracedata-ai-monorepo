@@ -1,94 +1,51 @@
 # TraceData AI Monorepo
 
-Real-time telemetry pipeline for fleet vehicle safety monitoring. Processes driver and vehicle events through distributed AI agents.
+Real-time fleet telemetry → PostgreSQL → orchestrator → Celery agent workers (Safety, Sentiment, Scoring, Support), backed by Redis for buffers, queues, and trip context.
 
-## Quick Start (5 minutes)
+## Quick Start
 
-### Prerequisites
-- **Docker & Docker Compose** ([Install here](https://docs.docker.com/get-docker/))
-- **Git** for version control
+**Requires:** Docker Compose, Git.
 
-### Step 1: Clone and navigate
 ```bash
-git clone <repo-url>
-cd tracedata-ai-monorepo
-```
-
-### Step 2: Start all services
-```bash
+git clone <repo-url> && cd tracedata-ai-monorepo
 docker compose up -d
-```
-
-Wait ~30 seconds for services to boot. Check status:
-```bash
-docker compose ps
-```
-
-You should see 10 services running (api, ingestion, orchestrator, safety_worker, etc.)
-
-### Step 3: Initialize the database
-```bash
 docker compose exec -T api python -m scripts.setup_db
-```
-
-This creates the `pipeline_events` and `pipeline_trips` tables.
-
-### Step 4: Seed test data
-```bash
 docker compose exec -T api python -m scripts.seed_telemetry_batch --count 50
 ```
 
-This generates 50 sample telemetry events (collisions, harsh braking, driver SOS, etc.)
-
-### Step 5: Verify the pipeline is working
-```bash
-# Check events in database (should see ~33 processed)
-docker compose exec -T db psql -U postgres -d tracedata -c "SELECT COUNT(*) FROM pipeline_events;"
-
-# Check orchestrator dispatching to agents
-docker compose logs orchestrator | grep dispatch | head -5
-```
-
-**Expected output:** Events flowing through orchestrator → Safety/Sentiment/Scoring agents
-
-### Step 6: View live API
-```bash
-# API is available at http://localhost:8000
-# Swagger docs: http://localhost:8000/docs
-```
+- **API / docs:** http://localhost:8000 and http://localhost:8000/docs  
+- **Sanity:** `docker compose exec -T db psql -U postgres -d tracedata -c "SELECT COUNT(*) FROM pipeline_events;"`  
+- Expect ~10 containers (api, ingestion, orchestrator, workers, db, redis, frontend).
 
 ---
 
-## System Architecture
+## Architecture (diagrams)
 
-### Runtime topology (Docker Compose)
+### 1. Stack (Docker Compose)
 
-Services and shared infrastructure as defined in `docker-compose.yml`. Celery uses the **same Redis** instance as the telemetry and trip-context keys (broker + backend on DB 0).
+Celery broker and backend share **the same Redis** as telemetry and trip keys (see `docker-compose.yml`).
 
 ```mermaid
 flowchart TB
   subgraph clients [Clients]
-    FE[frontend :3000]
-    DEV[Devices / simulators]
+    FE[frontend:3000]
+    DEV[Devices]
   end
-
-  subgraph data [Data stores]
-    PG[(PostgreSQL :5432)]
-    RD[(Redis :6379)]
+  subgraph stores [Stores]
+    PG[(Postgres:5432)]
+    RD[(Redis:6379)]
   end
-
-  subgraph backend [Backend processes]
-    API[api — uvicorn api.main]
-    ING[ingestion — core.ingestion.worker]
-    ORC[orchestrator — agents.worker orchestrator]
-    SAF[safety_worker — Celery Q td:agent:safety]
-    SCO[scoring_worker — Celery Q td:agent:scoring]
-    SUP[support_worker — Celery Q td:agent:support]
-    SEN[sentiment_worker — Celery Q td:agent:sentiment]
+  subgraph procs [Backend]
+    API[api]
+    ING[ingestion]
+    ORC[orchestrator]
+    SAF[safety_worker]
+    SCO[scoring_worker]
+    SUP[support_worker]
+    SEN[sentiment_worker]
   end
-
   FE --> API
-  DEV -->|ZADD telemetry:truck_id:buffer| RD
+  DEV -->|telemetry buffer| RD
   API --> PG
   API --> RD
   ING --> RD
@@ -100,155 +57,83 @@ flowchart TB
   SCO --> PG
   SUP --> RD
   SEN --> RD
-  ORC -->|Celery send_task| RD
+  ORC -->|Celery| RD
 ```
 
-### Telemetry path (Redis ZSETs + Postgres)
+### 2. Data and dispatch pipeline
 
-Ingestion discovers trucks via `telemetry:*:buffer`, pops raw JSON from each **sorted set**, batches through the ring buffer, runs `IngestionSidecar`, persists to `pipeline_events`, and pushes canonical `TripEvent` JSON onto `telemetry:{truck_id}:processed` (also a ZSET, scored by time + priority tier).
-
-```mermaid
-flowchart LR
-  DEV[Telemetry source]
-  BUF["telemetry:{truck_id}:buffer ZSET"]
-  ING[Ingestion worker + sidecar]
-  PG[(pipeline_events)]
-  PROC["telemetry:{truck_id}:processed ZSET"]
-
-  DEV -->|raw packet| BUF
-  BUF --> ING
-  ING --> PG
-  ING --> PROC
-```
-
-### Orchestrator loop and Celery dispatch
-
-The orchestrator **polls** `telemetry:*:processed`, pops events with `zpopmin`, acquires a DB lease, runs **LLM + EventMatrix tools** (`get_event_config`) for routing, warms agent-scoped Redis keys (`trips:{trip_id}:{agent}:...`), builds **IntentCapsule** payloads, and calls `celery.send_task` on the per-agent queues registered in `celery_app.py`. Each worker runs the matching `@shared_task` (`tasks.safety_tasks.analyse_event`, `tasks.scoring_tasks.score_trip`, etc.), executes the LangGraph agent, writes **`trip:{trip_id}:{agent}_output`** (for support the routed id is `support` → `trip:{trip_id}:support_output`), releases the lock, and publishes completion JSON to **`trip:{trip_id}:events`** (pub/sub + list, see `RedisClient.publish_completion`).
+Buffers and **processed** queues are Redis **sorted sets**. Orchestrator **polls** processed ZSETs, acquires DB lease, routes via LLM + EventMatrix, **warms** `trips:{trip_id}:{agent}:*`, **send_task** to `td:agent:*`. Workers write `trip:{trip_id}:{agent}_output` and publish completions on `trip:{trip_id}:events`.
 
 ```mermaid
 flowchart TB
-  PROC["telemetry:{truck_id}:processed"]
-  ORC[OrchestratorAgent.run poll loop]
-  DB[(DB lease / pipeline_events)]
-  LLM[LLM router + EventMatrix tools]
-  WARM[Cache warming trips:trip_id:agent:...]
-  CEL[Celery broker on Redis]
-
-  subgraph workers [Agent workers]
-    T1[tasks.safety_tasks.analyse_event]
-    T2[tasks.scoring_tasks.score_trip]
-    T3[tasks.sentiment_tasks.analyse_feedback]
-    T4[tasks.support_tasks.generate_coaching]
-  end
-
-  OUT["trip:{trip_id}:{agent}_output"]
-  EVT["trip:{trip_id}:events"]
-
-  PROC --> ORC
-  ORC --> DB
-  ORC --> LLM
-  ORC --> WARM
-  ORC -->|send_task priority| CEL
-  CEL --> T1
-  CEL --> T2
-  CEL --> T3
-  CEL --> T4
-  T1 --> OUT
-  T2 --> OUT
-  T3 --> OUT
-  T4 --> OUT
-  T1 --> EVT
-  T2 --> EVT
-  T3 --> EVT
-  T4 --> EVT
+  DEV[Telemetry] --> BUF[telemetry:truck:buffer ZSET]
+  BUF --> ING[Ingestion plus sidecar]
+  ING --> PG[(pipeline_events)]
+  ING --> PROC[telemetry:truck:processed ZSET]
+  PROC --> ORC[Orchestrator poll]
+  ORC --> RTE[Route warm capsule]
+  RTE --> CEL[Celery broker]
+  CEL --> W[Agent workers]
+  W --> OUT["trip:trip_id:agent_output"]
+  W --> EVT["trip:trip_id:events"]
+  SCO[scoring_worker] -->|coaching_ready if pending| PROC
 ```
 
-### Post-scoring support (`coaching_ready`)
+### 3. Post-trip coaching handoff (`coaching_ready`)
 
-On **`end_of_trip`**, dispatch policy **drops support** from that wave so only scoring (and other routed agents except support) run. If trip context has `coaching_pending_after_scoring`, **`ScoringAgent`** calls `schedule_coaching_ready_if_pending`, which inserts a synthetic pipeline row and pushes a **`coaching_ready`** `TripEvent` back onto **`telemetry:{truck_id}:processed`**. The orchestrator treats it like any other event; routing resolves to **support only**, with warming type `post_scoring_support`. **`sentiment_ready`** follows the same pattern after sentiment success (`agents.orchestrator.sentiment_followup`).
+On **`end_of_trip`**, support is **not** dispatched in that wave; after scoring, **`schedule_coaching_ready_if_pending`** may push **`coaching_ready`** back onto the truck’s **processed** queue so **support_worker** runs with post-scoring context. **`sentiment_ready`** behaves similarly after sentiment.
 
 ```mermaid
 sequenceDiagram
   participant O as Orchestrator
-  participant Z as telemetry:truck:processed
-  participant C as scoring_worker
-  participant R as Redis trip context
-  participant S as support_worker
-
-  O->>Z: pop end_of_trip TripEvent
-  O->>C: score_trip (no support on this wave)
-  C->>R: merge scoring into context / flags
-  C->>Z: push coaching_ready TripEvent if pending
+  participant Z as processed ZSET
+  participant S as scoring_worker
+  participant R as trip context Redis
+  participant P as support_worker
+  O->>Z: pop end_of_trip
+  O->>S: score_trip
+  S->>R: update context
+  S->>Z: enqueue coaching_ready when pending
   O->>Z: pop coaching_ready
-  O->>S: generate_coaching IntentCapsule
-  S->>R: trip:id:support_output + trip:id:events
+  O->>P: generate_coaching
 ```
 
-## Event Flow (Runtime)
+---
 
-1. **Telemetry arrives** in Redis buffer key `telemetry:{truck_id}:buffer`.
-2. **Ingestion worker** consumes buffered packets, transforms them to canonical events, writes `pipeline_events`, then pushes to `telemetry:{truck_id}:processed`.
-3. **Orchestrator** reads processed events, acquires DB lock (`device_event_id`), asks EventMatrix/tooling for routing, warms Redis scoped keys, and dispatches Celery tasks.
-4. **Agent workers** read only capsule-allowed Redis keys, run analysis, write output keys like `trip:{trip_id}:{agent}_output`, and publish completion events.
-5. **Orchestrator follow-up** handles completion-driven internal events (for example `sentiment_ready`, `coaching_ready`) and dispatches downstream support when required.
-6. **Trip context** is updated in Redis (`trip:{trip_id}:context`) with rolling state (`flagged_events`, latest safety/support outputs, workflow flags).
+## Runtime checklist (short)
 
-## Event Subscriptions and Publications
+1. `telemetry:{truck_id}:buffer` ← raw; ingestion → `pipeline_events` + `telemetry:{truck_id}:processed`.
+2. Orchestrator: lock → route → warm → Celery.
+3. Workers: capsule reads; writes `*_output`; `trip:{trip_id}:events` completions.
+4. Follow-ups: `sentiment_ready` / `coaching_ready` → support when applicable.
+5. `trip:{trip_id}:context` holds rolling flags and latest agent summaries.
 
-### Redis Data Paths
+| Component | Reads (summary) | Writes (summary) |
+|-----------|-----------------|------------------|
+| ingestion | buffer ZSET | processed ZSET, `pipeline_events` |
+| orchestrator | processed, `trip:events`, DB | Celery `td:agent:*`, warmed keys, `trip:context` |
+| workers | queues + scoped trip keys | `trip:*_output`, schema tables, completions |
 
-| Component | Subscribes / Reads | Publishes / Writes |
-|---------|---------|------|
-| **Device/Simulator** | - | `telemetry:{truck_id}:buffer` |
-| **ingestion** | `telemetry:{truck_id}:buffer` | `telemetry:{truck_id}:processed`, `pipeline_events` rows |
-| **orchestrator** | `telemetry:{truck_id}:processed`, `trip:{trip_id}:events`, DB lock state | Celery queues (`td:agent:*`), warmed keys `trips:{trip_id}:{agent}:*`, trip context `trip:{trip_id}:context` |
-| **safety_worker** | `td:agent:safety`, scoped `trips:{trip_id}:safety:*` | `trip:{trip_id}:safety_output`, completion to `trip:{trip_id}:events`, `safety_schema.*` |
-| **scoring_worker** | `td:agent:scoring`, scoped `trips:{trip_id}:scoring:*` | `trip:{trip_id}:scoring_output`, completion to `trip:{trip_id}:events`, `scoring_schema.*` |
-| **sentiment_worker** | `td:agent:sentiment`, scoped `trips:{trip_id}:sentiment:*` | `trip:{trip_id}:sentiment_output`, completion to `trip:{trip_id}:events`, `sentiment_schema.feedback_sentiment` |
-| **support_worker** | `td:agent:support`, scoped `trips:{trip_id}:support:*` | `trip:{trip_id}:support_output`, completion to `trip:{trip_id}:events`, `coaching_schema.coaching` |
+Full matrix: see [TDATA-49-architecture](docs/01-project-documents/TDATA-49-architecture.md) or agent docs below.
 
-### Internal Completion Events (published on `trip:{trip_id}:events`)
+| Service | Port |
+|---------|------|
+| api | 8000 |
+| frontend | 3000 |
+| db | 5432 |
+| redis | 6379 |
+| ingestion, orchestrator, safety/scoring/support/sentiment workers | internal |
 
-- Agent completion payloads (`agent`, `status`, `result`, `final`) are published by each worker.
-- Orchestrator consumes these and may emit follow-up internal events:
-  - `sentiment_ready` -> routes to support (post-sentiment support flow)
-  - `coaching_ready` -> routes to support (post-scoring coaching flow)
-
-## Available Services
-
-| Service | Purpose | Port |
-|---------|---------|------|
-| **api** | FastAPI REST endpoints | 8000 |
-| **ingestion** | Telemetry processing sidecar | - |
-| **orchestrator** | Event dispatch orchestration | - |
-| **safety_worker** | Safety incident analysis | - |
-| **sentiment_worker** | Driver sentiment analysis | - |
-| **scoring_worker** | Safety scoring | - |
-| **support_worker** | Support escalation logic | - |
-| **db** | PostgreSQL database | 5432 |
-| **redis** | Queue & cache store | 6379 |
-| **frontend** | Next.js dashboard | 3000 |
-
-## Common Commands
+## Common commands
 
 ```bash
-# View logs
-docker compose logs orchestrator -f          # Follow orchestrator
-docker compose logs safety_worker --tail 50  # Last 50 lines of safety agent
-
-# Reset everything
-docker compose down -v    # Remove containers and volumes
-docker system prune -f    # Clean up unused images
-docker compose up -d      # Start fresh
-
-# Access database
+docker compose logs orchestrator -f
 docker compose exec -T db psql -U postgres -d tracedata
-
-# Sample telemetry buffer keys (Redis ZSETs)
-docker compose exec -T redis redis-cli KEYS "telemetry:*:buffer"
+docker compose exec -T redis redis-cli SCAN 0 MATCH "telemetry:*:buffer" COUNT 100
 ```
 
 ## Documentation
+
 - [Architecture & Design](docs/01-project-documents/TDATA-49-architecture.md)
 - [Git Workflow](docs/02-guides/02-git-workflow.md)
 - [Troubleshooting](docs/02-guides/10_troubleshooting_guide.md)

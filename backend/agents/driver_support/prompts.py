@@ -21,9 +21,9 @@ WORKFLOW:
 3) Respond with ONLY valid JSON:
 
 {
-  "coaching_category": "<follow_up|event_based|post_trip|general>",
-  "message": "<supportive coaching: brief summary + specific tips; 2–5 short sentences or tight bullets in plain text>",
-  "priority": "<high|normal|low>"
+  "coaching_category": "follow_up | event_based | post_trip | general (choose one)",
+  "message": "supportive coaching: brief summary + specific tips; 2–5 short sentences or tight bullets in plain text",
+  "priority": "high | normal | low (choose one)"
 }
 
 RULES:
