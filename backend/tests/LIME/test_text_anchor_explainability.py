@@ -4,6 +4,8 @@ import pytest
 
 from agents.sentiment.agent import EMOTION_ANCHORS, SentimentAgent
 
+pytestmark = pytest.mark.nightly
+
 
 @pytest.mark.xai
 @pytest.mark.eval

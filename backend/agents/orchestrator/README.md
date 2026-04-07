@@ -212,6 +212,10 @@ Coverage themes:
 - queue/task routing correctness
 - fallback mode behavior (`off`, `shadow`, `enforce`)
 - unknown agent filtering and fallback safety paths
+- burst stability (repeated harsh_brake / end_of_trip policy)
+
+**CI:** Pull requests run `pytest -m "not nightly"` (see repo `.github/workflows/ci-backend-api.yaml`).  
+Scheduled **`main`** eval including all `nightly`-marked tests: `.github/workflows/ci-backend-eval-nightly.yaml`.
 
 ```mermaid
 flowchart TB
@@ -223,19 +227,28 @@ flowchart TB
 
 ---
 
-## What we learned from EC (applied here)
+## Work informed by a reference project (orchestrator-focused)
 
-Main lesson: do not copy architecture blindly; copy **testing and control discipline**.
+External reference for *discipline* (testing, layered controls, CI patterns), not a drop-in architecture:  
+[reference repo](https://github.com/sree-r-one/project_ec_analyst).
 
-- Keep current hybrid model (LLM + deterministic policy)
-- Strengthen contract-style routing tests
-- Add defense-in-depth checks around malformed outputs
-- Introduce fallback rollout stages (`off -> shadow -> enforce`)
-- Treat orchestrator behavior as a safety contract, not just implementation detail
+### What we actually implemented (orchestrator-focused)
+
+- **Discipline over architecture** — Kept the hybrid router (LLM + EventMatrix + policy); did **not** replace it with a single StateGraph-style orchestrator like the reference app.
+- **Defense in depth** — Allowlisted agent names; optional routing fallback (`off` / `shadow` / `enforce`) tied to EventMatrix via `settings.orchestrator_routing_fallback_mode`, always still followed by `_apply_dispatch_policy`.
+- **Contract / “red team” tests** — Invalid LLM-shaped `agents_to_dispatch`, empty critical routing, unknown agents, burst policy stability, dispatch tests unskipped with Redis/Celery/agent-flow mocks fixed.
+- **Docs** — This README specifies behavior, guardrails, testing, and what we adopt from the reference vs what we do not.
+- **CI shape (repo-wide, not orchestrator-only)** — PRs run `pytest -m "not nightly"` in `ci-backend-api`; **`main`** has a scheduled full eval workflow (`ci-backend-eval-nightly`) — same *idea* as fast PR vs heavier eval, scoped to this monorepo.
+
+### Principles we kept (lesson, not a clone)
+
+- Do not copy architecture blindly; copy **testing and control discipline**.
+- Keep the hybrid model (LLM + deterministic policy).
+- Strengthen contract-style routing tests and treat orchestrator behavior as a **safety contract**, not just implementation detail.
 
 ```mermaid
 flowchart LR
-  echo[EchoChamberLearning] --> discipline[TestingDiscipline]
+  ref[ReferenceLearning] --> discipline[TestingDiscipline]
   discipline --> contracts[ContractGuardrailTests]
   discipline --> layered[LayeredValidation]
   layered --> trace[TraceDataOrchestratorHardening]

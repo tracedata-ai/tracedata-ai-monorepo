@@ -66,6 +66,7 @@ ADVERSARIAL_PROMPTS = [
 ]
 
 
+@pytest.mark.nightly
 @pytest.mark.asyncio
 @pytest.mark.xai
 @pytest.mark.eval
