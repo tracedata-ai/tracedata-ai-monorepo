@@ -18,6 +18,62 @@ The orchestrator provides one consistent path from event ingestion to worker dis
 
 ---
 
+## Hybrid routing architecture (LLM + deterministic code)
+
+If you are new to this codebase, the important idea is: **the LLM does not silently invent routing by itself**.  
+Routing is **hybrid**: a language model **proposes** who should run, while **structured configuration and Python code** own the truth and the final say.
+
+### Two different kinds of “routing”
+
+| Piece | Role | Where it lives (conceptually) |
+|--------|------|-------------------------------|
+| **EventMatrix** | Canonical map from `event_type` → priority, action, and which agents *should* handle that event. Same input should yield the same baseline agent list. | `common/config/events.py` (exposed to the LLM via `get_event_config` in orchestrator tools) |
+| **LLM router** | Reads the live `TripEvent`, calls **`get_event_config(event_type)`**, and returns **JSON** (`agents_to_dispatch`, etc.). It adds flexible “glue” (tool use + structured reply) but is expected to follow the tool output, not guess agent names. | `OrchestratorAgent` + `ORCHESTRATOR_TOOLS` + prompts in `backend/agents/orchestrator/` |
+| **Resolve / validate** | Drops unknown agent strings, and (when configured) **replaces broken high/critical routing** with the same EventMatrix-derived list the tool would have had—so bad model output does not strand critical events. | `_resolve_agents_for_dispatch` in `agent.py` (`orchestrator_routing_fallback_mode`: `off` / `shadow` / `enforce`) |
+| **Dispatch policy** | **Business rules** that reshape the list for timing and safety: defer Support on harsh/flagged events, Scoring-only on `end_of_trip`, Support-only on `coaching_ready` / `sentiment_ready`, force Support on critical types, etc. | `_apply_dispatch_policy` in `agent.py` |
+
+Everything **after** the policy (cache warming by `get_warming_type`, sealing `IntentCapsule` / `ScopedToken`, Celery dispatch) is also **deterministic**: it uses the final agent list and EventMatrix warming hints, not the LLM.
+
+### Read this as a pipeline (mental model)
+
+Think in order:
+
+1. **Lock and lifecycle** — Postgres lease and trip state updates are deterministic.
+2. **LLM step** — Produces a routing **candidate** by consulting EventMatrix through the tool (ideal path: copy `agents_from_action` into `agents_to_dispatch`).
+3. **Code steps** — Allowlist + optional EventMatrix fallback, then policy. **The list that actually gets dispatched is always the post-policy list.**
+
+So: **EventMatrix defines the baseline; the LLM operationalizes it; validation and policy enforce safety and product rules.**
+
+```mermaid
+flowchart LR
+  subgraph deterministicConfig[Deterministic config]
+    EM[EventMatrix]
+  end
+  subgraph llmStep[LLM step]
+    LLM[Router model]
+    Tool[get_event_config]
+  end
+  subgraph deterministicCode[Deterministic code]
+    Res[Resolve and allowlist]
+    Pol[Dispatch policy]
+    Warm[Warming and dispatch]
+  end
+  EM --> Tool
+  Tool --> LLM
+  LLM --> Res
+  EM -.-> Res
+  EM -.-> Pol
+  Res --> Pol
+  Pol --> Warm
+```
+
+### Why bother with an LLM if EventMatrix already exists?
+
+In practice the model is there to **reliably follow a tool-based workflow** (look up config, return strict JSON) and to leave room for **richer prompts and future tools** without rewriting every branch in code.  
+**Correctness under failure** still comes from: allowlists, optional fallback to EventMatrix for high/critical events, and `_apply_dispatch_policy` running **after** the model.
+
+---
+
 ## Companion agents
 
 - Safety Agent
