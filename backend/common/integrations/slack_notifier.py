@@ -19,9 +19,13 @@ class SlackNotifier:
     def __init__(
         self,
         webhook_url: str | None = None,
+        ops_webhook_url: str | None = None,
         trips_webhook_url: str | None = None,
     ) -> None:
         self.webhook_url = webhook_url or settings.slack_webhook_url
+        self.ops_webhook_url = (
+            ops_webhook_url or settings.slack_webhook_url_ops_alerts or self.webhook_url
+        )
         self.trips_webhook_url = (
             trips_webhook_url or settings.slack_webhook_url_tracedata_trips
         )
@@ -33,6 +37,29 @@ class SlackNotifier:
     @property
     def is_trips_enabled(self) -> bool:
         return bool(settings.slack_notifications_enabled and self.trips_webhook_url)
+
+    @property
+    def is_ops_enabled(self) -> bool:
+        return bool(settings.slack_notifications_enabled and self.ops_webhook_url)
+
+    async def send_ops_alert(
+        self,
+        *,
+        component: str,
+        severity: str,
+        message: str,
+        details: dict[str, Any] | None = None,
+    ) -> bool:
+        """Send operational alert without trip/truck/driver fields."""
+        if not self.is_ops_enabled:
+            return False
+        payload = self._build_ops_alert_payload(
+            component=component,
+            severity=severity,
+            message=message,
+            details=details,
+        )
+        return await self._post(payload, webhook_url=self.ops_webhook_url)
 
     async def send_high_priority_event(
         self,
@@ -48,11 +75,11 @@ class SlackNotifier:
         if priority not in {"critical", "high"}:
             return False
 
-        if not self.is_enabled:
+        if not self.is_ops_enabled:
             return False
 
         payload = self._build_priority_payload(event, extra_context=extra_context)
-        return await self._post(payload, webhook_url=self.webhook_url)
+        return await self._post(payload, webhook_url=self.ops_webhook_url)
 
     async def send_trip_started(self, event: TripEvent) -> bool:
         if event.event_type != "start_of_trip" or not self.is_trips_enabled:
@@ -190,6 +217,40 @@ class SlackNotifier:
             f" | decision=`{safety.get('decision', '-')}`\n"
             f"*Support*: `{support.get('status', 'pending')}`"
             f" | category=`{support.get('coaching_category', '-')}`"
+        )
+        return {
+            "text": text,
+            "blocks": [
+                {
+                    "type": "section",
+                    "text": {"type": "mrkdwn", "text": body},
+                }
+            ],
+        }
+
+    def _build_ops_alert_payload(
+        self,
+        *,
+        component: str,
+        severity: str,
+        message: str,
+        details: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        level = str(severity).upper()
+        details_text = ""
+        if details:
+            compact = ", ".join(
+                f"{k}={str(v)[:120]}" for k, v in details.items() if v is not None
+            )
+            if compact:
+                details_text = f"\n*details:* `{compact}`"
+
+        text = f"[OPS {level}] {component}: {message}"
+        body = (
+            f":rotating_light: *OPS ALERT* ({level})\n"
+            f"*component:* `{component}`\n"
+            f"*message:* {message}"
+            f"{details_text}"
         )
         return {
             "text": text,

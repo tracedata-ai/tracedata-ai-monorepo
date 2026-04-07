@@ -118,6 +118,7 @@ class OrchestratorAgent:
         self.slack_notifier = SlackNotifier()
         self._running = False
         self._routing_mode_counts: dict[str, int] = {"deterministic": 0, "llm": 0}
+        self._ops_alert_last_sent_at: dict[str, float] = {}
 
         # Initialize LLM agent for routing decisions
         llm = _get_llm()
@@ -172,7 +173,23 @@ class OrchestratorAgent:
         try:
             while self._running:
                 # Dynamically discover trucks from processed queues
-                truck_ids = await self._discover_trucks()
+                try:
+                    truck_ids = await self._discover_trucks()
+                except Exception as e:
+                    logger.error(
+                        {
+                            "action": "orchestrator_discovery_failed",
+                            "error": str(e)[:200],
+                        }
+                    )
+                    await self._send_ops_alert_once(
+                        key="redis_discovery_failed",
+                        severity="critical",
+                        message="Redis discovery failed in orchestrator",
+                        details={"error": str(e)[:160]},
+                    )
+                    await asyncio.sleep(2.0)
+                    continue
 
                 if not truck_ids:
                     # Ingestion hasn't populated processed queues yet
@@ -183,7 +200,23 @@ class OrchestratorAgent:
                 handled = 0
                 for truck_id in truck_ids:
                     key = RedisSchema.Telemetry.processed(truck_id)
-                    result = await self.redis.pop_from_processed(key)
+                    try:
+                        result = await self.redis.pop_from_processed(key)
+                    except Exception as e:
+                        logger.error(
+                            {
+                                "action": "orchestrator_pop_failed",
+                                "queue_key": key,
+                                "error": str(e)[:200],
+                            }
+                        )
+                        await self._send_ops_alert_once(
+                            key="redis_pop_failed",
+                            severity="critical",
+                            message="Redis pop_from_processed failed",
+                            details={"error": str(e)[:160]},
+                        )
+                        continue
                     if result is None:
                         continue
                     handled += 1
@@ -194,6 +227,21 @@ class OrchestratorAgent:
 
         except asyncio.CancelledError:
             logger.info({"action": "orchestrator_stopping"})
+        except Exception as e:
+            logger.error(
+                {
+                    "action": "orchestrator_runtime_failure",
+                    "error": str(e)[:200],
+                }
+            )
+            await self._send_ops_alert_once(
+                key="orchestrator_runtime_failure",
+                severity="critical",
+                message="Orchestrator runtime failure",
+                details={"error": str(e)[:160]},
+                cooldown_seconds=120,
+            )
+            raise
         finally:
             await self.redis.close()
 
@@ -218,6 +266,12 @@ class OrchestratorAgent:
                     "error": str(e)[:200],
                 }
             )
+            await self._send_ops_alert_once(
+                key="event_parse_failed",
+                severity="warning",
+                message="Event parse failed in orchestrator",
+                details={"error": str(e)[:160]},
+            )
             return
 
         ctx = {
@@ -228,7 +282,6 @@ class OrchestratorAgent:
             "truck_id": truck_id,
         }
         logger.info({**ctx, "action": "event_received"})
-        await self.slack_notifier.send_high_priority_event(event, extra_context=ctx)
         await AgentFlowService(self.redis).publish_event(
             AgentFlowEvent(
                 event_type="agent_running",
@@ -237,6 +290,27 @@ class OrchestratorAgent:
                 trip_id=event.trip_id,
                 meta={"event_type": event.event_type},
             )
+        )
+
+    async def _send_ops_alert_once(
+        self,
+        *,
+        key: str,
+        severity: str,
+        message: str,
+        details: dict | None = None,
+        cooldown_seconds: int = 300,
+    ) -> None:
+        now = time.monotonic()
+        last_sent = self._ops_alert_last_sent_at.get(key, 0.0)
+        if now - last_sent < cooldown_seconds:
+            return
+        self._ops_alert_last_sent_at[key] = now
+        await self.slack_notifier.send_ops_alert(
+            component="orchestrator",
+            severity=severity,
+            message=message,
+            details=details,
         )
 
         # ── Step 1: Trip lifecycle ─────────────────────────────────────────

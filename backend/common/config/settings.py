@@ -82,6 +82,7 @@ class Settings(BaseSettings):
     # ── Integrations ─────────────────────────────────────────────────────────
     slack_notifications_enabled: bool = True
     slack_webhook_url: str = ""
+    slack_webhook_url_ops_alerts: str = ""
     slack_webhook_url_tracedata_trips: str = ""
 
 
