@@ -493,9 +493,7 @@ def test_resolve_agents_enforce_mode_uses_event_matrix_fallback(orchestrator_moc
 def test_resolve_agents_filters_unknown_agent_names(orchestrator_mocks):
     orch, _ = orchestrator_mocks
     event = _trip_event("harsh_brake")
-    decision = {
-        "agents_to_dispatch": ["safety", "unknown_agent", "support", "scoring"]
-    }
+    decision = {"agents_to_dispatch": ["safety", "unknown_agent", "support", "scoring"]}
     with patch("agents.orchestrator.agent.settings") as mock_settings:
         mock_settings.orchestrator_routing_fallback_mode = "off"
         resolved = orch._resolve_agents_for_dispatch(event, decision)

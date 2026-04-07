@@ -67,9 +67,7 @@ class TestDispatchRouting:
         capsules = {"safety": capsule}
         ctx = {"trip_id": "test_trip", "action": "test"}
         routing_decision = {"agents_to_dispatch": ["safety"], "action": "test"}
-        with patch(
-            "agents.orchestrator.agent._get_celery", return_value=mock_celery
-        ):
+        with patch("agents.orchestrator.agent._get_celery", return_value=mock_celery):
             result = await agent._dispatch(trip_event, capsules, ctx, routing_decision)
 
         assert result is True
@@ -89,9 +87,7 @@ class TestDispatchRouting:
 
         trip_event = TripEvent(**event)
         routing_decision = {"agents_to_dispatch": [], "action": "none"}
-        with patch(
-            "agents.orchestrator.agent._get_celery", return_value=mock_celery
-        ):
+        with patch("agents.orchestrator.agent._get_celery", return_value=mock_celery):
             result = await agent._dispatch(trip_event, {}, {}, routing_decision)
 
         assert result is False
@@ -113,9 +109,7 @@ class TestDispatchRouting:
         capsules = {"safety": capsule}
         ctx = {"trip_id": trip_event.trip_id, "action": "test"}
         routing_decision = {"agents_to_dispatch": ["safety"], "action": "test"}
-        with patch(
-            "agents.orchestrator.agent._get_celery", return_value=mock_celery
-        ):
+        with patch("agents.orchestrator.agent._get_celery", return_value=mock_celery):
             result = await agent._dispatch(trip_event, capsules, ctx, routing_decision)
 
         assert result is True

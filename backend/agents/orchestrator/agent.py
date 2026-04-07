@@ -1035,11 +1035,7 @@ class OrchestratorAgent:
         filtered = [a for a in normalized if a in allowed_agents]
 
         config = EVENT_MATRIX.get(event.event_type)
-        fallback_agents = (
-            compute_routing_agents(config)
-            if config is not None
-            else []
-        )
+        fallback_agents = compute_routing_agents(config) if config is not None else []
         is_high_or_critical = bool(
             config and str(config.priority.value).lower() in {"high", "critical"}
         )
