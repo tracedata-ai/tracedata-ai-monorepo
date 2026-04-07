@@ -79,6 +79,11 @@ class Settings(BaseSettings):
     langsmith_tracing: bool = False
     langchain_verbose: bool = False
 
+    # ── Integrations ─────────────────────────────────────────────────────────
+    slack_notifications_enabled: bool = True
+    slack_webhook_url: str = ""
+    slack_webhook_url_tracedata_trips: str = ""
+
 
 @lru_cache
 def get_settings() -> Settings:

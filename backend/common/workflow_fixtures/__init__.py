@@ -12,6 +12,7 @@ FIXTURE_REGISTRY: dict[str, str] = {
     "minimal_trip": "common.workflow_fixtures.minimal_trip",
     "safety_collision_trip": "common.workflow_fixtures.safety_collision_trip",
     "scoring_harsh_long_trip": "common.workflow_fixtures.scoring_harsh_long_trip",
+    "sg_baseline_trip": "common.workflow_fixtures.sg_baseline_trip",
 }
 
 

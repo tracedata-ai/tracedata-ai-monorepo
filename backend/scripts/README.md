@@ -1,3 +1,37 @@
+# Scripts Directory Guide
+
+This folder has accumulated scripts for setup, demos, and diagnostics.
+
+## Canonical scripts (recommended)
+
+- `bootstrap_sg_baseline.py`  
+  Idempotent startup bootstrap for local Docker runs:
+  - ensures baseline entities (10 drivers, 10 trucks, 20 Singapore routes)
+  - pushes baseline trip workflows to Redis once (`td:bootstrap:sg_baseline:v1`)
+- `play_workflow.py`  
+  Main fixture player for deterministic pipeline testing.
+- `setup_db.py`  
+  Initialize DB tables.
+
+## Useful diagnostics
+
+- `monitor_flow.py`
+- `trace_ingestion.py`
+- `inspect_debug_queues.py`
+- `docker_verify_flow.py`
+
+## Legacy/demo scripts (kept for compatibility)
+
+- `send_telemetry.py`
+- `fleet_support_agent_demo.py`
+- `push_smoothness_to_buffer.py`
+- `push_multi_truck_scoring_seed.py`
+- `verify_scoring_agent_cache.py`
+- `clean_datastores.py`
+- `reset_db.py`
+
+When adding new scripts, prefer extending `play_workflow.py` or adding new fixtures
+under `common/workflow_fixtures/` instead of creating one-off generators.
 # `backend/scripts`
 
 Operational and developer entry points.
