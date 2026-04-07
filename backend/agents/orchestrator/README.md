@@ -44,28 +44,55 @@ Think in order:
 
 So: **EventMatrix defines the baseline; the LLM operationalizes it; validation and policy enforce safety and product rules.**
 
+**Routing decision (tool + validation + policy)** — time order:
+
 ```mermaid
-flowchart LR
-  subgraph deterministicConfig[Deterministic config]
-    EM[EventMatrix]
-  end
-  subgraph llmStep[LLM step]
-    LLM[Router model]
-    Tool[get_event_config]
-  end
-  subgraph deterministicCode[Deterministic code]
-    Res[Resolve and allowlist]
-    Pol[Dispatch policy]
-    Warm[Warming and dispatch]
-  end
-  EM --> Tool
-  Tool --> LLM
-  LLM --> Res
-  EM -.-> Res
-  EM -.-> Pol
-  Res --> Pol
-  Pol --> Warm
+sequenceDiagram
+    participant Orch as OrchestratorAgent
+    participant DB as Postgres
+    participant LLM as Router LLM
+    participant Tool as get_event_config
+    participant EM as EventMatrix
+    participant Res as Resolve allowlist
+    participant Pol as Dispatch policy
+
+    Orch->>DB: acquire_lock(device_event_id)
+    DB-->>Orch: acquired / skip
+    Orch->>LLM: invoke(prompt + TripEvent)
+    LLM->>Tool: get_event_config(event_type)
+    Tool->>EM: lookup config
+    EM-->>Tool: action, agents_from_action, ...
+    Tool-->>LLM: tool result
+    LLM-->>Orch: JSON (agents_to_dispatch, reasoning, ...)
+    Orch->>Res: filter + optional EventMatrix fallback
+    Res-->>Orch: validated candidate list
+    Orch->>Pol: _apply_dispatch_policy(event, list)
+    Pol-->>Orch: final agents_to_dispatch
 ```
+
+If the lock is **not** acquired, the orchestrator stops before calling the LLM (no duplicate dispatch on the same `device_event_id`).
+
+### Why we use an LLM here (not “the model decides everything”)
+
+- **Tool-grounded routing** — The orchestrator prompt instructs the model to call `get_event_config(event_type)` and treat the tool as the source of truth, then return **strict JSON** (`agents_to_dispatch`, `trip_id`, `event_type`, etc.). The model is a **structured controller** that should **copy** `agents_from_action` from the tool, not invent agent names.
+- **Evolution without exploding `if` chains** — Prompts and tools can grow (richer messages, future tools) without every branch becoming new Python routing code on day one—while **hard guarantees** stay in resolver + policy + lock.
+- **Debuggability** — The reply can include `reasoning` and structured fields for logs, even when **allowed outcomes** are constrained by the tool and code.
+
+### How the LLM is wired in code (happy path)
+
+1. **`_acquire_and_dispatch`** in `agent.py` acquires the DB lease, then calls **`_get_routing_decision(event)`**.
+2. **`_get_routing_decision`** builds the user message (`build_orchestrator_routing_user_message`), calls **`self.llm_agent.invoke(...)`** with **`ORCHESTRATOR_TOOLS`** (includes `get_event_config`).
+3. The last assistant message is parsed as JSON; **`agents_to_dispatch`** is the routing **candidate**.
+4. **`_resolve_agents_for_dispatch`** allowlists names and optionally replaces bad/empty **high/critical** output using EventMatrix (`orchestrator_routing_fallback_mode`).
+5. **`_apply_dispatch_policy`** applies timing and safety rules; **warming, capsules, and Celery** use only this **final** list.
+
+Prompt and tool contract: `backend/agents/orchestrator/prompts.py`, `backend/agents/orchestrator/tools.py`.
+
+### Why this is still safe if the model misbehaves
+
+- **Unknown agent strings** are dropped by the allowlist in `_resolve_agents_for_dispatch`.
+- **Empty or malformed lists on high/critical events** can trigger an EventMatrix-backed list when fallback is `enforce` (or be logged in `shadow`).
+- **Product rules** (defer Support on harsh events, Scoring-only on `end_of_trip`, etc.) run in **`_apply_dispatch_policy`** after the model—so timing and safety do not depend on LLM fidelity.
 
 ### Why bother with an LLM if EventMatrix already exists?
 
@@ -95,17 +122,7 @@ In practice the model is there to **reliably follow a tool-based workflow** (loo
 - Dispatches Celery tasks to per-agent queues
 - Publishes agent-flow events for UI/observability
 
-```mermaid
-flowchart LR
-  redisIn[RedisProcessedQueue] --> orch[Orchestrator]
-  orch --> lockDb[DBLockAndTripLifecycle]
-  orch --> llm[LLMRouter]
-  llm --> policy[DeterministicPolicy]
-  policy --> warm[CacheWarming]
-  warm --> capsule[IntentCapsule]
-  capsule --> celery[CeleryDispatch]
-  celery --> workers[SafetyScoringSupportSentiment]
-```
+For a **time-ordered** view of one event from queue to workers, see the sequence diagram under [Orchestrator workflow (step-by-step)](#orchestrator-workflow-step-by-step).
 
 ---
 
@@ -168,17 +185,30 @@ Typical lifecycle writes:
 9. Seal capsule per agent.
 10. Dispatch per-agent Celery tasks.
 
+**End-to-end sequence (one event, happy path):**
+
 ```mermaid
-flowchart TB
-  pop[PopProcessedEvent] --> parse[ParseTripEvent]
-  parse --> life[HandleTripLifecycle]
-  life --> lock[AcquireDBLock]
-  lock --> route[LLMRouteDecision]
-  route --> resolve[ResolveAndValidateAgents]
-  resolve --> policy[ApplyDispatchPolicy]
-  policy --> warm[WarmCache]
-  warm --> seal[SealCapsules]
-  seal --> dispatch[DispatchCeleryTasks]
+sequenceDiagram
+    participant Q as Redis processed queue
+    participant Orch as Orchestrator
+    participant DB as Postgres
+    participant LLM as LLM + tools
+    participant R as Redis (warming)
+    participant Cel as Celery broker
+    participant W as Worker queues
+
+    Q-->>Orch: pop TripEvent
+    Orch->>Orch: parse TripEvent
+    Orch->>DB: trip lifecycle updates
+    Orch->>DB: acquire_lock(device_event_id)
+    DB-->>Orch: ok
+    Orch->>LLM: routing (get_event_config + JSON)
+    LLM-->>Orch: agents_to_dispatch (candidate)
+    Orch->>Orch: resolve + _apply_dispatch_policy
+    Orch->>R: warm keys by warming type
+    Orch->>Orch: seal IntentCapsule per agent
+    Orch->>Cel: apply_async per agent
+    Cel-->>W: tasks (Safety, Scoring, Support, Sentiment, ...)
 ```
 
 ---
@@ -191,21 +221,36 @@ flowchart TB
 - `sentiment_ready`: normalize to Support only; clear pending flag
 - Critical events (`collision`, `rollover`, `driver_sos`): force immediate Support if missing
 
+**Policy application** (after resolve; rules run **in order** in code — see `_apply_dispatch_policy`):
+
 ```mermaid
-flowchart TD
-  in[LLMAgents] --> flagged{FlaggedHarshEvent?}
-  flagged -->|yes| defer[RemoveSupportNow]
-  flagged -->|no| eot{EndOfTrip?}
-  defer --> eot
-  eot -->|yes| scoreOnly[ScoringOnlyNow]
-  eot -->|no| internal{CoachingOrSentimentReady?}
-  scoreOnly --> internal
-  internal -->|yes| supportOnly[SupportOnly]
-  internal -->|no| critical{CriticalType?}
-  critical -->|yes| forceSupport[EnsureSupportPresent]
-  critical -->|no| out[FinalAgents]
-  forceSupport --> out
-  supportOnly --> out
+sequenceDiagram
+    participant Pol as _apply_dispatch_policy
+    participant R as Redis trip context
+
+    Note over Pol: Input = list after resolve/allowlist
+
+    opt Harsh / flagged event type
+        Pol->>R: append flagged_events
+        Pol->>Pol: strip support / driver_support
+    end
+    opt end_of_trip
+        Pol->>Pol: coaching rules + context update
+        Pol->>R: persist runtime context (e.g. coaching_pending_after_scoring)
+        Pol->>Pol: strip support / driver_support (scoring only now)
+    end
+    opt coaching_ready
+        Pol->>Pol: keep only support / driver_support (else default driver_support)
+    end
+    opt sentiment_ready
+        Pol->>Pol: keep only support / driver_support (else default driver_support)
+        Pol->>R: clear sentiment_support_pending
+    end
+    opt Critical type and support absent
+        Pol->>Pol: append support
+    end
+
+    Pol-->>Pol: return final agent list
 ```
 
 ---
@@ -222,14 +267,30 @@ flowchart TD
   - `shadow` (log fallback candidate only)
   - `enforce` (apply deterministic fallback for invalid/unsafe routing)
 
+**Defense in depth (layered, in order):**
+
 ```mermaid
-flowchart LR
-  llmOut[LLMOutput] --> validate[ValidateSchemaAndAllowlist]
-  validate --> policy[DeterministicPolicyGate]
-  policy --> capsule[ScopedCapsulePermissions]
-  capsule --> dispatch[Dispatch]
-  validate --> fallback[OptionalFallbackMode]
-  fallback --> policy
+sequenceDiagram
+    participant LLM as LLM JSON output
+    participant Res as Resolve + allowlist
+    participant EM as EventMatrix fallback
+    participant Pol as Dispatch policy
+    participant Cap as ScopedToken + capsule
+    participant Cel as Celery dispatch
+
+    LLM->>Res: agents_to_dispatch (raw)
+
+    alt high/critical invalid or empty and mode is enforce
+        Res->>EM: compute_routing_agents
+        EM-->>Res: fallback list
+    else shadow mode (observe only)
+        Res-->>Res: log fallback; may keep filtered list
+    end
+
+    Res->>Pol: validated list
+    Pol->>Pol: business rules
+    Pol->>Cap: seal per-agent read/write keys
+    Cap->>Cel: enqueue tasks
 ```
 
 ---
@@ -273,12 +334,22 @@ Coverage themes:
 **CI:** Pull requests run `pytest -m "not nightly"` (see repo `.github/workflows/ci-backend-api.yaml`).  
 Scheduled **`main`** eval including all `nightly`-marked tests: `.github/workflows/ci-backend-eval-nightly.yaml`.
 
+**How tests plug in** (fixtures supply mocks; tests assert policy and dispatch):
+
 ```mermaid
-flowchart TB
-  unit[UnitPolicyAndWarmingTests] --> guards[GuardrailAssertions]
-  dispatch[DispatchRoutingTests] --> guards
-  fixtures[MockRedisDBCeleryFixtures] --> unit
-  fixtures --> dispatch
+sequenceDiagram
+    participant Run as CI or developer
+    participant Py as pytest
+    participant Cf as conftest fixtures
+    participant U as Warming / policy tests
+    participant D as Dispatch routing tests
+
+    Run->>Py: pytest -m "not nightly" (PR)
+    Py->>Cf: Redis / DB / Celery / agent-flow mocks
+    Cf->>U: unit + integration style cases
+    Cf->>D: routing + Celery task assertions
+    U-->>Run: pass / fail
+    D-->>Run: pass / fail
 ```
 
 ---
@@ -327,6 +398,7 @@ flowchart LR
 - `backend/agents/orchestrator/agent.py`
 - `backend/agents/orchestrator/db_manager.py`
 - `backend/agents/orchestrator/tools.py`
+- `backend/agents/orchestrator/prompts.py`
 - `backend/common/config/events.py`
 - `backend/common/config/settings.py`
 - `backend/tests/core/test_orchestrator_warming_and_tasks.py`
