@@ -285,9 +285,7 @@ async def test_dispatch_policy_coaching_ready_keeps_support_only(orchestrator_mo
     """UC1 follow-up: internal coaching_ready dispatches support only."""
     orch, _ = orchestrator_mocks
     event = _trip_event("coaching_ready")
-    result = await orch._apply_dispatch_policy(
-        event, ["safety", "scoring", "support"]
-    )
+    result = await orch._apply_dispatch_policy(event, ["safety", "scoring", "support"])
     assert result == ["support"]
 
 
