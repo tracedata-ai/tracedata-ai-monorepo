@@ -1,299 +1,253 @@
-# Support Agent (Driver Coaching & Improvement)
+# Support Agent Specification
 
-## Scope
+## Purpose
 
-The Support Agent is the human-centric coaching layer in TraceData. It turns warmed **trip context** (including **scoring** and **safety** snapshots when present), **coaching history**, and optional **current event** data into a short, actionable coaching message and persists it to **`coaching_schema`**.
+The **driver** receives **short, constructive coaching** in the driver app — not a new score and not a penalty decision. The Support Agent reads what already happened on the trip (including **safety context** and **trip scoring** when available), adds **prior coaching on the same trip** if any, and writes a **single coaching message** the driver can act on.
 
-It answers:
+It does **not** replace the **fleet manager** on emergencies. It **does not** change the **driver’s** score; the Scoring Agent owns the number.
 
-> How can this driver improve safety and efficiency based on what happened during this trip?
 
-**Implementation:** `backend/agents/driver_support/agent.py` (`SupportAgent`), invoked by Celery task `tasks.support_tasks.generate_coaching` on queue `td:agent:support` (`backend/agents/driver_support/tasks.py`).
+## Use cases
 
----
+### UC1: End-of-trip coaching (main path)
 
-## Use cases (as implemented)
+**Who it is for:** The **driver** has finished a trip and the **system** decided coaching may help (rules combine trip signals and flagged events; see orchestrator `coaching_pending_after_scoring` after `end_of_trip`).
 
-| Conceptual use case | How it is triggered in code |
-|---------------------|-----------------------------|
-| **Post-trip coaching** | Orchestrator strips `support` from the **`end_of_trip`** wave; after **`ScoringAgent`** succeeds, `schedule_coaching_ready_if_pending` may push a **`coaching_ready`** `TripEvent` onto `telemetry:{truck_id}:processed`. Orchestrator then dispatches **support** only (warming: `post_scoring_support`). |
-| **After driver feedback sentiment** | **`sentiment_ready`** internal event (from `agents.orchestrator.sentiment_followup`) is enqueued the same way; orchestrator dispatches support with `post_sentiment_support` warming. |
-| **Same-wave coaching (non–end-of-trip)** | EventMatrix **`Coaching`** action can include `support` with `scoring` **unless** orchestrator policy removes it: all **`FLAGGED_EVENT_TYPES`** (`harsh_brake`, `hard_accel`, `harsh_corner`, `speeding`) drop support for that event; **`end_of_trip`** always drops support for that event. |
-| **Critical incidents** | For `collision`, `rollover`, `driver_sos`, policy **appends** `support` if missing (`CRITICAL_IMMEDIATE_SUPPORT_TYPES` in `agents/orchestrator/agent.py`). |
+**What the driver sees:** Coaching appears **after** the trip ends and **after** scoring has run—not in the same moment as every harsh brake ping.
 
----
+**Flow (plain language):** Driver ends trip → **system** scores the trip → if coaching is pending, a follow-up job runs → Support Agent reads warmed trip context (including scoring and safety summaries) → generates coaching → **driver** sees a message in the driver portal.
 
-## Where the Support Agent sits
+**Delayed by design:** Routine harsh events (`harsh_brake`, `hard_accel`, `harsh_corner`, `speeding`) do **not** trigger Support in that same event wave; coaching for those patterns is meant to land **with end-of-trip context**, not as a separate ping per event.
 
-```mermaid
-flowchart TB
-  subgraph upstream [Upstream agents]
-    SAF[Safety Agent]
-    SCO[Scoring Agent]
-    SEN[Sentiment Agent]
-  end
+**Example:** The **driver** had several hard brakes during a congested merge. After the trip, the **driver** sees coaching that references **trip score** and **safety context**, with tips on anticipation and following distance—not a generic “drive better.”
 
-  subgraph redis [Redis warmed keys read via IntentCapsule]
-    TC["trips:TRIP_ID:support:trip_context"]
-    CH["trips:TRIP_ID:support:coaching_history"]
-    CE["trips:TRIP_ID:support:current_event"]
-    CTX["trip:TRIP_ID:context"]
-  end
 
-  subgraph support [Support Agent]
-    SA[SupportAgent LangGraph plus baseline]
-  end
+### UC2: Coaching after driver left feedback
 
-  subgraph downstream [Downstream]
-    OUT["trip:TRIP_ID:support_output"]
-    PG[(coaching_schema.coaching)]
-    EVT["trip:TRIP_ID:events"]
-  end
+**Who it is for:** The **driver** submitted **driver feedback** (e.g. note or appeal) that went through the Sentiment Agent.
 
-  SAF --> TC
-  SCO --> TC
-  SEN --> TC
-  TC --> SA
-  CH --> SA
-  CE --> SA
-  SA --> OUT
-  SA --> PG
-  SA --> CTX
-  SA --> EVT
-```
+**What the driver sees:** After sentiment analysis completes, the **system** can queue a **follow-up coaching** pass that takes that feedback context into account.
 
-Warming types from `get_warming_type()` in `common/config/events.py`:
+**Flow:** Driver feedback → Sentiment Agent → internal `sentiment_ready` event → Orchestrator dispatches Support with **post-sentiment** warmed keys → coaching message updated or added for that trip context.
 
-- **`post_scoring_support`** — `coaching_ready`
-- **`post_sentiment_support`** — `sentiment_ready`
-- **`aggregation-driven`** / **`event-driven`** — other routes that still dispatch `support` (see orchestrator policy below)
+**Example:** The **driver** explained a harsh brake as avoiding a cut-in. Sentiment is captured; the next coaching message can acknowledge stress while still reinforcing safe habits.
 
-Capsule **read keys** are built in `OrchestratorAgent._seal_capsule()` and point at the `trips:{trip_id}:support:…` keys above (not raw `trip:{id}:context` for those follow-up paths).
 
----
+### UC3: Serious incident—supportive check-in (parallel to fleet action)
 
-## Orchestrator dispatch policy (simplified)
+**Who it is for:** **Critical** events such as **collision**, **rollover**, or **driver SOS** (priority CRITICAL).
+
+**What the driver sees:** The **fleet manager** and safety workflows handle the emergency. The orchestrator may still **add Support** to the dispatch list so the **driver** can receive a **supportive, operational coaching-style check-in** in addition—not instead of escalation.
+
+**Flow:** Critical event routed → Safety (and other agents as configured) → policy ensures `support` is included if missing → Support may run with event-driven context where warmed.
+
+**Example:** A collision is logged. While the **fleet** coordinates response, the **driver** may still see a short, careful message in-app (tone constrained by prompts; no legal or regulatory claims).
+
+
+### UC4: Same-trip follow-up coaching
+
+**Who it is for:** The **driver** already received coaching on this trip and another Support run is triggered (e.g. additional internal event).
+
+**What the driver sees:** The next message may be labeled as **follow-up** and reference that earlier coaching exists on the trip.
+
+**Flow:** Warmed **coaching history** for the trip is non-empty → baseline logic prefers `follow_up` category.
+
+**Example:** “Continuing coaching—prior notes on this trip. Keep applying prior guidance and drive safely.”
+
+
+## Diagrams 
+
+### 1. Driver journey — `journey`
 
 ```mermaid
-flowchart TD
-  A[Event from EventMatrix + LLM routing] --> B{event_type in FLAGGED_EVENT_TYPES?}
-  B -->|yes| R1[Remove support / driver_support for this wave]
-  B -->|no| C{event_type == end_of_trip?}
-  C -->|yes| D[Set coaching_pending_after_scoring in trip context]
-  D --> R2[Remove support / driver_support scoring runs alone]
-  C -->|no| E{event_type == coaching_ready?}
-  E -->|yes| F[Keep only support or driver_support]
-  E -->|no| G{event_type == sentiment_ready?}
-  G -->|yes| H[Keep only support or driver_support + clear sentiment_support_pending]
-  G -->|no| I[Use routed agent list]
-  R1 --> J
-  R2 --> J
-  F --> J
-  H --> J
-  I --> J
-  J{critical incident collision rollover driver_sos?}
-  J -->|yes and no support| K[Append support]
-  J -->|no| L[Dispatch Celery tasks for remaining agents]
-  K --> L
+journey
+  title When coaching reaches the driver
+  section Finish the trip
+    Driver ends the trip: 5: Driver
+    Trip is scored: 3: System
+  section If coaching applies
+    Coaching is prepared: 2: System
+    Message appears in driver app: 5: Driver
+  section If driver submitted feedback
+    Driver submits feedback: 4: Driver
+    Sentiment is analyzed: 2: System
+    Follow-up coaching may appear: 3: Driver
 ```
 
-Routing still uses **`compute_routing_agents()`**, which maps `AgentType.DRIVER_SUPPORT` to the short dispatch id **`support`** (see `common/config/events.py`). The Redis output key uses **`capsule.agent`**, so it is normally **`trip:{trip_id}:support_output`**. If a capsule ever used `driver_support`, the key would be `trip:{trip_id}:driver_support_output` (fallback branch in `_apply_dispatch_policy`).
-
----
-
-## Sequence: post-scoring coaching (`coaching_ready`)
+### 2. UC1 — Post-trip coaching pipeline — `sequenceDiagram`
 
 ```mermaid
 sequenceDiagram
-  participant O as Orchestrator
-  participant Z as telemetry processed ZSET
-  participant SW as scoring_worker
-  participant RC as Redis trip context
-  participant SUP as support_worker
+  autonumber
+  participant Driver as Driver
+  participant Sys as TraceData backend
+  participant Score as Scoring Agent
+  participant Sup as Support Agent
 
-  O->>Z: pop end_of_trip TripEvent
-  O->>SW: score_trip support removed this wave
-  SW->>RC: merge scoring into warmed context
-  SW->>Z: push coaching_ready if pending
-  O->>Z: pop coaching_ready
-  O->>O: warm post_scoring_support keys
-  O->>SUP: Celery generate_coaching IntentCapsule
-  SUP->>SUP: SupportAgent.run
-  SUP->>RC: latest_support_output summary
-  Note over SUP: SET trip TRIP_ID support_output JSON
-  SUP->>O: publish_completion on trip events channel
+  Driver->>Sys: End trip
+  Sys->>Score: Run trip score first wave no Support
+  Score->>Sys: Scoring output merged into trip context
+  alt Coaching pending for this trip
+    Sys->>Sys: Enqueue coaching_ready on processed queue
+    Sys->>Sup: Dispatch generate_coaching
+    Sup->>Sys: Save coaching row and Redis outputs
+    Sys->>Driver: Coaching visible when app reads coaching or context
+  else Not pending
+    Sys-->>Driver: No new coaching from this path
+  end
 ```
 
-Details: `agents/orchestrator/coaching_followup.py` enqueues **`coaching_ready`**; synthetic row in `pipeline_events` uses `device_event_id` prefix `cr-`.
-
----
-
-## Sequence: post-sentiment support (`sentiment_ready`)
+### 3. UC2 — Feedback then coaching — `sequenceDiagram`
 
 ```mermaid
 sequenceDiagram
-  participant SEN as sentiment_worker
-  participant FU as sentiment_followup
-  participant Z as telemetry truck processed ZSET
-  participant O as Orchestrator
-  participant SUP as support_worker
+  autonumber
+  participant Driver as Driver
+  participant Sys as TraceData backend
+  participant Sen as Sentiment Agent
+  participant Sup as Support Agent
 
-  SEN->>SEN: analyse_feedback success
-  SEN->>FU: schedule sentiment_ready if applicable
-  FU->>Z: push sentiment_ready TripEvent
-  O->>Z: pop sentiment_ready
-  O->>O: warm post_sentiment_support keys
-  O->>SUP: generate_coaching
+  Driver->>Sys: Submit driver feedback
+  Sys->>Sen: Analyse feedback
+  Sen->>Sys: Sentiment stored sentiment_ready scheduled when applicable
+  Sys->>Sup: Dispatch generate_coaching post sentiment
+  Sup->>Sys: Coaching message with updated context
+  Sys->>Driver: Updated coaching in portal
 ```
 
----
-
-## Internal execution: `SupportAgent._execute`
+### 4. What shapes the coaching message — `flowchart`
 
 ```mermaid
 flowchart TB
-  subgraph read [Read warmed cache via CacheReader]
-    M1[trip_context]
-    M2[coaching_history]
-    M3[current_event]
+  subgraph inputs [What the agent can use]
+    TC[Trip context JSON scoring_output safety_output driver_id]
+    CH[Coaching history for this trip]
+    EV[Current event snapshot when warmed]
   end
 
-  subgraph derive [Derive snapshots]
-    SC[scoring_output from trip_context]
-    SF[safety_output from trip_context]
+  subgraph brain [Support Agent]
+    BL[Baseline coaching rules]
+    LLM[Optional LLM refinement gpt-4o-mini]
+    MERGE[Merge with baseline caps]
   end
 
-  BASE[baseline_support_coaching deterministic JSON]
-  LLM{LLM configured?}
-  TG[LangGraph tool loop]
-  TOOLS["Tools: get_support_trip_context_json, get_support_coaching_history_json, get_support_current_event_json, compute_baseline_coaching_plan"]
-  MERGE[merge_support_json_with_baseline]
-  DB[(SupportRepository.write_coaching)]
-  RET[Return status coaching_id message coaching_category priority trip_id]
+  subgraph out [What the driver sees]
+    MSG[One coaching message priority high normal low]
+    CAT[Category follow_up event_based post_trip general]
+    DB[(coaching_schema.coaching)]
+    APP[Driver portal API or app]
+  end
 
-  M1 --> SC
-  M1 --> SF
-  M1 --> BASE
-  M2 --> BASE
-  M3 --> BASE
-  SC --> BASE
-  SF --> BASE
-  BASE --> LLM
-  LLM -->|no| DB
-  LLM -->|yes| TG
-  TOOLS --> TG
-  TG --> MERGE
-  BASE --> MERGE
+  TC --> BL
+  CH --> BL
+  EV --> BL
+  BL --> LLM
+  LLM --> MERGE
+  BL --> MERGE
+  MERGE --> MSG
+  MERGE --> CAT
   MERGE --> DB
-  DB --> RET
+  DB --> APP
+  MSG --> APP
 ```
 
-**Final model JSON** (from the LLM, merged with baseline) is:
 
-- `coaching_category`: `follow_up` | `event_based` | `post_trip` | `general`
-- `message`: short coaching text
-- `priority`: `high` | `normal` | `low`
 
-Prompts: `backend/agents/driver_support/prompts.py` (`SUPPORT_SYSTEM_PROMPT`).
+## Tools used (implementation names)
 
-Default model: **`gpt-4o-mini`** via `load_llm(OpenAIModel.GPT_4O_MINI)` when the API key is available; if not, the agent uses **baseline only**.
+These are **LangChain tools** exposed to the model inside `SupportAgent` (`backend/agents/driver_support/tools.py`). They return **JSON strings** built from Redis-warmed data the orchestrator already placed for this run.
+
+| Tool | What it gives the model (driver-facing meaning) |
+|------|---------------------------------------------|
+| `get_support_trip_context_json()` | Trip-wide picture: may include **scoring** and **safety** snapshots merged for this trip. |
+| `get_support_coaching_history_json()` | Earlier coaching touches on **this trip** so the message can feel continuous. |
+| `get_support_current_event_json()` | The **current event** snapshot when this run is event-driven (often empty on pure post-trip coaching). |
+| `compute_baseline_coaching_plan()` | A **deterministic** first draft: category, short message, priority—always available even if the LLM is off. |
 
 ---
 
-## Outputs (actual persistence)
+## DB tables
 
-### Redis
+**Schema:** `coaching_schema`
 
-| Key | Role |
-|-----|------|
-| `trip:{trip_id}:support_output` | JSON string: result of `SupportAgent._execute` after successful run (`status`, `coaching_id`, `message`, `coaching_category`, `priority`, `trip_id`). Written in `TDAgentBase.run` using `capsule.agent` in the key name. |
-| `trip:{trip_id}:context` | Updated with `latest_support_output` subset after success (`SupportAgent._update_trip_context_with_support_output`). TTL: `RedisSchema.Trip.CONTEXT_TTL_HIGH` (48h) on store. |
-| `trip:{trip_id}:events` | Celery task **`_generate_coaching_async`** publishes completion (pub/sub + list) with `"agent": "driver_support"` in the payload (`agents/driver_support/tasks.py`). |
+| Table | Purpose |
+|-------|---------|
+| `coaching` | **Primary Support write:** `trip_id`, `driver_id`, `coaching_category`, `message`, `priority`, `created_at`, returns `coaching_id`. |
+| `driver_feedback` | Stores driver feedback rows (written through `SupportRepository.write_driver_feedback` when used by ingestion/API paths—not the main `_execute` coaching insert). |
 
-### PostgreSQL
 
-- **`coaching_schema.coaching`** — `SupportRepository.write_coaching` (category, message, priority, `trip_id`, `driver_id`).
+## Redis
 
-### Example: `trip:{trip_id}:support_output` payload
+| Key pattern | Operation | Driver / fleet meaning |
+|-------------|-----------|------------------|
+| `trips:{trip_id}:support:trip_context` | GET (via capsule) | Packaged trip story for this coaching run (includes scoring/safety blobs when warmed). |
+| `trips:{trip_id}:support:coaching_history` | GET | Prior coaching list for this trip. |
+| `trips:{trip_id}:support:current_event` | GET | Event snapshot when relevant. |
+| `trip:{trip_id}:support_output` | SET | Latest **structured result** JSON from the agent run (key uses capsule agent id, usually `support`). |
+| `trip:{trip_id}:context` | GET/SET | Trip runtime context; after success, **`latest_support_output`** summary is merged in for other services. |
+| `trip:{trip_id}:events` | PUBLISH + list | Completion notifications; Celery completion payload uses `"agent": "driver_support"`. |
+
+Queue: Celery task `tasks.support_tasks.generate_coaching` on **`td:agent:support`**.
+
+
+## Workflow
+
+**ST-SUP-01-01 Receive job**  
+Orchestrator sends an **IntentCapsule** after routing (e.g. `coaching_ready`, `sentiment_ready`, or other allowed routes). Worker task `generate_coaching` starts.
+
+**ST-SUP-01-02 Load warmed data**  
+Read only keys allowed on the capsule; build `trip_context`, `coaching_history`, optional `current_event`.
+
+**ST-SUP-01-03 Derive snapshots**  
+From `trip_context`, take **scoring** and **safety** embedded outputs when present.
+
+**ST-SUP-01-04 Baseline plan**  
+`baseline_support_coaching(...)` chooses category and default message (follow-up vs event vs post-trip vs general).
+
+**ST-SUP-01-05 Optional LLM pass**  
+If OpenAI is configured, LangGraph runs the tool loop, then parses **one JSON object** from the assistant: `coaching_category`, `message`, `priority`.
+
+**ST-SUP-01-06 Merge and validate**  
+`merge_support_json_with_baseline` keeps allowed enums only.
+
+**ST-SUP-01-07 Persist and signal**  
+Insert **`coaching_schema.coaching`**; base class writes **`trip:{trip_id}:support_output`**; `SupportAgent` updates **`trip:{trip_id}:context`** `latest_support_output`; task publishes **completion** on **`trip:{trip_id}:events`**.
+
+
+## Coaching result JSON (stored on `trip:{trip_id}:support_output`)
+
+Shape matches **`SupportAgent._execute`** success return (see `backend/agents/driver_support/agent.py`). This is what downstream services read from Redis; the **full sentence the driver reads** is in `message` and in the `coaching` table.
 
 ```json
 {
   "status": "success",
-  "coaching_id": "<uuid>",
-  "message": "Post-trip coaching using your score and latest safety summary. Trip score: 72.",
+  "coaching_id": "550e8400-e29b-41d4-a716-446655440000",
+  "message": "Post-trip coaching using the trip score and latest safety summary. Trip score: 72.",
   "coaching_category": "post_trip",
   "priority": "normal",
-  "trip_id": "TRIP-..."
+  "trip_id": "TRP-2026-a1b2c3d4-e5f6-47g8-h9i0-j1k2l3m4n5o6"
 }
 ```
 
-The richer “feedback_content / recommended_learning” shape in older docs is **not** what the worker writes today; the LLM is instructed to keep themes inside `message`.
+Allowed values:
 
----
+- `coaching_category`: `follow_up` | `event_based` | `post_trip` | `general`
+- `priority`: `high` | `normal` | `low`
 
-## Companion agents
 
-- **Scoring Agent** — Produces data that ends up in **`trip_context.scoring_output`** (rates, scores, coaching flags) for the support tool loop.
-- **Safety Agent** — Produces **`trip_context.safety_output`** for context-aware tone (hazards, triage).
-- **Sentiment Agent** — Feeds follow-up **`sentiment_ready`** so support can run with sentiment context in trip context.
+## Limitations
 
----
+- **Does not change** trip or driver scores; it **reads** scoring output from context only.
+- **Does not** run on the **same orchestrator wave** as **`end_of_trip`**; post-trip coaching uses the **`coaching_ready`** follow-up after scoring when pending.
+- **Does not** run for **routine harsh events** in that harsh event’s wave—Support is **stripped** for `harsh_brake`, `hard_accel`, `harsh_corner`, `speeding` on that event so coaching stays **trip-level** for UC1.
+- **Needs** warmed Redis context prepared by the orchestrator; empty or stale context produces weaker or generic baseline coaching.
+- **LLM optional:** if the model is unavailable, the **driver** still receives **baseline** coaching text, not silence.
+- **Requires** DB connectivity in the worker to insert **`coaching_schema.coaching`**.
+- **No legal or regulatory claims**; prompts keep guidance operational.
 
-## Limitations (implementation-aligned)
 
-- Does **not** mutate scoring rows or trip scores; it **reads** snapshots from warmed context.
-- **No support** on the same orchestrator wave as **`end_of_trip`**; coaching is **deferred** via **`coaching_ready`** when `coaching_pending_after_scoring` is set and scoring succeeds.
-- **No support** on the same wave for **`FLAGGED_EVENT_TYPES`** harsh events (support is stripped for that event).
-- Requires **DB** access in the worker (`generate_coaching` uses `create_async_engine` + `SupportRepository`).
-- **Asynchronous** via Celery; latency depends on queue depth and LLM latency.
+## Running and references
 
----
-
-## System prompt
-
-The production system prompt is **`SUPPORT_SYSTEM_PROMPT`** in `backend/agents/driver_support/prompts.py` (Fleet Management / driver coaching objectives, JSON-only final output).
-
-For a **standalone OpenAI smoke test** (no Celery/Redis), see `backend/scripts/fleet_support_agent_demo.py`.
-
----
-
-## Expected input shape (documentation / demo)
-
-The worker does **not** consume a standalone “fleet JSON” file; it consumes an **IntentCapsule** and **JSON blobs** at Redis keys. The following is a useful **logical** shape for demos and product docs:
-
-```json
-{
-  "event_id": "string",
-  "driver_id": "string",
-  "trip_metadata": {
-    "timestamp": "ISO8601",
-    "location": { "lat": 0, "long": 0 },
-    "telemetry_incident": "string"
-  },
-  "driver_input": {
-    "text": "string",
-    "category": "string"
-  }
-}
-```
-
----
-
-## Running the agent
-
-### Production
-
-The Support Agent runs as **`support_worker`** in Docker Compose (see root [README](../../README.md)): orchestrator dispatches **`tasks.support_tasks.generate_coaching`** after internal events such as **`coaching_ready`** / **`sentiment_ready`** (and other routed cases per policy above).
-
-### Local LLM smoke test (optional)
-
-1. Prerequisites: Python 3.11+, OpenAI API key, backend dependencies (`uv sync` or a venv under `backend/`).
-2. Set **`OPENAI_API_KEY`** (and optionally **`OPENAI_MODEL`**, default `gpt-4o-mini` in the demo). Use `.env` at repo root or `backend/`.
-3. Run:
-
-```bash
-cd backend
-python -m scripts.fleet_support_agent_demo
-```
-
-4. Adjust the example payload in `backend/scripts/fleet_support_agent_demo.py` as needed.
+- **Production:** `support_worker` in Docker Compose; see root [README](../../README.md).
+- **Code:** `backend/agents/driver_support/agent.py`, `tasks.py`, `prompts.py`, `tools.py`.
+- **Optional local demo (OpenAI only):** `python -m scripts.fleet_support_agent_demo` from `backend/` (does not exercise Redis/Celery).
