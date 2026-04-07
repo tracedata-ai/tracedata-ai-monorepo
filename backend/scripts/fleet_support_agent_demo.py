@@ -134,6 +134,8 @@ if __name__ == "__main__":
 
     print("--- Fleet Support demo (production JSON contract) ---\n")
     result = get_fleet_support_response(example_fleet_data)
-    print(json.dumps({k: v for k, v in result.items() if k != "raw_model_text"}, indent=2))
+    print(
+        json.dumps({k: v for k, v in result.items() if k != "raw_model_text"}, indent=2)
+    )
     print("\n--- Raw model output ---\n")
     print(result.get("raw_model_text", ""))
