@@ -6,6 +6,7 @@ These tasks are triggered by Celery beat (see `celery_app.py`).
 
 import asyncio
 import logging
+from inspect import isawaitable
 
 from celery import shared_task
 
@@ -76,7 +77,9 @@ def publish_queue_depths(self) -> dict:
         )
         raise self.retry(exc=exc) from exc
     finally:
-        asyncio.run(redis.close())
+        close_result = redis.close()
+        if isawaitable(close_result):
+            asyncio.run(close_result)
 
 
 async def _collect_queue_sizes(redis: RedisClient) -> dict[str, int]:
