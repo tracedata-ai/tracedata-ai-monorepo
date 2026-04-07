@@ -301,3 +301,39 @@ jobs:
           echo "**Branch:** \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
           echo "**Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
           echo "**Triggered by:** ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
+
+  notify-slack:
+    name: 📣 Slack Notification
+    runs-on: ubuntu-latest
+    needs: [lint, type-check, unit-test, security-sca, build, docker, summary]
+    if: always()
+    steps:
+      - name: Post CI result to Slack
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_CI_WEBHOOK_URL }}
+          LINT_RESULT: ${{ needs.lint.result }}
+          TYPE_RESULT: ${{ needs.type-check.result }}
+          TEST_RESULT: ${{ needs.unit-test.result }}
+          SCA_RESULT: ${{ needs.security-sca.result }}
+          BUILD_RESULT: ${{ needs.build.result }}
+          DOCKER_RESULT: ${{ needs.docker.result }}
+          REPO: ${{ github.repository }}
+          BRANCH: ${{ github.ref_name }}
+          EVENT: ${{ github.event_name }}
+          RUN_ID: ${{ github.run_id }}
+          SERVER_URL: ${{ github.server_url }}
+        run: |
+          if [ -z "$SLACK_WEBHOOK" ]; then
+            echo "SLACK_CI_WEBHOOK_URL not set; skipping notification."
+            exit 0
+          fi
+          STATUS="PASS"
+          for r in "$LINT_RESULT" "$TYPE_RESULT" "$TEST_RESULT" "$SCA_RESULT" "$BUILD_RESULT" "$DOCKER_RESULT"; do
+            if [ "$r" = "failure" ] || [ "$r" = "cancelled" ]; then
+              STATUS="FAIL"
+              break
+            fi
+          done
+          RUN_URL="$SERVER_URL/$REPO/actions/runs/$RUN_ID"
+          MSG="Backend Agents CI: $STATUS | repo=$REPO | branch=$BRANCH | event=$EVENT | $RUN_URL"
+          curl -X POST -H "Content-type: application/json" --data "{\"text\":\"$MSG\"}" "$SLACK_WEBHOOK"

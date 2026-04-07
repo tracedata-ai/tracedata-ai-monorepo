@@ -19,6 +19,7 @@ Location: backend/agents/orchestrator/agent.py
 import asyncio
 import json
 import logging
+import time
 from datetime import UTC, datetime
 from inspect import isawaitable
 
@@ -42,6 +43,7 @@ from common.config.events import (
 )
 from common.config.settings import get_settings
 from common.db.engine import engine
+from common.integrations.slack_notifier import SlackNotifier
 from common.models.agent_flow import AgentFlowEvent
 from common.models.events import TripEvent
 from common.models.security import IntentCapsule, ScopedToken
@@ -53,6 +55,14 @@ settings = get_settings()
 
 FLAGGED_EVENT_TYPES = {"harsh_brake", "hard_accel", "harsh_corner", "speeding"}
 CRITICAL_IMMEDIATE_SUPPORT_TYPES = {"collision", "rollover", "driver_sos"}
+DETERMINISTIC_FASTPATH_EVENT_TYPES = {
+    "start_of_trip",
+    "end_of_trip",
+    "smoothness_log",
+    "coaching_ready",
+    "sentiment_ready",
+    "driver_feedback",
+}
 
 
 def _get_celery() -> Celery:
@@ -105,7 +115,10 @@ class OrchestratorAgent:
         self.truck_ids = truck_ids or []
         self.redis = RedisClient()
         self.db = DBManager()
+        self.slack_notifier = SlackNotifier()
         self._running = False
+        self._routing_mode_counts: dict[str, int] = {"deterministic": 0, "llm": 0}
+        self._ops_alert_last_sent_at: dict[str, float] = {}
 
         # Initialize LLM agent for routing decisions
         llm = _get_llm()
@@ -160,7 +173,23 @@ class OrchestratorAgent:
         try:
             while self._running:
                 # Dynamically discover trucks from processed queues
-                truck_ids = await self._discover_trucks()
+                try:
+                    truck_ids = await self._discover_trucks()
+                except Exception as e:
+                    logger.error(
+                        {
+                            "action": "orchestrator_discovery_failed",
+                            "error": str(e)[:200],
+                        }
+                    )
+                    await self._send_ops_alert_once(
+                        key="redis_discovery_failed",
+                        severity="critical",
+                        message="Redis discovery failed in orchestrator",
+                        details={"error": str(e)[:160]},
+                    )
+                    await asyncio.sleep(2.0)
+                    continue
 
                 if not truck_ids:
                     # Ingestion hasn't populated processed queues yet
@@ -171,7 +200,23 @@ class OrchestratorAgent:
                 handled = 0
                 for truck_id in truck_ids:
                     key = RedisSchema.Telemetry.processed(truck_id)
-                    result = await self.redis.pop_from_processed(key)
+                    try:
+                        result = await self.redis.pop_from_processed(key)
+                    except Exception as e:
+                        logger.error(
+                            {
+                                "action": "orchestrator_pop_failed",
+                                "queue_key": key,
+                                "error": str(e)[:200],
+                            }
+                        )
+                        await self._send_ops_alert_once(
+                            key="redis_pop_failed",
+                            severity="critical",
+                            message="Redis pop_from_processed failed",
+                            details={"error": str(e)[:160]},
+                        )
+                        continue
                     if result is None:
                         continue
                     handled += 1
@@ -182,6 +227,21 @@ class OrchestratorAgent:
 
         except asyncio.CancelledError:
             logger.info({"action": "orchestrator_stopping"})
+        except Exception as e:
+            logger.error(
+                {
+                    "action": "orchestrator_runtime_failure",
+                    "error": str(e)[:200],
+                }
+            )
+            await self._send_ops_alert_once(
+                key="orchestrator_runtime_failure",
+                severity="critical",
+                message="Orchestrator runtime failure",
+                details={"error": str(e)[:160]},
+                cooldown_seconds=120,
+            )
+            raise
         finally:
             await self.redis.close()
 
@@ -205,6 +265,12 @@ class OrchestratorAgent:
                     "action": "event_parse_failed",
                     "error": str(e)[:200],
                 }
+            )
+            await self._send_ops_alert_once(
+                key="event_parse_failed",
+                severity="warning",
+                message="Event parse failed in orchestrator",
+                details={"error": str(e)[:160]},
             )
             return
 
@@ -241,6 +307,27 @@ class OrchestratorAgent:
             )
         )
 
+    async def _send_ops_alert_once(
+        self,
+        *,
+        key: str,
+        severity: str,
+        message: str,
+        details: dict | None = None,
+        cooldown_seconds: int = 300,
+    ) -> None:
+        now = time.monotonic()
+        last_sent = self._ops_alert_last_sent_at.get(key, 0.0)
+        if now - last_sent < cooldown_seconds:
+            return
+        self._ops_alert_last_sent_at[key] = now
+        await self.slack_notifier.send_ops_alert(
+            component="orchestrator",
+            severity=severity,
+            message=message,
+            details=details,
+        )
+
     async def _handle_trip_lifecycle(self, event: TripEvent, ctx: dict) -> None:
         """Create trip row on start_of_trip. Update status on end_of_trip."""
         if event.event_type == "start_of_trip":
@@ -251,6 +338,7 @@ class OrchestratorAgent:
                 started_at=event.timestamp,
             )
             logger.info({**ctx, "action": "trip_created"})
+            await self.slack_notifier.send_trip_started(event)
 
         elif event.event_type == "end_of_trip":
             await self.db.update_trip(
@@ -259,6 +347,7 @@ class OrchestratorAgent:
                 action_sla="1_week",
             )
             logger.info({**ctx, "action": "trip_marked_scoring_pending"})
+            await self.slack_notifier.send_trip_ended(event)
 
         elif event.event_type == "coaching_ready":
             await self.db.update_trip(
@@ -266,6 +355,10 @@ class OrchestratorAgent:
                 status="coaching_pending",
             )
             logger.info({**ctx, "action": "trip_marked_coaching_pending"})
+            await self._send_trip_summary_snapshot(event)
+
+        elif event.event_type == "sentiment_ready":
+            await self._send_trip_summary_snapshot(event)
 
     async def _load_trip_runtime_context(self, trip_id: str) -> dict:
         key = RedisSchema.Trip.context(trip_id)
@@ -332,6 +425,34 @@ class OrchestratorAgent:
                 "flagged_count": len(flagged_events),
             }
         )
+
+    async def _send_trip_summary_snapshot(self, event: TripEvent) -> None:
+        """
+        Publish a best-effort trip summary to Slack.
+        Uses latest available worker outputs in Redis.
+        """
+        try:
+            summary = {
+                "scoring": await self.redis.get_agent_output(
+                    RedisSchema.Trip.output(event.trip_id, "scoring")
+                ),
+                "safety": await self.redis.get_agent_output(
+                    RedisSchema.Trip.output(event.trip_id, "safety")
+                ),
+                "support": await self.redis.get_agent_output(
+                    RedisSchema.Trip.output(event.trip_id, "support")
+                ),
+            }
+            await self.slack_notifier.send_trip_summary(event, summary=summary)
+        except Exception as exc:
+            logger.warning(
+                {
+                    "action": "trip_summary_slack_skipped",
+                    "trip_id": event.trip_id,
+                    "event_type": event.event_type,
+                    "error": str(exc)[:200],
+                }
+            )
 
     @staticmethod
     def _estimate_trip_score(all_pings: list[dict]) -> float:
@@ -973,14 +1094,28 @@ class OrchestratorAgent:
         """
         device_event_id = event.device_event_id
 
+        # ── Idempotency guard: skip already-terminal events ────────────────
+        if await self._is_event_terminal(device_event_id):
+            logger.info(
+                {
+                    **ctx,
+                    "action": "dispatch_skipped_already_terminal",
+                }
+            )
+            return
+
         # ── Acquire lease ──────────────────────────────────────────────────
         acquired = await self.db.acquire_lock(device_event_id)
         if not acquired:
             logger.warning({**ctx, "action": "lock_failed", "reason": "already_locked"})
             return
 
-        # ── Get routing decision from LLM ──────────────────────────────────
-        routing_decision = self._get_routing_decision(event)
+        dispatch_started = time.perf_counter()
+
+        # ── Get routing decision (deterministic fast-path or LLM) ──────────
+        routing_decision = self._get_routing_decision_fast_or_llm(event)
+        routing_mode = str(routing_decision.get("routing_mode", "llm"))
+        self._record_routing_mode(routing_mode)
         agents_to_dispatch = self._resolve_agents_for_dispatch(event, routing_decision)
         agents_to_dispatch = await self._apply_dispatch_policy(
             event, agents_to_dispatch
@@ -1014,6 +1149,92 @@ class OrchestratorAgent:
         if not dispatched:
             # Release lock if dispatch failed — event will be retried
             await self.db.fail_event(device_event_id)
+        else:
+            elapsed_ms = int((time.perf_counter() - dispatch_started) * 1000)
+            logger.info(
+                {
+                    **ctx,
+                    "action": "orchestrator_dispatch_metrics",
+                    "routing_mode": routing_mode,
+                    "latency_ms": elapsed_ms,
+                    "agents_count": len(agents_to_dispatch),
+                }
+            )
+
+    async def _is_event_terminal(self, device_event_id: str) -> bool:
+        """
+        Best-effort idempotency guard.
+        Skip if event is already in terminal status.
+        """
+        if not hasattr(self.db, "get_event_status"):
+            return False
+        try:
+            status = await self.db.get_event_status(device_event_id)
+        except Exception:
+            return False
+        return status in {"processed", "failed", "locked"}
+
+    def _get_routing_decision_fast_or_llm(self, event: TripEvent) -> dict:
+        """
+        Use deterministic EventMatrix routing for routine events, LLM otherwise.
+        """
+        if event.event_type in DETERMINISTIC_FASTPATH_EVENT_TYPES:
+            config = EVENT_MATRIX.get(event.event_type)
+            if config is not None:
+                agents = compute_routing_agents(config)
+                action_name = (
+                    config.action.value
+                    if hasattr(config.action, "value")
+                    else str(config.action)
+                )
+                priority_name = (
+                    config.priority.value
+                    if hasattr(config.priority, "value")
+                    else str(config.priority)
+                )
+                priority_score = PRIORITY_MAP.get(str(priority_name).lower(), 9)
+                logger.info(
+                    {
+                        "action": "routing_decision_fastpath",
+                        "trip_id": event.trip_id,
+                        "event_id": event.event_id,
+                        "device_event_id": event.device_event_id,
+                        "event_type": event.event_type,
+                        "agents": agents,
+                        "priority_score": priority_score,
+                        "routing_mode": "deterministic",
+                    }
+                )
+                return {
+                    "trip_id": event.trip_id,
+                    "event_type": event.event_type,
+                    "priority_score": priority_score,
+                    "agents_to_dispatch": agents,
+                    "action": action_name,
+                    "reasoning": "deterministic_fastpath_eventmatrix",
+                    "routing_mode": "deterministic",
+                }
+        return self._get_routing_decision(event)
+
+    def _record_routing_mode(self, mode: str) -> None:
+        mode_key = "deterministic" if mode == "deterministic" else "llm"
+        self._routing_mode_counts[mode_key] = (
+            self._routing_mode_counts.get(mode_key, 0) + 1
+        )
+        total = self._routing_mode_counts.get(
+            "deterministic", 0
+        ) + self._routing_mode_counts.get("llm", 0)
+        if total % 20 == 0:
+            logger.info(
+                {
+                    "action": "orchestrator_routing_mode_counters",
+                    "total_events": total,
+                    "deterministic_count": self._routing_mode_counts.get(
+                        "deterministic", 0
+                    ),
+                    "llm_count": self._routing_mode_counts.get("llm", 0),
+                }
+            )
 
     def _resolve_agents_for_dispatch(
         self, event: TripEvent, routing_decision: dict
