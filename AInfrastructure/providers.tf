@@ -10,7 +10,7 @@ terraform {
 }
 
 provider "aws" {
-  region  = "ap-south-1"  # Change to your desired AWS region
-  access_key = "AKIA2H3EWGHGCISRMR5O"  # Replace with your access key
-  secret_key = "IZ/jZIN4mk0qQxona0APu9iebf14TDCdgmCjr1zN"  # Replace with your secret key
+  region     = "ap-south-1"   # Change to your desired AWS region
+  access_key = "xxxxxxxxxxxx" # Replace with your access key
+  secret_key = "xxxxxxxxxxxx" # Replace with your secret key
 }
