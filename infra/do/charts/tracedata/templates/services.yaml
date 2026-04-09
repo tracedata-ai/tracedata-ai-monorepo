@@ -6,6 +6,8 @@ kind: Service
 metadata:
   name: {{ $name }}
   namespace: {{ $ns }}
+  labels:
+    app: {{ $name }}
 spec:
   selector:
     app: {{ $name }}

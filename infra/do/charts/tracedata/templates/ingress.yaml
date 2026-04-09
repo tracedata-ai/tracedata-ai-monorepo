@@ -5,7 +5,7 @@ metadata:
   name: tracedata-frontend-ingress
   namespace: {{ .Values.namespace }}
   annotations:
-    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+{{ toYaml .Values.ingress.annotations | indent 4 }}
 spec:
   ingressClassName: {{ .Values.ingress.className }}
   tls:
@@ -30,7 +30,7 @@ metadata:
   name: tracedata-api-ingress
   namespace: {{ .Values.namespace }}
   annotations:
-    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+{{ toYaml .Values.ingress.annotations | indent 4 }}
 spec:
   ingressClassName: {{ .Values.ingress.className }}
   tls:

@@ -18,6 +18,9 @@ spec:
       labels:
         app: {{ $name }}
     spec:
+      {{- if $.Values.serviceAccount.create }}
+      serviceAccountName: {{ default (include "tracedata.fullname" $) $.Values.serviceAccount.name }}
+      {{- end }}
       containers:
         - name: {{ $name }}
           image: {{ (index $.Values.images $cfg.imageRef).repository }}:{{ (index $.Values.images $cfg.imageRef).tag }}
@@ -36,25 +39,48 @@ spec:
             - name: DATABASE_URL
               valueFrom:
                 secretKeyRef:
-                  name: tracedata-app-secrets
+                  name: {{ $.Values.externalSecrets.targetSecretName }}
                   key: DATABASE_URL
             - name: REDIS_URL
               valueFrom:
                 secretKeyRef:
-                  name: tracedata-app-secrets
+                  name: {{ $.Values.externalSecrets.targetSecretName }}
                   key: REDIS_URL
             - name: OPENAI_API_KEY
               valueFrom:
                 secretKeyRef:
-                  name: tracedata-app-secrets
+                  name: {{ $.Values.externalSecrets.targetSecretName }}
                   key: OPENAI_API_KEY
             - name: ANTHROPIC_API_KEY
               valueFrom:
                 secretKeyRef:
-                  name: tracedata-app-secrets
+                  name: {{ $.Values.externalSecrets.targetSecretName }}
                   key: ANTHROPIC_API_KEY
+            - name: SLACK_WEBHOOK_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $.Values.externalSecrets.targetSecretName }}
+                  key: SLACK_WEBHOOK_URL
           ports:
             - containerPort: {{ $cfg.containerPort | default 8000 }}
+          {{- if $cfg.resources }}
+          resources:
+{{ toYaml $cfg.resources | indent 12 }}
+          {{- end }}
+          {{- if and $cfg.probes $cfg.probes.enabled }}
+          readinessProbe:
+            httpGet:
+              path: {{ $cfg.probes.readiness.path | quote }}
+              port: {{ $cfg.containerPort | default 8000 }}
+            initialDelaySeconds: {{ $cfg.probes.readiness.initialDelaySeconds | default 10 }}
+            periodSeconds: {{ $cfg.probes.readiness.periodSeconds | default 10 }}
+          livenessProbe:
+            httpGet:
+              path: {{ $cfg.probes.liveness.path | quote }}
+              port: {{ $cfg.containerPort | default 8000 }}
+            initialDelaySeconds: {{ $cfg.probes.liveness.initialDelaySeconds | default 30 }}
+            periodSeconds: {{ $cfg.probes.liveness.periodSeconds | default 20 }}
+          {{- end }}
 ---
 {{- end }}
 {{- end }}

@@ -17,6 +17,12 @@ For this repo, never commit real credentials in `.env`, `secret.yaml`, or Helm v
    - `kubectl create secret generic ...` manually.
    - Do not use this for shared or production environments.
 
+## Where to save secrets
+
+- **Production / shared envs:** in a real secret manager (AWS Secrets Manager, GCP Secret Manager, Vault, 1Password, Doppler).
+- **Git repo:** only safe templates/examples (no real values), e.g. files in `infra/do/secrets/*.example.yaml`.
+- **Local personal testing only:** `.env` files outside git or `*.local.yaml` files ignored by `.gitignore`.
+
 ## Practical mapping for TraceData
 
 - `DATABASE_URL`

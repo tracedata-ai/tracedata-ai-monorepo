@@ -19,7 +19,8 @@ env/
 .env.local
 .env.*.local
 !.env.example
-infra/do/secrets/*.yaml
+infra/do/secrets/*.local.yaml
+infra/do/secrets/*.private.yaml
 
 # uv lockfile cache
 .uv/
