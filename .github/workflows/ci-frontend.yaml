@@ -103,13 +103,22 @@ jobs:
         run: npm ci
       - name: Run tests
         working-directory: frontend
-        run: npm run test
+        run: npm run test -- --reporter=default --reporter=junit --outputFile=vitest-junit.xml
       - name: Upload coverage report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: frontend-coverage-report
           path: frontend/coverage/
+          retention-days: 7
+
+      - name: 📤 Upload JUnit for pipeline summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: junit-frontend
+          if-no-files-found: ignore
+          path: frontend/vitest-junit.xml
           retention-days: 7
 
   # ── 4. SCA — npm audit ───────────────────────────────────────────────────────
@@ -324,6 +333,16 @@ jobs:
     needs: [lint, type-check, unit-test, npm-audit, build, docker, dast-zap]
     if: always()
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download JUnit artifacts
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: junit-frontend
+          path: ci-junit/frontend
+
       - name: Write CI Summary
         run: |
           echo "## Frontend CI Pipeline Results" >> $GITHUB_STEP_SUMMARY
@@ -338,6 +357,9 @@ jobs:
           echo "| 🐳 Docker (Build → Trivy → Push) | ${{ needs.docker.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| OWASP ZAP DAST | ${{ needs.dast-zap.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
+          python3 .github/scripts/ci_junit_summary.py \
+            "Vitest:ci-junit/frontend/frontend/vitest-junit.xml" \
+            >> "$GITHUB_STEP_SUMMARY" || true
           echo "**Component:** Frontend (Next.js + React + TypeScript)" >> $GITHUB_STEP_SUMMARY
           echo "**Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
           echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY

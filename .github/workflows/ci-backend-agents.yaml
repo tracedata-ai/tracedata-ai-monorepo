@@ -173,6 +173,7 @@ jobs:
             --cov-report=xml \
             --cov-report=term-missing \
             -v \
+            --junitxml=agents-junit.xml \
             tests/agents
 
       - name: Upload coverage report
@@ -181,6 +182,15 @@ jobs:
         with:
           name: coverage-report-backend-agents
           path: backend/coverage.xml
+          retention-days: 7
+
+      - name: 📤 Upload JUnit for pipeline summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: junit-backend-agents
+          if-no-files-found: ignore
+          path: backend/agents-junit.xml
           retention-days: 7
 
   # ── JOB 4: Software Composition Analysis (SCA) ───────────────────────────
@@ -284,6 +294,16 @@ jobs:
     if: always()
 
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download JUnit artifacts
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: junit-backend-agents
+          path: ci-junit/backend-agents
+
       - name: Write CI summary
         run: |
           echo "## 🤖 Backend Agents CI Results" >> $GITHUB_STEP_SUMMARY
@@ -297,6 +317,9 @@ jobs:
           echo "| 🏗️ Build | ${{ needs.build.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| 🐳 Docker (Matrix Build → Trivy Scan) | ${{ needs.docker.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
+          python3 .github/scripts/ci_junit_summary.py \
+            "Agents (pytest):ci-junit/backend-agents/backend/agents-junit.xml" \
+            >> "$GITHUB_STEP_SUMMARY" || true
           echo "**Component:** Backend Agents (Orchestrator, Safety, Scoring, Support, Sentiment)" >> $GITHUB_STEP_SUMMARY
           echo "**Branch:** \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
           echo "**Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY

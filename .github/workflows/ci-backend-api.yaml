@@ -189,6 +189,7 @@ jobs:
               --cov-fail-under=1 \
               -v \
               -m "not nightly" \
+              --junitxml=api-unit-junit.xml \
               tests/
           else
             uv run pytest \
@@ -197,6 +198,7 @@ jobs:
               --cov-report=term-missing \
               --cov-fail-under=1 \
               -v \
+              --junitxml=api-unit-junit.xml \
               tests/
           fi
 
@@ -226,6 +228,17 @@ jobs:
           name: rubric-smoke-report-backend-api
           path: backend/rubric-smoke-junit.xml
           retention-days: 14
+
+      - name: 📤 Upload JUnit for pipeline summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: junit-backend-api
+          if-no-files-found: ignore
+          path: |
+            backend/api-unit-junit.xml
+            backend/rubric-smoke-junit.xml
+          retention-days: 7
 
   # ── 4. SCA — pip-audit ────────────────────────────────────────────────────
   security-sca:
@@ -318,6 +331,16 @@ jobs:
     if: always()
 
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download JUnit artifacts
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: junit-backend-api
+          path: ci-junit/backend-api
+
       - name: Write CI summary
         run: |
           echo "## 🐍 Backend API CI Results" >> $GITHUB_STEP_SUMMARY
@@ -331,6 +354,10 @@ jobs:
           echo "| 🏗️ Build | ${{ needs.build.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| 🐳 Docker (Build → Trivy Scan) | ${{ needs.docker.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
+          python3 .github/scripts/ci_junit_summary.py \
+            "API tests (pytest):ci-junit/backend-api/backend/api-unit-junit.xml" \
+            "Rubric smoke (pytest):ci-junit/backend-api/backend/rubric-smoke-junit.xml" \
+            >> "$GITHUB_STEP_SUMMARY" || true
           echo "**Component:** Backend API (FastAPI + Python 3.11)" >> $GITHUB_STEP_SUMMARY
           echo "**Branch:** \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
           echo "**Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
