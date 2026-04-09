@@ -24,5 +24,8 @@ Tests use `xai` and `eval` (see `pyproject.toml`).
 
 ## CI
 
-These tests are **not wired into CI yet**; run them locally or in your own workflow until integration
-is added.
+These tests are wired into CI:
+
+- **Nightly** (`ci-backend-eval-nightly`): runs the full `tests/SHAP` suite and publishes JUnit artifacts.
+- **PR/API CI smoke** (`ci-backend-api`): runs a targeted explainability contract test via
+  `tests/SHAP/test_scoring_explainability_contract.py`.

@@ -9,6 +9,11 @@ CREATE TABLE IF NOT EXISTS safety_schema.harsh_events_analysis (
   trip_id VARCHAR(100) NOT NULL,
   event_type VARCHAR(80),
   severity VARCHAR(50),
+  event_timestamp TIMESTAMP,
+  lat DOUBLE PRECISION,
+  lon DOUBLE PRECISION,
+  traffic_conditions TEXT,
+  weather_conditions TEXT,
   analysis JSONB,
   created_at TIMESTAMP
 );

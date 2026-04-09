@@ -119,6 +119,24 @@ class EventsRepo:
             )
             return bool(result.scalar())
 
+    async def get_event_status(self, device_event_id: str) -> str | None:
+        """Return current pipeline_events.status for a device event."""
+        async with self._engine.connect() as conn:
+            result = await conn.execute(
+                text("""
+                    SELECT status
+                    FROM pipeline_events
+                    WHERE device_event_id = :device_event_id
+                    LIMIT 1
+                    """),
+                {"device_event_id": device_event_id},
+            )
+            row = result.first()
+            if not row:
+                return None
+            status = row[0]
+            return str(status) if status is not None else None
+
     async def acquire_lock(self, device_event_id: str) -> bool:
         """
         Phase 1 PREPARE — atomically acquire lease on an event row.

@@ -67,12 +67,23 @@ class Settings(BaseSettings):
     google_api_key: str = ""
     openai_api_key: str = ""
     anthropic_api_key: str = ""
+    # Orchestrator routing fallback behavior:
+    # - off: current behavior, no fallback changes
+    # - shadow: log fallback candidate, do not alter dispatch
+    # - enforce: apply deterministic fallback on invalid routing output
+    orchestrator_routing_fallback_mode: str = "off"
 
     # ── LangSmith ───────────────────────────────────────────────────────────
     langsmith_api_key: str = ""
     langsmith_project: str = "tracedata"
     langsmith_tracing: bool = False
     langchain_verbose: bool = False
+
+    # ── Integrations ─────────────────────────────────────────────────────────
+    slack_notifications_enabled: bool = True
+    slack_webhook_url: str = ""
+    slack_webhook_url_ops_alerts: str = ""
+    slack_webhook_url_tracedata_trips: str = ""
 
 
 @lru_cache

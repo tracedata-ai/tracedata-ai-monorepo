@@ -1,0 +1,130 @@
+# Scheduled + manual full eval suite (includes nightly-marked tests).
+# PR CI (ci-backend-api) runs `pytest -m "not nightly"` for speed; this workflow
+# keeps main deployability signal for heavier matrices (Promptfoo scale, XAI).
+
+name: "🌙 CI Backend — Eval nightly (main)"
+
+on:
+  schedule:
+    - cron: "0 2 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: eval-nightly-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  PYTHON_VERSION: "3.11"
+  UV_PYTHON: "3.11"
+  WORKING_DIR: backend
+
+jobs:
+  eval-full:
+    name: Full pytest + rubric eval suites
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ env.WORKING_DIR }}
+
+    services:
+      postgres:
+        image: ankane/pgvector:latest
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: tracedata_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/tracedata_test
+      APP_ENV: test
+      DEBUG: "false"
+      RESET_DB: "false"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "backend/uv.lock"
+
+      - name: Set up Python
+        run: uv python install ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: uv sync --frozen --extra dev
+
+      - name: Run rubric eval suites (Prompt safety + XAI + fairness)
+        run: |
+          uv run pytest \
+            tests/Promptfoo \
+            tests/LIME \
+            tests/SHAP \
+            tests/AIF360 \
+            -v \
+            --tb=short \
+            --junitxml=eval-rubric-junit.xml
+
+      - name: Run full pytest
+        run: |
+          uv run pytest \
+            tests/ \
+            -v \
+            --tb=short \
+            --junitxml=eval-full-junit.xml
+
+      - name: Upload nightly eval artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-eval-nightly-artifacts
+          path: |
+            backend/eval-rubric-junit.xml
+            backend/eval-full-junit.xml
+          retention-days: 14
+
+      - name: Publish nightly eval summary
+        if: always()
+        run: |
+          echo "## 🌙 Backend Eval Nightly Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- Rubric eval suites executed: Promptfoo, LIME, SHAP, AIF360" >> $GITHUB_STEP_SUMMARY
+          echo "- Full backend test suite executed (includes nightly-marked tests)" >> $GITHUB_STEP_SUMMARY
+          echo "- Artifacts uploaded: eval-rubric-junit.xml, eval-full-junit.xml" >> $GITHUB_STEP_SUMMARY
+
+  notify-slack:
+    name: 📣 Slack Notification
+    runs-on: ubuntu-latest
+    needs: [eval-full]
+    if: always()
+    steps:
+      - name: Post CI result to Slack
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_CI_WEBHOOK_URL }}
+          EVAL_RESULT: ${{ needs.eval-full.result }}
+          REPO: ${{ github.repository }}
+          BRANCH: ${{ github.ref_name }}
+          EVENT: ${{ github.event_name }}
+          RUN_ID: ${{ github.run_id }}
+          SERVER_URL: ${{ github.server_url }}
+        run: |
+          if [ -z "$SLACK_WEBHOOK" ]; then
+            echo "SLACK_CI_WEBHOOK_URL not set; skipping notification."
+            exit 0
+          fi
+          STATUS="PASS"
+          if [ "$EVAL_RESULT" = "failure" ] || [ "$EVAL_RESULT" = "cancelled" ]; then
+            STATUS="FAIL"
+          fi
+          RUN_URL="$SERVER_URL/$REPO/actions/runs/$RUN_ID"
+          MSG="Backend Eval Nightly: $STATUS | repo=$REPO | branch=$BRANCH | event=$EVENT | $RUN_URL"
+          curl -X POST -H "Content-type: application/json" --data "{\"text\":\"$MSG\"}" "$SLACK_WEBHOOK"

@@ -2,6 +2,8 @@
 
 import pytest
 
+pytestmark = pytest.mark.nightly
+
 from agents.scoring.features import (
     deterministic_payload_from_bundle,
     extract_feature_bundle,

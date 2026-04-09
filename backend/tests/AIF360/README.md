@@ -25,5 +25,8 @@ Tests use `xai` and `eval`. The optional dependency probe uses `external` (see `
 
 ## CI
 
-These tests are **not wired into CI yet**; run them locally or in your own workflow until integration
-is added.
+These tests are wired into CI:
+
+- **Nightly** (`ci-backend-eval-nightly`): runs the full `tests/AIF360` suite and publishes JUnit artifacts.
+- **PR/API CI smoke** (`ci-backend-api`): runs a targeted fairness contract test via
+  `tests/AIF360/test_fairness_audit_contract.py`.

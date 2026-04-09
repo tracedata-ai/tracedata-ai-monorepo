@@ -52,7 +52,6 @@ class TestDispatchRouting:
             agent = OrchestratorAgent(truck_ids=["truck1"])
         return agent
 
-    @pytest.mark.skip(reason="Requires running Redis server - Celery integration test")
     @pytest.mark.asyncio
     async def test_safety_event_sends_to_safety_queue(
         self, mock_redis, mock_db, mock_celery, telemetry_packet
@@ -68,14 +67,14 @@ class TestDispatchRouting:
         capsules = {"safety": capsule}
         ctx = {"trip_id": "test_trip", "action": "test"}
         routing_decision = {"agents_to_dispatch": ["safety"], "action": "test"}
-        result = await agent._dispatch(trip_event, capsules, ctx, routing_decision)
+        with patch("agents.orchestrator.agent._get_celery", return_value=mock_celery):
+            result = await agent._dispatch(trip_event, capsules, ctx, routing_decision)
 
         assert result is True
         mock_celery.send_task.assert_called_once()
         call_args = mock_celery.send_task.call_args
         assert call_args[0][0] == "tasks.safety_tasks.analyse_event"
 
-    @pytest.mark.skip(reason="Requires running Redis server - Celery integration test")
     @pytest.mark.asyncio
     async def test_unknown_event_type_not_dispatched(
         self, mock_redis, mock_db, mock_celery, telemetry_packet
@@ -88,13 +87,13 @@ class TestDispatchRouting:
 
         trip_event = TripEvent(**event)
         routing_decision = {"agents_to_dispatch": [], "action": "none"}
-        result = await agent._dispatch(trip_event, {}, {}, routing_decision)
+        with patch("agents.orchestrator.agent._get_celery", return_value=mock_celery):
+            result = await agent._dispatch(trip_event, {}, {}, routing_decision)
 
         assert result is False
         mock_celery.send_task.assert_not_called()
         mock_db.release_lock.assert_called_once()
 
-    @pytest.mark.skip(reason="Requires running Redis server - Celery integration test")
     @pytest.mark.asyncio
     async def test_dispatch_includes_event_data_in_payload(
         self, mock_redis, mock_db, mock_celery, telemetry_packet
@@ -110,7 +109,8 @@ class TestDispatchRouting:
         capsules = {"safety": capsule}
         ctx = {"trip_id": trip_event.trip_id, "action": "test"}
         routing_decision = {"agents_to_dispatch": ["safety"], "action": "test"}
-        result = await agent._dispatch(trip_event, capsules, ctx, routing_decision)
+        with patch("agents.orchestrator.agent._get_celery", return_value=mock_celery):
+            result = await agent._dispatch(trip_event, capsules, ctx, routing_decision)
 
         assert result is True
         mock_celery.send_task.assert_called_once()
@@ -128,7 +128,6 @@ class TestDispatchRouting:
             ("driver_dispute", "td:agent:sentiment"),
         ],
     )
-    @pytest.mark.skip(reason="Requires running Redis server - Celery integration test")
     @pytest.mark.asyncio
     async def test_dispatch_to_correct_queue(
         self,
@@ -164,7 +163,12 @@ class TestDispatchRouting:
                 "agents_to_dispatch": [agent_name],
                 "action": "test",
             }
-            result = await agent._dispatch(trip_event, capsules, ctx, routing_decision)
+            with patch(
+                "agents.orchestrator.agent._get_celery", return_value=mock_celery
+            ):
+                result = await agent._dispatch(
+                    trip_event, capsules, ctx, routing_decision
+                )
 
             assert result is True
             mock_celery.send_task.assert_called_once()

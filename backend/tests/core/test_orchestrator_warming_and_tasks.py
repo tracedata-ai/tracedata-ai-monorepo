@@ -280,6 +280,57 @@ async def test_dispatch_policy_critical_adds_immediate_support(orchestrator_mock
     assert result == ["safety", "support"]
 
 
+@pytest.mark.asyncio
+async def test_dispatch_policy_coaching_ready_keeps_support_only(orchestrator_mocks):
+    """UC1 follow-up: internal coaching_ready dispatches support only."""
+    orch, _ = orchestrator_mocks
+    event = _trip_event("coaching_ready")
+    result = await orch._apply_dispatch_policy(event, ["safety", "scoring", "support"])
+    assert result == ["support"]
+
+
+@pytest.mark.asyncio
+async def test_dispatch_policy_coaching_ready_fallback_driver_support(
+    orchestrator_mocks,
+):
+    orch, _ = orchestrator_mocks
+    event = _trip_event("coaching_ready")
+    result = await orch._apply_dispatch_policy(event, [])
+    assert result == ["driver_support"]
+
+
+@pytest.mark.asyncio
+async def test_dispatch_policy_sentiment_ready_keeps_support_only(orchestrator_mocks):
+    """UC2: internal sentiment_ready dispatches support only."""
+    orch, _ = orchestrator_mocks
+    event = _trip_event("sentiment_ready")
+    orch._load_trip_runtime_context = AsyncMock(
+        return_value={
+            "trip_id": event.trip_id,
+            "driver_id": "DRV-1",
+            "truck_id": "TRK-1",
+        }
+    )
+    orch._save_trip_runtime_context = AsyncMock()
+    result = await orch._apply_dispatch_policy(
+        event, ["sentiment", "scoring", "support"]
+    )
+    assert result == ["support"]
+    orch._save_trip_runtime_context.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_dispatch_policy_sentiment_ready_fallback_driver_support(
+    orchestrator_mocks,
+):
+    orch, _ = orchestrator_mocks
+    event = _trip_event("sentiment_ready")
+    orch._load_trip_runtime_context = AsyncMock(return_value={})
+    orch._save_trip_runtime_context = AsyncMock()
+    result = await orch._apply_dispatch_policy(event, [])
+    assert result == ["driver_support"]
+
+
 def test_seal_capsule_includes_device_event_id(orchestrator_mocks):
     orch, _ = orchestrator_mocks
     event = _trip_event(
@@ -341,7 +392,13 @@ def test_safety_task_calls_run_async():
         mock_run_async.side_effect = lambda c: _close_coro_and_return(c, ret)
         out = safety_tasks.analyse_event.run(intent_capsule=capsule)
 
-    mock_run_async.assert_called_once()
+    assert mock_run_async.call_count == 3
+    names = [c.args[0].__name__ for c in mock_run_async.call_args_list]
+    assert names == [
+        "_publish_agent_flow",
+        "_analyse_event_async",
+        "_publish_agent_flow",
+    ]
     assert out["trip_id"] == "T1"
 
 
@@ -364,7 +421,13 @@ def test_sentiment_task_calls_run_async():
         mock_run_async.side_effect = lambda c: _close_coro_and_return(c, ret)
         out = sentiment_tasks.analyse_feedback.run(intent_capsule=capsule)
 
-    mock_run_async.assert_called_once()
+    assert mock_run_async.call_count == 3
+    names = [c.args[0].__name__ for c in mock_run_async.call_args_list]
+    assert names == [
+        "_publish_agent_flow",
+        "_analyse_feedback_async",
+        "_publish_agent_flow",
+    ]
     assert out["agent"] == "sentiment"
 
 
@@ -387,5 +450,110 @@ def test_support_task_calls_run_async():
         mock_run_async.side_effect = lambda c: _close_coro_and_return(c, ret)
         out = support_tasks.generate_coaching.run(intent_capsule=capsule)
 
-    mock_run_async.assert_called_once()
+    assert mock_run_async.call_count == 3
+    names = [c.args[0].__name__ for c in mock_run_async.call_args_list]
+    assert names == [
+        "_publish_agent_flow",
+        "_generate_coaching_async",
+        "_publish_agent_flow",
+    ]
     assert out["trip_id"] == "T1"
+
+
+def test_resolve_agents_off_mode_keeps_current_behavior(orchestrator_mocks):
+    orch, _ = orchestrator_mocks
+    event = _trip_event("collision")
+    decision = {"agents_to_dispatch": "not-a-list"}
+    with patch("agents.orchestrator.agent.settings") as mock_settings:
+        mock_settings.orchestrator_routing_fallback_mode = "off"
+        resolved = orch._resolve_agents_for_dispatch(event, decision)
+    assert resolved == []
+
+
+def test_resolve_agents_shadow_mode_does_not_change_dispatch(orchestrator_mocks):
+    orch, _ = orchestrator_mocks
+    event = _trip_event("collision")
+    decision = {"agents_to_dispatch": "not-a-list"}
+    with patch("agents.orchestrator.agent.settings") as mock_settings:
+        mock_settings.orchestrator_routing_fallback_mode = "shadow"
+        resolved = orch._resolve_agents_for_dispatch(event, decision)
+    assert resolved == []
+
+
+def test_resolve_agents_enforce_mode_uses_event_matrix_fallback(orchestrator_mocks):
+    orch, _ = orchestrator_mocks
+    event = _trip_event("collision")
+    decision = {"agents_to_dispatch": "not-a-list"}
+    with patch("agents.orchestrator.agent.settings") as mock_settings:
+        mock_settings.orchestrator_routing_fallback_mode = "enforce"
+        resolved = orch._resolve_agents_for_dispatch(event, decision)
+    assert resolved == ["safety"]
+
+
+def test_resolve_agents_filters_unknown_agent_names(orchestrator_mocks):
+    orch, _ = orchestrator_mocks
+    event = _trip_event("harsh_brake")
+    decision = {"agents_to_dispatch": ["safety", "unknown_agent", "support", "scoring"]}
+    with patch("agents.orchestrator.agent.settings") as mock_settings:
+        mock_settings.orchestrator_routing_fallback_mode = "off"
+        resolved = orch._resolve_agents_for_dispatch(event, decision)
+    assert resolved == ["safety", "support", "scoring"]
+
+
+def test_resolve_agents_enforce_mode_forces_critical_fallback_when_empty_list(
+    orchestrator_mocks,
+):
+    orch, _ = orchestrator_mocks
+    event = _trip_event("collision")
+    decision = {"agents_to_dispatch": []}
+    with patch("agents.orchestrator.agent.settings") as mock_settings:
+        mock_settings.orchestrator_routing_fallback_mode = "enforce"
+        resolved = orch._resolve_agents_for_dispatch(event, decision)
+    assert resolved == ["safety"]
+
+
+def test_resolve_agents_enforce_mode_keeps_low_risk_empty_dispatch(orchestrator_mocks):
+    orch, _ = orchestrator_mocks
+    event = _trip_event("smoothness_log")
+    decision = {"agents_to_dispatch": []}
+    with patch("agents.orchestrator.agent.settings") as mock_settings:
+        mock_settings.orchestrator_routing_fallback_mode = "enforce"
+        resolved = orch._resolve_agents_for_dispatch(event, decision)
+    assert resolved == []
+
+
+def test_resolve_agents_enforce_mode_red_team_unknown_agents_fallback_for_high(
+    orchestrator_mocks,
+):
+    orch, _ = orchestrator_mocks
+    event = _trip_event("harsh_brake")
+    decision = {"agents_to_dispatch": ["bogus_agent", 123, None]}
+    with patch("agents.orchestrator.agent.settings") as mock_settings:
+        mock_settings.orchestrator_routing_fallback_mode = "enforce"
+        resolved = orch._resolve_agents_for_dispatch(event, decision)
+    assert resolved == ["safety", "scoring", "support"]
+
+
+@pytest.mark.asyncio
+async def test_dispatch_policy_burst_harsh_brake_stable(orchestrator_mocks):
+    """Many harsh bursts: support stays deferred; outcome does not oscillate."""
+    orch, _ = orchestrator_mocks
+    event = _trip_event("harsh_brake")
+    orch._append_flagged_event = AsyncMock()
+    expected = ["safety", "scoring"]
+    for _ in range(10):
+        out = await orch._apply_dispatch_policy(event, ["safety", "scoring", "support"])
+        assert out == expected
+    assert orch._append_flagged_event.await_count == 10
+
+
+@pytest.mark.asyncio
+async def test_dispatch_policy_burst_end_of_trip_scoring_only(orchestrator_mocks):
+    orch, _ = orchestrator_mocks
+    event = _trip_event("end_of_trip")
+    orch._should_dispatch_coaching = AsyncMock(return_value=True)
+    orch._load_trip_runtime_context = AsyncMock(return_value={})
+    orch._save_trip_runtime_context = AsyncMock()
+    for _ in range(6):
+        out = await orch._apply_dispatch_policy(event, ["scoring", "support"])
+        assert out == ["scoring"]

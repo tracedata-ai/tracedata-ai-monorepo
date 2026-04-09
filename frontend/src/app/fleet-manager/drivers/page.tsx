@@ -1,11 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getDrivers, type Driver } from "@/lib/api";
+import { getDrivers, getTrips, getRoutes, type Driver, type Trip, type Route } from "@/lib/api";
 import { DashboardPageTemplate } from "@/components/shared/DashboardPageTemplate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DataTable } from "@/components/data-table";
-import { type DriverRow } from "@/lib/sample-data";
 import { ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -45,6 +44,14 @@ const columns: ColumnDef<DriverRow>[] = [
   },
 ];
 
+type DriverRow = {
+  id: string;
+  name: string;
+  assignedRoute: string;
+  hoursToday: number;
+  fatigueRisk: "Low" | "Medium" | "High";
+};
+
 export default function DriversPage() {
   const [drivers, setDrivers] = useState<DriverRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -52,15 +59,43 @@ export default function DriversPage() {
   useEffect(() => {
     async function loadDrivers() {
       try {
-        const data = await getDrivers();
-        // Map backend Driver to frontend DriverRow
-        const mapped: DriverRow[] = data.map((d: Driver) => ({
+        const [driversData, tripsData, routesData] = await Promise.all([
+          getDrivers(),
+          getTrips(),
+          getRoutes(),
+        ]);
+        const routeById = new Map(routesData.map((r: Route) => [r.id, r]));
+        const activeTripByDriver = new Map(
+          tripsData
+            .filter((t: Trip) => t.status === "active")
+            .map((t) => [t.driver_id, t])
+        );
+
+        const mapped: DriverRow[] = driversData.map((d: Driver) => {
+          const activeTrip = activeTripByDriver.get(d.id);
+          const routeName = activeTrip
+            ? routeById.get(activeTrip.route_id)?.name ?? "Unassigned"
+            : "Unassigned";
+          const hoursToday = activeTrip
+            ? Math.max(
+                0,
+                (Date.now() - new Date(activeTrip.created_at).getTime()) / 3_600_000
+              )
+            : 0;
+          const fatigueRisk: DriverRow["fatigueRisk"] =
+            hoursToday >= 8
+              ? "High"
+              : hoursToday >= 6 || d.experience_level === "novice"
+                ? "Medium"
+                : "Low";
+          return {
           id: d.id,
           name: `${d.first_name} ${d.last_name}`,
-          assignedRoute: "Active Route", // Mock/Placeholder for now
-          hoursToday: Math.random() * 8, // Placeholder
-          fatigueRisk: d.experience_level === "novice" ? "High" : "Low",
-        }));
+          assignedRoute: routeName,
+          hoursToday,
+          fatigueRisk,
+        };
+        });
         setDrivers(mapped);
       } catch (error) {
         console.error("Failed to fetch drivers:", error);

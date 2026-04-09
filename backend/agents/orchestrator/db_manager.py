@@ -57,6 +57,10 @@ class DBManager:
         """
         return await self._events.acquire_lock(device_event_id)
 
+    async def get_event_status(self, device_event_id: str) -> str | None:
+        """Read current pipeline_events.status for idempotency checks."""
+        return await self._events.get_event_status(device_event_id)
+
     async def release_lock(self, device_event_id: str) -> None:
         """Phase 2 COMMIT — called after Orchestrator receives CompletionEvent."""
         await self._events.release_lock(device_event_id)

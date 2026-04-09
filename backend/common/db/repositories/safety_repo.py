@@ -6,6 +6,7 @@ Layer 1 Enforcement:
 """
 
 import json
+from datetime import datetime
 from typing import Any
 
 from common.db.schema_repository import SchemaRepository
@@ -20,20 +21,38 @@ class SafetyRepository(SchemaRepository):
         trip_id: str,
         event_type: str,
         severity: str,
+        event_timestamp: datetime | None,
+        lat: float | None,
+        lon: float | None,
+        traffic_conditions: str | None,
+        weather_conditions: str | None,
         analysis: dict,
     ) -> None:
         """Write harsh event analysis to safety_schema."""
         await self._execute_write(
             """
                     INSERT INTO safety_schema.harsh_events_analysis
-                    (event_id, trip_id, event_type, severity, analysis, created_at)
-                    VALUES (:event_id, :trip_id, :event_type, :severity, :analysis, :now)
+                    (
+                      event_id, trip_id, event_type, severity,
+                      event_timestamp, lat, lon, traffic_conditions, weather_conditions,
+                      analysis, created_at
+                    )
+                    VALUES (
+                      :event_id, :trip_id, :event_type, :severity,
+                      :event_timestamp, :lat, :lon, :traffic_conditions, :weather_conditions,
+                      :analysis, :now
+                    )
                 """,
             {
                 "event_id": event_id,
                 "trip_id": trip_id,
                 "event_type": event_type,
                 "severity": severity,
+                "event_timestamp": event_timestamp,
+                "lat": lat,
+                "lon": lon,
+                "traffic_conditions": traffic_conditions,
+                "weather_conditions": weather_conditions,
                 "analysis": json.dumps(analysis),
             },
         )

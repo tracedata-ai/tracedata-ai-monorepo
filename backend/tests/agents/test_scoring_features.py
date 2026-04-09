@@ -121,3 +121,15 @@ def test_compute_driver_score_uses_historical_avg_when_available():
 
 def test_compute_driver_score_falls_back_to_trip_score():
     assert compute_driver_score(88.2, {}) == 88.2
+
+
+def test_extract_feature_bundle_empty_pings_zeroed_features():
+    b = extract_feature_bundle([])
+    assert b["smoothness_features"]["jerk_mean_avg"] == 0.0
+    assert b["smoothness_features"]["harsh_event_count"] == 0
+
+
+def test_extract_feature_bundle_malformed_details_string_not_dict():
+    pings = [{"event_type": "smoothness_log", "details": "not-a-dict"}]
+    b = extract_feature_bundle(pings)
+    assert isinstance(b, dict)
