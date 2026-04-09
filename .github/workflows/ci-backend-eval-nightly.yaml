@@ -20,7 +20,7 @@ env:
 
 jobs:
   eval-full:
-    name: Full pytest (including nightly)
+    name: Full pytest + rubric eval suites
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -63,8 +63,43 @@ jobs:
       - name: Install dependencies
         run: uv sync --frozen --extra dev
 
+      - name: Run rubric eval suites (Prompt safety + XAI + fairness)
+        run: |
+          uv run pytest \
+            tests/Promptfoo \
+            tests/LIME \
+            tests/SHAP \
+            tests/AIF360 \
+            -v \
+            --tb=short \
+            --junitxml=eval-rubric-junit.xml
+
       - name: Run full pytest
-        run: uv run pytest tests/ -v --tb=short
+        run: |
+          uv run pytest \
+            tests/ \
+            -v \
+            --tb=short \
+            --junitxml=eval-full-junit.xml
+
+      - name: Upload nightly eval artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-eval-nightly-artifacts
+          path: |
+            backend/eval-rubric-junit.xml
+            backend/eval-full-junit.xml
+          retention-days: 14
+
+      - name: Publish nightly eval summary
+        if: always()
+        run: |
+          echo "## 🌙 Backend Eval Nightly Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- Rubric eval suites executed: Promptfoo, LIME, SHAP, AIF360" >> $GITHUB_STEP_SUMMARY
+          echo "- Full backend test suite executed (includes nightly-marked tests)" >> $GITHUB_STEP_SUMMARY
+          echo "- Artifacts uploaded: eval-rubric-junit.xml, eval-full-junit.xml" >> $GITHUB_STEP_SUMMARY
 
   notify-slack:
     name: 📣 Slack Notification

@@ -200,6 +200,17 @@ jobs:
               tests/
           fi
 
+      - name: ✅ Rubric smoke evals (safety, explainability, fairness)
+        run: |
+          uv run pytest \
+            tests/Promptfoo/test_prompt_safety_contract.py \
+            tests/LIME/test_text_anchor_explainability.py \
+            tests/SHAP/test_scoring_explainability_contract.py \
+            tests/AIF360/test_fairness_audit_contract.py \
+            -v \
+            --tb=short \
+            --junitxml=rubric-smoke-junit.xml
+
       - name: 📤 Upload coverage report
         if: always()
         uses: actions/upload-artifact@v4
@@ -207,6 +218,14 @@ jobs:
           name: coverage-report-backend-api
           path: backend/coverage.xml
           retention-days: 7
+
+      - name: 📤 Upload rubric smoke report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rubric-smoke-report-backend-api
+          path: backend/rubric-smoke-junit.xml
+          retention-days: 14
 
   # ── 4. SCA — pip-audit ────────────────────────────────────────────────────
   security-sca:
