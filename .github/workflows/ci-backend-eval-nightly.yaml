@@ -100,6 +100,11 @@ jobs:
           echo "- Rubric eval suites executed: Promptfoo, LIME, SHAP, AIF360" >> $GITHUB_STEP_SUMMARY
           echo "- Full backend test suite executed (includes nightly-marked tests)" >> $GITHUB_STEP_SUMMARY
           echo "- Artifacts uploaded: eval-rubric-junit.xml, eval-full-junit.xml" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          python3 "$GITHUB_WORKSPACE/.github/scripts/ci_junit_summary.py" \
+            "Rubric eval (Promptfoo + XAI + fairness):eval-rubric-junit.xml" \
+            "Full pytest sweep:eval-full-junit.xml" \
+            >> "$GITHUB_STEP_SUMMARY" || true
 
   notify-slack:
     name: 📣 Slack Notification
