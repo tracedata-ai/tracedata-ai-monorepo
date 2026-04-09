@@ -63,23 +63,44 @@ def main() -> int:
         print("_No JUnit XML files found on disk (tests may have failed before report was written)._")
         return 0
 
-    print("### Automated test counts (JUnit)")
-    print("")
-    print("| Suite | Total | Passed | Failed | Errors | Skipped |")
-    print("|-------|------:|-------:|-------:|-------:|--------:|")
     gt = gp = gf = ge = gs = 0
-    for label, t, ok, f, e, s in rows:
-        print(f"| {label} | {t} | {ok} | {f} | {e} | {s} |")
+    for _label, t, ok, f, e, s in rows:
         gt += t
         gp += ok
         gf += f
         ge += e
         gs += s
+
+    # Headline aggregate: maximal visibility, definitionally tied to JUnit (not invented).
+    print("## Test volume (JUnit, auditable)")
+    print("")
+    print(
+        f"**{gt}** reported test cases in this summary — **sum of JUnit `tests=` counters** "
+        "from the XML below (parameterized cases count as multiple rows when the runner reports them that way)."
+    )
+    print("")
+    if len(rows) > 1:
+        print(
+            "_Multiple reports are **added**: each file reflects a separate test command in CI, "
+            "so the sum is “test executions recorded,” not deduplicated across files._"
+        )
+    else:
+        print(
+            "_Single report: this number matches the runner’s own JUnit total for that command._"
+        )
+    print("")
+    print("### Breakdown by report")
+    print("")
+    print("| Suite | Total | Passed | Failed | Errors | Skipped |")
+    print("|-------|------:|-------:|-------:|-------:|--------:|")
+    for label, t, ok, f, e, s in rows:
+        print(f"| {label} | {t} | {ok} | {f} | {e} | {s} |")
     if len(rows) > 1:
         print(f"| **Sum (all rows)** | {gt} | {gp} | {gf} | {ge} | {gs} |")
         print("")
         print(
-            "_Note: if multiple rows are separate pytest runs, the sum counts tests executed across runs (some overlap possible)._"
+            "_If the same logical tests appear in two uploaded reports, the sum can double-count those executions; "
+            "the table above shows what each report claimed._"
         )
     print("")
     return 0
