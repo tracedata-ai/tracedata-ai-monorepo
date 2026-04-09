@@ -1,0 +1,60 @@
+{{- $ns := .Values.namespace -}}
+{{- range $name, $cfg := .Values.components }}
+{{- if $cfg.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $name }}
+  namespace: {{ $ns }}
+  labels:
+    app: {{ $name }}
+spec:
+  replicas: {{ $cfg.replicas | default 1 }}
+  selector:
+    matchLabels:
+      app: {{ $name }}
+  template:
+    metadata:
+      labels:
+        app: {{ $name }}
+    spec:
+      containers:
+        - name: {{ $name }}
+          image: {{ (index $.Values.images $cfg.imageRef).repository }}:{{ (index $.Values.images $cfg.imageRef).tag }}
+          imagePullPolicy: IfNotPresent
+          {{- if $cfg.command }}
+          command:
+            {{- range $arg := $cfg.command }}
+            - {{ $arg | quote }}
+            {{- end }}
+          {{- end }}
+          env:
+            - name: APP_ENV
+              value: {{ $.Values.env.APP_ENV | quote }}
+            - name: LOG_LEVEL
+              value: {{ $.Values.env.LOG_LEVEL | quote }}
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: tracedata-app-secrets
+                  key: DATABASE_URL
+            - name: REDIS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: tracedata-app-secrets
+                  key: REDIS_URL
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: tracedata-app-secrets
+                  key: OPENAI_API_KEY
+            - name: ANTHROPIC_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: tracedata-app-secrets
+                  key: ANTHROPIC_API_KEY
+          ports:
+            - containerPort: {{ $cfg.containerPort | default 8000 }}
+---
+{{- end }}
+{{- end }}
