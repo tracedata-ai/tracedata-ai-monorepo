@@ -31,6 +31,7 @@ services:
       - DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/tracedata
       - REDIS_URL=redis://redis:6379/0
       - PYTHONPATH=/app
+      - DEMO_RESET=true
       - SIM_LOOP=true
       - SIM_INTERVAL=30
       - SIM_EVENT_DELAY=0.5

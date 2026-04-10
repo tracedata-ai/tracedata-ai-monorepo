@@ -48,7 +48,9 @@ async def lifespan(app: FastAPI):  # type: ignore[type-arg]
 
     ON STARTUP:
       1. Initialise logging (MUST be first — so all subsequent startup logs use the config).
-      2. Create DB tables (idempotent — safe to call if tables already exist).
+      2. Demo reset (if DEMO_RESET=true) — drops all tables and flushes Redis for a clean slate.
+      3. Create DB tables (idempotent — safe to call if tables already exist).
+      4. Start simulation sidecar (if SIM_LOOP=true).
 
     ON SHUTDOWN:
       Dispose the engine to close all DB connections cleanly.
@@ -59,7 +61,16 @@ async def lifespan(app: FastAPI):  # type: ignore[type-arg]
     setup_logging()  # Reads backend/logging.yaml and wires handlers
     logger.info(f"{LogToken.STARTUP} TraceData Backend starting up...")
 
-    # ── 2. Database ─────────────────────────────────────────────────────────
+    # ── 2. Demo reset (opt-in) ─────────────────────────────────────────────
+    # When DEMO_RESET=true every boot wipes all tables + Redis so the demo
+    # always starts from a clean, reproducible baseline.
+    if os.environ.get("DEMO_RESET", "").lower() == "true":
+        from scripts.bootstrap_sg_baseline import reset_for_demo
+        logger.info(f"{LogToken.STARTUP} DEMO_RESET=true — wiping all tables and Redis...")
+        await reset_for_demo()
+        logger.info(f"{LogToken.STARTUP} Demo reset complete.")
+
+    # ── 3. Database ─────────────────────────────────────────────────────────
     async with engine.begin() as conn:
         # Public tables (SQLAlchemy models)
         await conn.run_sync(Base.metadata.create_all)
@@ -121,7 +132,7 @@ async def lifespan(app: FastAPI):  # type: ignore[type-arg]
         """))
     logger.info(f"{LogToken.DATABASE_INIT} Database tables created / verified.")
 
-    # ── 3. Simulation sidecar (opt-in via SIM_LOOP=true) ───────────────────
+    # ── 4. Simulation sidecar (opt-in via SIM_LOOP=true) ───────────────────
     sim_task: asyncio.Task | None = None
     if os.environ.get("SIM_LOOP", "").lower() == "true":
         from scripts.bootstrap_sg_baseline import _run_loop

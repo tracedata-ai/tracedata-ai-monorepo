@@ -45,6 +45,35 @@ from common.models.sa_base import Base
 BOOTSTRAP_MARKER_KEY = "td:bootstrap:sg_baseline:v1"
 TENANT_NAME = "TraceData Singapore Fleet"
 
+_AGENT_SCHEMAS = ("scoring_schema", "safety_schema", "coaching_schema", "sentiment_schema")
+
+
+async def reset_for_demo() -> None:
+    """
+    Hard-reset for reproducible demo restarts.
+
+    Drops every managed table and agent schema, then flushes Redis so each
+    boot starts from a completely clean slate.  Call this BEFORE create_all().
+
+    NOTE: All ORM model classes must be imported before calling this so that
+    Base.metadata knows about every table.  In main.py, `import api.models`
+    handles that.
+    """
+    async with engine.begin() as conn:
+        # Drop all SQLAlchemy-managed tables (domain + pipeline ORM models)
+        await conn.run_sync(Base.metadata.drop_all)
+        # Drop agent-owned schemas and everything inside them
+        for schema in _AGENT_SCHEMAS:
+            await conn.execute(text(f"DROP SCHEMA IF EXISTS {schema} CASCADE"))
+
+    # Flush Redis so no stale telemetry buffers, processed queues, or marker keys remain
+    settings = get_settings()
+    client = redis.from_url(settings.redis_url, decode_responses=True)
+    try:
+        await client.flushdb()
+    finally:
+        await client.aclose()
+
 
 def _sg_route_pairs() -> list[tuple[str, str]]:
     return [
