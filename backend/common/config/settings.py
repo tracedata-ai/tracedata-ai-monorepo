@@ -79,6 +79,14 @@ class Settings(BaseSettings):
     langsmith_tracing: bool = False
     langchain_verbose: bool = False
 
+    # ── Smoothness ML Model ──────────────────────────────────────────────────
+    # Set these to activate ML-based scoring; leave empty to use heuristic fallback.
+    # Run scripts/fetch_model_release.py to populate model_bundle/ before building.
+    smoothness_model_path: str = "agents/scoring/model_bundle/model.joblib"
+    smoothness_model_serving_dir: str = "agents/scoring/model_bundle/serving"
+    smoothness_model_release_tag: str = "v.2.0.0.2026155.2"
+    smoothness_model_repo: str = "tracedata-ai/tracedata-ai-ml"
+
     # ── Integrations ─────────────────────────────────────────────────────────
     slack_notifications_enabled: bool = True
     slack_webhook_url: str = ""

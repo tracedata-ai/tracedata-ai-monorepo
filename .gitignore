@@ -53,3 +53,8 @@ htmlcov/
 
 # ─── Logs directory (keep the dir via .gitkeep, ignore actual log files) ─────
 backend/logs/*.log
+
+# ─── Smoothness ML model bundle (downloaded via scripts/fetch_model_release.py) ─
+# Track the directory (.gitkeep) but never commit the artifacts themselves.
+backend/agents/scoring/model_bundle/*.joblib
+backend/agents/scoring/model_bundle/serving/
