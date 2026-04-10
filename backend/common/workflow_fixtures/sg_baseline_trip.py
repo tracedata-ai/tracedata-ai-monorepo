@@ -55,14 +55,20 @@ def build_events(
     driver_id: str,
     anchor: datetime | None = None,
     smooth_count: int = 15,
+    harsh_count: int = 3,
     random_seed: int | None = None,
 ) -> list[dict[str, Any]]:
     """
-    Build one 2-3 hour equivalent trip timeline.
-    smooth_count must be between 12 and 18 (inclusive).
+    Build one complete trip timeline.
+
+    Args:
+        smooth_count: Number of 10-minute smoothness windows (6–24).
+        harsh_count:  Number of harsh driving events (2–6).
     """
-    if smooth_count < 12 or smooth_count > 18:
-        raise ValueError("smooth_count must be between 12 and 18")
+    if smooth_count < 6 or smooth_count > 24:
+        raise ValueError("smooth_count must be between 6 and 24")
+    if harsh_count < 2 or harsh_count > 6:
+        raise ValueError("harsh_count must be between 2 and 6")
 
     t0 = anchor or datetime.now(UTC).replace(microsecond=0)
     rng = random.Random(random_seed)
@@ -109,12 +115,17 @@ def build_events(
             )
         )
 
-    # Exactly 3 harsh events spread across trip (mix of harsh_brake / hard_accel)
-    harsh_offsets = [
-        int(end_offset * 0.3),
-        int(end_offset * 0.6),
-        int(end_offset * 0.85),
-    ]
+    # 2–6 harsh events spread evenly across the middle 70% of the trip
+    # (avoid clustering at start/end where traffic is lighter)
+    spread_start = 0.15
+    spread_end = 0.85
+    if harsh_count == 1:
+        fracs = [0.5]
+    else:
+        step = (spread_end - spread_start) / (harsh_count - 1)
+        fracs = [spread_start + i * step for i in range(harsh_count)]
+    harsh_offsets = [int(end_offset * f) for f in fracs]
+
     for idx, off in enumerate(harsh_offsets, start=1):
         tm, od = meters_for_offset(off, end_offset, total_km, base_od)
         # 2/3 brake, 1/3 accel on average.
@@ -161,7 +172,7 @@ def build_events(
             offset_seconds=end_offset,
             trip_meter_km=total_km,
             odometer_km=base_od + total_km,
-            harsh_events_total=3,
+            harsh_events_total=harsh_count,
             batch_id=f"BAT-end-{uuid.uuid4().hex[:10]}",
             event_id=ev_id,
             device_event_id=dev_id,

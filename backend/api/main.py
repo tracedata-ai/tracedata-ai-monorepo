@@ -15,6 +15,8 @@ Swagger UI: http://localhost:8000/docs
 ReDoc:      http://localhost:8000/redoc
 """
 
+import asyncio
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -59,13 +61,83 @@ async def lifespan(app: FastAPI):  # type: ignore[type-arg]
 
     # ── 2. Database ─────────────────────────────────────────────────────────
     async with engine.begin() as conn:
-        await conn.execute(text("CREATE SCHEMA IF NOT EXISTS scoring_schema"))
+        # Public tables (SQLAlchemy models)
         await conn.run_sync(Base.metadata.create_all)
+        # Agent-owned schemas and tables (not managed by SQLAlchemy ORM)
+        await conn.execute(text("CREATE SCHEMA IF NOT EXISTS scoring_schema"))
+        await conn.execute(text("CREATE SCHEMA IF NOT EXISTS safety_schema"))
+        await conn.execute(text("CREATE SCHEMA IF NOT EXISTS coaching_schema"))
+        await conn.execute(text("CREATE SCHEMA IF NOT EXISTS sentiment_schema"))
+        await conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS safety_schema.harsh_events_analysis (
+              id SERIAL PRIMARY KEY,
+              event_id VARCHAR(80) NOT NULL,
+              trip_id VARCHAR(100) NOT NULL,
+              event_type VARCHAR(80),
+              severity VARCHAR(50),
+              event_timestamp TIMESTAMP,
+              lat DOUBLE PRECISION,
+              lon DOUBLE PRECISION,
+              traffic_conditions TEXT,
+              weather_conditions TEXT,
+              analysis JSONB,
+              created_at TIMESTAMP
+            )
+        """))
+        await conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS safety_schema.safety_decisions (
+              decision_id SERIAL PRIMARY KEY,
+              event_id VARCHAR(80),
+              trip_id VARCHAR(100) NOT NULL,
+              decision VARCHAR(255),
+              action VARCHAR(255),
+              reason TEXT,
+              recommended_action TEXT,
+              created_at TIMESTAMP
+            )
+        """))
+        await conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS coaching_schema.coaching (
+              coaching_id SERIAL PRIMARY KEY,
+              trip_id VARCHAR(80) NOT NULL,
+              driver_id VARCHAR(80) NOT NULL,
+              coaching_category VARCHAR(80),
+              message TEXT,
+              priority VARCHAR(20),
+              created_at TIMESTAMP
+            )
+        """))
+        await conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS sentiment_schema.feedback_sentiment (
+              sentiment_id SERIAL PRIMARY KEY,
+              trip_id VARCHAR(80) NOT NULL,
+              driver_id VARCHAR(80) NOT NULL,
+              feedback_text TEXT,
+              sentiment_score DOUBLE PRECISION,
+              sentiment_label VARCHAR(50),
+              analysis JSONB,
+              created_at TIMESTAMP
+            )
+        """))
     logger.info(f"{LogToken.DATABASE_INIT} Database tables created / verified.")
+
+    # ── 3. Simulation sidecar (opt-in via SIM_LOOP=true) ───────────────────
+    sim_task: asyncio.Task | None = None
+    if os.environ.get("SIM_LOOP", "").lower() == "true":
+        from scripts.bootstrap_sg_baseline import _run_loop
+        interval = int(os.environ.get("SIM_INTERVAL", "30"))
+        event_delay = float(os.environ.get("SIM_EVENT_DELAY", "0.5"))
+        truck_delay = float(os.environ.get("SIM_TRUCK_DELAY", "5.0"))
+        truck_count = int(os.environ.get("SIM_TRUCK_COUNT", "10"))
+        sim_task = asyncio.create_task(_run_loop(interval, event_delay, truck_delay, truck_count))
+        logger.info(f"{LogToken.STARTUP} Simulation sidecar started (trucks={truck_count} interval={interval}s event_delay={event_delay}s truck_delay={truck_delay}s)")
 
     yield  # ← app is live and serving requests from here
 
     # ── Shutdown ────────────────────────────────────────────────────────────
+    if sim_task is not None:
+        sim_task.cancel()
+        logger.info(f"{LogToken.SHUTDOWN} Simulation sidecar stopped.")
     await engine.dispose()
     logger.info(f"{LogToken.SHUTDOWN} Database engine disposed. Shutdown complete.")
 
