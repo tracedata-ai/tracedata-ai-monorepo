@@ -66,7 +66,10 @@ async def lifespan(app: FastAPI):  # type: ignore[type-arg]
     # always starts from a clean, reproducible baseline.
     if os.environ.get("DEMO_RESET", "").lower() == "true":
         from scripts.bootstrap_sg_baseline import reset_for_demo
-        logger.info(f"{LogToken.STARTUP} DEMO_RESET=true — wiping all tables and Redis...")
+
+        logger.info(
+            f"{LogToken.STARTUP} DEMO_RESET=true — wiping all tables and Redis..."
+        )
         await reset_for_demo()
         logger.info(f"{LogToken.STARTUP} Demo reset complete.")
 
@@ -136,12 +139,17 @@ async def lifespan(app: FastAPI):  # type: ignore[type-arg]
     sim_task: asyncio.Task | None = None
     if os.environ.get("SIM_LOOP", "").lower() == "true":
         from scripts.bootstrap_sg_baseline import _run_loop
+
         interval = int(os.environ.get("SIM_INTERVAL", "30"))
         event_delay = float(os.environ.get("SIM_EVENT_DELAY", "0.5"))
         truck_delay = float(os.environ.get("SIM_TRUCK_DELAY", "5.0"))
         truck_count = int(os.environ.get("SIM_TRUCK_COUNT", "10"))
-        sim_task = asyncio.create_task(_run_loop(interval, event_delay, truck_delay, truck_count))
-        logger.info(f"{LogToken.STARTUP} Simulation sidecar started (trucks={truck_count} interval={interval}s event_delay={event_delay}s truck_delay={truck_delay}s)")
+        sim_task = asyncio.create_task(
+            _run_loop(interval, event_delay, truck_delay, truck_count)
+        )
+        logger.info(
+            f"{LogToken.STARTUP} Simulation sidecar started (trucks={truck_count} interval={interval}s event_delay={event_delay}s truck_delay={truck_delay}s)"
+        )
 
     yield  # ← app is live and serving requests from here
 

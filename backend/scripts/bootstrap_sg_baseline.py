@@ -26,9 +26,10 @@ import argparse
 import asyncio
 import importlib
 import json
+from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
-from typing import Any, Callable
+from typing import Any
 
 import redis.asyncio as redis
 from sqlalchemy import select, text
@@ -45,7 +46,12 @@ from common.models.sa_base import Base
 BOOTSTRAP_MARKER_KEY = "td:bootstrap:sg_baseline:v1"
 TENANT_NAME = "TraceData Singapore Fleet"
 
-_AGENT_SCHEMAS = ("scoring_schema", "safety_schema", "coaching_schema", "sentiment_schema")
+_AGENT_SCHEMAS = (
+    "scoring_schema",
+    "safety_schema",
+    "coaching_schema",
+    "sentiment_schema",
+)
 
 
 async def reset_for_demo() -> None:
@@ -100,7 +106,9 @@ def _sg_route_pairs() -> list[tuple[str, str]]:
     ]
 
 
-async def _ensure_baseline_entities() -> tuple[list[Driver], list[Vehicle], list[Route]]:
+async def _ensure_baseline_entities() -> (
+    tuple[list[Driver], list[Vehicle], list[Route]]
+):
     """
     Idempotently create tenant, 10 drivers, 10 vehicles, 20 routes.
     Also pairs each driver to a vehicle (sets driver.vehicle_id) so that
@@ -127,7 +135,11 @@ async def _ensure_baseline_entities() -> tuple[list[Driver], list[Vehicle], list
             .all()
         )
         vehicles = (
-            (await session.execute(select(Vehicle).where(Vehicle.tenant_id == tenant.id)))
+            (
+                await session.execute(
+                    select(Vehicle).where(Vehicle.tenant_id == tenant.id)
+                )
+            )
             .scalars()
             .all()
         )
@@ -194,7 +206,11 @@ async def _ensure_baseline_entities() -> tuple[list[Driver], list[Vehicle], list
             .all()
         )
         vehicles = (
-            (await session.execute(select(Vehicle).where(Vehicle.tenant_id == tenant.id)))
+            (
+                await session.execute(
+                    select(Vehicle).where(Vehicle.tenant_id == tenant.id)
+                )
+            )
             .scalars()
             .all()
         )
@@ -441,7 +457,11 @@ def main() -> None:
     args = parser.parse_args()
 
     if args.loop:
-        asyncio.run(_run_loop(args.interval, args.event_delay, args.truck_delay, args.truck_count))
+        asyncio.run(
+            _run_loop(
+                args.interval, args.event_delay, args.truck_delay, args.truck_count
+            )
+        )
     else:
         asyncio.run(_run())
 
