@@ -41,15 +41,42 @@ CREATE TABLE IF NOT EXISTS coaching_schema.coaching (
   created_at TIMESTAMP
 );
 
+CREATE EXTENSION IF NOT EXISTS vector;
+
 CREATE SCHEMA IF NOT EXISTS sentiment_schema;
 
 CREATE TABLE IF NOT EXISTS sentiment_schema.feedback_sentiment (
   sentiment_id SERIAL PRIMARY KEY,
   trip_id VARCHAR(80) NOT NULL,
   driver_id VARCHAR(80) NOT NULL,
+  event_id VARCHAR(80),
+  device_event_id VARCHAR(80),
+  submission_timestamp TIMESTAMP,
   feedback_text TEXT,
+  feedback_embedding vector(1536),
   sentiment_score DOUBLE PRECISION,
   sentiment_label VARCHAR(50),
   analysis JSONB,
   created_at TIMESTAMP
 );
+
+ALTER TABLE sentiment_schema.feedback_sentiment
+  ADD COLUMN IF NOT EXISTS event_id VARCHAR(80),
+  ADD COLUMN IF NOT EXISTS device_event_id VARCHAR(80),
+  ADD COLUMN IF NOT EXISTS submission_timestamp TIMESTAMP,
+  ADD COLUMN IF NOT EXISTS feedback_embedding vector(1536);
+
+CREATE TABLE IF NOT EXISTS sentiment_schema.emotion_anchor_embeddings (
+  anchor_key VARCHAR(80) PRIMARY KEY,
+  emotion VARCHAR(50) NOT NULL,
+  anchor_text TEXT NOT NULL,
+  embedding vector(1536) NOT NULL,
+  created_at TIMESTAMP,
+  updated_at TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_feedback_sentiment_driver_submission_ts
+  ON sentiment_schema.feedback_sentiment (driver_id, submission_timestamp DESC);
+
+CREATE INDEX IF NOT EXISTS idx_emotion_anchor_embeddings_emotion
+  ON sentiment_schema.emotion_anchor_embeddings (emotion);

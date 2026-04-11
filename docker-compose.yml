@@ -146,9 +146,13 @@ services:
     command: celery -A celery_app worker -Q td:agent:sentiment -n sentiment@%h --loglevel=info
     environment:
       - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/tracedata
       - PYTHONPATH=/app
     depends_on:
-      - redis
+      redis:
+        condition: service_started
+      db:
+        condition: service_healthy
     restart: always
 
   # ── Frontend (Next.js) ───────────────────────────────────────────────────────

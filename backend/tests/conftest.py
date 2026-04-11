@@ -3,12 +3,72 @@ Shared test fixtures for the TraceData agent pipeline test suite.
 All fixtures use mocks / fakeredis — no running Docker or Redis required.
 """
 
+import importlib
 import json
+import os
+import sys
+import types
 import uuid
 from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+
+os.environ.setdefault("DATABASE_URL", "sqlite+aiosqlite:///:memory:")
+
+
+def _ensure_redis_asyncio_stub() -> None:
+    try:
+        importlib.import_module("redis.asyncio")
+        return
+    except ModuleNotFoundError:
+        pass
+
+    redis_pkg = types.ModuleType("redis")
+    asyncio_mod = types.ModuleType("redis.asyncio")
+
+    class _StubPubSub:
+        async def subscribe(self, *_args, **_kwargs):
+            return None
+
+    class _StubRedis:
+        def __getattr__(self, _name):
+            return AsyncMock()
+
+        def pubsub(self):
+            return _StubPubSub()
+
+    def from_url(*_args, **_kwargs):
+        return _StubRedis()
+
+    asyncio_mod.from_url = from_url
+    redis_pkg.asyncio = asyncio_mod
+    sys.modules["redis"] = redis_pkg
+    sys.modules["redis.asyncio"] = asyncio_mod
+
+
+_ensure_redis_asyncio_stub()
+
+
+def _ensure_celery_stub() -> None:
+    try:
+        celery_mod = importlib.import_module("celery")
+    except ModuleNotFoundError:
+        celery_mod = types.ModuleType("celery")
+        sys.modules["celery"] = celery_mod
+
+    if not hasattr(celery_mod, "shared_task"):
+        def shared_task(*_args, **_kwargs):
+            def _decorator(fn):
+                fn.run = fn
+                return fn
+
+            return _decorator
+
+        celery_mod.shared_task = shared_task
+
+
+_ensure_celery_stub()
 
 # ── Fake Telemetry Packet ──────────────────────────────────────────────────────
 
