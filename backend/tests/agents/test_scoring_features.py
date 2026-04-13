@@ -107,12 +107,13 @@ def test_merge_graph_json_clamps_score():
     assert "score_breakdown" in merged
 
 
-def test_build_scoring_tools_returns_four_tools():
+def test_build_scoring_tools_returns_five_tools():
     tools = build_scoring_tools([], {}, {})
-    assert len(tools) == 4
+    assert len(tools) == 5
     names = [t.name for t in tools]
     assert "get_trip_context_json" in names
     assert "compute_behaviour_score_from_features" in names
+    assert "score_with_ml_model" in names
 
 
 def test_compute_driver_score_uses_historical_avg_when_available():
