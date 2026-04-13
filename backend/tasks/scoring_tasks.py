@@ -4,6 +4,8 @@ Scoring Agent Celery Tasks
 
 import logging
 
+from openai import RateLimitError
+
 from agents.scoring.agent import ScoringAgent
 from celery_app import app
 from common.agent_flow.service import AgentFlowService
@@ -61,6 +63,23 @@ def score_trip(self, intent_capsule: dict) -> dict:
             )
         )
         return result
+
+    except RateLimitError as exc:
+        msg = str(exc).lower()
+        run_async(
+            _publish_agent_flow(
+                trip_id=trip_id,
+                status="error",
+                meta={"task": "score_trip", "error": "rate_limit"},
+            )
+        )
+        if "requests per day" in msg or "rpd" in msg:
+            # Daily quota exhausted — retrying wastes the next quota too
+            logger.error({"action": "scoring_rate_limit_daily", "trip_id": trip_id})
+            raise  # No retry
+        # Per-minute limit — one retry after a fixed pause
+        logger.warning({"action": "scoring_rate_limit_rpm", "trip_id": trip_id})
+        raise self.retry(exc=exc, countdown=60, max_retries=1) from exc
 
     except Exception as exc:
         run_async(

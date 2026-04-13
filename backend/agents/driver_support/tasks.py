@@ -7,6 +7,7 @@ Location: backend/agents/driver_support/tasks.py
 import logging
 
 from celery import shared_task
+from openai import RateLimitError
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.pool import NullPool
 
@@ -112,6 +113,21 @@ def generate_coaching(self, intent_capsule: dict) -> dict:
             {"action": "task_complete", "task": "generate_coaching", "trip_id": trip_id}
         )
         return completion
+
+    except RateLimitError as exc:
+        msg = str(exc).lower()
+        run_async(
+            _publish_agent_flow(
+                trip_id=trip_id,
+                status="error",
+                meta={"task": "generate_coaching", "error": "rate_limit"},
+            )
+        )
+        if "requests per day" in msg or "rpd" in msg:
+            logger.error({"action": "support_rate_limit_daily", "trip_id": trip_id})
+            raise
+        logger.warning({"action": "support_rate_limit_rpm", "trip_id": trip_id})
+        raise self.retry(exc=exc, countdown=60, max_retries=1) from exc
 
     except Exception as exc:
         run_async(

@@ -599,7 +599,7 @@ class EventsRepo:
                         coaching_category,
                         message,
                         created_at
-                    FROM coaching
+                    FROM coaching_schema.coaching
                     WHERE trip_id = :trip_id
                     ORDER BY created_at DESC
                     LIMIT :limit
