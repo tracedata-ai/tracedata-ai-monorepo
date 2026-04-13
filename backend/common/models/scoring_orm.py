@@ -6,7 +6,7 @@ import uuid
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import JSON, DateTime, Float, String, UniqueConstraint, text
+from sqlalchemy import JSON, DateTime, Float, String, Text, UniqueConstraint, text
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -31,6 +31,7 @@ class TripScoreORM(Base):
     driver_id: Mapped[str] = mapped_column(String(50))
     score: Mapped[float] = mapped_column(Float)
     score_breakdown: Mapped[dict[str, Any]] = mapped_column(JSON)
+    scoring_narrative: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
 
 

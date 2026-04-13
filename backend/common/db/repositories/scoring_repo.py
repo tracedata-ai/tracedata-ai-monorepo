@@ -96,6 +96,21 @@ class ScoringRepository(SchemaRepository):
             },
         )
 
+    async def write_scoring_narrative(
+        self,
+        score_id: str,
+        narrative: str,
+    ) -> None:
+        """Attach LLM-generated human-readable narrative to an existing trip score row."""
+        await self._execute_write(
+            """
+                    UPDATE scoring_schema.trip_scores
+                    SET scoring_narrative = :narrative
+                    WHERE score_id = :score_id
+                """,
+            {"score_id": score_id, "narrative": narrative},
+        )
+
     async def get_trip_score(
         self,
         score_id: str,

@@ -7,6 +7,7 @@ Location: backend/agents/safety/tasks.py
 import logging
 
 from celery import shared_task
+from openai import RateLimitError
 
 from agents.safety.agent import SafetyAgent
 from common.agent_flow.service import AgentFlowService
@@ -108,6 +109,21 @@ def analyse_event(self, intent_capsule: dict) -> dict:
             {"action": "task_complete", "task": "analyse_event", "trip_id": trip_id}
         )
         return completion
+
+    except RateLimitError as exc:
+        msg = str(exc).lower()
+        run_async(
+            _publish_agent_flow(
+                trip_id=trip_id,
+                status="error",
+                meta={"task": "analyse_event", "error": "rate_limit"},
+            )
+        )
+        if "requests per day" in msg or "rpd" in msg:
+            logger.error({"action": "safety_rate_limit_daily", "trip_id": trip_id})
+            raise
+        logger.warning({"action": "safety_rate_limit_rpm", "trip_id": trip_id})
+        raise self.retry(exc=exc, countdown=60, max_retries=1) from exc
 
     except Exception as exc:
         run_async(

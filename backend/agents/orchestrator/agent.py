@@ -119,6 +119,9 @@ class OrchestratorAgent:
         self._running = False
         self._routing_mode_counts: dict[str, int] = {"deterministic": 0, "llm": 0}
         self._ops_alert_last_sent_at: dict[str, float] = {}
+        # In-memory cache: event_type -> (routing_decision, expires_at)
+        self._routing_cache: dict[str, tuple[dict, float]] = {}
+        self._ROUTING_CACHE_TTL = 3600.0  # 1 hour
 
         # Initialize LLM agent for routing decisions
         llm = _get_llm()
@@ -1214,7 +1217,28 @@ class OrchestratorAgent:
                     "reasoning": "deterministic_fastpath_eventmatrix",
                     "routing_mode": "deterministic",
                 }
-        return self._get_routing_decision(event)
+        # Check in-memory cache for LLM routing decisions
+        cached = self._routing_cache.get(event.event_type)
+        if cached is not None:
+            decision, expires_at = cached
+            if time.monotonic() < expires_at:
+                cached_decision = dict(decision)
+                cached_decision["trip_id"] = event.trip_id
+                logger.debug(
+                    {
+                        "action": "routing_decision_cache_hit",
+                        "event_type": event.event_type,
+                        "trip_id": event.trip_id,
+                    }
+                )
+                return cached_decision
+
+        decision = self._get_routing_decision(event)
+        self._routing_cache[event.event_type] = (
+            decision,
+            time.monotonic() + self._ROUTING_CACHE_TTL,
+        )
+        return decision
 
     def _record_routing_mode(self, mode: str) -> None:
         mode_key = "deterministic" if mode == "deterministic" else "llm"

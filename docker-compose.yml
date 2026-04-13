@@ -24,13 +24,19 @@ services:
     container_name: td-api
     env_file:
       - .env
-    command: sh -c "python -m scripts.bootstrap_sg_baseline --smooth-count 15 && uvicorn api.main:app --host 0.0.0.0 --port 8000"
+    command: sh -c "python -m scripts.bootstrap_sg_baseline && uvicorn api.main:app --host 0.0.0.0 --port 8000"
     ports:
       - "8000:8000"
     environment:
       - DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/tracedata
       - REDIS_URL=redis://redis:6379/0
       - PYTHONPATH=/app
+      - DEMO_RESET=true
+      - SIM_LOOP=true
+      - SIM_INTERVAL=30
+      - SIM_EVENT_DELAY=0.5
+      - SIM_TRUCK_DELAY=5.0
+      - SIM_TRUCK_COUNT=10
     depends_on:
       db:
         condition: service_healthy

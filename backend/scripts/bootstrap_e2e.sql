@@ -65,6 +65,7 @@ CREATE TABLE scoring_schema.trip_scores (
   driver_id VARCHAR(80) NOT NULL,
   score DOUBLE PRECISION NOT NULL,
   score_breakdown JSONB,
+  scoring_narrative TEXT,
   created_at TIMESTAMP
 );
 

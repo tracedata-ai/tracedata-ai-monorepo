@@ -7,7 +7,28 @@
       "Bash(xargs -I{} echo \"  {} / 50 expected score_trip tasks done\")",
       "Bash(powershell -ExecutionPolicy Bypass -File scripts/run-ci.ps1)",
       "Bash(uv run:*)",
-      "WebFetch(domain:github.com)"
+      "WebFetch(domain:github.com)",
+      "Bash(docker exec:*)",
+      "Bash(xargs grep:*)",
+      "Bash(grep -E \"\\\\.py$|\\\\.sql$\")",
+      "Bash(python -c \"import sys,json; [print\\(c.get\\('Name','?'\\), c.get\\('State','?'\\)\\) for c in \\(json.loads\\(l\\) for l in sys.stdin if l.strip\\(\\)\\)]\")",
+      "Bash(kill %1)",
+      "Bash(curl -s \"https://api.github.com/repos/tracedata-ai/tracedata-ai-ml/releases/tags/v.2.0.0.2026154.1\")",
+      "Bash(python -c \"import sys,json; r=json.load\\(sys.stdin\\); [print\\(a['name'], '-', a['browser_download_url']\\) for a in r.get\\('assets',[]\\)] or print\\('No assets. Message:', r.get\\('message',''\\)\\)\")",
+      "Bash(curl -s \"https://api.github.com/repos/tracedata-ai/tracedata-ai-ml/contents/serving\")",
+      "Bash(python -c \"import sys,json; items=json.load\\(sys.stdin\\); [print\\(i['name'], '-', i['download_url']\\) for i in items] if isinstance\\(items,list\\) else print\\(items.get\\('message',''\\)\\)\")",
+      "Bash(curl -s \"https://api.github.com/repos/tracedata-ai/tracedata-ai-ml/contents\")",
+      "Bash(python -c \"import sys,json; items=json.load\\(sys.stdin\\); [print\\(i['type'], i['name']\\) for i in items] if isinstance\\(items,list\\) else print\\(items.get\\('message',''\\)\\)\")",
+      "Bash(curl -s \"https://api.github.com/repos/tracedata-ai/tracedata-ai-ml/contents/models\")",
+      "Bash(curl -s \"https://api.github.com/repos/tracedata-ai/tracedata-ai-ml/contents/src\")",
+      "Bash(curl -s \"https://api.github.com/repos/tracedata-ai/tracedata-ai-ml/releases/tags/v.2.0.0.2026155.2\")",
+      "Bash(python -m scripts.fetch_model_release --repo tracedata-ai/tracedata-ai-ml --tag v.2.0.0.2026155.2)",
+      "Bash(python -c ':*)",
+      "Bash(find /d/learning-projects/tracedata-ai-monorepo/backend -name \"*.log\" -type f -exec ls -lh {} \\\\;)",
+      "Bash(Start-Process \"C:\\\\Program Files\\\\Docker\\\\Docker\\\\Docker Desktop.exe\")",
+      "Bash(cmd.exe /c \"start \\\\\"\\\\\" \\\\\"C:\\\\\\\\Program Files\\\\\\\\Docker\\\\\\\\Docker\\\\\\\\Docker Desktop.exe\\\\\"\")",
+      "Bash(docker info:*)",
+      "Bash(break)"
     ]
   }
 }
