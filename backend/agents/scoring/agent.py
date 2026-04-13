@@ -23,7 +23,12 @@ from agents.scoring.features import (
     score_label_from_value,
 )
 from agents.scoring.model.loader import SmoothnessBundleLoader
-from agents.scoring.prompts import SCORING_SYSTEM_PROMPT, build_user_message
+from agents.scoring.prompts import (
+    SCORING_NARRATIVE_SYSTEM_PROMPT,
+    SCORING_SYSTEM_PROMPT,
+    build_narrative_user_message,
+    build_user_message,
+)
 from agents.scoring.tools import build_scoring_tools
 from common.cache.reader import CacheReader
 from common.config.settings import get_settings
@@ -32,6 +37,7 @@ from common.db.repositories.scoring_repo import ScoringRepository
 from common.llm import OpenAIModel, load_llm
 from common.models.security import IntentCapsule
 from common.redis.client import RedisClient
+from common.redis.keys import RedisSchema
 
 logger = logging.getLogger(__name__)
 
@@ -268,7 +274,9 @@ class ScoringAgent(TDAgentBase):
             label = score_label_from_value(score_val)
             # Derive heuristic breakdown for the score_breakdown fields
             bundle = extract_feature_bundle(all_pings)
-            _, breakdown = compute_components_and_baseline(bundle["smoothness_features"])
+            _, breakdown = compute_components_and_baseline(
+                bundle["smoothness_features"]
+            )
 
             harsh_count = int(bundle["smoothness_features"].get("harsh_event_count", 0))
             coaching_reasons: list[str] = []
@@ -367,7 +375,93 @@ class ScoringAgent(TDAgentBase):
         }
         if suggested_coaching:
             out["suggested_coaching"] = suggested_coaching
+
+        narrative = await self._generate_narrative(score_id, trip_id, score_payload)
+        out["scoring_narrative"] = narrative
+
         return out
+
+    async def _generate_narrative(
+        self,
+        score_id: str,
+        trip_id: str,
+        score_payload: dict,
+    ) -> str:
+        """
+        Call LLM once to produce a professional trip narrative, then persist it
+        to DB (trip_scores.scoring_narrative) and Redis context.
+        """
+        from langchain_core.messages import HumanMessage, SystemMessage
+
+        top_features = [
+            f["feature"]
+            for f in score_payload.get("shap_explanation", {}).get("top_features", [])[
+                :3
+            ]
+        ]
+        coaching_required = bool(score_payload.get("coaching_required", False))
+        coaching_reasons = list(score_payload.get("coaching_reasons") or [])
+        score_label = score_payload.get("score_label", "Unknown")
+
+        user_msg = build_narrative_user_message(
+            score_label=score_label,
+            top_features=top_features,
+            coaching_required=coaching_required,
+            coaching_reasons=coaching_reasons,
+        )
+
+        try:
+            response = await self.llm.ainvoke(
+                [
+                    SystemMessage(content=SCORING_NARRATIVE_SYSTEM_PROMPT),
+                    HumanMessage(content=user_msg),
+                ]
+            )
+            narrative = str(response.content).strip()
+        except Exception as exc:
+            logger.warning(
+                {
+                    "action": "narrative_generation_failed",
+                    "trip_id": trip_id,
+                    "error": str(exc)[:200],
+                }
+            )
+            narrative = f"Trip completed with a {score_label} rating."
+
+        # Persist to DB
+        try:
+            await self.scoring_repo.write_scoring_narrative(
+                score_id=score_id,
+                narrative=narrative,
+            )
+        except Exception as exc:
+            logger.warning(
+                {
+                    "action": "narrative_db_write_failed",
+                    "trip_id": trip_id,
+                    "error": str(exc)[:200],
+                }
+            )
+
+        # Persist to Redis trip context
+        try:
+            narrative_key = RedisSchema.Trip.agent_data(trip_id, "scoring", "narrative")
+            await self._redis.store_trip_context(
+                key=narrative_key,
+                context={"scoring_narrative": narrative, "trip_id": trip_id},
+                ttl=RedisSchema.Trip.EVENT_TTL,
+            )
+        except Exception as exc:
+            logger.warning(
+                {
+                    "action": "narrative_redis_write_failed",
+                    "trip_id": trip_id,
+                    "error": str(exc)[:200],
+                }
+            )
+
+        logger.info({"action": "narrative_generated", "trip_id": trip_id})
+        return narrative
 
     @staticmethod
     def _apply_historical_coaching_flags(

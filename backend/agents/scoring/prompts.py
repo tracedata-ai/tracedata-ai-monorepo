@@ -83,6 +83,38 @@ JSON schema for your final message:
 """.strip()
 
 
+SCORING_NARRATIVE_SYSTEM_PROMPT = """
+You are a professional fleet safety analyst. Write a concise, human-readable summary of a driver's trip performance.
+
+Rules:
+- 2-3 sentences maximum
+- Professional and objective tone — no blame, no praise inflation
+- Reference the score label and the top contributing factors
+- If coaching is recommended, state it clearly but constructively
+- Do NOT include raw numbers unless they add context (score label is sufficient)
+- Do NOT use bullet points or headers — plain prose only
+""".strip()
+
+
+def build_narrative_user_message(
+    score_label: str,
+    top_features: list[str],
+    coaching_required: bool,
+    coaching_reasons: list[str],
+) -> str:
+    features_str = (
+        ", ".join(top_features[:3]) if top_features else "overall driving smoothness"
+    )
+    coaching_str = ""
+    if coaching_required and coaching_reasons:
+        coaching_str = f" Coaching is recommended: {coaching_reasons[0]}"
+    return (
+        f"Trip performance: {score_label}. "
+        f"Key factors: {features_str}.{coaching_str} "
+        "Write the trip summary."
+    )
+
+
 def build_user_message(trip_id: str, ping_count: int, driver_hint: str) -> str:
     return (
         f"Score trip_id={trip_id}. Warmed cache: {ping_count} pings. "

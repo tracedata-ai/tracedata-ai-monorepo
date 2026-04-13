@@ -24,7 +24,11 @@
       "Bash(curl -s \"https://api.github.com/repos/tracedata-ai/tracedata-ai-ml/releases/tags/v.2.0.0.2026155.2\")",
       "Bash(python -m scripts.fetch_model_release --repo tracedata-ai/tracedata-ai-ml --tag v.2.0.0.2026155.2)",
       "Bash(python -c ':*)",
-      "Bash(find /d/learning-projects/tracedata-ai-monorepo/backend -name \"*.log\" -type f -exec ls -lh {} \\\\;)"
+      "Bash(find /d/learning-projects/tracedata-ai-monorepo/backend -name \"*.log\" -type f -exec ls -lh {} \\\\;)",
+      "Bash(Start-Process \"C:\\\\Program Files\\\\Docker\\\\Docker\\\\Docker Desktop.exe\")",
+      "Bash(cmd.exe /c \"start \\\\\"\\\\\" \\\\\"C:\\\\\\\\Program Files\\\\\\\\Docker\\\\\\\\Docker\\\\\\\\Docker Desktop.exe\\\\\"\")",
+      "Bash(docker info:*)",
+      "Bash(break)"
     ]
   }
 }

@@ -81,7 +81,7 @@ class SmoothnessBundleLoader:
     @classmethod
     def from_local_paths(
         cls, model_path: str, serving_dir: str
-    ) -> "SmoothnessBundleLoader":
+    ) -> SmoothnessBundleLoader:
         """
         Mirror of SmoothnessInference.from_local_paths(model_path, serving_dir).
         Validates the serving contract before loading the model.
@@ -148,7 +148,10 @@ class SmoothnessBundleLoader:
 
         # Trip score = weighted mean (weight by window_seconds, matching reference)
         weights = np.array(
-            [float(env.get("window_seconds") or 600.0) for env in smoothness_log_envelopes],
+            [
+                float(env.get("window_seconds") or 600.0)
+                for env in smoothness_log_envelopes
+            ],
             dtype=np.float64,
         )
         weights = weights / weights.sum()
@@ -292,11 +295,17 @@ class SmoothnessBundleLoader:
         method: str,
     ) -> str:
         label = (
-            "Excellent" if score >= 85
-            else "Good" if score >= 70
-            else "Average" if score >= 55
-            else "Below Average" if score >= 40
-            else "Poor"
+            "Excellent"
+            if score >= 85
+            else (
+                "Good"
+                if score >= 70
+                else (
+                    "Average"
+                    if score >= 55
+                    else "Below Average" if score >= 40 else "Poor"
+                )
+            )
         )
         top = sorted(attributions, key=lambda k: abs(attributions[k]), reverse=True)[:3]
         top_str = ", ".join(top) if top else "unknown"
