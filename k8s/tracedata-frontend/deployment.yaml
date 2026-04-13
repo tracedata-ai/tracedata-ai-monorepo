@@ -21,7 +21,7 @@ spec:
     spec:
       containers:
         - name: tracedata-frontend
-          image: DOCKERHUB_USERNAME/tracedata-frontend:latest
+          image: sreerajrone/tracedata-frontend:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 3000

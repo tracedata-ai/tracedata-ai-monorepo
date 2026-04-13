@@ -125,6 +125,7 @@ helm repo update
 helm install loki grafana/loki \
   --namespace monitoring \
   -f "$REPO_ROOT/k8s/monitoring/loki-values.yaml" \
+  --timeout 10m \
   --wait
 
 # =============================================================================
