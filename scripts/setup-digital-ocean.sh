@@ -53,8 +53,7 @@ echo "━━━ [1/15] Creating DOKS cluster: $CLUSTER_NAME in $REGION ━━━
 
 # Resolve version slug — use provided value or auto-pick latest stable
 if [ -z "$K8S_VERSION" ]; then
-  K8S_VERSION=$(doctl kubernetes options versions \
-    --no-header --format Slug 2>/dev/null | head -1)
+  K8S_VERSION=$(doctl kubernetes options versions | awk 'NR==2{print $1}')
   echo "==> Auto-selected Kubernetes version: $K8S_VERSION"
 fi
 

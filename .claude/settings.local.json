@@ -29,7 +29,9 @@
       "Bash(cmd.exe /c \"start \\\\\"\\\\\" \\\\\"C:\\\\\\\\Program Files\\\\\\\\Docker\\\\\\\\Docker\\\\\\\\Docker Desktop.exe\\\\\"\")",
       "Bash(docker info:*)",
       "Bash(break)",
-      "WebFetch(domain:raw.githubusercontent.com)"
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Read(//mnt/d/learning-projects/**)",
+      "Bash(doctl account:*)"
     ]
   }
 }
