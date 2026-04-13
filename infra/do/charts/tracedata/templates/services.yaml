@@ -1,0 +1,21 @@
+{{- $ns := .Values.namespace -}}
+{{- range $name, $cfg := .Values.components }}
+{{- if and $cfg.enabled $cfg.servicePort }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $name }}
+  namespace: {{ $ns }}
+  labels:
+    app: {{ $name }}
+spec:
+  selector:
+    app: {{ $name }}
+  ports:
+    - port: {{ $cfg.servicePort }}
+      targetPort: {{ $cfg.containerPort | default $cfg.servicePort }}
+      protocol: TCP
+      name: http
+---
+{{- end }}
+{{- end }}

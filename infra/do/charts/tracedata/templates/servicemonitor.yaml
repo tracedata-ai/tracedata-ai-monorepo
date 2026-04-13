@@ -1,0 +1,26 @@
+{{- if .Values.monitoring.serviceMonitor.enabled }}
+{{- range $name, $cfg := .Values.components }}
+{{- if and $cfg.enabled $cfg.servicePort }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ $name }}
+  namespace: {{ $.Values.monitoring.serviceMonitor.namespace }}
+  labels:
+{{ toYaml $.Values.monitoring.serviceMonitor.labels | indent 4 }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ $name }}
+  namespaceSelector:
+    matchNames:
+      - {{ $.Values.namespace }}
+  endpoints:
+    - port: http
+      path: {{ if eq $name "frontend" }}/api/metrics{{ else }}/metrics{{ end }}
+      interval: {{ $.Values.monitoring.serviceMonitor.interval }}
+      scrapeTimeout: {{ $.Values.monitoring.serviceMonitor.scrapeTimeout }}
+---
+{{- end }}
+{{- end }}
+{{- end }}

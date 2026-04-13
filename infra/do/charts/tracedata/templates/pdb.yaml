@@ -1,0 +1,17 @@
+{{- if .Values.resilience.podDisruptionBudget.enabled }}
+{{- range $name, $cfg := .Values.components }}
+{{- if and $cfg.enabled (gt (int ($cfg.replicas | default 1)) 1) }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ $name }}
+  namespace: {{ $.Values.namespace }}
+spec:
+  minAvailable: {{ $.Values.resilience.podDisruptionBudget.minAvailable }}
+  selector:
+    matchLabels:
+      app: {{ $name }}
+---
+{{- end }}
+{{- end }}
+{{- end }}

@@ -14,6 +14,7 @@ docker compose exec -T api python -m scripts.seed_telemetry_batch --count 50
 ```
 
 - **API / docs:** http://localhost:8000 and http://localhost:8000/docs  
+- **Prometheus metrics:** `http://localhost:8000/metrics` (backend), `http://localhost:3000/api/metrics` (frontend)
 - **Sanity:** `docker compose exec -T db psql -U postgres -d tracedata -c "SELECT COUNT(*) FROM pipeline_events;"`  
 - Expect ~10 containers (api, ingestion, orchestrator, workers, db, redis, frontend).
 
@@ -138,3 +139,4 @@ docker compose exec -T redis redis-cli SCAN 0 MATCH "telemetry:*:buffer" COUNT 1
 - [Git Workflow](docs/02-guides/02-git-workflow.md)
 - [Troubleshooting](docs/02-guides/10_troubleshooting_guide.md)
 - [Agent Details](docs/03-agents/)
+- [DigitalOcean Infra Scaffold](infra/do/README.md)

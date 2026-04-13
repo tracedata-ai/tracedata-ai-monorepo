@@ -21,6 +21,8 @@ class Settings(BaseSettings):
     project_description: str = (
         "AI-powered vehicle telematics and driver advocacy platform."
     )
+    metrics_enabled: bool = True
+    metrics_path: str = "/metrics"
 
     # ── Database ────────────────────────────────────────────────────────────
     database_url: str = "postgresql+asyncpg://postgres:postgres@db:5432/tracedata"

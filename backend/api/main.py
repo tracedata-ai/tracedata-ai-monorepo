@@ -21,6 +21,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from prometheus_fastapi_instrumentator import Instrumentator
 from sqlalchemy import text
 
 # Import all models so their metadata is registered with Base.
@@ -246,6 +247,11 @@ app.add_middleware(RequestIdMiddleware)
 
 # ── Routes ────────────────────────────────────────────────────────────────────
 app.include_router(api_router, prefix=settings.api_v1_prefix)
+
+# ── Metrics ───────────────────────────────────────────────────────────────────
+# PLG readiness: expose Prometheus scrape endpoint from backend.
+if settings.metrics_enabled:
+    Instrumentator().instrument(app).expose(app, endpoint=settings.metrics_path)
 
 
 # ── Health Check ──────────────────────────────────────────────────────────────
