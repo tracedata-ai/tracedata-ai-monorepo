@@ -28,7 +28,8 @@
       "Bash(Start-Process \"C:\\\\Program Files\\\\Docker\\\\Docker\\\\Docker Desktop.exe\")",
       "Bash(cmd.exe /c \"start \\\\\"\\\\\" \\\\\"C:\\\\\\\\Program Files\\\\\\\\Docker\\\\\\\\Docker\\\\\\\\Docker Desktop.exe\\\\\"\")",
       "Bash(docker info:*)",
-      "Bash(break)"
+      "Bash(break)",
+      "WebFetch(domain:raw.githubusercontent.com)"
     ]
   }
 }

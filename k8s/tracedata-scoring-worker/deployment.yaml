@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tracedata-scoring-worker
+  namespace: tracedata
+  labels:
+    app: tracedata-scoring-worker
+    tier: worker
+    environment: prod
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tracedata-scoring-worker
+  template:
+    metadata:
+      labels:
+        app: tracedata-scoring-worker
+        tier: worker
+        environment: prod
+    spec:
+      containers:
+        - name: tracedata-scoring-worker
+          image: DOCKERHUB_USERNAME/tracedata-backend-agent-api:latest
+          imagePullPolicy: Always
+          command:
+            - celery
+            - "-A"
+            - celery_app
+            - worker
+            - "-Q"
+            - "td:agent:scoring"
+            - "-n"
+            - "scoring@%h"
+            - "--loglevel=info"
+          envFrom:
+            - configMapRef:
+                name: tracedata-scoring-worker-config
+            - secretRef:
+                name: tracedata-api-secret
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "512Mi"
+            limits:
+              cpu: "2000m"
+              memory: "2Gi"

@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tracedata-db
+  namespace: tracedata
+  labels:
+    app: tracedata-db
+    tier: database
+    environment: prod
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tracedata-db
+  template:
+    metadata:
+      labels:
+        app: tracedata-db
+        tier: database
+        environment: prod
+    spec:
+      containers:
+        - name: tracedata-db
+          image: ankane/pgvector:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 5432
+          envFrom:
+            - configMapRef:
+                name: tracedata-db-config
+            - secretRef:
+                name: tracedata-db-secret
+          volumeMounts:
+            - name: postgres-data
+              mountPath: /var/lib/postgresql/data
+          livenessProbe:
+            exec:
+              command: ["pg_isready", "-U", "$(POSTGRES_USER)", "-d", "$(POSTGRES_DB)"]
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "$(POSTGRES_USER)", "-d", "$(POSTGRES_DB)"]
+            initialDelaySeconds: 15
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "512Mi"
+            limits:
+              cpu: "1000m"
+              memory: "1Gi"
+      volumes:
+        - name: postgres-data
+          persistentVolumeClaim:
+            claimName: tracedata-db-pvc

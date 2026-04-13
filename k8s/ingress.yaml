@@ -1,0 +1,38 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: tracedata-ingress
+  namespace: tracedata
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - www.xplore.town
+        - api.xplore.town
+      secretName: tracedata-tls
+  rules:
+    - host: www.xplore.town
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: tracedata-frontend-service
+                port:
+                  number: 3000
+    - host: api.xplore.town
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: tracedata-api-service
+                port:
+                  number: 8000

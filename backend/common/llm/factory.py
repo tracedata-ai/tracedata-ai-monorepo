@@ -22,9 +22,12 @@ def load_llm(model: OpenAIModel | AnthropicModel) -> LLMConfig:
         >>> config = load_llm(AnthropicModel.CLAUDE_35_SONNET_20241022)
         >>> llm = config.adapter.get_chat_model()
     """
+    from pathlib import Path
+
     from dotenv import load_dotenv
 
-    load_dotenv()
+    # factory.py lives at backend/common/llm/factory.py — 3 levels up = repo root.
+    load_dotenv(Path(__file__).resolve().parents[3] / ".env")
 
     resolved_provider = _infer_provider_from_model(model)
 

@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tracedata-frontend-config
+  namespace: tracedata
+  labels:
+    app: tracedata-frontend
+    tier: frontend
+    environment: prod
+data:
+  NODE_ENV: "production"
+  PORT: "3000"
+  HOSTNAME: "0.0.0.0"
+  # NOTE: NEXT_PUBLIC_API_URL is a Next.js build-time variable — baked into the
+  # JS bundle at image build. This value is informational only at runtime.
+  # Set vars.NEXT_PUBLIC_API_URL in GitHub Actions before publishing the image.
+  NEXT_PUBLIC_API_URL: "http://tracedata-api-service.tracedata.svc.cluster.local:8000/api/v1"

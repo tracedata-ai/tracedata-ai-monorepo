@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tracedata-ingestion
+  namespace: tracedata
+  labels:
+    app: tracedata-ingestion
+    tier: worker
+    environment: prod
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tracedata-ingestion
+  template:
+    metadata:
+      labels:
+        app: tracedata-ingestion
+        tier: worker
+        environment: prod
+    spec:
+      containers:
+        - name: tracedata-ingestion
+          image: DOCKERHUB_USERNAME/tracedata-backend-agent-api:latest
+          imagePullPolicy: Always
+          command:
+            - python
+            - "-m"
+            - core.ingestion.worker
+          envFrom:
+            - configMapRef:
+                name: tracedata-ingestion-config
+            - secretRef:
+                name: tracedata-api-secret
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
