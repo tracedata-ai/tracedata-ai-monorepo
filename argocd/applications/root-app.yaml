@@ -10,7 +10,7 @@ spec:
 
   source:
     repoURL: https://github.com/tracedata-ai/tracedata-ai-monorepo.git
-    targetRevision: feature/TDATA-96-DO-K8s
+    targetRevision: main
     path: argocd/applications
 
   destination:
