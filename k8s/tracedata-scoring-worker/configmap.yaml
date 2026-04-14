@@ -11,6 +11,6 @@ data:
   APP_ENV: "production"
   DEBUG: "false"
   PYTHONPATH: "/app"
-  DATABASE_URL: "postgresql+asyncpg://tracedatauser:CHANGE_ME_BEFORE_DEPLOY@tracedata-db-service.tracedata.svc.cluster.local:5432/tracedata"
+  DATABASE_URL: "postgresql+asyncpg://tracedatauser:tracedatapassword@tracedata-db-service.tracedata.svc.cluster.local:5432/tracedata"
   REDIS_URL: "redis://tracedata-redis-service.tracedata.svc.cluster.local:6379/0"
   LOG_LEVEL: "INFO"
