@@ -1,11 +1,17 @@
 from functools import lru_cache
+from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# Resolve the repo root regardless of working directory.
+# settings.py lives at backend/common/config/settings.py — 3 levels up = repo root.
+_REPO_ROOT = Path(__file__).resolve().parents[3]
+_ENV_FILE = _REPO_ROOT / ".env"
 
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=str(_ENV_FILE),
         env_file_encoding="utf-8",
         case_sensitive=False,
         # Docker / shell often sets unrelated vars (e.g. RESET_DB); do not fail on them.

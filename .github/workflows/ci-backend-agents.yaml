@@ -20,7 +20,7 @@ on:
       - "backend/pyproject.toml"
       - "backend/uv.lock"
       - "docker-compose.yml"
-      - "backend/Dockerfile"
+      - "backend/Dockerfile.local"
       - ".github/workflows/ci-backend-agents.yaml"
   pull_request:
     branches:
@@ -33,7 +33,7 @@ on:
       - "backend/pyproject.toml"
       - "backend/uv.lock"
       - "docker-compose.yml"
-      - "backend/Dockerfile"
+      - "backend/Dockerfile.local"
       - ".github/workflows/ci-backend-agents.yaml"
   workflow_dispatch:
 
@@ -269,7 +269,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: ./backend
-          file: ./backend/Dockerfile
+          file: ./backend/Dockerfile.local
           load: true
           tags: tracedata-agent-${{ matrix.service }}:scan
           cache-from: type=gha

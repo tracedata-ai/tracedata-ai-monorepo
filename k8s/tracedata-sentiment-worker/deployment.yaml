@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tracedata-sentiment-worker
+  namespace: tracedata
+  labels:
+    app: tracedata-sentiment-worker
+    tier: worker
+    environment: prod
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tracedata-sentiment-worker
+  template:
+    metadata:
+      labels:
+        app: tracedata-sentiment-worker
+        tier: worker
+        environment: prod
+    spec:
+      containers:
+        - name: tracedata-sentiment-worker
+          image: sreerajrone/tracedata-backend-agent-api:latest
+          imagePullPolicy: Always
+          command:
+            - celery
+            - "-A"
+            - celery_app
+            - worker
+            - "-Q"
+            - "td:agent:sentiment"
+            - "-n"
+            - "sentiment@%h"
+            - "--loglevel=info"
+          envFrom:
+            - configMapRef:
+                name: tracedata-sentiment-worker-config
+            - secretRef:
+                name: tracedata-api-secret
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "512Mi"
+            limits:
+              cpu: "1000m"
+              memory: "1Gi"

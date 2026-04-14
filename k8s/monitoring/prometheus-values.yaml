@@ -1,0 +1,67 @@
+# Helm values for kube-prometheus-stack
+# Install: helm install prometheus prometheus-community/kube-prometheus-stack \
+#   --namespace monitoring --create-namespace \
+#   -f k8s/monitoring/prometheus-values.yaml
+
+# ── Prometheus ────────────────────────────────────────────────────────────────
+prometheus:
+  prometheusSpec:
+    retention: 7d
+    # Scrape all ServiceMonitors regardless of namespace label selector
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: do-block-storage
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 10Gi
+
+# ── Grafana ───────────────────────────────────────────────────────────────────
+grafana:
+  adminPassword: tracedatapassword
+  persistence:
+    enabled: true
+    storageClassName: do-block-storage
+    size: 5Gi
+  # Serve Grafana at root path (hostname-based routing via Ingress)
+  grafana.ini:
+    server:
+      root_url: "https://grafana.tools.xplore.town"
+  # Loki data source — provisioned automatically
+  additionalDataSources:
+    - name: Loki
+      type: loki
+      url: http://loki:3100
+      access: proxy
+      isDefault: false
+
+# ── AlertManager ─────────────────────────────────────────────────────────────
+alertmanager:
+  alertmanagerSpec:
+    storage:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: do-block-storage
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 2Gi
+
+# ── Default scrape targets ────────────────────────────────────────────────────
+# Scrape the tracedata API (/metrics endpoint via FastAPI prometheus-client)
+additionalServiceMonitors:
+  - name: tracedata-api
+    namespace: monitoring
+    selector:
+      matchLabels:
+        app: tracedata-api
+    namespaceSelector:
+      matchNames:
+        - tracedata
+    endpoints:
+      - port: http
+        path: /metrics
+        interval: 30s

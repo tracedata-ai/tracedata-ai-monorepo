@@ -47,6 +47,13 @@ htmlcov/
 .mypy_cache/
 .ruff_cache/
 
+# ─── Kubernetes ──────────────────────────────────────────────────────────────
+# Plaintext secrets — NEVER commit these.
+# Workflow: copy from secret.yaml.example → fill values → run scripts/seal-secrets.sh
+k8s/**/secret.yaml
+# sealed-secret.yaml files are encrypted by kubeseal and ARE safe to commit.
+# (they are not ignored here — commit them after running seal-secrets.sh)
+
 # ─── Misc ────────────────────────────────────────────────────────────────────
 *.log
 *.sqlite

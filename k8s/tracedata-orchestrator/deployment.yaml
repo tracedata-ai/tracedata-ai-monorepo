@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tracedata-orchestrator
+  namespace: tracedata
+  labels:
+    app: tracedata-orchestrator
+    tier: worker
+    environment: prod
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tracedata-orchestrator
+  template:
+    metadata:
+      labels:
+        app: tracedata-orchestrator
+        tier: worker
+        environment: prod
+    spec:
+      containers:
+        - name: tracedata-orchestrator
+          image: sreerajrone/tracedata-backend-agent-api:latest
+          imagePullPolicy: Always
+          command:
+            - python
+            - "-m"
+            - agents.worker
+            - orchestrator
+          envFrom:
+            - configMapRef:
+                name: tracedata-orchestrator-config
+            - secretRef:
+                name: tracedata-api-secret
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "512Mi"
+            limits:
+              cpu: "1000m"
+              memory: "1Gi"

@@ -28,7 +28,12 @@
       "Bash(Start-Process \"C:\\\\Program Files\\\\Docker\\\\Docker\\\\Docker Desktop.exe\")",
       "Bash(cmd.exe /c \"start \\\\\"\\\\\" \\\\\"C:\\\\\\\\Program Files\\\\\\\\Docker\\\\\\\\Docker\\\\\\\\Docker Desktop.exe\\\\\"\")",
       "Bash(docker info:*)",
-      "Bash(break)"
+      "Bash(break)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Read(//mnt/d/learning-projects/**)",
+      "Bash(doctl account:*)",
+      "Bash(sed -i 's|DOCKERHUB_USERNAME/tracedata-frontend|sreerajrone/tracedata-frontend|g' d:/learning-projects/tracedata-ai-monorepo/k8s/tracedata-frontend/deployment.yaml)",
+      "Bash(sed -i 's|DOCKERHUB_USERNAME/tracedata-backend-agent-api|sreerajrone/tracedata-backend-agent-api|g' d:/learning-projects/tracedata-ai-monorepo/k8s/tracedata-api/deployment.yaml d:/learning-projects/tracedata-ai-monorepo/k8s/tracedata-ingestion/deployment.yaml d:/learning-projects/tracedata-ai-monorepo/k8s/tracedata-orchestrator/deployment.yaml d:/learning-projects/tracedata-ai-monorepo/k8s/tracedata-safety-worker/deployment.yaml d:/learning-projects/tracedata-ai-monorepo/k8s/tracedata-scoring-worker/deployment.yaml d:/learning-projects/tracedata-ai-monorepo/k8s/tracedata-support-worker/deployment.yaml d:/learning-projects/tracedata-ai-monorepo/k8s/tracedata-sentiment-worker/deployment.yaml)"
     ]
   }
 }

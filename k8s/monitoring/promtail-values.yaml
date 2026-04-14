@@ -1,0 +1,29 @@
+# Helm values for Promtail (log shipper — runs as DaemonSet on every node)
+# Install: helm install promtail grafana/promtail \
+#   --namespace monitoring --create-namespace \
+#   -f k8s/monitoring/promtail-values.yaml
+
+config:
+  clients:
+    - url: http://loki:3100/loki/api/v1/push
+
+  snippets:
+    # Add Kubernetes metadata labels to every log line
+    pipelineStages:
+      - cri: {}
+      - labeldrop:
+          - filename
+    extraRelabelConfigs:
+      - action: replace
+        source_labels: [__meta_kubernetes_namespace]
+        target_label: namespace
+      - action: replace
+        source_labels: [__meta_kubernetes_pod_name]
+        target_label: pod
+      - action: replace
+        source_labels: [__meta_kubernetes_container_name]
+        target_label: container
+
+tolerations:
+  - effect: NoSchedule
+    operator: Exists

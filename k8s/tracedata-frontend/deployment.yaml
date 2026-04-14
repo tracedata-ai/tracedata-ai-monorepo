@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tracedata-frontend
+  namespace: tracedata
+  labels:
+    app: tracedata-frontend
+    tier: frontend
+    environment: prod
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: tracedata-frontend
+  template:
+    metadata:
+      labels:
+        app: tracedata-frontend
+        tier: frontend
+        environment: prod
+    spec:
+      containers:
+        - name: tracedata-frontend
+          image: sreerajrone/tracedata-frontend:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3000
+          envFrom:
+            - configMapRef:
+                name: tracedata-frontend-config
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 15
+            periodSeconds: 5
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
