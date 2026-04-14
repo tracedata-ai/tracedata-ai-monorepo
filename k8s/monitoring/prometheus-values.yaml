@@ -37,6 +37,14 @@ grafana:
       url: http://loki-gateway.monitoring.svc.cluster.local
       access: proxy
       isDefault: false
+  # Sidecar: auto-load dashboard ConfigMaps labeled grafana_dashboard=1
+  sidecar:
+    dashboards:
+      enabled: true
+      label: grafana_dashboard
+      labelValue: "1"
+      folder: /var/lib/grafana/dashboards/tracedata
+      searchNamespace: monitoring
 
 # ── AlertManager ─────────────────────────────────────────────────────────────
 alertmanager:

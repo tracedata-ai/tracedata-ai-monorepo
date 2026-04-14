@@ -4,7 +4,11 @@ import { DashboardPageTemplate } from "@/components/shared/DashboardPageTemplate
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/data-table";
-import { emitTelemetrySimulatorEvent, type SimulatorEventKind } from "@/lib/api";
+import {
+  emitTelemetrySimulatorEvent,
+  runSimulatorBatch,
+  type SimulatorEventKind,
+} from "@/lib/api";
 import { ColumnDef } from "@tanstack/react-table";
 import { useMemo, useState } from "react";
 
@@ -47,6 +51,8 @@ export default function TelemetrySimulatorPage() {
   const [truckId, setTruckId] = useState("T12345");
   const [driverId, setDriverId] = useState("DRV-ANON-7829");
   const [sending, setSending] = useState<SimulatorEventKind | null>(null);
+  const [batchRunning, setBatchRunning] = useState(false);
+  const [batchResult, setBatchResult] = useState<string | null>(null);
   const [events, setEvents] = useState<SimulatorLogRow[]>([]);
 
   const actions = useMemo(
@@ -102,11 +108,53 @@ export default function TelemetrySimulatorPage() {
     setTripId(`TRP-UI-${Date.now()}`);
   };
 
+  const handleBatchRun = async () => {
+    setBatchRunning(true);
+    setBatchResult(null);
+    try {
+      const result = await runSimulatorBatch({
+        truck_count: 10,
+        event_delay: 2.0,
+        truck_delay: 5.0,
+      });
+      setBatchResult(
+        `Started: ${result.truck_count} trucks · ~${result.estimated_duration_seconds}s estimated`
+      );
+    } catch {
+      setBatchResult("Failed to start batch run.");
+    } finally {
+      setBatchRunning(false);
+    }
+  };
+
   return (
     <DashboardPageTemplate
       title="Telemetry Simulator"
       subtitle="Send workflow events directly from UI"
     >
+      <Card className="glass rounded-xl">
+        <CardHeader className="space-y-3">
+          <CardTitle>Full Cycle Simulator</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Run a complete trip cycle (start → harsh → smooth → feedback → end)
+            for 10 trucks with gradual time intervals. Events are spaced 2s
+            apart; trucks stagger by 5s.
+          </p>
+          <div className="flex items-center gap-3">
+            <Button
+              onClick={handleBatchRun}
+              disabled={batchRunning}
+              className="bg-[var(--success,#16a34a)] text-white hover:bg-green-700 disabled:opacity-60"
+            >
+              {batchRunning ? "Running…" : "Run Full Cycle (10 trucks)"}
+            </Button>
+            {batchResult && (
+              <span className="text-sm text-muted-foreground">{batchResult}</span>
+            )}
+          </div>
+        </CardHeader>
+      </Card>
+
       <Card className="glass rounded-xl">
         <CardHeader className="space-y-3">
           <CardTitle>Telemetry Event Emitter</CardTitle>

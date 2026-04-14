@@ -307,3 +307,19 @@ export async function emitTelemetrySimulatorEvent(input: {
 }): Promise<SimulatorEmitResponse> {
   return apiPost<SimulatorEmitResponse>("/simulator/emit", input);
 }
+
+export type SimulatorBatchResponse = {
+  status: "started";
+  truck_count: number;
+  event_delay: number;
+  truck_delay: number;
+  estimated_duration_seconds: number;
+};
+
+export async function runSimulatorBatch(input: {
+  truck_count?: number;
+  event_delay?: number;
+  truck_delay?: number;
+}): Promise<SimulatorBatchResponse> {
+  return apiPost<SimulatorBatchResponse>("/simulator/run-batch", input);
+}

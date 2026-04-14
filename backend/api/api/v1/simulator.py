@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
+import importlib
 import json
 from datetime import UTC, datetime
 from typing import Literal
 
 import redis.asyncio as redis
-from fastapi import APIRouter
+from fastapi import APIRouter, BackgroundTasks
 from pydantic import BaseModel, Field
 
 from common.config.settings import get_settings
@@ -70,6 +71,68 @@ def _select_packets(kind: EventKind, packets: list[dict]) -> list[dict]:
     return [
         p for p in packets if p.get("event", {}).get("event_type") == "driver_feedback"
     ][:1]
+
+
+class SimulatorBatchRequest(BaseModel):
+    truck_count: int = Field(default=10, ge=1, le=10)
+    event_delay: float = Field(default=2.0, ge=0.1, le=10.0)
+    truck_delay: float = Field(default=5.0, ge=1.0, le=30.0)
+
+
+class SimulatorBatchResponse(BaseModel):
+    status: Literal["started"]
+    truck_count: int
+    event_delay: float
+    truck_delay: float
+    estimated_duration_seconds: float
+
+
+async def _run_batch_background(
+    truck_count: int, event_delay: float, truck_delay: float
+) -> None:
+    from scripts.bootstrap_sg_baseline import _push_trip_batch
+
+    fixture_mod = importlib.import_module("common.workflow_fixtures.sg_baseline_trip")
+    settings = get_settings()
+    client = redis.from_url(settings.redis_url, decode_responses=True)
+    try:
+        await _push_trip_batch(
+            client,
+            fixture_mod.build_events,
+            truck_count=truck_count,
+            event_delay=event_delay,
+            truck_delay=truck_delay,
+        )
+    finally:
+        await client.aclose()
+
+
+@router.post(
+    "/run-batch",
+    response_model=SimulatorBatchResponse,
+    summary="Run a full trip cycle for N trucks in the background",
+)
+async def run_simulator_batch(
+    payload: SimulatorBatchRequest, background_tasks: BackgroundTasks
+) -> SimulatorBatchResponse:
+    avg_events_per_truck = 20
+    estimated = (
+        payload.truck_count * avg_events_per_truck * payload.event_delay
+        + (payload.truck_count - 1) * payload.truck_delay
+    )
+    background_tasks.add_task(
+        _run_batch_background,
+        payload.truck_count,
+        payload.event_delay,
+        payload.truck_delay,
+    )
+    return SimulatorBatchResponse(
+        status="started",
+        truck_count=payload.truck_count,
+        event_delay=payload.event_delay,
+        truck_delay=payload.truck_delay,
+        estimated_duration_seconds=round(estimated, 1),
+    )
 
 
 @router.post(
