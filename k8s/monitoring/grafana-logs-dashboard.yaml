@@ -1,0 +1,189 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-logs-dashboard
+  namespace: monitoring
+  labels:
+    grafana_dashboard: "1"
+data:
+  tracedata-logs.json: |
+    {
+      "uid": "tracedata-logs",
+      "title": "TraceData — Agent Logs",
+      "tags": ["tracedata", "logs"],
+      "timezone": "browser",
+      "refresh": "15s",
+      "time": { "from": "now-1h", "to": "now" },
+      "templating": {
+        "list": [
+          {
+            "name": "app",
+            "type": "custom",
+            "label": "Agent / Service",
+            "current": { "value": ".*", "text": "All" },
+            "options": [
+              { "text": "All",           "value": ".*" },
+              { "text": "API",           "value": "tracedata-api" },
+              { "text": "Orchestrator",  "value": "tracedata-orchestrator" },
+              { "text": "Ingestion",     "value": "tracedata-ingestion" },
+              { "text": "Safety",        "value": "tracedata-safety-worker" },
+              { "text": "Scoring",       "value": "tracedata-scoring-worker" },
+              { "text": "Sentiment",     "value": "tracedata-sentiment-worker" },
+              { "text": "Support",       "value": "tracedata-support-worker" }
+            ],
+            "multi": false,
+            "includeAll": false
+          },
+          {
+            "name": "level",
+            "type": "custom",
+            "label": "Log Level",
+            "current": { "value": ".*", "text": "All" },
+            "options": [
+              { "text": "All",     "value": ".*" },
+              { "text": "ERROR",   "value": "error|ERROR|Error" },
+              { "text": "WARNING", "value": "warning|WARNING|WARN|warn" },
+              { "text": "INFO",    "value": "INFO|info" }
+            ],
+            "multi": false,
+            "includeAll": false
+          }
+        ]
+      },
+      "panels": [
+        {
+          "id": 1,
+          "title": "Log Volume — All Agents",
+          "type": "timeseries",
+          "gridPos": { "x": 0, "y": 0, "w": 24, "h": 6 },
+          "datasource": "Loki",
+          "targets": [
+            {
+              "expr": "sum(rate({namespace=\"tracedata\", app=~\"tracedata-.*\"}[1m])) by (app)",
+              "legendFormat": "{{app}}"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": { "unit": "short", "color": { "mode": "palette-classic" } }
+          }
+        },
+        {
+          "id": 2,
+          "title": "Error Log Volume",
+          "type": "timeseries",
+          "gridPos": { "x": 0, "y": 6, "w": 12, "h": 6 },
+          "datasource": "Loki",
+          "targets": [
+            {
+              "expr": "sum(rate({namespace=\"tracedata\"} |~ \"(?i)(error|exception|critical|traceback)\" [1m])) by (app)",
+              "legendFormat": "errors — {{app}}"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "color": { "mode": "fixed", "fixedColor": "red" }
+            }
+          }
+        },
+        {
+          "id": 3,
+          "title": "Warning Log Volume",
+          "type": "timeseries",
+          "gridPos": { "x": 12, "y": 6, "w": 12, "h": 6 },
+          "datasource": "Loki",
+          "targets": [
+            {
+              "expr": "sum(rate({namespace=\"tracedata\"} |~ \"(?i)(warning|warn)\" [1m])) by (app)",
+              "legendFormat": "warnings — {{app}}"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "color": { "mode": "fixed", "fixedColor": "orange" }
+            }
+          }
+        },
+        {
+          "id": 4,
+          "title": "Live Logs — $app",
+          "type": "logs",
+          "gridPos": { "x": 0, "y": 12, "w": 24, "h": 16 },
+          "datasource": "Loki",
+          "options": {
+            "dedupStrategy": "none",
+            "showLabels": true,
+            "showTime": true,
+            "sortOrder": "Descending",
+            "wrapLogMessage": true
+          },
+          "targets": [
+            {
+              "expr": "{namespace=\"tracedata\", app=~\"$app\"} |~ \"$level\"",
+              "legendFormat": ""
+            }
+          ]
+        },
+        {
+          "id": 5,
+          "title": "Orchestrator — Trip Routing Events",
+          "type": "logs",
+          "gridPos": { "x": 0, "y": 28, "w": 12, "h": 10 },
+          "datasource": "Loki",
+          "options": {
+            "dedupStrategy": "none",
+            "showLabels": false,
+            "showTime": true,
+            "sortOrder": "Descending",
+            "wrapLogMessage": true
+          },
+          "targets": [
+            {
+              "expr": "{namespace=\"tracedata\", app=\"tracedata-orchestrator\"} |~ \"routing|dispatch|trip|agent\"",
+              "legendFormat": ""
+            }
+          ]
+        },
+        {
+          "id": 6,
+          "title": "Safety / Scoring — Event Processing",
+          "type": "logs",
+          "gridPos": { "x": 12, "y": 28, "w": 12, "h": 10 },
+          "datasource": "Loki",
+          "options": {
+            "dedupStrategy": "none",
+            "showLabels": false,
+            "showTime": true,
+            "sortOrder": "Descending",
+            "wrapLogMessage": true
+          },
+          "targets": [
+            {
+              "expr": "{namespace=\"tracedata\", app=~\"tracedata-safety-worker|tracedata-scoring-worker\"} |~ \"analyse|score|trip|event\"",
+              "legendFormat": ""
+            }
+          ]
+        },
+        {
+          "id": 7,
+          "title": "Ingestion — Telemetry Processing",
+          "type": "logs",
+          "gridPos": { "x": 0, "y": 38, "w": 24, "h": 8 },
+          "datasource": "Loki",
+          "options": {
+            "dedupStrategy": "none",
+            "showLabels": false,
+            "showTime": true,
+            "sortOrder": "Descending",
+            "wrapLogMessage": true
+          },
+          "targets": [
+            {
+              "expr": "{namespace=\"tracedata\", app=\"tracedata-ingestion\"} |~ \"ingested|processed|truck|buffer\"",
+              "legendFormat": ""
+            }
+          ]
+        }
+      ]
+    }
