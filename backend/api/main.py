@@ -21,6 +21,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from prometheus_fastapi_instrumentator import Instrumentator
 from sqlalchemy import text
 
 # Import all models so their metadata is registered with Base.
@@ -223,6 +224,11 @@ app: FastAPI = FastAPI(
     openapi_url="/openapi.json",
 )
 
+
+# ── Prometheus metrics ────────────────────────────────────────────────────────
+# Instruments all routes automatically (request count, latency histograms).
+# Exposes /metrics endpoint scraped by the Prometheus ServiceMonitor.
+Instrumentator().instrument(app).expose(app)
 
 # ── Middleware stack (applied in REVERSE order — last added = outermost) ───────
 #

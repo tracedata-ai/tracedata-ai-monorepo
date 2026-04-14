@@ -11,6 +11,14 @@ config:
     # Add Kubernetes metadata labels to every log line
     pipelineStages:
       - cri: {}
+      - json:
+          expressions:
+            level: level
+            logger: logger
+            request_id: request_id
+      - labels:
+          level:
+          logger:
       - labeldrop:
           - filename
     extraRelabelConfigs:

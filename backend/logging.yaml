@@ -23,27 +23,33 @@ formatters:
     format: "%(asctime)s | %(levelname)-8s | %(name)s | %(message)s"
     datefmt: "%H:%M:%S"
 
-  # Structured: one JSON-ish record per line — easy to grep and ship
-  # Format: timestamp LEVEL logger_name [request_id] message
-  structured:
-    format: "%(asctime)s %(levelname)s %(name)s [%(request_id)s] %(message)s"
+  # JSON: one JSON object per line — parsed by Promtail/Loki for field queries
+  # Fields: timestamp, level, logger, request_id, message
+  json:
+    (): pythonjsonlogger.jsonlogger.JsonFormatter
+    format: "%(asctime)s %(levelname)s %(name)s %(request_id)s %(message)s"
     datefmt: "%Y-%m-%dT%H:%M:%S"
+    rename_fields:
+      levelname: level
+      asctime: timestamp
+      name: logger
 
 # ── Handlers ──────────────────────────────────────────────────────────────────
 handlers:
 
-  # Stdout — always on; use in all environments (Docker captures stdout)
+  # Stdout — always on; Docker/Promtail captures this
+  # Uses JSON in production (APP_ENV=production), console format otherwise
   console:
     class: logging.StreamHandler
     level: DEBUG
-    formatter: console
+    formatter: json
     stream: ext://sys.stdout
 
   # Rotating file — useful for local dev; in prod prefer stdout → log aggregator
   file:
     class: logging.handlers.RotatingFileHandler
     level: INFO
-    formatter: structured
+    formatter: json
     filename: logs/backend.log
     maxBytes: 10485760   # 10 MB per file
     backupCount: 5        # Keep 5 rotated files = max 50 MB on disk
