@@ -75,13 +75,14 @@ async def lifespan(app: FastAPI):  # type: ignore[type-arg]
 
     # ── 3. Database ─────────────────────────────────────────────────────────
     async with engine.begin() as conn:
-        # Public tables (SQLAlchemy models)
-        await conn.run_sync(Base.metadata.create_all)
-        # Agent-owned schemas and tables (not managed by SQLAlchemy ORM)
+        # Agent-owned schemas must exist before create_all runs,
+        # since some ORM models reference them (e.g. scoring_schema.trip_scores)
         await conn.execute(text("CREATE SCHEMA IF NOT EXISTS scoring_schema"))
         await conn.execute(text("CREATE SCHEMA IF NOT EXISTS safety_schema"))
         await conn.execute(text("CREATE SCHEMA IF NOT EXISTS coaching_schema"))
         await conn.execute(text("CREATE SCHEMA IF NOT EXISTS sentiment_schema"))
+        # Public tables (SQLAlchemy models)
+        await conn.run_sync(Base.metadata.create_all)
         await conn.execute(text("""
             CREATE TABLE IF NOT EXISTS safety_schema.harsh_events_analysis (
               id SERIAL PRIMARY KEY,
