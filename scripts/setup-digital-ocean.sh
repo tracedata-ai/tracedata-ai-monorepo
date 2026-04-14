@@ -146,12 +146,18 @@ echo "━━━ [8/15] Applying monitoring Ingress ━━━"
 kubectl apply -f "$REPO_ROOT/k8s/monitoring/ingress.yaml"
 
 # =============================================================================
-# 9. Install ArgoCD
+# 9. Install ArgoCD (via Helm — ensures all CRDs including ApplicationSet)
 # =============================================================================
 echo ""
 echo "━━━ [9/15] Installing ArgoCD ━━━"
-kubectl create namespace argocd --dry-run=client -o yaml | kubectl apply -f -
-kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+helm repo add argo https://argoproj.github.io/argo-helm
+helm repo update
+helm install argocd argo/argo-cd \
+  --namespace argocd \
+  --create-namespace \
+  --set server.service.type=ClusterIP \
+  --wait \
+  --timeout 5m
 kubectl wait --for=condition=available --timeout=300s deployment/argocd-server -n argocd
 
 # =============================================================================
