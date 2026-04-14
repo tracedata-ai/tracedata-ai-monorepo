@@ -5,12 +5,20 @@
 
 config:
   clients:
-    - url: http://loki:3100/loki/api/v1/push
+    - url: http://loki-gateway.monitoring.svc.cluster.local/loki/api/v1/push
 
   snippets:
     # Add Kubernetes metadata labels to every log line
     pipelineStages:
       - cri: {}
+      - json:
+          expressions:
+            level: level
+            logger: logger
+            request_id: request_id
+      - labels:
+          level:
+          logger:
       - labeldrop:
           - filename
     extraRelabelConfigs:
