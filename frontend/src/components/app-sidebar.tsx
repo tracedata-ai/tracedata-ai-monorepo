@@ -129,6 +129,9 @@ export function AppSidebar() {
         <p className="px-2 text-xs font-medium text-sidebar-foreground/70 group-data-[collapsible=icon]:hidden">
           Ctrl/Cmd + B to toggle
         </p>
+        <p className="px-2 text-[10px] font-mono text-sidebar-foreground/40 group-data-[collapsible=icon]:hidden">
+          {process.env.NEXT_PUBLIC_BUILD_SHA ?? "dev"}
+        </p>
       </SidebarFooter>
     </Sidebar>
   );
