@@ -12,7 +12,7 @@ spec:
 
   source:
     repoURL: https://github.com/tracedata-ai/tracedata-ai-monorepo.git
-    targetRevision: main
+    targetRevision: feature/TDATA-96-DO-K8s
     path: k8s/tracedata-redis
 
   destination:
