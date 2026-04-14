@@ -1,0 +1,19 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: tracedata-redis
+  namespace: tracedata
+  labels:
+    app: tracedata-redis
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: tracedata-redis
+  namespaceSelector:
+    matchNames:
+      - tracedata
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 30s
