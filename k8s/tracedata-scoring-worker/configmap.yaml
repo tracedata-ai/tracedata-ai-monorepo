@@ -13,4 +13,6 @@ data:
   PYTHONPATH: "/app"
   DATABASE_URL: "postgresql+asyncpg://tracedatauser:tracedatapassword@tracedata-db-service.tracedata.svc.cluster.local:5432/tracedata"
   REDIS_URL: "redis://tracedata-redis-service.tracedata.svc.cluster.local:6379/0"
+  CELERY_BROKER_URL: "redis://tracedata-redis-service.tracedata.svc.cluster.local:6379/0"
+  CELERY_RESULT_BACKEND: "redis://tracedata-redis-service.tracedata.svc.cluster.local:6379/0"
   LOG_LEVEL: "INFO"
