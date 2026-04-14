@@ -1,0 +1,62 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  # ── Core ──────────────────────────────────────────────────────────────────
+  - namespace.yaml
+  - ingress.yaml
+  - cert-manager/cluster-issuer.yaml
+
+  # ── API + Frontend ────────────────────────────────────────────────────────
+  - tracedata-api/configmap.yaml
+  - tracedata-api/sealed-secret.yaml
+  - tracedata-api/service.yaml
+  - tracedata-api/deployment.yaml
+  - tracedata-frontend/configmap.yaml
+  - tracedata-frontend/service.yaml
+  - tracedata-frontend/deployment.yaml
+
+  # ── Workers ───────────────────────────────────────────────────────────────
+  - tracedata-ingestion/configmap.yaml
+  - tracedata-ingestion/deployment.yaml
+  - tracedata-orchestrator/configmap.yaml
+  - tracedata-orchestrator/deployment.yaml
+  - tracedata-safety-worker/configmap.yaml
+  - tracedata-safety-worker/deployment.yaml
+  - tracedata-scoring-worker/configmap.yaml
+  - tracedata-scoring-worker/deployment.yaml
+  - tracedata-support-worker/configmap.yaml
+  - tracedata-support-worker/deployment.yaml
+  - tracedata-sentiment-worker/configmap.yaml
+  - tracedata-sentiment-worker/deployment.yaml
+
+  # ── Data stores ───────────────────────────────────────────────────────────
+  - tracedata-db/configmap.yaml
+  - tracedata-db/sealed-secret.yaml
+  - tracedata-db/pvc.yaml
+  - tracedata-db/service.yaml
+  - tracedata-db/deployment.yaml
+  - tracedata-redis/configmap.yaml
+  - tracedata-redis/pvc.yaml
+  - tracedata-redis/service.yaml
+  - tracedata-redis/servicemonitor.yaml
+  - tracedata-redis/deployment.yaml
+
+  # ── Monitoring ────────────────────────────────────────────────────────────
+  - monitoring/ingress.yaml
+  - monitoring/grafana-dashboard-provider.yaml
+  - monitoring/grafana-api-dashboard.yaml
+  - monitoring/grafana-agents-dashboard.yaml
+  - monitoring/grafana-logs-dashboard.yaml
+
+  # ── ArgoCD config ─────────────────────────────────────────────────────────
+  - argocd/argocd-cmd-params-cm.yaml
+  - argocd/ingress.yaml
+
+# ── Image tags ────────────────────────────────────────────────────────────────
+# CI updates these lines on every push to main. Do not edit manually.
+images:
+  - name: sreerajrone/tracedata-backend-agent-api
+    newTag: "latest"  # backend-tag
+  - name: sreerajrone/tracedata-frontend
+    newTag: "latest"  # frontend-tag
