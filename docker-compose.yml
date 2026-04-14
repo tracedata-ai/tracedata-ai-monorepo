@@ -20,7 +20,7 @@ services:
   api:
     build:
       context: ./backend
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.local
     container_name: td-api
     env_file:
       - .env
@@ -48,7 +48,7 @@ services:
   ingestion:
     build:
       context: ./backend
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.local
     container_name: td-ingestion
     env_file:
       - .env
@@ -67,7 +67,7 @@ services:
   orchestrator:
     build:
       context: ./backend
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.local
     container_name: td-orchestrator
     env_file:
       - .env
@@ -88,7 +88,7 @@ services:
   safety_worker:
     build:
       context: ./backend
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.local
     container_name: td-safety
     env_file:
       - .env
@@ -105,7 +105,7 @@ services:
   scoring_worker:
     build:
       context: ./backend
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.local
     container_name: td-scoring
     env_file:
       - .env
@@ -127,7 +127,7 @@ services:
   support_worker:
     build:
       context: ./backend
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.local
     container_name: td-support
     env_file:
       - .env
@@ -144,7 +144,7 @@ services:
   sentiment_worker:
     build:
       context: ./backend
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.local
     container_name: td-sentiment
     env_file:
       - .env

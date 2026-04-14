@@ -1,5 +1,5 @@
 # Build & push the FastAPI backend image (Docker Hub).
-# Uses backend/Dockerfile.api — same as CI scan.
+# Uses backend/Dockerfile.backend — same as CI scan.
 
 name: "🐳 Docker Publish — Backend API"
 
@@ -56,7 +56,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: ./backend
-          file: ./backend/Dockerfile.api
+          file: ./backend/Dockerfile.backend
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

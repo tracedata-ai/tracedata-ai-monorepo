@@ -9,3 +9,4 @@ metadata:
     environment: prod
 data:
   POSTGRES_DB: tracedata
+  PGDATA: /var/lib/postgresql/data/pgdata

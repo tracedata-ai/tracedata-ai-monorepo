@@ -306,7 +306,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: ./backend
-          file: ./backend/Dockerfile.api
+          file: ./backend/Dockerfile.backend
           load: true
           tags: tracedata-backend-api:scan
           cache-from: type=gha
