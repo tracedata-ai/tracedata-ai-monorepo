@@ -170,6 +170,7 @@ services:
     environment:
       - NODE_ENV=production
       - NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
+      - NEXT_PUBLIC_MAPBOX_TOKEN=pk.eyJ1Ijoic3JlZS1yLW9uZSIsImEiOiJjbWgzeXFpb3cwd2R5MmlyNXgxcWRvcWw0In0.DDYbNKeGZkkpChwcKPI6pQ
     restart: always
 
   # ── PostgreSQL + pgvector ────────────────────────────────────────────────────
