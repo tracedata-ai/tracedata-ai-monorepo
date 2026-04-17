@@ -13,9 +13,11 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.api.deps import get_db
+from api.api.deps import get_db, get_redis
 from api.models.trip import Trip
 from api.schemas.trip import TripCreate, TripRead
+from common.redis.client import RedisClient
+from common.redis.keys import RedisSchema
 
 router = APIRouter(prefix="/trips", tags=["Trips"])
 
@@ -31,12 +33,14 @@ async def list_trips(
         description="Filter by status: active | completed | zombie",
     ),
     db: AsyncSession = Depends(get_db),
-) -> list[Trip]:
-    """
-    Returns trips with optional status and tenant filtering.
-    safety_score is backfilled from scoring_schema.trip_scores when the
-    trips table column is NULL (scoring agent writes there, not here).
-    """
+    redis: RedisClient = Depends(get_redis),
+) -> list[TripRead]:
+    cache_key = RedisSchema.Api.trips_list(
+        str(tenant_id or "all"), status_filter or "all", skip, limit
+    )
+    if cached := await redis.cache_get(cache_key):
+        return [TripRead(**item) for item in cached]
+
     query = select(Trip).offset(skip).limit(limit)
     if status_filter:
         query = query.where(Trip.status == status_filter)
@@ -45,8 +49,7 @@ async def list_trips(
     result = await db.execute(query)
     trips = list(result.scalars().all())
 
-    # Backfill safety_score from scoring_schema for trips the scoring agent
-    # has processed but hasn't written back to the trips table.
+    # Backfill safety_score from scoring_schema
     if trips:
         ids_missing_score = [str(t.id) for t in trips if t.safety_score is None]
         if ids_missing_score:
@@ -62,7 +65,9 @@ async def list_trips(
                 if trip.safety_score is None:
                     trip.safety_score = score_map.get(str(trip.id))
 
-    return trips
+    out = [TripRead.model_validate(t) for t in trips]
+    await redis.cache_set(cache_key, [t.model_dump() for t in out], RedisSchema.Api.TRIPS_TTL)
+    return out
 
 
 @router.get("/{trip_id}", response_model=TripRead, summary="Get trip by ID")
@@ -214,15 +219,11 @@ async def get_trip_detail(
 async def start_trip(
     payload: TripCreate,
     db: AsyncSession = Depends(get_db),
+    redis: RedisClient = Depends(get_redis),
 ) -> Trip:
-    """
-    Records a Start-of-Trip ping and creates an active trip record.
-
-    In the full system, this also notifies the Orchestrator Agent to
-    begin active monitoring of this trip.
-    """
     trip = Trip(**payload.model_dump())
     db.add(trip)
     await db.flush()
     await db.refresh(trip)
+    await redis.cache_delete(RedisSchema.Api.trips_list("all", "all", 0, 50))
     return trip

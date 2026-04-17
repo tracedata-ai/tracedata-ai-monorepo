@@ -33,6 +33,7 @@ export function MapBase({
 }: Props) {
   const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 
+  const outerRef     = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   // Store the latest onLoad in a ref so stale-closure issues don't force map re-init
   const onLoadRef = useRef(onLoad);
@@ -61,7 +62,10 @@ export function MapBase({
         });
 
         map.addControl(new mapboxgl.NavigationControl(), "top-right");
-        map.addControl(new mapboxgl.FullscreenControl(), "top-right");
+        map.addControl(
+          new mapboxgl.FullscreenControl({ container: outerRef.current ?? undefined }),
+          "top-right"
+        );
 
         map.on("load", () => {
           userCleanup = onLoadRef.current(map, mapboxgl);
@@ -107,7 +111,7 @@ export function MapBase({
   }
 
   return (
-    <div className="relative rounded-xl overflow-hidden" style={{ height }}>
+    <div ref={outerRef} className="relative rounded-xl overflow-hidden" style={{ height }}>
       <div ref={containerRef} className="h-full w-full" />
       {children}
     </div>

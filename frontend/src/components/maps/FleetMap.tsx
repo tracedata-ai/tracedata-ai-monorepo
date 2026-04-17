@@ -1,8 +1,10 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Search, X } from "lucide-react";
 import { MapBase } from "./MapBase";
+import { MapLayerControl } from "./MapLayerControl";
+import { WeatherWidget } from "./WeatherWidget";
 import { VehicleCardMini } from "@/components/fleet/VehicleCard";
 
 export type VehiclePin = {
@@ -30,14 +32,21 @@ const STATUS_COLOR: Record<string, string> = {
 
 export function FleetMap({ vehicles, height = 400 }: Props) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const mapRef    = useRef<any>(null);
+  const mapRef     = useRef<any>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const markersRef = useRef<Map<string, any>>(new Map());
+  const rainAddedRef = useRef(false);
+  const tempAddedRef = useRef(false);
 
-  const [query, setQuery]           = useState("");
-  const [dropdownOpen, setDropdown] = useState(false);
-  const [selected, setSelected]     = useState<VehiclePin | null>(null);
-  const [hovered, setHovered]       = useState<{ vehicle: VehiclePin; x: number; y: number } | null>(null);
+  const owmToken = process.env.NEXT_PUBLIC_OWM_TOKEN ?? "";
+
+  const [query, setQuery]             = useState("");
+  const [dropdownOpen, setDropdown]   = useState(false);
+  const [selected, setSelected]       = useState<VehiclePin | null>(null);
+  const [hovered, setHovered]         = useState<{ vehicle: VehiclePin; x: number; y: number } | null>(null);
+  const [showTraffic, setShowTraffic] = useState(false);
+  const [showRain, setShowRain]       = useState(false);
+  const [showTemp, setShowTemp]       = useState(false);
 
   const suggestions = query.trim()
     ? vehicles.filter(
@@ -47,24 +56,107 @@ export function FleetMap({ vehicles, height = 400 }: Props) {
       )
     : [];
 
+  // ── Toggle traffic ─────────────────────────────────────────────────────────
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map?.getLayer("traffic-flow")) return;
+    map.setLayoutProperty("traffic-flow", "visibility", showTraffic ? "visible" : "none");
+  }, [showTraffic]);
+
+  // ── Toggle OWM rain — lazy add on first enable ─────────────────────────────
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !owmToken) return;
+
+    if (showRain) {
+      if (!rainAddedRef.current) {
+        map.addSource("owm-rain", {
+          type: "raster",
+          tiles: [`https://tile.openweathermap.org/map/precipitation_new/{z}/{x}/{y}.png?appid=${owmToken}`],
+          tileSize: 256,
+          attribution: "© OpenWeatherMap",
+        });
+        map.addLayer({
+          id:     "owm-rain-layer",
+          type:   "raster",
+          source: "owm-rain",
+          paint:  { "raster-opacity": 0.65 },
+        }, "traffic-flow");
+        rainAddedRef.current = true;
+      } else {
+        map.setLayoutProperty("owm-rain-layer", "visibility", "visible");
+      }
+    } else if (rainAddedRef.current) {
+      map.setLayoutProperty("owm-rain-layer", "visibility", "none");
+    }
+  }, [showRain, owmToken]);
+
+  // ── Toggle OWM temp ────────────────────────────────────────────────────────
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !owmToken) return;
+    if (showTemp) {
+      if (!tempAddedRef.current) {
+        map.addSource("owm-temp", {
+          type: "raster",
+          tiles: [`https://tile.openweathermap.org/map/temp_new/{z}/{x}/{y}.png?appid=${owmToken}`],
+          tileSize: 256, attribution: "© OpenWeatherMap",
+        });
+        map.addLayer({ id: "owm-temp-layer", type: "raster", source: "owm-temp",
+          paint: { "raster-opacity": 0.5 } }, "traffic-flow");
+        tempAddedRef.current = true;
+      } else {
+        map.setLayoutProperty("owm-temp-layer", "visibility", "visible");
+      }
+    } else if (tempAddedRef.current) {
+      map.setLayoutProperty("owm-temp-layer", "visibility", "none");
+    }
+  }, [showTemp, owmToken]);
+
+  // ── Map init ───────────────────────────────────────────────────────────────
   const handleLoad = useCallback((map: any, mapboxgl: any) => {
     mapRef.current = map;
     markersRef.current.clear();
+    rainAddedRef.current = false;
+    tempAddedRef.current = false;
 
+    // Traffic source + layer (hidden by default)
+    map.addSource("mapbox-traffic", {
+      type: "vector",
+      url:  "mapbox://mapbox.mapbox-traffic-v1",
+    });
+    map.addLayer({
+      id:     "traffic-flow",
+      type:   "line",
+      source: "mapbox-traffic",
+      "source-layer": "traffic",
+      layout: { visibility: "none" },
+      paint: {
+        "line-width":   2.5,
+        "line-opacity": 0.85,
+        "line-color": [
+          "match", ["get", "congestion"],
+          "low",      "#22c55e",
+          "moderate", "#fbbf24",
+          "heavy",    "#f97316",
+          "severe",   "#dc2626",
+          "#94a3b8",
+        ],
+      },
+    });
+
+    // Vehicle markers
     vehicles.forEach((v) => {
       const color = STATUS_COLOR[v.status] ?? "#64748b";
-
-      const el = document.createElement("div");
+      const el    = document.createElement("div");
       el.style.cssText = "width:14px;height:14px;cursor:pointer;";
 
       const dot = document.createElement("div");
       dot.style.cssText = `
         width:14px;height:14px;border-radius:50%;
-        background:${color};
-        border:2px solid white;
+        background:${color};border:2px solid white;
         box-shadow:0 2px 6px rgba(0,0,0,0.35);
-        transition:transform 0.15s;
-        transform-origin:center center;
+        transition:transform 0.15s;transform-origin:center center;
       `;
       el.appendChild(dot);
 
@@ -78,15 +170,11 @@ export function FleetMap({ vehicles, height = 400 }: Props) {
         setHovered(null);
       });
 
-      const marker = new mapboxgl.Marker({ element: el })
-        .setLngLat([v.lng, v.lat])
-        .addTo(map);
-
-      markersRef.current.set(v.id, { marker, dot, vehicle: v });
+      new mapboxgl.Marker({ element: el }).setLngLat([v.lng, v.lat]).addTo(map);
+      markersRef.current.set(v.id, { dot, vehicle: v });
     });
 
     map.on("move", () => setHovered(null));
-  // vehicles identity is stable per render — deps tracks length as a proxy
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [vehicles]);
 
@@ -108,11 +196,7 @@ export function FleetMap({ vehicles, height = 400 }: Props) {
   }
 
   return (
-    <MapBase
-      height={height}
-      deps={[vehicles.length]}
-      onLoad={handleLoad}
-    >
+    <MapBase height={height} deps={[vehicles.length]} onLoad={handleLoad}>
       {/* Search */}
       <div className="absolute top-3 left-3 z-10 w-64">
         <div className="relative">
@@ -155,6 +239,20 @@ export function FleetMap({ vehicles, height = 400 }: Props) {
         )}
       </div>
 
+      {/* Persistent weather strip */}
+      <WeatherWidget />
+
+      {/* Layer toggles */}
+      <MapLayerControl
+        showTraffic={showTraffic}
+        onTrafficToggle={() => setShowTraffic((v) => !v)}
+        showRain={showRain}
+        onRainToggle={() => setShowRain((v) => !v)}
+        showTemp={showTemp}
+        onTempToggle={() => setShowTemp((v) => !v)}
+        hasOWM={!!owmToken}
+      />
+
       {/* Hover tooltip */}
       {hovered && (
         <div
@@ -172,9 +270,9 @@ export function FleetMap({ vehicles, height = 400 }: Props) {
         </div>
       )}
 
-      {/* Selected panel */}
+      {/* Selected panel — offset below weather widget */}
       {selected && !hovered && (
-        <div className="absolute right-12 top-3 z-10">
+        <div className="absolute right-3 top-16 z-10">
           <div className="relative">
             <button
               onClick={clearSelection}

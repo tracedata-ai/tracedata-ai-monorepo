@@ -18,10 +18,12 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.api.deps import get_db
+from api.api.deps import get_db, get_redis
 from api.models.fleet import Vehicle
 from api.models.maintenance import Maintenance
 from api.schemas.fleet import VehicleCreate, VehicleRead
+from common.redis.client import RedisClient
+from common.redis.keys import RedisSchema
 
 router = APIRouter(prefix="/fleet", tags=["Fleet"])
 
@@ -32,17 +34,17 @@ async def list_vehicles(
     limit: int = 50,
     tenant_id: uuid.UUID | None = None,
     db: AsyncSession = Depends(get_db),
+    redis: RedisClient = Depends(get_redis),
 ) -> list[VehicleRead]:
-    """
-    Returns a paginated list of vehicles.
-    Optional: ?tenant_id=<uuid> to filter by fleet operator.
-    """
+    cache_key = RedisSchema.Api.fleet_list(str(tenant_id or "all"), skip, limit)
+    if cached := await redis.cache_get(cache_key):
+        return [VehicleRead(**item) for item in cached]
+
     query = select(Vehicle).offset(skip).limit(limit)
     if tenant_id:
         query = query.where(Vehicle.tenant_id == tenant_id)
     vehicles = list((await db.execute(query)).scalars().all())
 
-    # Collect vehicle IDs that have open (non-completed) maintenance
     open_ids: set[uuid.UUID] = set()
     if vehicles:
         rows = (await db.execute(
@@ -57,6 +59,8 @@ async def list_vehicles(
         row = VehicleRead.model_validate(v)
         row.has_open_maintenance = v.id in open_ids
         out.append(row)
+
+    await redis.cache_set(cache_key, [r.model_dump() for r in out], RedisSchema.Api.FLEET_TTL)
     return out
 
 
@@ -87,15 +91,11 @@ async def get_vehicle(
 async def create_vehicle(
     payload: VehicleCreate,
     db: AsyncSession = Depends(get_db),
+    redis: RedisClient = Depends(get_redis),
 ) -> Vehicle:
-    """
-    Registers a new vehicle in the fleet.
-
-    The payload is validated by Pydantic before this function is called —
-    FastAPI returns 422 Unprocessable Entity automatically for bad input.
-    """
     vehicle = Vehicle(**payload.model_dump())
     db.add(vehicle)
-    await db.flush()  # flush assigns the DB-generated id before we return it
+    await db.flush()
     await db.refresh(vehicle)
+    await redis.cache_delete(RedisSchema.Api.fleet_list("all", 0, 50))
     return vehicle

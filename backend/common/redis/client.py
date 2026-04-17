@@ -298,6 +298,18 @@ class RedisClient:
         await pubsub.subscribe(channel)
         return pubsub
 
+    # ── API Response Cache (cache-aside for list endpoints) ─────────────────
+
+    async def cache_get(self, key: str) -> list | dict | None:
+        raw = await self._client.get(key)
+        return json.loads(raw) if raw else None
+
+    async def cache_set(self, key: str, value: list | dict, ttl: int) -> None:
+        await self._client.setex(key, ttl, json.dumps(value, cls=DateTimeEncoder))
+
+    async def cache_delete(self, key: str) -> None:
+        await self._client.delete(key)
+
     # ── Lifecycle ────────────────────────────────────────────────────────────
 
     async def close(self):

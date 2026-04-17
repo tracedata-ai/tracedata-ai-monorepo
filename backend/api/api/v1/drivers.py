@@ -12,9 +12,11 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.api.deps import get_db
+from api.api.deps import get_db, get_redis
 from api.models.driver import Driver
 from api.schemas.driver import DriverCreate, DriverRead
+from common.redis.client import RedisClient
+from common.redis.keys import RedisSchema
 
 router = APIRouter(prefix="/drivers", tags=["Drivers"])
 
@@ -25,16 +27,24 @@ async def list_drivers(
     limit: int = 50,
     tenant_id: uuid.UUID | None = None,
     db: AsyncSession = Depends(get_db),
-) -> list[Driver]:
-    """
-    Returns a paginated list of drivers.
-    Optional: ?tenant_id=<uuid> to filter by fleet operator.
-    """
+    redis: RedisClient = Depends(get_redis),
+) -> list[DriverRead]:
+    cache_key = RedisSchema.Api.drivers_list(str(tenant_id or "all"), skip, limit)
+    if cached := await redis.cache_get(cache_key):
+        return [DriverRead(**item) for item in cached]
+
     query = select(Driver).offset(skip).limit(limit)
     if tenant_id:
         query = query.where(Driver.tenant_id == tenant_id)
     result = await db.execute(query)
-    return list(result.scalars().all())
+    out = [DriverRead.model_validate(d) for d in result.scalars().all()]
+
+    await redis.cache_set(
+        cache_key,
+        [d.model_dump() for d in out],
+        RedisSchema.Api.DRIVERS_TTL,
+    )
+    return out
 
 
 @router.get("/{driver_id}", response_model=DriverRead, summary="Get driver by ID")
@@ -60,10 +70,12 @@ async def get_driver(
 async def create_driver(
     payload: DriverCreate,
     db: AsyncSession = Depends(get_db),
+    redis: RedisClient = Depends(get_redis),
 ) -> Driver:
     """Registers a new driver. The experience_level field sets the AIF360 fairness cohort."""
     driver = Driver(**payload.model_dump())
     db.add(driver)
     await db.flush()
     await db.refresh(driver)
+    await redis.cache_delete(RedisSchema.Api.drivers_list("all", 0, 50))
     return driver

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { getSafetyEvent, getSafetyEvents, type SafetyEvent } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft, MapPin, Camera, X } from "lucide-react";
 import { MapBase } from "@/components/maps/MapBase";
+import { MapLayerControl } from "@/components/maps/MapLayerControl";
+import { WeatherWidget } from "@/components/maps/WeatherWidget";
 import Image from "next/image";
 
 const severityClass: Record<string, string> = {
@@ -132,9 +134,84 @@ function EventMap({
   allEvents: SafetyEvent[];
 }) {
   const points = allEvents.filter((e) => e.lat != null && e.lon != null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const mapRef       = useRef<any>(null);
+  const rainAddedRef = useRef(false);
+  const tempAddedRef = useRef(false);
+  const owmToken     = process.env.NEXT_PUBLIC_OWM_TOKEN ?? "";
+
+  const [showTraffic, setShowTraffic] = useState(false);
+  const [showRain, setShowRain]       = useState(false);
+  const [showTemp, setShowTemp]       = useState(false);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map?.getLayer("traffic-flow")) return;
+    map.setLayoutProperty("traffic-flow", "visibility", showTraffic ? "visible" : "none");
+  }, [showTraffic]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !owmToken) return;
+    if (showRain) {
+      if (!rainAddedRef.current) {
+        map.addSource("owm-rain", {
+          type: "raster",
+          tiles: [`https://tile.openweathermap.org/map/precipitation_new/{z}/{x}/{y}.png?appid=${owmToken}`],
+          tileSize: 256, attribution: "© OpenWeatherMap",
+        });
+        map.addLayer({ id: "owm-rain-layer", type: "raster", source: "owm-rain",
+          paint: { "raster-opacity": 0.65 } }, "traffic-flow");
+        rainAddedRef.current = true;
+      } else {
+        map.setLayoutProperty("owm-rain-layer", "visibility", "visible");
+      }
+    } else if (rainAddedRef.current) {
+      map.setLayoutProperty("owm-rain-layer", "visibility", "none");
+    }
+  }, [showRain, owmToken]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !owmToken) return;
+    if (showTemp) {
+      if (!tempAddedRef.current) {
+        map.addSource("owm-temp", {
+          type: "raster",
+          tiles: [`https://tile.openweathermap.org/map/temp_new/{z}/{x}/{y}.png?appid=${owmToken}`],
+          tileSize: 256, attribution: "© OpenWeatherMap",
+        });
+        map.addLayer({ id: "owm-temp-layer", type: "raster", source: "owm-temp",
+          paint: { "raster-opacity": 0.5 } }, "traffic-flow");
+        tempAddedRef.current = true;
+      } else {
+        map.setLayoutProperty("owm-temp-layer", "visibility", "visible");
+      }
+    } else if (tempAddedRef.current) {
+      map.setLayoutProperty("owm-temp-layer", "visibility", "none");
+    }
+  }, [showTemp, owmToken]);
 
   const handleLoad = useCallback((map: any, mapboxgl: any) => {
-    // ── Heatmap of all events (context layer) ──────────────────────────────
+    mapRef.current = map;
+    rainAddedRef.current = false;
+    tempAddedRef.current = false;
+
+    // Traffic
+    map.addSource("mapbox-traffic", { type: "vector", url: "mapbox://mapbox.mapbox-traffic-v1" });
+    map.addLayer({
+      id: "traffic-flow", type: "line", source: "mapbox-traffic",
+      "source-layer": "traffic",
+      layout: { visibility: "none" },
+      paint: {
+        "line-width": 2.5, "line-opacity": 0.85,
+        "line-color": ["match", ["get", "congestion"],
+          "low", "#22c55e", "moderate", "#fbbf24",
+          "heavy", "#f97316", "severe", "#dc2626", "#94a3b8"],
+      },
+    });
+
+    // Heatmap of all events
     const geojson = {
       type: "FeatureCollection" as const,
       features: points.map((e) => ({
@@ -143,7 +220,6 @@ function EventMap({
         properties: { weight: SEVERITY_WEIGHT[e.severity?.toLowerCase()] ?? 1 },
       })),
     };
-
     map.addSource("all-events", { type: "geojson", data: geojson });
     map.addLayer({
       id: "all-events-heat", type: "heatmap", source: "all-events",
@@ -152,61 +228,40 @@ function EventMap({
         "heatmap-intensity": ["interpolate", ["linear"], ["zoom"], 9, 0.6, 15, 2],
         "heatmap-radius":    ["interpolate", ["linear"], ["zoom"], 9, 20, 15, 50],
         "heatmap-opacity":   0.7,
-        "heatmap-color": [
-          "interpolate", ["linear"], ["heatmap-density"],
-          0,    "rgba(0,0,0,0)",
-          0.15, "#fef08a",
-          0.35, "#fbbf24",
-          0.6,  "#f97316",
-          0.8,  "#dc2626",
-          1,    "#7f1d1d",
-        ],
+        "heatmap-color": ["interpolate", ["linear"], ["heatmap-density"],
+          0, "rgba(0,0,0,0)", 0.15, "#fef08a",
+          0.35, "#fbbf24", 0.6, "#f97316", 0.8, "#dc2626", 1, "#7f1d1d"],
       },
     });
 
-    // ── Pulsing marker for this specific event ──────────────────────────────
-    const el = document.createElement("div");
+    // Pulsing marker for this event
+    const el   = document.createElement("div");
     el.style.cssText = "position:relative;width:20px;height:20px;";
-
     const ring = document.createElement("div");
-    ring.style.cssText = `
-      position:absolute;inset:0;border-radius:50%;
-      border:2px solid #ef4444;
-      animation:pulse-ring 1.8s ease-out infinite;
-    `;
-    const dot = document.createElement("div");
-    dot.style.cssText = `
-      position:absolute;inset:4px;border-radius:50%;
-      background:#ef4444;border:2px solid white;
-      box-shadow:0 0 8px rgba(239,68,68,0.8);
-    `;
+    ring.style.cssText = `position:absolute;inset:0;border-radius:50%;
+      border:2px solid #ef4444;animation:pulse-ring 1.8s ease-out infinite;`;
+    const dot  = document.createElement("div");
+    dot.style.cssText = `position:absolute;inset:4px;border-radius:50%;
+      background:#ef4444;border:2px solid white;box-shadow:0 0 8px rgba(239,68,68,0.8);`;
     el.appendChild(ring);
     el.appendChild(dot);
-
     new mapboxgl.Marker({ element: el })
       .setLngLat([lon, lat])
-      .setPopup(
-        new mapboxgl.Popup({ offset: 20 }).setHTML(
-          `<div style="font-size:12px;color:#111;padding:2px 4px;">
-            <strong>Event Location</strong><br/>
-            ${lat.toFixed(5)}, ${lon.toFixed(5)}
-          </div>`
-        )
-      )
+      .setPopup(new mapboxgl.Popup({ offset: 20 }).setHTML(
+        `<div style="font-size:12px;color:#111;padding:2px 4px;">
+          <strong>Event Location</strong><br/>${lat.toFixed(5)}, ${lon.toFixed(5)}</div>`
+      ))
       .addTo(map);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lat, lon, points.length]);
 
   return (
-    <MapBase
-      height={320}
-      center={[lon, lat]}
-      zoom={13}
-      onLoad={handleLoad}
-      deps={[lat, lon, points.length]}
-    >
-      {/* Legend */}
-      <div className="absolute bottom-3 left-3 z-10 rounded-lg bg-black/60 px-2.5 py-1.5 backdrop-blur-sm">
+    <MapBase height={320} center={[lon, lat]} zoom={13} onLoad={handleLoad} deps={[lat, lon, points.length]}>
+      {/* Persistent weather strip */}
+      <WeatherWidget lat={lat} lon={lon} />
+
+      {/* Density legend — right side, below weather widget */}
+      <div className="absolute bottom-8 right-3 z-10 rounded-lg bg-black/60 px-2.5 py-1.5 backdrop-blur-sm">
         <p className="mb-1 text-[9px] font-bold uppercase tracking-widest text-white/60">Area Density</p>
         <div className="flex items-center gap-1.5">
           <div className="h-1.5 w-20 rounded-full"
@@ -216,6 +271,15 @@ function EventMap({
           </div>
         </div>
       </div>
+      <MapLayerControl
+        showTraffic={showTraffic}
+        onTrafficToggle={() => setShowTraffic((v) => !v)}
+        showRain={showRain}
+        onRainToggle={() => setShowRain((v) => !v)}
+        showTemp={showTemp}
+        onTempToggle={() => setShowTemp((v) => !v)}
+        hasOWM={!!owmToken}
+      />
     </MapBase>
   );
 }

@@ -14,7 +14,9 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.api.deps import get_db
+from api.api.deps import get_db, get_redis
+from common.redis.client import RedisClient
+from common.redis.keys import RedisSchema
 
 router = APIRouter(prefix="/safety", tags=["Safety"])
 
@@ -117,9 +119,16 @@ async def list_safety_events(
     skip: int = 0,
     limit: int = Query(default=100, le=500),
     db: AsyncSession = Depends(get_db),
+    redis: RedisClient = Depends(get_redis),
 ) -> list[dict]:
+    cache_key = RedisSchema.Api.safety_list(skip, limit)
+    if cached := await redis.cache_get(cache_key):
+        return cached  # type: ignore[return-value]
+
     result = await db.execute(_LIST_SQL, {"limit": limit, "offset": skip})
-    return [_row_to_dict(row) for row in result.fetchall()]
+    out = [_row_to_dict(row) for row in result.fetchall()]
+    await redis.cache_set(cache_key, out, RedisSchema.Api.SAFETY_TTL)
+    return out
 
 
 @router.get("/events/{event_id}", summary="Get full safety event detail")
