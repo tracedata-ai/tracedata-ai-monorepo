@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, User, Car, ShieldAlert, BookOpen } from "lucide-react";
+import { ArrowLeft, User, Car, ShieldAlert, BookOpen, MessageSquare } from "lucide-react";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -368,6 +368,75 @@ export default function DriverProfilePage() {
                 <p className="text-sm text-muted-foreground leading-relaxed">{c.message}</p>
               </div>
             ))}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* ── Sentiment / Feedback History ───────────────────────────────────── */}
+      {profile.sentiment_history.length > 0 && (
+        <Card className="rounded-xl">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <MessageSquare className="h-4 w-4" /> Feedback &amp; Sentiment Analysis
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {profile.sentiment_history.map((s, i) => {
+              const labelColor =
+                s.sentiment_label === "positive" ? "bg-green-600"
+                : s.sentiment_label === "negative" ? "bg-red-600"
+                : "bg-amber-500";
+              const emotions = Object.entries(s.emotions ?? {}).filter(([, v]) => v > 0);
+              return (
+                <div key={i} className="rounded-lg border border-border bg-muted/30 px-4 py-3 space-y-2">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Badge className={`${labelColor} text-white capitalize text-xs`}>
+                      {s.sentiment_label ?? "unknown"}
+                    </Badge>
+                    <span
+                      className="text-xs text-muted-foreground cursor-pointer hover:underline"
+                      onClick={() => s.trip_id && router.push(`/fleet-manager/trips/${s.trip_id}`)}
+                    >
+                      Trip {s.trip_id?.slice(0, 8)}
+                    </span>
+                    <span className="ml-auto text-[10px] text-muted-foreground">
+                      {s.created_at ? new Date(s.created_at).toLocaleDateString() : ""}
+                    </span>
+                  </div>
+
+                  {s.feedback_text && (
+                    <p className="text-sm italic text-muted-foreground leading-relaxed">
+                      &ldquo;{s.feedback_text}&rdquo;
+                    </p>
+                  )}
+
+                  {emotions.length > 0 && (
+                    <div className="flex flex-wrap gap-4 pt-1">
+                      {emotions.map(([emotion, score]) => (
+                        <div key={emotion} className="flex flex-col gap-1 min-w-14">
+                          <div className="flex justify-between text-[9px] text-muted-foreground">
+                            <span className="capitalize">{emotion}</span>
+                            <span className="font-mono">{Math.round(score * 100)}%</span>
+                          </div>
+                          <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                            <div
+                              className="h-full rounded-full bg-rose-500"
+                              style={{ width: `${Math.round(score * 100)}%` }}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {s.explanation && (
+                    <p className="text-xs text-muted-foreground leading-relaxed border-t border-border/50 pt-2">
+                      {s.explanation}
+                    </p>
+                  )}
+                </div>
+              );
+            })}
           </CardContent>
         </Card>
       )}

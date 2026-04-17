@@ -24,7 +24,7 @@ class SentimentRepository(SchemaRepository):
         analysis: dict,
     ) -> str:
         """Write sentiment analysis; returns sentiment_id."""
-        return await self._execute_write_scalar(
+        sentiment_id = await self._execute_write_scalar(
             """
                     INSERT INTO sentiment_schema.feedback_sentiment
                     (trip_id, driver_id, feedback_text, sentiment_score, sentiment_label, analysis, created_at)
@@ -40,6 +40,10 @@ class SentimentRepository(SchemaRepository):
                 "analysis": json.dumps(analysis),
             },
         )
+        explanation = (analysis.get("explanation") or "")
+        embed_content = f"Driver feedback: {feedback_text}. Sentiment: {sentiment_label}. {explanation}".strip()
+        await self._store_embedding("driver_feedback", str(trip_id), embed_content, driver_id, trip_id)
+        return sentiment_id
 
 
 class SupportRepository(SchemaRepository):
@@ -54,7 +58,7 @@ class SupportRepository(SchemaRepository):
         priority: str = "normal",
     ) -> str:
         """Write coaching message; returns coaching_id."""
-        return await self._execute_write_scalar(
+        coaching_id = await self._execute_write_scalar(
             """
                     INSERT INTO coaching_schema.coaching
                     (trip_id, driver_id, coaching_category, message, priority, created_at)
@@ -69,6 +73,9 @@ class SupportRepository(SchemaRepository):
                 "priority": priority,
             },
         )
+        embed_content = f"Coaching [{coaching_category}] (priority: {priority}): {message}"
+        await self._store_embedding("coaching_message", str(coaching_id), embed_content, driver_id, trip_id)
+        return coaching_id
 
     async def write_driver_feedback(
         self,

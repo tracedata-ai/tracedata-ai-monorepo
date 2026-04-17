@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { getSafetyEvent, getSafetyEvents, type SafetyEvent } from "@/lib/api";
+import { getSafetyEvent, getSafetyEvents, getRelatedEvents, type SafetyEvent, type RelatedEvent } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -289,14 +289,19 @@ export default function SafetyEventDetailPage() {
   const router = useRouter();
   const eventId = params.event_id as string;
 
-  const [event, setEvent]       = useState<SafetyEvent | null>(null);
-  const [allEvents, setAllEvents] = useState<SafetyEvent[]>([]);
-  const [loading, setLoading]   = useState(true);
-  const [notFound, setNotFound] = useState(false);
+  const [event, setEvent]           = useState<SafetyEvent | null>(null);
+  const [allEvents, setAllEvents]   = useState<SafetyEvent[]>([]);
+  const [related, setRelated]       = useState<RelatedEvent[]>([]);
+  const [loading, setLoading]       = useState(true);
+  const [notFound, setNotFound]     = useState(false);
 
   useEffect(() => {
     Promise.all([getSafetyEvent(eventId), getSafetyEvents()])
-      .then(([ev, all]) => { setEvent(ev); setAllEvents(all); })
+      .then(([ev, all]) => {
+        setEvent(ev);
+        setAllEvents(all);
+        getRelatedEvents(eventId).then(setRelated).catch(() => {});
+      })
       .catch(() => setNotFound(true))
       .finally(() => setLoading(false));
   }, [eventId]);
@@ -441,6 +446,50 @@ export default function SafetyEventDetailPage() {
 
       {/* Dashcam evidence */}
       <DashcamEvidence eventId={event.event_id} />
+
+      {/* Related events */}
+      {related.length > 0 && (
+        <Card className="rounded-xl">
+          <CardHeader>
+            <CardTitle className="text-base">Semantically Similar Events</CardTitle>
+            <p className="text-xs text-muted-foreground">Found via vector similarity on safety agent reasoning</p>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {related.map((r) => {
+              const sevClass = severityClass[r.severity?.toLowerCase() ?? ""] ?? "bg-gray-500";
+              const decClass = decisionClass[r.decision?.toLowerCase() ?? ""] ?? "bg-gray-500";
+              return (
+                <div
+                  key={r.event_id}
+                  onClick={() => router.push(`/fleet-manager/issues/${r.event_id}`)}
+                  className="cursor-pointer flex items-start gap-3 rounded-lg border border-border/50 bg-muted/30 px-4 py-3 hover:bg-muted/50 transition-colors"
+                >
+                  <div className="flex flex-col gap-1.5 flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-sm font-medium capitalize">
+                        {r.event_type?.replace(/_/g, " ") ?? "Unknown event"}
+                      </span>
+                      <Badge className={`${sevClass} text-white text-[10px] capitalize`}>{r.severity}</Badge>
+                      {r.decision && (
+                        <Badge className={`${decClass} text-white text-[10px] capitalize`}>{r.decision}</Badge>
+                      )}
+                      <span className="ml-auto font-mono text-[10px] text-muted-foreground">
+                        {Math.round(r.similarity * 100)}% match
+                      </span>
+                    </div>
+                    {r.reason && (
+                      <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">{r.reason}</p>
+                    )}
+                    <span className="text-[10px] text-muted-foreground">
+                      {r.event_timestamp ? new Date(r.event_timestamp).toLocaleString() : ""}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </CardContent>
+        </Card>
+      )}
 
       {/* External recording link — superseded by dashcam evidence above
       {event.video_url && (

@@ -160,7 +160,7 @@ async def get_trip_detail(
 
     # ── Sentiment ─────────────────────────────────────────────────────────────
     sentiment_row = (await db.execute(
-        text("SELECT sentiment_score, sentiment_label, analysis FROM sentiment_schema.feedback_sentiment WHERE trip_id = :tid LIMIT 1"),
+        text("SELECT feedback_text, sentiment_score, sentiment_label, analysis FROM sentiment_schema.feedback_sentiment WHERE trip_id = :tid LIMIT 1"),
         {"tid": tid},
     )).mappings().first()
 
@@ -203,9 +203,11 @@ async def get_trip_detail(
             for r in coaching_rows
         ],
         "sentiment": {
-            "score": sentiment_row.get("sentiment_score") if sentiment_row else None,
-            "label": sentiment_row.get("sentiment_label") if sentiment_row else None,
-            "emotions": (sentiment_row.get("analysis") or {}).get("emotion_scores", {}) if sentiment_row else {},
+            "score":        sentiment_row.get("sentiment_score"),
+            "label":        sentiment_row.get("sentiment_label"),
+            "feedback_text": sentiment_row.get("feedback_text"),
+            "explanation":  (sentiment_row.get("analysis") or {}).get("explanation"),
+            "emotions":     (sentiment_row.get("analysis") or {}).get("emotion_scores", {}),
         } if sentiment_row else None,
     }
 

@@ -10,6 +10,7 @@ from fastapi import APIRouter
 from api.api.v1 import (
     agent_flow,
     drivers,
+    embeddings,
     fleet,
     issues,
     maintenance,
@@ -35,3 +36,4 @@ api_router.include_router(agent_flow.router)
 api_router.include_router(simulator.router)
 api_router.include_router(workflow.router)
 api_router.include_router(safety.router)
+api_router.include_router(embeddings.router)

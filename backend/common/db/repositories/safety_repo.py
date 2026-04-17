@@ -65,9 +65,10 @@ class SafetyRepository(SchemaRepository):
         action: str,
         reason: str,
         recommended_action: str | None = None,
+        driver_id: str | None = None,
     ) -> str:
         """Write safety decision; returns decision_id."""
-        return await self._execute_write_scalar(
+        decision_id = await self._execute_write_scalar(
             """
                     INSERT INTO safety_schema.safety_decisions
                     (event_id, trip_id, decision, action, reason, recommended_action, created_at)
@@ -83,6 +84,11 @@ class SafetyRepository(SchemaRepository):
                 "rec_action": recommended_action,
             },
         )
+        embed_content = f"Safety decision: {decision}. Action: {action}. Reason: {reason}"
+        if recommended_action:
+            embed_content += f" Recommended: {recommended_action}"
+        await self._store_embedding("safety_decision", event_id, embed_content, driver_id, trip_id)
+        return decision_id
 
     async def get_harsh_event_analysis(
         self,

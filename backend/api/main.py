@@ -86,6 +86,8 @@ async def lifespan(app: FastAPI):  # type: ignore[type-arg]
         await conn.execute(text("CREATE SCHEMA IF NOT EXISTS safety_schema"))
         await conn.execute(text("CREATE SCHEMA IF NOT EXISTS coaching_schema"))
         await conn.execute(text("CREATE SCHEMA IF NOT EXISTS sentiment_schema"))
+        await conn.execute(text("CREATE SCHEMA IF NOT EXISTS vector_schema"))
+        await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
         # Public tables (SQLAlchemy models)
         await conn.run_sync(Base.metadata.create_all)
         await conn.execute(text("""
@@ -139,6 +141,28 @@ async def lifespan(app: FastAPI):  # type: ignore[type-arg]
               created_at TIMESTAMP
             )
         """))
+        await conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS vector_schema.embeddings (
+              id           SERIAL PRIMARY KEY,
+              content_type VARCHAR(80)  NOT NULL,
+              source_id    VARCHAR(80)  NOT NULL,
+              driver_id    VARCHAR(80),
+              trip_id      VARCHAR(80),
+              content      TEXT         NOT NULL,
+              embedding    vector(1536),
+              created_at   TIMESTAMP    DEFAULT now()
+            )
+        """))
+        await conn.execute(text(
+            "CREATE INDEX IF NOT EXISTS idx_emb_driver ON vector_schema.embeddings (driver_id)"
+        ))
+        await conn.execute(text(
+            "CREATE INDEX IF NOT EXISTS idx_emb_type ON vector_schema.embeddings (content_type)"
+        ))
+        await conn.execute(text(
+            "CREATE INDEX IF NOT EXISTS idx_emb_hnsw ON vector_schema.embeddings "
+            "USING hnsw (embedding vector_cosine_ops)"
+        ))
     logger.info(f"{LogToken.DATABASE_INIT} Database tables created / verified.")
 
     # ── 4. Simulation sidecar (opt-in via SIM_LOOP=true) ───────────────────

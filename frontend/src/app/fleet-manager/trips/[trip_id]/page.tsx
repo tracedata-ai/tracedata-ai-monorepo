@@ -530,49 +530,71 @@ export default function TripDetailPage() {
         <Card className="rounded-xl">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-sm">
-              <Smile className="h-4 w-4 text-yellow-400" /> Driver Sentiment
+              <Smile className="h-4 w-4 text-yellow-400" /> Driver Feedback &amp; Sentiment
             </CardTitle>
           </CardHeader>
-          <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            <div className="flex flex-col items-center justify-center gap-2">
-              <div
-                className="text-4xl font-bold"
-                style={{
-                  color:
-                    detail.sentiment.label === "positive"
-                      ? "#22c55e"
-                      : detail.sentiment.label === "negative"
-                      ? "#ef4444"
-                      : "#eab308",
-                }}
-              >
-                {detail.sentiment.score != null
-                  ? `${Math.round(detail.sentiment.score * 100)}%`
-                  : "—"}
+          <CardContent className="space-y-5">
+
+            {/* Feedback quote */}
+            {detail.sentiment.feedback_text && (
+              <div className="rounded-lg border border-border bg-muted/40 px-4 py-3">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-1.5">
+                  Driver&apos;s own words
+                </p>
+                <p className="text-sm italic leading-relaxed text-foreground">
+                  &ldquo;{detail.sentiment.feedback_text}&rdquo;
+                </p>
               </div>
-              <Badge
-                className={`capitalize ${
-                  detail.sentiment.label === "positive"
-                    ? "bg-green-600"
-                    : detail.sentiment.label === "negative"
-                    ? "bg-red-600"
+            )}
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              {/* Score + label */}
+              <div className="flex flex-col items-center justify-center gap-2">
+                <div
+                  className="text-4xl font-bold"
+                  style={{
+                    color:
+                      detail.sentiment.label === "positive" ? "#22c55e"
+                      : detail.sentiment.label === "negative" ? "#ef4444"
+                      : "#eab308",
+                  }}
+                >
+                  {detail.sentiment.score != null
+                    ? `${Math.round(detail.sentiment.score * 100)}%`
+                    : "—"}
+                </div>
+                <Badge
+                  className={`capitalize ${
+                    detail.sentiment.label === "positive" ? "bg-green-600"
+                    : detail.sentiment.label === "negative" ? "bg-red-600"
                     : "bg-yellow-600"
-                } text-white`}
-              >
-                {detail.sentiment.label ?? "Unknown"}
-              </Badge>
-              <p className="text-xs text-muted-foreground text-center">
-                Analysed from post-trip driver feedback
-              </p>
-            </div>
-            {Object.keys(detail.sentiment.emotions).length > 0 && (
+                  } text-white`}
+                >
+                  {detail.sentiment.label ?? "Unknown"}
+                </Badge>
+              </div>
+
+              {/* Emotion bars */}
               <div>
                 <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">
                   Emotion Signals
                 </p>
                 <EmotionBars emotions={detail.sentiment.emotions} />
               </div>
+            </div>
+
+            {/* LLM explanation */}
+            {detail.sentiment.explanation && (
+              <div className="rounded-lg border border-border bg-muted/30 px-4 py-3">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-1.5">
+                  Sentiment Agent Analysis
+                </p>
+                <p className="text-xs leading-relaxed text-muted-foreground">
+                  {detail.sentiment.explanation}
+                </p>
+              </div>
             )}
+
           </CardContent>
         </Card>
       )}

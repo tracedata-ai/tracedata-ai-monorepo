@@ -161,6 +161,19 @@ async def get_driver_profile(
         {"did": driver_id},
     )).mappings().all()
 
+    # ── Sentiment / feedback history (last 10) ───────────────────────────────
+    sentiment_rows = (await db.execute(
+        text("""
+            SELECT trip_id, feedback_text, sentiment_score, sentiment_label,
+                   analysis, created_at
+            FROM   sentiment_schema.feedback_sentiment
+            WHERE  driver_id = :did
+            ORDER  BY created_at DESC
+            LIMIT  10
+        """),
+        {"did": str(driver_id)},
+    )).mappings().all()
+
     # ── Coaching history (last 10) ────────────────────────────────────────────
     coaching_rows = (await db.execute(
         text("""
@@ -235,6 +248,18 @@ async def get_driver_profile(
                 "created_at": r["created_at"].isoformat() if r["created_at"] else None,
             }
             for r in coaching_rows
+        ],
+        "sentiment_history": [
+            {
+                "trip_id":        r["trip_id"],
+                "feedback_text":  r["feedback_text"],
+                "sentiment_label": r["sentiment_label"],
+                "sentiment_score": r["sentiment_score"],
+                "emotions":       (r["analysis"] or {}).get("emotion_scores", {}),
+                "explanation":    (r["analysis"] or {}).get("explanation"),
+                "created_at":     r["created_at"].isoformat() if r["created_at"] else None,
+            }
+            for r in sentiment_rows
         ],
     }
 
