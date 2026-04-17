@@ -12,9 +12,11 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.api.deps import get_db
+from api.api.deps import get_db, get_redis
 from api.models.maintenance import Maintenance
 from api.schemas.maintenance import MaintenanceCreate, MaintenanceRead
+from common.redis.client import RedisClient
+from common.redis.keys import RedisSchema
 
 router = APIRouter(prefix="/maintenance", tags=["Maintenance"])
 
@@ -27,16 +29,22 @@ async def list_maintenance(
     limit: int = 50,
     vehicle_id: uuid.UUID | None = Query(None, description="Filter by vehicle UUID"),
     db: AsyncSession = Depends(get_db),
-) -> list[Maintenance]:
-    """
-    Returns maintenance records.
-    Filter by `?vehicle_id=<uuid>` to see full maintenance history for one truck.
-    """
+    redis: RedisClient = Depends(get_redis),
+) -> list[MaintenanceRead]:
+    cache_key = RedisSchema.Api.maintenance_list(str(vehicle_id or "all"), skip, limit)
+    if cached := await redis.cache_get(cache_key):
+        return [MaintenanceRead(**item) for item in cached]
+
     query = select(Maintenance).offset(skip).limit(limit)
     if vehicle_id:
         query = query.where(Maintenance.vehicle_id == vehicle_id)
     result = await db.execute(query)
-    return list(result.scalars().all())
+    out = [MaintenanceRead.model_validate(r) for r in result.scalars().all()]
+
+    await redis.cache_set(
+        cache_key, [r.model_dump() for r in out], RedisSchema.Api.MAINTENANCE_TTL
+    )
+    return out
 
 
 @router.get(
@@ -66,6 +74,7 @@ async def get_maintenance(
 async def create_maintenance(
     payload: MaintenanceCreate,
     db: AsyncSession = Depends(get_db),
+    redis: RedisClient = Depends(get_redis),
 ) -> Maintenance:
     """
     Creates a maintenance record.
@@ -77,4 +86,5 @@ async def create_maintenance(
     db.add(record)
     await db.flush()
     await db.refresh(record)
+    await redis.cache_delete(RedisSchema.Api.maintenance_list("all", 0, 50))
     return record

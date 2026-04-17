@@ -62,7 +62,16 @@
       "Bash(echo:*)",
       "Bash(do:*)",
       "Bash(echo === Env in $NEW_SAFETY ===:*)",
-      "Bash(python -c \"import json,sys; lock=json.load\\(sys.stdin\\); hono=[k for k in lock.get\\('packages',{}\\) if 'hono' in k and 'node_modules' in k and lock['packages'][k].get\\('version'\\)]; print\\('\\\\n'.join\\(hono\\)\\)\")"
+      "Bash(python -c \"import json,sys; lock=json.load\\(sys.stdin\\); hono=[k for k in lock.get\\('packages',{}\\) if 'hono' in k and 'node_modules' in k and lock['packages'][k].get\\('version'\\)]; print\\('\\\\n'.join\\(hono\\)\\)\")",
+      "Bash(npm install:*)",
+      "Bash(npx tsc:*)",
+      "Bash(ls:*)",
+      "Bash(npm run:*)",
+      "Bash(grep \"\\\\.py$\")",
+      "Bash(DEMO_RESET=true docker compose:*)",
+      "Bash(python3:*)",
+      "Bash(docker:*)",
+      "Bash(grep:*)"
     ]
   }
 }

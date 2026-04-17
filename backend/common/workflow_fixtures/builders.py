@@ -7,6 +7,7 @@ All returned dicts are intended for ``TelemetryPacket.model_validate`` /
 
 from __future__ import annotations
 
+import random as _random
 import uuid
 from datetime import UTC, datetime, timedelta
 from typing import Any
@@ -14,6 +15,9 @@ from typing import Any
 from common.samples.smoothness_batch import (
     build_smoothness_log_packet,
     smoothness_details_mild_variant,
+)
+from common.workflow_fixtures.mock_driver_feedback import (
+    FEEDBACK_POOL as _FEEDBACK_POOL,
 )
 
 
@@ -337,12 +341,22 @@ def driver_feedback_packet(
     batch_id: str | None = None,
     event_id: str | None = None,
     device_event_id: str | None = None,
+    style: str | None = None,
 ) -> dict[str, Any]:
     if event_id and device_event_id:
         eid, did = event_id, device_event_id
     else:
         eid, did = new_ids("fb")
     bid = batch_id or f"BAT-fb-{uuid.uuid4().hex[:12]}"
+    if style in {"excellent", "good"}:
+        pool = [e for e in _FEEDBACK_POOL if e[1] >= 4]
+    elif style == "average":
+        pool = [e for e in _FEEDBACK_POOL if e[1] == 3]
+    elif style in {"poor", "aggressive"}:
+        pool = [e for e in _FEEDBACK_POOL if e[1] <= 2]
+    else:
+        pool = list(_FEEDBACK_POOL)
+    message, rating, fatigue = _random.choice(pool or list(_FEEDBACK_POOL))
     return {
         "batch_id": bid,
         "ping_type": "medium_speed",
@@ -365,9 +379,9 @@ def driver_feedback_packet(
             "location": None,
             "schema_version": "event_v1",
             "details": {
-                "trip_rating": 4,
-                "message": "Workflow fixture feedback after long trip.",
-                "fatigue_self_report": "mild",
+                "trip_rating": rating,
+                "message": message,
+                "fatigue_self_report": fatigue,
             },
         },
     }
@@ -386,6 +400,7 @@ def smoothness_at(
     batch_id: str | None = None,
     event_id: str | None = None,
     device_event_id: str | None = None,
+    details: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     ts = anchor + timedelta(seconds=offset_seconds)
     if event_id and device_event_id:
@@ -406,7 +421,11 @@ def smoothness_at(
         batch_id=bid,
         event_id=eid,
         device_event_id=did,
-        details=smoothness_details_mild_variant(variant_seed),
+        details=(
+            details
+            if details is not None
+            else smoothness_details_mild_variant(variant_seed)
+        ),
     )
 
 

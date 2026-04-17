@@ -111,13 +111,23 @@ class SafetyAgent(TDAgentBase):
             baseline = baseline_safety_assessment(current_event, trip_ctx_dict)
             merged = baseline
 
+            # Early place_name extraction for LLM context
+            _loc_early = current_event.get("location")
+            place_name = (
+                (_loc_early.get("place_name") or "").strip() or None
+                if isinstance(_loc_early, dict)
+                else None
+            )
+
             if self._llm is not None:
                 tools = build_safety_tools(current_event, trip_ctx_dict)
                 graph = build_tool_loop_graph(self._llm, tools)
                 evt_type = str(current_event.get("event_type", "unknown"))
                 messages = [
                     SystemMessage(content=SAFETY_SYSTEM_PROMPT),
-                    HumanMessage(content=build_safety_user_message(trip_id, evt_type)),
+                    HumanMessage(
+                        content=build_safety_user_message(trip_id, evt_type, place_name)
+                    ),
                 ]
                 thread_id = (
                     f"{trip_id}:safety:run:{current_event.get('event_id', 'evt')}"
@@ -196,6 +206,7 @@ class SafetyAgent(TDAgentBase):
                 event_timestamp=event_timestamp,
                 lat=lat,
                 lon=lon,
+                location_name=place_name,
                 traffic_conditions=traffic_conditions,
                 weather_conditions=weather_conditions,
                 analysis={
@@ -205,7 +216,7 @@ class SafetyAgent(TDAgentBase):
                     "llm_path": bool(self._llm),
                     "reason": reason,
                     "event_timestamp": ts_raw,
-                    "location": {"lat": lat, "lon": lon},
+                    "location": {"lat": lat, "lon": lon, "place_name": place_name},
                     "traffic_conditions": traffic_conditions,
                     "weather_conditions": weather_conditions,
                 },

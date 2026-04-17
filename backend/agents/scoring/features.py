@@ -139,16 +139,60 @@ def extract_feature_bundle(all_pings: list[dict]) -> dict[str, Any]:
     }
 
 
-def score_label_from_value(behaviour_score: float) -> str:
-    if behaviour_score >= 85:
-        return "Excellent"
-    if behaviour_score >= 70:
-        return "Good"
-    if behaviour_score >= 55:
-        return "Average"
-    if behaviour_score >= 40:
-        return "Below Average"
-    return "Poor"
+def normalize_ml_score(raw: float) -> float:
+    """Stretch raw XGBoost output [5, 65] to normalized [50, 100]."""
+    normalized = 50.0 + ((raw - 5.0) / 60.0) * 50.0
+    return max(50.0, min(100.0, normalized))
+
+
+def score_label_from_value(score: float) -> str:
+    """NUS letter grade from normalized score [50, 100]."""
+    if score >= 95:
+        return "A+"
+    if score >= 90:
+        return "A"
+    if score >= 85:
+        return "A-"
+    if score >= 80:
+        return "B+"
+    if score >= 75:
+        return "B"
+    if score >= 70:
+        return "B-"
+    if score >= 65:
+        return "C+"
+    if score >= 60:
+        return "C"
+    if score >= 57:
+        return "D+"
+    if score >= 53:
+        return "D"
+    return "F"
+
+
+def score_gpa_from_value(score: float) -> float:
+    """NUS GPA (0.0–5.0) from normalized score [50, 100]."""
+    if score >= 95:
+        return 5.0
+    if score >= 90:
+        return 5.0
+    if score >= 85:
+        return 4.5
+    if score >= 80:
+        return 4.0
+    if score >= 75:
+        return 3.5
+    if score >= 70:
+        return 3.0
+    if score >= 65:
+        return 2.5
+    if score >= 60:
+        return 2.0
+    if score >= 57:
+        return 1.5
+    if score >= 53:
+        return 1.0
+    return 0.0
 
 
 def compute_components_and_baseline(
@@ -189,7 +233,9 @@ def deterministic_payload_from_bundle(bundle: dict[str, Any]) -> dict[str, Any]:
     """Full scoring dict from feature bundle (smoothness heuristic + coaching flags)."""
     sf = bundle["smoothness_features"]
     baseline_score, breakdown = compute_components_and_baseline(sf)
-    label = score_label_from_value(baseline_score)
+    normalized = normalize_ml_score(baseline_score)
+    label = score_label_from_value(normalized)
+    gpa = score_gpa_from_value(normalized)
     harsh_count = int(sf.get("harsh_event_count", 0))
     coaching_reasons: list[str] = []
     if harsh_count > 0:
@@ -197,8 +243,9 @@ def deterministic_payload_from_bundle(bundle: dict[str, Any]) -> dict[str, Any]:
     if sf["idle_ratio"] > 0.25:
         coaching_reasons.append("High idle ratio detected; improve idle management.")
     return {
-        "behaviour_score": baseline_score,
+        "behaviour_score": normalized,
         "score_label": label,
+        "score_gpa": gpa,
         "score_breakdown": breakdown,
         "coaching_required": bool(coaching_reasons),
         "coaching_reasons": coaching_reasons,
@@ -224,7 +271,7 @@ def compute_driver_score(
     trip_score: float,
     historical_avg: dict[str, Any],
 ) -> float:
-    """Blend current trip score with rolling history for driver-level scoring."""
+    """Blend current trip score with rolling history on the native 0-100 scale."""
     raw = historical_avg.get("historical_avg_score") or historical_avg.get(
         "rolling_avg_score"
     )
@@ -234,15 +281,15 @@ def compute_driver_score(
         baseline = float(trip_score)
 
     blended = 0.7 * float(trip_score) + 0.3 * baseline
-    return round(max(0.0, min(100.0, blended)), 1)
+    return round(max(0.0, min(100.0, blended)), 2)
 
 
 def clamp_behaviour_score(payload: dict[str, Any], baseline: float) -> None:
-    """Clamp behaviour_score to [0, 100] in place."""
+    """Clamp behaviour_score to [50, 100] in place."""
     try:
         payload["behaviour_score"] = float(
             max(
-                0.0,
+                50.0,
                 min(100.0, float(payload.get("behaviour_score", baseline))),
             )
         )
@@ -257,8 +304,32 @@ def merge_graph_json_with_baseline(
     """Clamp score using deterministic baseline from bundle; fill missing keys."""
     sf = bundle["smoothness_features"]
     baseline, _ = compute_components_and_baseline(sf)
-    clamp_behaviour_score(parsed, baseline)
+
+    # Guard: LLM sometimes returns a 0-10 scale value when told 0-100.
+    # If the returned score is <15 but the deterministic baseline is >=15,
+    # the LLM scaled down by ~10x — multiply back up.
+    llm_score = parsed.get("behaviour_score")
+    if llm_score is not None:
+        try:
+            llm_float = float(llm_score)
+            if llm_float < 15.0 and baseline >= 15.0:
+                parsed["behaviour_score"] = round(llm_float * 10.0, 1)
+        except (TypeError, ValueError):
+            pass
+
+    # Normalize raw score to [50, 100] before clamping.
+    raw_score = parsed.get("behaviour_score", baseline)
+    try:
+        parsed["behaviour_score"] = normalize_ml_score(float(raw_score))
+    except (TypeError, ValueError):
+        parsed["behaviour_score"] = normalize_ml_score(baseline)
+
+    clamp_behaviour_score(parsed, normalize_ml_score(baseline))
     base = deterministic_payload_from_bundle(bundle)
     for key, val in base.items():
         parsed.setdefault(key, val)
+    # Always recompute label/gpa from the final clamped score.
+    final_score = float(parsed["behaviour_score"])
+    parsed["score_label"] = score_label_from_value(final_score)
+    parsed["score_gpa"] = score_gpa_from_value(final_score)
     return parsed

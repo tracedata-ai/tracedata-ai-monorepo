@@ -42,14 +42,14 @@ def _location_and_evidence_for_event_row(
     evidence_voice_url: Any,
     evidence_sensor_url: Any,
     raw_payload: Any,
-) -> tuple[dict[str, float] | None, dict[str, Any]]:
+) -> tuple[dict[str, Any] | None, dict[str, Any]]:
     """
     Build location {lat, lon} and evidence URLs/metadata for cache warming / agents.
 
     Prefer DB columns; fall back to TelemetryPacket JSON in raw_payload (event.location,
     top-level evidence block). Column URLs override packet fields when both exist.
     """
-    location: dict[str, float] | None = None
+    location: dict[str, Any] | None = None
     if lat is not None and lon is not None:
         try:
             location = {"lat": float(lat), "lon": float(lon)}
@@ -57,6 +57,16 @@ def _location_and_evidence_for_event_row(
             location = None
 
     pkg = _safe_parse_json_object(raw_payload)
+
+    # Extract place_name from raw_payload regardless of whether lat/lon came from DB columns
+    _pkg_place_name: str | None = None
+    _ev_for_place = pkg.get("event") if isinstance(pkg, dict) else None
+    if isinstance(_ev_for_place, dict):
+        _loc_for_place = _ev_for_place.get("location")
+        if isinstance(_loc_for_place, dict):
+            _pn = _loc_for_place.get("place_name")
+            if isinstance(_pn, str) and _pn.strip():
+                _pkg_place_name = _pn.strip()
 
     if location is None:
         ev_nested = pkg.get("event") if isinstance(pkg, dict) else None
@@ -78,6 +88,9 @@ def _location_and_evidence_for_event_row(
                         location = {"lat": float(la), "lon": float(lo)}
                 except (TypeError, ValueError):
                     pass
+
+    if location is not None and _pkg_place_name is not None:
+        location["place_name"] = _pkg_place_name
 
     evidence: dict[str, Any] = {}
     pkg_ev = pkg.get("evidence") if isinstance(pkg, dict) else None
@@ -382,47 +395,25 @@ class EventsRepo:
             Dict with trip metadata or None if not found
         """
         row = None
-        try:
-            async with self._engine.connect() as conn:
-                result = await conn.execute(
-                    text("""
-                        SELECT
-                            trip_id,
-                            driver_id,
-                            truck_id,
-                            started_at,
-                            ended_at,
-                            distance_km,
-                            duration_minutes,
-                            status,
-                            route_name
-                        FROM trips
-                        WHERE trip_id = :trip_id
-                    """),
-                    {"trip_id": trip_id},
-                )
-                row = result.first()
-        except Exception:
-            # E2E bootstrap schema uses pipeline_trips/route_type.
-            async with self._engine.connect() as conn:
-                result = await conn.execute(
-                    text("""
-                        SELECT
-                            trip_id,
-                            driver_id,
-                            truck_id,
-                            started_at,
-                            ended_at,
-                            distance_km,
-                            duration_minutes,
-                            status,
-                            route_type AS route_name
-                        FROM pipeline_trips
-                        WHERE trip_id = :trip_id
-                    """),
-                    {"trip_id": trip_id},
-                )
-                row = result.first()
+        async with self._engine.connect() as conn:
+            result = await conn.execute(
+                text("""
+                    SELECT
+                        trip_id,
+                        driver_id,
+                        truck_id,
+                        started_at,
+                        ended_at,
+                        distance_km,
+                        duration_minutes,
+                        status,
+                        route_type AS route_name
+                    FROM pipeline_trips
+                    WHERE trip_id = :trip_id
+                """),
+                {"trip_id": trip_id},
+            )
+            row = result.first()
 
         if not row:
             # Last-resort fallback when trip lifecycle table is missing/not populated.

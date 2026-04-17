@@ -26,7 +26,7 @@
       "tenant_id": "tenant-1",
       "license_plate": "SGY 5678B",
       "model": "Mitsubishi Fuso",
-      "status": "maintenance"
+      "status": "in_maintenance"
     },
     {
       "id": "veh-3",
@@ -76,6 +76,29 @@
       "created_at": "2026-03-24T07:45:00Z"
     }
   ],
+  "routes": [
+    {
+      "id": "route-1",
+      "tenant_id": "tenant-1",
+      "name": "Tuas to Jurong Port",
+      "start_location": "Tuas Logistics Hub",
+      "end_location": "Jurong Port",
+      "distance_km": "9.00",
+      "route_type": "mixed",
+      "created_at": "2026-01-01T00:00:00Z"
+    },
+    {
+      "id": "route-2",
+      "tenant_id": "tenant-2",
+      "name": "Woodlands to Marina Bay",
+      "start_location": "Woodlands Checkpoint",
+      "end_location": "Marina Bay Sands",
+      "distance_km": "24.00",
+      "route_type": "highway",
+      "created_at": "2026-01-01T00:00:00Z"
+    }
+  ],
+  "maintenance": [],
   "issues": [
     {
       "id": "iss-1",

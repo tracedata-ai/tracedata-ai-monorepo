@@ -1,5 +1,5 @@
 import json
-from datetime import datetime
+from datetime import date, datetime
 from uuid import UUID
 
 import redis.asyncio as redis
@@ -14,6 +14,8 @@ class DateTimeEncoder(json.JSONEncoder):
 
     def default(self, obj):
         if isinstance(obj, datetime):
+            return obj.isoformat()
+        if isinstance(obj, date):
             return obj.isoformat()
         if isinstance(obj, UUID):
             return str(obj)
@@ -297,6 +299,18 @@ class RedisClient:
         pubsub = self._client.pubsub()
         await pubsub.subscribe(channel)
         return pubsub
+
+    # ── API Response Cache (cache-aside for list endpoints) ─────────────────
+
+    async def cache_get(self, key: str) -> list | dict | None:
+        raw = await self._client.get(key)
+        return json.loads(raw) if raw else None
+
+    async def cache_set(self, key: str, value: list | dict, ttl: int) -> None:
+        await self._client.setex(key, ttl, json.dumps(value, cls=DateTimeEncoder))
+
+    async def cache_delete(self, key: str) -> None:
+        await self._client.delete(key)
 
     # ── Lifecycle ────────────────────────────────────────────────────────────
 

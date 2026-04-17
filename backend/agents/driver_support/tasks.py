@@ -15,6 +15,7 @@ from agents.driver_support.agent import SupportAgent
 from common.agent_flow.service import AgentFlowService
 from common.celery_async import run_async
 from common.config.settings import get_settings
+from common.db.repositories.trips_repo import TripsRepo
 from common.models.agent_flow import AgentFlowEvent
 from common.redis.client import RedisClient
 from common.redis.keys import RedisSchema
@@ -69,6 +70,11 @@ async def _generate_coaching_async(intent_capsule: dict) -> dict:
             event=completion,
             ttl=RedisSchema.Trip.EVENT_TTL,
         )
+
+        # Coaching is the final pipeline step — close the trip in both tables.
+        await TripsRepo(task_engine).close_trip(trip_id)
+        logger.info({"action": "trip_closed", "trip_id": trip_id})
+
         return completion
     finally:
         await redis.close()
@@ -109,6 +115,7 @@ def generate_coaching(self, intent_capsule: dict) -> dict:
                 meta={"task": "generate_coaching"},
             )
         )
+
         logger.info(
             {"action": "task_complete", "task": "generate_coaching", "trip_id": trip_id}
         )

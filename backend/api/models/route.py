@@ -8,8 +8,8 @@ context used by the Context Enrichment Agent when scoring trips.
 import uuid
 from decimal import Decimal
 
-from sqlalchemy import Numeric, String
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import Float, Numeric, String
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from api.models.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
@@ -57,6 +57,15 @@ class Route(Base, UUIDPrimaryKeyMixin, TimestampMixin):
         nullable=False,
         default="highway",
         comment="highway | urban | mixed — used for context-aware scoring",
+    )
+    start_lat: Mapped[float | None] = mapped_column(Float, nullable=True)
+    start_lon: Mapped[float | None] = mapped_column(Float, nullable=True)
+    end_lat: Mapped[float | None] = mapped_column(Float, nullable=True)
+    end_lon: Mapped[float | None] = mapped_column(Float, nullable=True)
+    waypoints: Mapped[list | None] = mapped_column(
+        JSONB,
+        nullable=True,
+        comment='Intermediate waypoints: [{"lat": 1.33, "lon": 103.72, "name": "Jurong East"}, ...]',
     )
 
     # ── Relationships ──────────────────────────────────────────────────────

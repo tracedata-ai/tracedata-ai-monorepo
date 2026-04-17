@@ -59,6 +59,8 @@ export type Vehicle = {
   license_plate: string;
   model: string;
   status: string;
+  fuel_level: number;
+  has_open_maintenance: boolean;
 };
 
 export type Driver = {
@@ -67,8 +69,87 @@ export type Driver = {
   first_name: string;
   last_name: string;
   email: string;
+  phone?: string | null;
   license_number: string;
+  status: string;
   experience_level: string;
+  created_at?: string | null;
+};
+
+export type DriverProfile = {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone: string | null;
+  license_number: string;
+  status: string;
+  experience_level: string;
+  created_at: string | null;
+  vehicle: {
+    id: string;
+    license_plate: string;
+    make: string;
+    model: string;
+    fuel_level: number;
+    has_open_maintenance: boolean;
+  } | null;
+  stats: {
+    total_trips: number;
+    scored_trips: number;
+    avg_score: number | null;
+    min_score: number | null;
+    max_score: number | null;
+    score_label: string | null;
+    score_gpa: number | null;
+    driver_score: number | null;
+    total_events: number;
+    critical_events: number;
+    escalated_events: number;
+  };
+  xai_summary: {
+    method: string;
+    trip_count: number;
+    top_features: Array<{
+      feature: string;
+      label: string;
+      score: number;
+      pct: number;
+    }>;
+  } | null;
+  score_trend: number[];
+  recent_trips: Array<{
+    trip_id: string;
+    status: string;
+    route_name: string | null;
+    created_at: string | null;
+    score: number | null;
+  }>;
+  safety_events: Array<{
+    event_id: string;
+    trip_id: string;
+    event_type: string;
+    severity: string;
+    decision: string | null;
+    event_timestamp: string | null;
+    lat: number | null;
+    lon: number | null;
+  }>;
+  coaching: Array<{
+    category: string;
+    priority: string;
+    message: string;
+    created_at: string | null;
+  }>;
+  sentiment_history: Array<{
+    trip_id: string;
+    feedback_text: string | null;
+    sentiment_label: string | null;
+    sentiment_score: number | null;
+    emotions: Record<string, number>;
+    explanation: string | null;
+    created_at: string | null;
+  }>;
 };
 
 export type Route = {
@@ -80,6 +161,11 @@ export type Route = {
   distance_km?: string | number | null;
   route_type: string;
   created_at: string;
+  start_lat?: number | null;
+  start_lon?: number | null;
+  end_lat?: number | null;
+  end_lon?: number | null;
+  waypoints?: Array<{ lat: number; lon: number; name?: string }> | null;
 };
 
 export type Trip = {
@@ -90,6 +176,7 @@ export type Trip = {
   route_id: string;
   status: string;
   created_at: string;
+  safety_score: number | null;
 };
 
 export type Maintenance = {
@@ -125,6 +212,37 @@ export type Issue = {
   created_at: string;
 };
 
+export type SafetyEvent = {
+  id: string;
+  event_id: string;
+  trip_id: string;
+  event_type: string;
+  severity: string;
+  event_timestamp: string | null;
+  lat: number | null;
+  lon: number | null;
+  location_name: string | null;
+  traffic_conditions: string | null;
+  weather_conditions: string | null;
+  created_at: string | null;
+  // decision fields
+  decision_id: string | null;
+  decision: string | null;
+  action: string | null;
+  reason: string | null;
+  recommended_action: string | null;
+  // from analysis JSONB
+  assessed_severity: string | null;
+  llm_path: boolean;
+  analysis_reason: string | null;
+  video_url: string | null;
+  truck_id: string | null;
+  driver_id: string | null;
+  driver_name: string | null;
+  route_name: string | null;
+  trip_started_at: string | null;
+};
+
 async function apiGet<T>(path: string): Promise<T> {
   try {
     const response = await fetch(`${API_BASE_URL}${path}`, {
@@ -147,7 +265,9 @@ async function apiGet<T>(path: string): Promise<T> {
     if (path.startsWith("/fleet")) key = "vehicles";
     else if (path.startsWith("/drivers")) key = "drivers";
     else if (path.startsWith("/trips")) key = "trips";
+    else if (path.startsWith("/routes")) key = "routes";
     else if (path.startsWith("/issues")) key = "issues";
+    else if (path.startsWith("/maintenance")) key = "maintenance";
     else if (path.startsWith("/tenants")) key = "tenants";
     
     if (key) {
@@ -226,12 +346,16 @@ export async function getBackendHealth(): Promise<BackendHealth> {
 
 export async function getVehicles(tenantId?: string): Promise<Vehicle[]> {
   const query = tenantId ? `?tenant_id=${tenantId}` : "";
-  return apiGet<Vehicle[]>(`/fleet${query}`);
+  return apiGet<Vehicle[]>(`/fleet/${query}`);
 }
 
 export async function getDrivers(tenantId?: string): Promise<Driver[]> {
   const query = tenantId ? `?tenant_id=${tenantId}` : "";
-  return apiGet<Driver[]>(`/drivers${query}`);
+  return apiGet<Driver[]>(`/drivers/${query}`);
+}
+
+export async function getDriverProfile(driverId: string): Promise<DriverProfile> {
+  return apiGet<DriverProfile>(`/drivers/${driverId}/profile`);
 }
 
 export async function getTrips(tenantId?: string, status?: string): Promise<Trip[]> {
@@ -239,17 +363,28 @@ export async function getTrips(tenantId?: string, status?: string): Promise<Trip
   if (tenantId) params.append("tenant_id", tenantId);
   if (status) params.append("status", status);
   const query = params.toString() ? `?${params.toString()}` : "";
-  return apiGet<Trip[]>(`/trips${query}`);
+  return apiGet<Trip[]>(`/trips/${query}`);
 }
 
 export async function getWorkflowTrips(status?: string): Promise<WorkflowTrip[]> {
   const query = status ? `?status=${encodeURIComponent(status)}` : "";
-  return apiGet<WorkflowTrip[]>(`/workflow/trips${query}`);
+  return apiGet<WorkflowTrip[]>(`/workflow/trips/${query}`);
 }
 
 export async function getRoutes(tenantId?: string): Promise<Route[]> {
   const query = tenantId ? `?tenant_id=${tenantId}` : "";
-  return apiGet<Route[]>(`/routes${query}`);
+  return apiGet<Route[]>(`/routes/${query}`);
+}
+
+export type RouteHeatPoint = {
+  lat: number;
+  lon: number;
+  severity: string;
+  event_type: string;
+};
+
+export async function getRouteHeatmap(routeId: string): Promise<RouteHeatPoint[]> {
+  return apiGet<RouteHeatPoint[]>(`/routes/${routeId}/heatmap`);
 }
 
 export async function getIssues(tenantId?: string, tripId?: string): Promise<Issue[]> {
@@ -257,16 +392,76 @@ export async function getIssues(tenantId?: string, tripId?: string): Promise<Iss
   if (tenantId) params.append("tenant_id", tenantId);
   if (tripId) params.append("trip_id", tripId);
   const query = params.toString() ? `?${params.toString()}` : "";
-  return apiGet<Issue[]>(`/issues${query}`);
+  return apiGet<Issue[]>(`/issues/${query}`);
 }
 
 export async function getTenants(): Promise<Tenant[]> {
-  return apiGet<Tenant[]>("/tenants");
+  return apiGet<Tenant[]>("/tenants/");
 }
 
 export async function getMaintenance(vehicleId?: string): Promise<Maintenance[]> {
   const query = vehicleId ? `?vehicle_id=${vehicleId}` : "";
-  return apiGet<Maintenance[]>(`/maintenance${query}`);
+  return apiGet<Maintenance[]>(`/maintenance/${query}`);
+}
+
+export type TripDetail = {
+  trip_id: string;
+  status: string;
+  created_at: string | null;
+  driver_name: string | null;
+  license_plate: string | null;
+  vehicle: string | null;
+  route_name: string | null;
+  route_from: string | null;
+  route_to: string | null;
+  distance_km: number | null;
+  scoring: {
+    score: number | null;
+    driver_score: number | null;
+    breakdown: Record<string, number>;
+    narrative: string | null;
+    score_label: string | null;
+    score_gpa: number | null;
+  };
+  safety_events: Array<{
+    event_id: string;
+    event_type: string;
+    severity: string;
+    lat: number | null;
+    lon: number | null;
+    location_name: string | null;
+    timestamp: string | null;
+    traffic: string | null;
+    weather: string | null;
+    decision: string | null;
+    action: string | null;
+    reason: string | null;
+    recommended_action: string | null;
+  }>;
+  coaching: Array<{
+    category: string;
+    priority: string;
+    message: string;
+  }>;
+  sentiment: {
+    score: number | null;
+    label: string | null;
+    feedback_text: string | null;
+    explanation: string | null;
+    emotions: Record<string, number>;
+  } | null;
+};
+
+export async function getTripDetail(tripId: string): Promise<TripDetail> {
+  return apiGet<TripDetail>(`/trips/${tripId}/detail`);
+}
+
+export async function getSafetyEvents(limit = 100): Promise<SafetyEvent[]> {
+  return apiGet<SafetyEvent[]>(`/safety/events/?limit=${limit}`);
+}
+
+export async function getSafetyEvent(eventId: string): Promise<SafetyEvent> {
+  return apiGet<SafetyEvent>(`/safety/events/${eventId}`);
 }
 
 type AgentFlowHandlers = {
@@ -315,6 +510,24 @@ export type SimulatorBatchResponse = {
   truck_delay: number;
   estimated_duration_seconds: number;
 };
+
+export type RelatedEvent = {
+  event_id: string;
+  trip_id: string | null;
+  driver_id: string | null;
+  similarity: number;
+  event_type: string | null;
+  severity: string | null;
+  decision: string | null;
+  reason: string | null;
+  lat: number | null;
+  lon: number | null;
+  event_timestamp: string | null;
+};
+
+export async function getRelatedEvents(eventId: string, limit = 5): Promise<RelatedEvent[]> {
+  return apiGet<RelatedEvent[]>(`/embeddings/related/event/${eventId}?limit=${limit}`);
+}
 
 export async function runSimulatorBatch(input: {
   truck_count?: number;

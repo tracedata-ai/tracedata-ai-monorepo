@@ -19,6 +19,11 @@ class RouteCreate(BaseModel):
         "highway",
         description="highway | urban | mixed — informs context-aware safety scoring",
     )
+    start_lat: float | None = None
+    start_lon: float | None = None
+    end_lat: float | None = None
+    end_lon: float | None = None
+    waypoints: list[dict] | None = None
 
     model_config = {
         "json_schema_extra": {

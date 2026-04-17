@@ -103,9 +103,15 @@ class TripsRepo:
             return (str(m["truck_id"]), str(m["driver_id"]))
 
     async def close_trip(self, trip_id: str) -> None:
-        """Mark trip as complete and capsule as closed after final CompletionEvent."""
+        """Mark trip as complete and capsule as closed after final CompletionEvent.
+
+        Also updates the domain `trips` table so the fleet-manager UI reflects
+        the completed status (active → completed lifecycle).
+        """
         async with self._engine.begin() as conn:
             now = datetime.now(UTC).replace(tzinfo=None)  # naive timestamp
+
+            # Update pipeline tracking table
             await conn.execute(
                 text("""
                     UPDATE pipeline_trips
@@ -117,6 +123,18 @@ class TripsRepo:
                 """),
                 {"trip_id": trip_id, "now": now},
             )
+
+            # Sync back to domain trips table so API consumers see the final state
+            await conn.execute(
+                text("""
+                    UPDATE trips
+                    SET    status     = 'completed',
+                           updated_at = :now
+                    WHERE  id::text = :trip_id
+                """),
+                {"trip_id": trip_id, "now": now},
+            )
+
         logger.info({"action": "trip_closed", "trip_id": trip_id})
 
     async def get_rolling_avg(self, driver_id: str, n: int = 3) -> float | None:

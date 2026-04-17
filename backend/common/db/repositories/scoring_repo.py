@@ -100,6 +100,8 @@ class ScoringRepository(SchemaRepository):
         self,
         score_id: str,
         narrative: str,
+        driver_id: str | None = None,
+        trip_id: str | None = None,
     ) -> None:
         """Attach LLM-generated human-readable narrative to an existing trip score row."""
         await self._execute_write(
@@ -109,6 +111,9 @@ class ScoringRepository(SchemaRepository):
                     WHERE score_id = :score_id
                 """,
             {"score_id": score_id, "narrative": narrative},
+        )
+        await self._store_embedding(
+            "scoring_narrative", str(score_id), narrative, driver_id, trip_id
         )
 
     async def get_trip_score(

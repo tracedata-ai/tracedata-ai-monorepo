@@ -66,13 +66,20 @@ async def lifespan(app: FastAPI):  # type: ignore[type-arg]
     # When DEMO_RESET=true every boot wipes all tables + Redis so the demo
     # always starts from a clean, reproducible baseline.
     if os.environ.get("DEMO_RESET", "").lower() == "true":
-        from scripts.bootstrap_sg_baseline import reset_for_demo
+        from scripts.bootstrap_sg_baseline import (
+            _push_baseline_trip_packets,
+            reset_for_demo,
+        )
 
         logger.info(
             f"{LogToken.STARTUP} DEMO_RESET=true — wiping all tables and Redis..."
         )
         await reset_for_demo()
-        logger.info(f"{LogToken.STARTUP} Demo reset complete.")
+        logger.info(f"{LogToken.STARTUP} Demo reset complete. Re-seeding baseline...")
+        # Re-seed immediately so the app never starts with an empty DB.
+        # reset_for_demo() clears the bootstrap marker, so this will always push.
+        pushed = await _push_baseline_trip_packets()
+        logger.info(f"{LogToken.STARTUP} Re-seed complete ({pushed} packets pushed).")
 
     # ── 3. Database ─────────────────────────────────────────────────────────
     async with engine.begin() as conn:
@@ -82,6 +89,8 @@ async def lifespan(app: FastAPI):  # type: ignore[type-arg]
         await conn.execute(text("CREATE SCHEMA IF NOT EXISTS safety_schema"))
         await conn.execute(text("CREATE SCHEMA IF NOT EXISTS coaching_schema"))
         await conn.execute(text("CREATE SCHEMA IF NOT EXISTS sentiment_schema"))
+        await conn.execute(text("CREATE SCHEMA IF NOT EXISTS vector_schema"))
+        await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
         # Public tables (SQLAlchemy models)
         await conn.run_sync(Base.metadata.create_all)
         await conn.execute(text("""
@@ -94,12 +103,19 @@ async def lifespan(app: FastAPI):  # type: ignore[type-arg]
               event_timestamp TIMESTAMP,
               lat DOUBLE PRECISION,
               lon DOUBLE PRECISION,
+              location_name TEXT,
               traffic_conditions TEXT,
               weather_conditions TEXT,
               analysis JSONB,
               created_at TIMESTAMP
             )
         """))
+        await conn.execute(
+            text(
+                "ALTER TABLE safety_schema.harsh_events_analysis "
+                "ADD COLUMN IF NOT EXISTS location_name TEXT"
+            )
+        )
         await conn.execute(text("""
             CREATE TABLE IF NOT EXISTS safety_schema.safety_decisions (
               decision_id SERIAL PRIMARY KEY,
@@ -135,22 +151,64 @@ async def lifespan(app: FastAPI):  # type: ignore[type-arg]
               created_at TIMESTAMP
             )
         """))
+        await conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS vector_schema.embeddings (
+              id           SERIAL PRIMARY KEY,
+              content_type VARCHAR(80)  NOT NULL,
+              source_id    VARCHAR(80)  NOT NULL,
+              driver_id    VARCHAR(80),
+              trip_id      VARCHAR(80),
+              content      TEXT         NOT NULL,
+              embedding    vector(1536),
+              created_at   TIMESTAMP    DEFAULT now()
+            )
+        """))
+        await conn.execute(
+            text(
+                "CREATE INDEX IF NOT EXISTS idx_emb_driver ON vector_schema.embeddings (driver_id)"
+            )
+        )
+        await conn.execute(
+            text(
+                "CREATE INDEX IF NOT EXISTS idx_emb_type ON vector_schema.embeddings (content_type)"
+            )
+        )
+        await conn.execute(
+            text(
+                "CREATE INDEX IF NOT EXISTS idx_emb_hnsw ON vector_schema.embeddings "
+                "USING hnsw (embedding vector_cosine_ops)"
+            )
+        )
     logger.info(f"{LogToken.DATABASE_INIT} Database tables created / verified.")
 
     # ── 4. Simulation sidecar (opt-in via SIM_LOOP=true) ───────────────────
+    # Disabled by default. Enable in K8s via env var — uses adaptive rate control:
+    #   Phase 1 (warmup): SIM_TRUCK_COUNT trucks every SIM_WARMUP_INTERVAL seconds
+    #   Phase 2 (steady): same batch every SIM_STEADY_INTERVAL seconds after SIM_WARMUP_HOURS
     sim_task: asyncio.Task | None = None
     if os.environ.get("SIM_LOOP", "").lower() == "true":
         from scripts.bootstrap_sg_baseline import _run_loop
 
-        interval = int(os.environ.get("SIM_INTERVAL", "30"))
-        event_delay = float(os.environ.get("SIM_EVENT_DELAY", "0.5"))
+        event_delay = float(os.environ.get("SIM_EVENT_DELAY", "2.0"))
         truck_delay = float(os.environ.get("SIM_TRUCK_DELAY", "5.0"))
-        truck_count = int(os.environ.get("SIM_TRUCK_COUNT", "10"))
+        truck_count = int(os.environ.get("SIM_TRUCK_COUNT", "2"))
+        warmup_interval = int(os.environ.get("SIM_WARMUP_INTERVAL", "300"))
+        steady_interval = int(os.environ.get("SIM_STEADY_INTERVAL", "3600"))
+        warmup_hours = float(os.environ.get("SIM_WARMUP_HOURS", "2.0"))
         sim_task = asyncio.create_task(
-            _run_loop(interval, event_delay, truck_delay, truck_count)
+            _run_loop(
+                event_delay=event_delay,
+                truck_delay=truck_delay,
+                truck_count=truck_count,
+                warmup_interval=warmup_interval,
+                steady_interval=steady_interval,
+                warmup_hours=warmup_hours,
+            )
         )
         logger.info(
-            f"{LogToken.STARTUP} Simulation sidecar started (trucks={truck_count} interval={interval}s event_delay={event_delay}s truck_delay={truck_delay}s)"
+            f"{LogToken.STARTUP} Simulation sidecar started "
+            f"(trucks={truck_count} warmup={warmup_interval}s/{warmup_hours}h "
+            f"steady={steady_interval}s event_delay={event_delay}s)"
         )
 
     yield  # ← app is live and serving requests from here

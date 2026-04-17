@@ -14,6 +14,15 @@ from collections.abc import AsyncGenerator
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from common.db.engine import AsyncSessionLocal
+from common.redis.client import RedisClient
+
+# Single shared client — one connection pool for the whole process
+_redis_client = RedisClient()
+
+
+def get_redis() -> RedisClient:
+    """Returns the shared Redis client. Use with Depends(get_redis)."""
+    return _redis_client
 
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:

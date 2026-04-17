@@ -52,6 +52,14 @@ app.conf.update(
         "tasks.scoring_tasks.score_trip": {"queue": settings.scoring_queue},
         "tasks.support_tasks.generate_coaching": {"queue": settings.support_queue},
         "tasks.sentiment_tasks.analyse_feedback": {"queue": settings.sentiment_queue},
+        # Watchdog tasks run on the safety worker (low-load, singleton).
+        "tasks.watchdog_tasks.reset_stuck_events": {"queue": settings.safety_queue},
+        "tasks.watchdog_tasks.publish_queue_depths": {"queue": settings.safety_queue},
+        "tasks.watchdog_tasks.rescore_unscored_trips": {"queue": settings.safety_queue},
+        "tasks.watchdog_tasks.requeue_stuck_received_events": {
+            "queue": settings.safety_queue
+        },
+        "tasks.watchdog_tasks.requeue_stuck_trips": {"queue": settings.safety_queue},
     },
     # ── Beat schedule (watchdog) ──────────────────────────────────────────────
     beat_schedule={
@@ -62,6 +70,18 @@ app.conf.update(
         "queue-depth-monitor": {
             "task": "tasks.watchdog_tasks.publish_queue_depths",
             "schedule": 60.0,  # every 1 minute
+        },
+        "rescore-unscored-trips": {
+            "task": "tasks.watchdog_tasks.rescore_unscored_trips",
+            "schedule": 300.0,  # every 5 minutes
+        },
+        "requeue-stuck-received-events": {
+            "task": "tasks.watchdog_tasks.requeue_stuck_received_events",
+            "schedule": 300.0,  # every 5 minutes
+        },
+        "requeue-stuck-trips": {
+            "task": "tasks.watchdog_tasks.requeue_stuck_trips",
+            "schedule": 600.0,  # every 10 minutes
         },
     },
     # ── Timezone ─────────────────────────────────────────────────────────────

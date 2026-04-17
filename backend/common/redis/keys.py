@@ -125,3 +125,37 @@ class RedisSchema:
         EVENTS_CHANNEL: str = "agentflow:events"
         STATE_KEY: str = "agentflow:state:current"
         SEQ_KEY: str = "agentflow:seq"
+
+    class Api:
+        """API-level read-through cache keys for slow-changing list endpoints."""
+
+        FLEET_TTL: int = 300  # 5 min — vehicles rarely change
+        DRIVERS_TTL: int = 300  # 5 min — driver roster rarely changes
+        MAINTENANCE_TTL: int = 120  # 2 min — work orders update more often
+        TRIPS_TTL: int = 60  # 1 min — active trips change status
+        ISSUES_TTL: int = 300  # 5 min — issues are append-only
+        SAFETY_TTL: int = 300  # 5 min — historical, append-only
+
+        @staticmethod
+        def fleet_list(tenant_id: str, skip: int, limit: int) -> str:
+            return f"td:api:fleet:list:{tenant_id}:{skip}:{limit}"
+
+        @staticmethod
+        def drivers_list(tenant_id: str, skip: int, limit: int) -> str:
+            return f"td:api:drivers:list:{tenant_id}:{skip}:{limit}"
+
+        @staticmethod
+        def maintenance_list(vehicle_id: str, skip: int, limit: int) -> str:
+            return f"td:api:maintenance:list:{vehicle_id}:{skip}:{limit}"
+
+        @staticmethod
+        def trips_list(tenant_id: str, status: str, skip: int, limit: int) -> str:
+            return f"td:api:trips:list:{tenant_id}:{status}:{skip}:{limit}"
+
+        @staticmethod
+        def issues_list(tenant_id: str, trip_id: str, skip: int, limit: int) -> str:
+            return f"td:api:issues:list:{tenant_id}:{trip_id}:{skip}:{limit}"
+
+        @staticmethod
+        def safety_list(skip: int, limit: int) -> str:
+            return f"td:api:safety:list:{skip}:{limit}"

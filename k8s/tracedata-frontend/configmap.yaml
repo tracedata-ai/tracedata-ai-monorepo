@@ -11,7 +11,11 @@ data:
   NODE_ENV: "production"
   PORT: "3000"
   HOSTNAME: "0.0.0.0"
-  # NOTE: NEXT_PUBLIC_API_URL is a Next.js build-time variable — baked into the
-  # JS bundle at image build. This value is informational only at runtime.
-  # Set vars.NEXT_PUBLIC_API_URL in GitHub Actions before publishing the image.
+  # NOTE: NEXT_PUBLIC_* vars below are Next.js build-time variables — baked into
+  # the JS bundle at image build and have no effect at runtime. These entries are
+  # informational only. Set the corresponding vars in GitHub Actions repo settings
+  # (vars.NEXT_PUBLIC_API_URL, vars.NEXT_PUBLIC_MAPBOX_TOKEN, vars.NEXT_PUBLIC_OWM_TOKEN)
+  # before publishing the frontend image.
   NEXT_PUBLIC_API_URL: "http://tracedata-api-service.tracedata.svc.cluster.local:8000/api/v1"
+  NEXT_PUBLIC_MAPBOX_TOKEN: ""  # baked at build time via vars.NEXT_PUBLIC_MAPBOX_TOKEN
+  NEXT_PUBLIC_OWM_TOKEN: ""     # baked at build time via vars.NEXT_PUBLIC_OWM_TOKEN

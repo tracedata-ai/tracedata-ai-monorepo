@@ -15,6 +15,11 @@ import uuid
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
+from common.samples.smoothness_batch import (
+    DRIVING_STYLES,
+    STYLE_WEIGHTS,
+    smoothness_details_for_style,
+)
 from common.workflow_fixtures.builders import (
     driver_feedback_packet,
     end_of_trip_packet,
@@ -25,27 +30,7 @@ from common.workflow_fixtures.builders import (
     smoothness_at,
     start_of_trip_packet,
 )
-
-# Common Singapore logistics corridors / hubs (lat, lon).
-SG_HOTSPOTS: list[tuple[float, float]] = [
-    (1.3010, 103.6200),  # Tuas
-    (1.3250, 103.7090),  # Jurong
-    (1.3470, 103.7210),  # Bukit Batok
-    (1.4360, 103.7860),  # Woodlands
-    (1.3760, 103.9550),  # Pasir Ris / East
-    (1.3340, 103.9620),  # Changi Cargo
-    (1.3120, 103.8590),  # CBD / Marina
-    (1.2650, 103.8200),  # HarbourFront
-]
-
-
-def _sg_random_location(rng: random.Random) -> dict[str, float]:
-    """Pick a Singapore hotspot and jitter slightly for realism."""
-    base_lat, base_lon = rng.choice(SG_HOTSPOTS)
-    # ~100-300m jitter
-    lat = base_lat + rng.uniform(-0.002, 0.002)
-    lon = base_lon + rng.uniform(-0.002, 0.002)
-    return {"lat": round(lat, 6), "lon": round(lon, 6)}
+from common.workflow_fixtures.sg_harsh_locations import pick_sg_harsh_location
 
 
 def build_events(
@@ -57,6 +42,7 @@ def build_events(
     smooth_count: int = 15,
     harsh_count: int = 3,
     random_seed: int | None = None,
+    style: str | None = None,
 ) -> list[dict[str, Any]]:
     """
     Build one complete trip timeline.
@@ -64,6 +50,9 @@ def build_events(
     Args:
         smooth_count: Number of 10-minute smoothness windows (6–24).
         harsh_count:  Number of harsh driving events (2–6).
+        style: Driving style archetype override. If None, chosen randomly from
+               DRIVING_STYLES with STYLE_WEIGHTS. Pass explicitly to guarantee
+               a specific tier appears in the batch.
     """
     if smooth_count < 6 or smooth_count > 24:
         raise ValueError("smooth_count must be between 6 and 24")
@@ -72,6 +61,8 @@ def build_events(
 
     t0 = anchor or datetime.now(UTC).replace(microsecond=0)
     rng = random.Random(random_seed)
+    if style is None:
+        style = rng.choices(DRIVING_STYLES, weights=STYLE_WEIGHTS, k=1)[0]
     total_minutes = smooth_count * 10
     end_offset = (total_minutes * 60) + 180
     total_km = round((total_minutes / 60) * 30, 1)  # ~30 km/h average
@@ -94,7 +85,7 @@ def build_events(
         )
     )
 
-    # Smooth windows at 10-minute intervals
+    # Smooth windows at 10-minute intervals — each window gets style-specific details
     for i in range(1, smooth_count + 1):
         off = i * 600
         tm, od = meters_for_offset(off, end_offset, total_km, base_od)
@@ -112,6 +103,7 @@ def build_events(
                 batch_id=f"BAT-sm-{uuid.uuid4().hex[:10]}",
                 event_id=ev_id,
                 device_event_id=dev_id,
+                details=smoothness_details_for_style(style, rng),
             )
         )
 
@@ -158,7 +150,8 @@ def build_events(
                 device_event_id=dev_id,
             )
         # Randomize harsh-event geolocation within Singapore for heatmap usage later.
-        packet["event"]["location"] = _sg_random_location(rng)
+        lat, lon, place_name = pick_sg_harsh_location(rng)
+        packet["event"]["location"] = {"lat": lat, "lon": lon, "place_name": place_name}
         out.append(packet)
 
     # End + feedback
@@ -190,6 +183,7 @@ def build_events(
             batch_id=f"BAT-fb-{uuid.uuid4().hex[:10]}",
             event_id=ev_id,
             device_event_id=dev_id,
+            style=style,
         )
     )
 

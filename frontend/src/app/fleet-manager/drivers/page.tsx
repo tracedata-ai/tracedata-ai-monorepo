@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { getDrivers, getTrips, getRoutes, type Driver, type Trip, type Route } from "@/lib/api";
 import { DashboardPageTemplate } from "@/components/shared/DashboardPageTemplate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -53,6 +54,7 @@ type DriverRow = {
 };
 
 export default function DriversPage() {
+  const router = useRouter();
   const [drivers, setDrivers] = useState<DriverRow[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -130,7 +132,11 @@ export default function DriversPage() {
                <Skeleton className="h-10 w-full" />
              </div>
           ) : (
-            <DataTable columns={columns} data={drivers} />
+            <DataTable
+              columns={columns}
+              data={drivers}
+              onRowClick={(row) => router.push(`/fleet-manager/drivers/${row.id}`)}
+            />
           )}
         </CardContent>
       </Card>

@@ -27,6 +27,9 @@ class VehicleCreate(BaseModel):
         None, max_length=17, description="Vehicle Identification Number"
     )
     status: str = Field("active", description="active | inactive | in_maintenance")
+    fuel_level: int = Field(
+        100, ge=0, le=100, description="Fuel level percentage 0-100"
+    )
 
     model_config = {
         "json_schema_extra": {
@@ -55,5 +58,6 @@ class VehicleRead(VehicleCreate):
     id: uuid.UUID
     created_at: datetime
     updated_at: datetime
+    has_open_maintenance: bool = False
 
     model_config = {"from_attributes": True}

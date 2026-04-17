@@ -12,9 +12,11 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.api.deps import get_db
+from api.api.deps import get_db, get_redis
 from api.models.issue import Issue
 from api.schemas.issue import IssueCreate, IssueRead
+from common.redis.client import RedisClient
+from common.redis.keys import RedisSchema
 
 router = APIRouter(prefix="/issues", tags=["Issues"])
 
@@ -26,18 +28,26 @@ async def list_issues(
     tenant_id: uuid.UUID | None = None,
     trip_id: uuid.UUID | None = Query(None, description="Filter by trip UUID"),
     db: AsyncSession = Depends(get_db),
-) -> list[Issue]:
-    """
-    Returns driving issues.
-    Optional: ?tenant_id=<uuid> or ?trip_id=<uuid> to filter results.
-    """
+    redis: RedisClient = Depends(get_redis),
+) -> list[IssueRead]:
+    cache_key = RedisSchema.Api.issues_list(
+        str(tenant_id or "all"), str(trip_id or "all"), skip, limit
+    )
+    if cached := await redis.cache_get(cache_key):
+        return [IssueRead(**item) for item in cached]
+
     query = select(Issue).offset(skip).limit(limit)
     if trip_id:
         query = query.where(Issue.trip_id == trip_id)
     if tenant_id:
         query = query.where(Issue.tenant_id == tenant_id)
     result = await db.execute(query)
-    return list(result.scalars().all())
+    out = [IssueRead.model_validate(i) for i in result.scalars().all()]
+
+    await redis.cache_set(
+        cache_key, [i.model_dump() for i in out], RedisSchema.Api.ISSUES_TTL
+    )
+    return out
 
 
 @router.get("/{issue_id}", response_model=IssueRead, summary="Get issue by ID")
@@ -63,10 +73,12 @@ async def get_issue(
 async def create_issue(
     payload: IssueCreate,
     db: AsyncSession = Depends(get_db),
+    redis: RedisClient = Depends(get_redis),
 ) -> Issue:
     """Logs a classified driving event. In the full system, this triggers agent routing."""
     issue = Issue(**payload.model_dump())
     db.add(issue)
     await db.flush()
     await db.refresh(issue)
+    await redis.cache_delete(RedisSchema.Api.issues_list("all", "all", 0, 50))
     return issue

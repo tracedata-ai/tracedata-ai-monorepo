@@ -66,6 +66,7 @@ class ErrorEvent(BaseModel):
 class Location(BaseModel):
     lat: float
     lon: float
+    place_name: str | None = None
 
 
 class Evidence(BaseModel):

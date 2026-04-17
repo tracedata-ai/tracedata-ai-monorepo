@@ -1,109 +1,337 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { DashboardPageTemplate } from "@/components/shared/DashboardPageTemplate";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DataTable } from "@/components/data-table";
-import { getRoutes, getTrips, type Route, type Trip } from "@/lib/api";
-import { ColumnDef } from "@tanstack/react-table";
-import { Skeleton } from "@/components/ui/skeleton";
+import { useEffect, useRef, useState } from "react";
+import { getRoutes, getRouteHeatmap, getSafetyEvents, type Route, type RouteHeatPoint } from "@/lib/api";
+import { Badge } from "@/components/ui/badge";
+import { MapPin, Navigation, AlertTriangle, Truck } from "lucide-react";
 
-type RouteRow = {
-  id: string;
-  routeName: string;
-  origin: string;
-  destination: string;
-  distanceKm: number;
-  activeDrivers: number;
+const SEVERITY_WEIGHT: Record<string, number> = {
+  critical: 3,
+  high: 2,
+  medium: 1,
+  low: 0.5,
 };
 
-const columns: ColumnDef<RouteRow>[] = [
-  {
-    accessorKey: "routeName",
-    header: "Route Name",
-    size: 150,
-  },
-  {
-    accessorKey: "origin",
-    header: "Origin",
-    size: 120,
-  },
-  {
-    accessorKey: "destination",
-    header: "Destination",
-    size: 120,
-  },
-  {
-    accessorKey: "distanceKm",
-    header: "Distance (km)",
-    size: 100,
-  },
-  {
-    accessorKey: "activeDrivers",
-    header: "Active Drivers",
-    size: 120,
-  },
-];
+const ROUTE_TYPE_COLOR: Record<string, string> = {
+  highway: "bg-blue-500/20 text-blue-400 border-blue-500/30",
+  urban: "bg-orange-500/20 text-orange-400 border-orange-500/30",
+  mixed: "bg-purple-500/20 text-purple-400 border-purple-500/30",
+};
 
 export default function RoutesPage() {
-  const [rows, setRows] = useState<RouteRow[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [routes, setRoutes] = useState<Route[]>([]);
+  const [selected, setSelected] = useState<Route | null>(null);
+  const [heatPoints, setHeatPoints] = useState<RouteHeatPoint[]>([]);
+  const [allHeatPoints, setAllHeatPoints] = useState<RouteHeatPoint[]>([]);
+  const [loadingHeat, setLoadingHeat] = useState(false);
 
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<any>(null);
+  const mapReadyRef = useRef(false);
+
+  // Load routes + all safety events for default heatmap
   useEffect(() => {
-    async function loadRoutes() {
-      try {
-        const [routes, trips] = await Promise.all([getRoutes(), getTrips()]);
-        const activeTrips = trips.filter((t: Trip) => t.status === "active");
-        const mapped = routes.map((r: Route) => {
-          const routeTripCount = activeTrips.filter((t) => t.route_id === r.id).length;
-          return {
-            id: r.id,
-            routeName: r.name,
-            origin: r.start_location,
-            destination: r.end_location,
-            distanceKm: Number(r.distance_km ?? 0),
-            activeDrivers: routeTripCount,
-          };
-        });
-        setRows(mapped);
-      } catch (error) {
-        console.error("Failed to fetch routes:", error);
-      } finally {
-        setLoading(false);
-      }
-    }
-    loadRoutes();
+    getRoutes().then(setRoutes).catch(console.error);
+    getSafetyEvents(500).then((events) =>
+      setAllHeatPoints(
+        events
+          .filter((e) => e.lat != null && e.lon != null)
+          .map((e) => ({ lat: e.lat!, lon: e.lon!, severity: e.severity ?? "low", event_type: e.event_type ?? "" }))
+      )
+    ).catch(console.error);
   }, []);
 
-  const avgDistance =
-    rows.length > 0 ? (rows.reduce((acc, row) => acc + row.distanceKm, 0) / rows.length).toFixed(1) : "0.0";
-  const stats = [
-    { label: "Total Routes", value: loading ? "..." : rows.length.toString(), change: 1 },
-    { label: "Avg Distance", value: loading ? "..." : `${avgDistance} km`, change: 2 },
-    { label: "Active Drivers", value: loading ? "..." : rows.reduce((acc, row) => acc + row.activeDrivers, 0).toString(), change: 1 },
-  ];
+  // Init map once
+  useEffect(() => {
+    const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+    if (!token || !mapContainerRef.current) return;
+    let map: any;
+
+    async function init() {
+      const mapboxgl = (await import("mapbox-gl")).default;
+      await import("mapbox-gl/dist/mapbox-gl.css");
+      if (!mapContainerRef.current) return;
+      mapboxgl.accessToken = token!;
+      map = new mapboxgl.Map({
+        container: mapContainerRef.current,
+        style: "mapbox://styles/mapbox/streets-v12",
+        center: [103.82, 1.35],
+        zoom: 11,
+        minZoom: 9,
+      });
+      map.addControl(new mapboxgl.NavigationControl(), "top-right");
+      map.on("load", () => {
+        mapReadyRef.current = true;
+        mapRef.current = map;
+
+        // Add sources/layers upfront (empty)
+        map.addSource("route-line", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+        map.addLayer({
+          id: "route-line-bg", type: "line", source: "route-line",
+          paint: { "line-color": "#6366f1", "line-width": 6, "line-opacity": 0.3, "line-blur": 4 },
+        });
+        map.addLayer({
+          id: "route-line-fg", type: "line", source: "route-line",
+          paint: {
+            "line-color": "#818cf8",
+            "line-width": 3,
+            "line-dasharray": [0, 2],
+          },
+        });
+
+        map.addSource("events", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+        map.addLayer({
+          id: "events-heat", type: "heatmap", source: "events",
+          paint: {
+            "heatmap-weight": ["get", "weight"],
+            "heatmap-intensity": ["interpolate", ["linear"], ["zoom"], 9, 0.6, 15, 2],
+            "heatmap-radius": ["interpolate", ["linear"], ["zoom"], 9, 20, 15, 50],
+            "heatmap-opacity": 0.85,
+            "heatmap-color": [
+              "interpolate", ["linear"], ["heatmap-density"],
+              0, "rgba(0,0,0,0)", 0.15, "#fef08a",
+              0.35, "#fbbf24", 0.6, "#f97316",
+              0.8, "#dc2626", 1, "#7f1d1d",
+            ],
+          },
+        });
+        map.addLayer({
+          id: "events-dots", type: "circle", source: "events", minzoom: 13,
+          paint: {
+            "circle-radius": 6,
+            "circle-color": ["match", ["get", "severity"],
+              "critical", "#dc2626", "high", "#f97316", "medium", "#fbbf24", "#22c55e"],
+            "circle-stroke-color": "#fff",
+            "circle-stroke-width": 1.5,
+          },
+        });
+
+        map.addSource("endpoints", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+        map.addLayer({
+          id: "endpoints-circle", type: "circle", source: "endpoints",
+          paint: {
+            "circle-radius": 10,
+            "circle-color": ["match", ["get", "kind"], "start", "#22c55e", "#ef4444"],
+            "circle-stroke-color": "#fff",
+            "circle-stroke-width": 2,
+          },
+        });
+      });
+    }
+    init();
+    return () => { map?.remove(); mapRef.current = null; mapReadyRef.current = false; };
+  }, []);
+
+  // When a route is selected: fetch heatmap + draw route line
+  useEffect(() => {
+    if (!selected) return;
+    const map = mapRef.current;
+
+    // Fetch heatmap data
+    setLoadingHeat(true);
+    getRouteHeatmap(selected.id)
+      .then(setHeatPoints)
+      .catch(() => setHeatPoints([]))
+      .finally(() => setLoadingHeat(false));
+
+    // Draw route line via Mapbox Directions API if coords exist
+    const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+    const { start_lat, start_lon, end_lat, end_lon } = selected;
+    if (map && mapReadyRef.current && start_lat && start_lon && end_lat && end_lon && token) {
+      const coords = [
+        [start_lon, start_lat],
+        ...(selected.waypoints ?? []).map((w) => [w.lon, w.lat]),
+        [end_lon, end_lat],
+      ];
+      const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${coords.map((c) => c.join(",")).join(";")}`
+        + `?geometries=geojson&access_token=${token}`;
+      fetch(url)
+        .then((r) => r.json())
+        .then((data) => {
+          const geometry = data.routes?.[0]?.geometry;
+          if (!geometry) return;
+          (map.getSource("route-line") as any)?.setData({
+            type: "FeatureCollection",
+            features: [{ type: "Feature", geometry, properties: {} }],
+          });
+        })
+        .catch(() => {
+          // Fallback: straight line
+          (map.getSource("route-line") as any)?.setData({
+            type: "FeatureCollection",
+            features: [{
+              type: "Feature",
+              geometry: { type: "LineString", coordinates: [[start_lon, start_lat], [end_lon, end_lat]] },
+              properties: {},
+            }],
+          });
+        });
+
+      // Endpoint markers
+      (map.getSource("endpoints") as any)?.setData({
+        type: "FeatureCollection",
+        features: [
+          { type: "Feature", geometry: { type: "Point", coordinates: [start_lon, start_lat] }, properties: { kind: "start" } },
+          { type: "Feature", geometry: { type: "Point", coordinates: [end_lon, end_lat] }, properties: { kind: "end" } },
+        ],
+      });
+
+      // Fit bounds
+      const bounds: [[number, number], [number, number]] = [
+        [Math.min(start_lon, end_lon) - 0.02, Math.min(start_lat, end_lat) - 0.02],
+        [Math.max(start_lon, end_lon) + 0.02, Math.max(start_lat, end_lat) + 0.02],
+      ];
+      map.fitBounds(bounds, { padding: 80, duration: 1000 });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selected]);
+
+  // Push heatmap — route-filtered when selected, all events otherwise
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReadyRef.current) return;
+    const points = selected ? heatPoints : allHeatPoints;
+    const geojson = {
+      type: "FeatureCollection" as const,
+      features: points.map((e) => ({
+        type: "Feature" as const,
+        geometry: { type: "Point" as const, coordinates: [e.lon, e.lat] },
+        properties: {
+          weight: SEVERITY_WEIGHT[e.severity?.toLowerCase()] ?? 1,
+          severity: e.severity ?? "low",
+          event_type: e.event_type ?? "",
+        },
+      })),
+    };
+    (map.getSource("events") as any)?.setData(geojson);
+  }, [heatPoints, allHeatPoints, selected]);
+
+  const criticalCount = heatPoints.filter((e) => e.severity === "critical").length;
+  const highCount = heatPoints.filter((e) => e.severity === "high").length;
 
   return (
-    <DashboardPageTemplate
-      title="Routes"
-      subtitle="Manage planned corridors and logistics networks"
-      stats={stats}
-    >
-      <Card className="glass rounded-xl">
-        <CardHeader>
-          <CardTitle>Route Registry</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="space-y-4">
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-10 w-full" />
+    <div className="-m-2 md:-m-3 flex h-[calc(100vh-3.5rem)] overflow-hidden">
+      {/* ── Left sidebar ─────────────────────────────────────────────────── */}
+      <div className="w-80 flex-shrink-0 flex flex-col bg-card border-r border-border overflow-hidden">
+        {/* Sidebar header */}
+        <div className="px-4 py-3 border-b border-border">
+          <h2 className="text-sm font-bold uppercase tracking-tight">Routes</h2>
+          <p className="text-xs text-muted-foreground mt-0.5">{routes.length} corridors</p>
+        </div>
+
+        {/* Route list */}
+        <div className="flex-1 overflow-y-auto">
+          {routes.map((route) => {
+            const isSelected = selected?.id === route.id;
+            return (
+              <button
+                key={route.id}
+                onClick={() => setSelected(route)}
+                className={`w-full text-left px-4 py-3 border-b border-border/50 transition-colors hover:bg-muted/50 ${
+                  isSelected ? "bg-muted border-l-2 border-l-indigo-500" : ""
+                }`}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold truncate">{route.name}</p>
+                    <div className="flex items-center gap-1 mt-1">
+                      <MapPin className="h-3 w-3 text-green-500 flex-shrink-0" />
+                      <span className="text-[10px] text-muted-foreground truncate">{route.start_location}</span>
+                    </div>
+                    <div className="flex items-center gap-1 mt-0.5">
+                      <Navigation className="h-3 w-3 text-red-500 flex-shrink-0" />
+                      <span className="text-[10px] text-muted-foreground truncate">{route.end_location}</span>
+                    </div>
+                  </div>
+                  <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                    <Badge variant="outline" className={`text-[9px] px-1.5 py-0 ${ROUTE_TYPE_COLOR[route.route_type] ?? ""}`}>
+                      {route.route_type}
+                    </Badge>
+                    {route.distance_km && (
+                      <span className="text-[10px] text-muted-foreground">{Number(route.distance_km).toFixed(0)} km</span>
+                    )}
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Selected route info panel */}
+        {selected && (
+          <div className="border-t border-border p-4 bg-muted/30">
+            <p className="text-xs font-semibold mb-2">{selected.name}</p>
+            {loadingHeat ? (
+              <p className="text-xs text-muted-foreground">Loading events…</p>
+            ) : (
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground">Total events</span>
+                  <span className="font-semibold">{heatPoints.length}</span>
+                </div>
+                {criticalCount > 0 && (
+                  <div className="flex items-center gap-1.5 text-xs text-red-400">
+                    <AlertTriangle className="h-3 w-3" />
+                    <span>{criticalCount} critical</span>
+                  </div>
+                )}
+                {highCount > 0 && (
+                  <div className="flex items-center gap-1.5 text-xs text-orange-400">
+                    <AlertTriangle className="h-3 w-3" />
+                    <span>{highCount} high severity</span>
+                  </div>
+                )}
+                {heatPoints.length === 0 && (
+                  <p className="text-xs text-muted-foreground">No events recorded yet.</p>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* ── Map ──────────────────────────────────────────────────────────── */}
+      <div className="flex-1 relative">
+        <div ref={mapContainerRef} className="h-full w-full" />
+
+        {/* Select-a-route hint (subtle, doesn't block the map) */}
+        {!selected && (
+          <div className="absolute top-4 left-4 pointer-events-none">
+            <div className="bg-white/80 backdrop-blur-sm rounded-lg px-3 py-2 text-xs text-gray-600 shadow-sm flex items-center gap-2">
+              <Truck className="h-3.5 w-3.5 text-gray-500" />
+              Select a route to filter the heatmap
             </div>
-          ) : (
-            <DataTable columns={columns} data={rows} />
-          )}
-        </CardContent>
-      </Card>
-    </DashboardPageTemplate>
+          </div>
+        )}
+
+        {/* Heatmap legend — always visible when there are any points */}
+        {(selected ? heatPoints : allHeatPoints).length > 0 && (
+          <div className="absolute bottom-6 right-4 rounded-lg bg-black/70 px-3 py-2 backdrop-blur-sm">
+            <p className="mb-1.5 text-[10px] font-bold uppercase tracking-widest text-white/60">Incident Density</p>
+            <div className="flex items-center gap-2">
+              <div className="h-2 w-24 rounded-full"
+                style={{ background: "linear-gradient(to right, #fef08a, #fbbf24, #f97316, #dc2626, #7f1d1d)" }} />
+              <div className="flex w-20 justify-between text-[9px] text-white/50">
+                <span>Low</span><span>High</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Endpoint legend */}
+        {selected && (
+          <div className="absolute top-4 left-4 rounded-lg bg-black/70 px-3 py-2 backdrop-blur-sm space-y-1">
+            <div className="flex items-center gap-2 text-xs text-white/80">
+              <span className="inline-block h-3 w-3 rounded-full bg-green-500 ring-1 ring-white/30" />
+              {selected.start_location}
+            </div>
+            <div className="flex items-center gap-2 text-xs text-white/80">
+              <span className="inline-block h-3 w-3 rounded-full bg-red-500 ring-1 ring-white/30" />
+              {selected.end_location}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }

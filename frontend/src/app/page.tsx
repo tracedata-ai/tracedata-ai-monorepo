@@ -15,6 +15,11 @@ import {
   Scale,
   Settings2,
   Shield,
+  Truck,
+  Users,
+  Route,
+  AlertTriangle,
+  LayoutDashboard,
   Workflow,
 } from "lucide-react";
 
@@ -47,14 +52,57 @@ const homepageCopy = {
   hero: {
     imageAlt:
       "Cinematic wide shot of a high-tech semi-truck on highway with glowing data beam",
-    badge: "AI Intelligence Middleware for Fleet Management",
+    badge: "Academic Research Platform · Agentic AI for Fleet Management",
     titleLine1: "Fair, Explainable",
     titleAccent: "Fleet Intelligence",
     description:
-      "Built for SMB fleets, TraceData addresses 7 critical telematics gaps with a people-first philosophy.",
-    primaryCta: "Get Started",
+      "An academic platform exploring real-world agentic AI deployment. TraceData ships a working multi-agent system — fairness-aware scoring, live operational dashboards, and contestable driver outcomes for SMB fleets.",
+    primaryCta: "Open Platform",
     secondaryCta: "View Fleet Manager",
     scrollHint: "Scroll for Architecture",
+  },
+  platform: {
+    eyebrow: "Working Software",
+    title: "Designed and Shipped",
+    description:
+      "Beyond the architecture — a fully operational fleet management interface backed by the multi-agent system.",
+    features: [
+      {
+        icon: "dashboard" as const,
+        title: "Fleet Dashboard",
+        body: "Central command with agent pulse monitoring, live charts, and fleet-wide status at a glance.",
+        href: "/fleet-manager",
+        accent: "#70d2ff",
+      },
+      {
+        icon: "fleet" as const,
+        title: "Fleet Overview",
+        body: "Monitor all vehicles, trip status, and operational health across the entire fleet.",
+        href: "/fleet-manager/fleet",
+        accent: "#a5c8ff",
+      },
+      {
+        icon: "drivers" as const,
+        title: "Driver Profiles",
+        body: "Individual driver records with scores, coaching history, and sentiment trajectory.",
+        href: "/fleet-manager/drivers",
+        accent: "#ddb7ff",
+      },
+      {
+        icon: "trips" as const,
+        title: "Trip Intelligence",
+        body: "Trip-level telemetry, safety event timelines, and route context for every journey.",
+        href: "/fleet-manager/trips",
+        accent: "#00aadd",
+      },
+      {
+        icon: "issues" as const,
+        title: "Issues & Appeals",
+        body: "Safety event management, driver appeals, and fleet-manager intervention decisions.",
+        href: "/fleet-manager/issues",
+        accent: "#a5c8ff",
+      },
+    ],
   },
   ecosystem: {
     eyebrow: "Proposed High-Level Architecture",
@@ -540,6 +588,79 @@ function EcosystemSection() {
   );
 }
 
+const platformIcons: Record<string, React.ReactNode> = {
+  dashboard: <LayoutDashboard className="h-5 w-5" />,
+  fleet: <Truck className="h-5 w-5" />,
+  drivers: <Users className="h-5 w-5" />,
+  trips: <Route className="h-5 w-5" />,
+  issues: <AlertTriangle className="h-5 w-5" />,
+};
+
+function PlatformSection() {
+  const { ref, visible } = useInView(0.1);
+  return (
+    <section
+      ref={ref as React.RefObject<HTMLElement>}
+      className="bg-[#070a2b] px-6 py-28 md:px-12"
+    >
+      <div className="mx-auto max-w-7xl">
+        <div
+          className={`fade-in-up mb-16 flex flex-col gap-6 md:flex-row md:items-end md:justify-between ${
+            visible ? "is-visible" : ""
+          }`}
+        >
+          <div className="max-w-xl">
+            <span
+              className={`mb-4 block text-sm uppercase tracking-[0.2em] text-[#70d2ff] ${monoFont.className}`}
+            >
+              {homepageCopy.platform.eyebrow}
+            </span>
+            <h2
+              className={`text-4xl font-extrabold leading-[1.02] tracking-[-0.02em] text-[#dfe0ff] md:text-5xl ${displayFont.className}`}
+            >
+              {homepageCopy.platform.title}
+            </h2>
+          </div>
+          <p className="max-w-sm text-base font-medium leading-7 text-[#bdc8d0] md:text-right">
+            {homepageCopy.platform.description}
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {/* Dashboard card — spans full width on its row */}
+          {homepageCopy.platform.features.map((feature, i) => (
+            <Link
+              key={feature.title}
+              href={feature.href}
+              className={`card-glow fade-in-up ${staggerClasses[i]} group flex flex-col rounded-xl bg-[#151939] p-7 transition hover:bg-[#191d3d] ${
+                i === 0 ? "sm:col-span-2 lg:col-span-1" : ""
+              } ${visible ? "is-visible" : ""}`}
+            >
+              <div
+                className="mb-5 inline-flex h-10 w-10 items-center justify-center rounded-lg"
+                style={{ backgroundColor: `${feature.accent}18`, color: feature.accent }}
+              >
+                {platformIcons[feature.icon]}
+              </div>
+              <h3 className={`mb-3 text-lg font-bold text-[#dfe0ff] ${displayFont.className}`}>
+                {feature.title}
+              </h3>
+              <p className="flex-1 text-sm leading-7 text-[#bdc8d0]">{feature.body}</p>
+              <div
+                className="mt-5 flex items-center gap-1 text-xs font-semibold transition-colors group-hover:text-[#70d2ff]"
+                style={{ color: feature.accent }}
+              >
+                <span className={monoFont.className}>Open</span>
+                <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-1" />
+              </div>
+            </Link>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function ExplainabilitySection() {
   const { ref, visible } = useInView(0.15);
   return (
@@ -968,6 +1089,7 @@ export default function HomePage() {
       <TopNav scrolled={scrolled} />
       <HeroSection />
       <EcosystemSection />
+      <PlatformSection />
       <ExplainabilitySection />
       <IntegritySection />
       <TechnicalSpecsSection />

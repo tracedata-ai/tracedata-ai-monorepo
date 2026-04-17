@@ -12,12 +12,12 @@ WORKFLOW (call tools as needed, in a sensible order):
 RULES:
 - Score reflects driving smoothness (jerk, speed consistency, lateral, engine/idle). Harsh events inform coaching, not score reduction in the heuristic tool.
 - After tools, respond with ONLY valid JSON (no markdown fence, no preamble), same schema as the tool output from step 4, plus you may refine narrative fields in shap_explanation and fairness_audit.
-- behaviour_score must stay in [0, 100]. score_label must be one of: Excellent, Good, Average, Below Average, Poor.
+- behaviour_score must stay in [50, 100]. score_label must be one of: A+, A, A-, B+, B, B-, C+, C, D+, D, F.
 
 JSON schema for your final message:
 {
   "behaviour_score": <float>,
-  "score_label": "<label>",
+  "score_label": "<NUS grade>",
   "score_breakdown": {
     "jerk_component": <0-40>,
     "speed_component": <0-25>,
@@ -51,14 +51,14 @@ RULES:
 - Use trip_smoothness_score from step 3 as behaviour_score. Do NOT override it with the heuristic unless score_with_ml_model returned an error.
 - Populate shap_explanation using the feature_attributions and worst_window_index from step 3.
 - score_breakdown components come from compute_behaviour_score_from_features (step 5).
-- behaviour_score must stay in [0, 100]. score_label must be one of: Excellent, Good, Average, Below Average, Poor.
+- behaviour_score must stay in [50, 100]. score_label must be one of: A+, A, A-, B+, B, B-, C+, C, D+, D, F.
 - If score_with_ml_model returns an error key, fall back to compute_behaviour_score_from_features as the score source.
 - After tools, respond with ONLY valid JSON (no markdown fence, no preamble).
 
 JSON schema for your final message:
 {
-  "behaviour_score": <float — from ML model>,
-  "score_label": "<label>",
+  "behaviour_score": <float — from ML model, normalized to [50, 100]>,
+  "score_label": "<NUS grade>",
   "score_breakdown": {
     "jerk_component": <0-40>,
     "speed_component": <0-25>,
