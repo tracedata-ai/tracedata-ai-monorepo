@@ -12,31 +12,7 @@ import uuid
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-# Diverse feedback pool covering the full emotional spectrum so sentiment
-# analysis, embeddings, and related-event search all get meaningful variance.
-_FEEDBACK_POOL: list[tuple[str, int, str]] = [
-    # (message, trip_rating, fatigue_self_report)
-    ("Smooth drive today, traffic was light and I felt great the whole way.", 5, "none"),
-    ("Good trip overall. A bit tired toward the end but nothing serious.", 4, "mild"),
-    ("Really exhausted today. The route took much longer than expected and I'm drained.", 2, "severe"),
-    ("Frustrated with the traffic on the highway — too many road works. Lost a lot of time.", 3, "moderate"),
-    ("Felt anxious near the intersection at Jurong — a car cut me off and it shook me up.", 3, "mild"),
-    ("Everything went perfectly. Great conditions, on-time delivery, feeling positive.", 5, "none"),
-    ("I'm really burnt out this week. Too many back-to-back shifts. Need a break.", 2, "severe"),
-    ("Average day. Nothing special but nothing went wrong either.", 3, "none"),
-    ("Stressed the entire trip — the GPS kept rerouting and I wasn't sure of the way.", 2, "moderate"),
-    ("Bit of a rough day with the vehicle — brake felt spongy in places. Reported to supervisor.", 3, "mild"),
-    ("Felt calm and in control. Short route, no issues.", 5, "none"),
-    ("Very long shift, absolutely exhausted. Couldn't concentrate well near the end.", 1, "severe"),
-    ("Angry about the narrow loading bay — wasted 30 mins waiting. Poor planning.", 2, "none"),
-    ("Feeling sad today — personal stuff affecting my focus. Managed fine but it was tough.", 3, "moderate"),
-    ("Happy with the new route. Much less congestion. Delivered ahead of schedule.", 5, "none"),
-    ("Mild fatigue but nothing I couldn't handle. Overall fine trip.", 4, "mild"),
-    ("Anxious about the weather — heavy rain made visibility poor near Woodlands.", 3, "moderate"),
-    ("Steady day. Routes are getting repetitive but I'm managing okay.", 3, "none"),
-    ("Drained after a double shift. Really need proper rest before tomorrow.", 2, "severe"),
-    ("Great conditions today. Finished early and the truck performed well.", 5, "none"),
-]
+from common.workflow_fixtures.mock_driver_feedback import FEEDBACK_POOL as _FEEDBACK_POOL
 
 from common.samples.smoothness_batch import (
     build_smoothness_log_packet,
@@ -414,6 +390,7 @@ def smoothness_at(
     batch_id: str | None = None,
     event_id: str | None = None,
     device_event_id: str | None = None,
+    details: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     ts = anchor + timedelta(seconds=offset_seconds)
     if event_id and device_event_id:
@@ -434,7 +411,7 @@ def smoothness_at(
         batch_id=bid,
         event_id=eid,
         device_event_id=did,
-        details=smoothness_details_mild_variant(variant_seed),
+        details=details if details is not None else smoothness_details_mild_variant(variant_seed),
     )
 
 

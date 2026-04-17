@@ -376,6 +376,10 @@ async def _push_trip_batch(
     total_pushed = 0
     rng = _random.Random()
 
+    # Guaranteed style rotation so every batch covers the full score spectrum.
+    # Cycles: excellent → good → average → poor → aggressive → good → average …
+    _STYLE_ROTATION = ["excellent", "good", "average", "poor", "aggressive"]
+
     for idx, (driver, vehicle) in enumerate(pairs):
         route = routes[idx % len(routes)] if routes else None
         trip = await _create_trip(tenant_id, driver, vehicle, route)
@@ -390,6 +394,7 @@ async def _push_trip_batch(
 
         # Stagger trip anchors by 2 minutes so timestamps don't collide
         anchor = now + timedelta(minutes=idx * 2)
+        style = _STYLE_ROTATION[idx % len(_STYLE_ROTATION)]
         packets = build_events(
             trip_id=trip_id,
             truck_id=truck_id,
@@ -397,6 +402,7 @@ async def _push_trip_batch(
             anchor=anchor,
             smooth_count=trip_smooth,
             harsh_count=trip_harsh,
+            style=style,
         )
 
         key = f"telemetry:{truck_id}:buffer"
@@ -408,7 +414,7 @@ async def _push_trip_batch(
 
         print(
             f"[sim]   truck={truck_id} trip={trip_id[:8]}… "
-            f"events={len(packets)} (smooth={trip_smooth} harsh={trip_harsh})"
+            f"events={len(packets)} (smooth={trip_smooth} harsh={trip_harsh} style={style})"
         )
 
         if truck_delay > 0 and idx < len(drivers) - 1:

@@ -140,13 +140,14 @@ def extract_feature_bundle(all_pings: list[dict]) -> dict[str, Any]:
 
 
 def score_label_from_value(behaviour_score: float) -> str:
-    if behaviour_score >= 85:
+    # Thresholds tuned for the XGBoost ML model output range (~5–65).
+    if behaviour_score >= 60:
         return "Excellent"
-    if behaviour_score >= 70:
+    if behaviour_score >= 48:
         return "Good"
-    if behaviour_score >= 55:
+    if behaviour_score >= 34:
         return "Average"
-    if behaviour_score >= 40:
+    if behaviour_score >= 18:
         return "Below Average"
     return "Poor"
 

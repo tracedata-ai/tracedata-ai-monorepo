@@ -15,6 +15,11 @@ import uuid
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
+from common.samples.smoothness_batch import (
+    DRIVING_STYLES,
+    STYLE_WEIGHTS,
+    smoothness_details_for_style,
+)
 from common.workflow_fixtures.builders import (
     driver_feedback_packet,
     end_of_trip_packet,
@@ -57,6 +62,7 @@ def build_events(
     smooth_count: int = 15,
     harsh_count: int = 3,
     random_seed: int | None = None,
+    style: str | None = None,
 ) -> list[dict[str, Any]]:
     """
     Build one complete trip timeline.
@@ -64,6 +70,9 @@ def build_events(
     Args:
         smooth_count: Number of 10-minute smoothness windows (6–24).
         harsh_count:  Number of harsh driving events (2–6).
+        style: Driving style archetype override. If None, chosen randomly from
+               DRIVING_STYLES with STYLE_WEIGHTS. Pass explicitly to guarantee
+               a specific tier appears in the batch.
     """
     if smooth_count < 6 or smooth_count > 24:
         raise ValueError("smooth_count must be between 6 and 24")
@@ -72,6 +81,8 @@ def build_events(
 
     t0 = anchor or datetime.now(UTC).replace(microsecond=0)
     rng = random.Random(random_seed)
+    if style is None:
+        style = rng.choices(DRIVING_STYLES, weights=STYLE_WEIGHTS, k=1)[0]
     total_minutes = smooth_count * 10
     end_offset = (total_minutes * 60) + 180
     total_km = round((total_minutes / 60) * 30, 1)  # ~30 km/h average
@@ -94,7 +105,7 @@ def build_events(
         )
     )
 
-    # Smooth windows at 10-minute intervals
+    # Smooth windows at 10-minute intervals — each window gets style-specific details
     for i in range(1, smooth_count + 1):
         off = i * 600
         tm, od = meters_for_offset(off, end_offset, total_km, base_od)
@@ -112,6 +123,7 @@ def build_events(
                 batch_id=f"BAT-sm-{uuid.uuid4().hex[:10]}",
                 event_id=ev_id,
                 device_event_id=dev_id,
+                details=smoothness_details_for_style(style, rng),
             )
         )
 
