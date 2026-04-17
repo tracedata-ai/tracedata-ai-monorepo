@@ -272,6 +272,30 @@
   animation: shimmer 3s ease-in-out 0.8s 1 forwards;
 }
 
+/* Vehicle card shimmer sweep on hover */
+.shimmer-card {
+  position: relative;
+  overflow: hidden;
+}
+.shimmer-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.18) 50%,
+    transparent 70%
+  );
+  transform: translateX(-150%);
+  transition: transform 0.65s ease;
+  pointer-events: none;
+  z-index: 10;
+}
+.shimmer-card:hover::after {
+  transform: translateX(150%);
+}
+
 /* Safety agent pulse ring */
 .pulse-ring {
   animation: pulse-ring 2.2s cubic-bezier(0.455, 0.03, 0.515, 0.955) infinite;
