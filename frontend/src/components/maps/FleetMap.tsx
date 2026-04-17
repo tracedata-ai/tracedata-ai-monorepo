@@ -75,6 +75,7 @@ export function FleetMap({ vehicles, height = 400 }: Props) {
           style: "mapbox://styles/mapbox/streets-v12",
           center: [103.82, 1.35],
           zoom: 11,
+          minZoom: 9,
         });
 
         map.addControl(new mapboxgl.NavigationControl(), "top-right");

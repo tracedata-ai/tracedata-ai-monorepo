@@ -55,6 +55,7 @@ function EventMap({ lat, lon }: { lat: number; lon: number }) {
           style: "mapbox://styles/mapbox/streets-v12",
           center: [lon, lat],
           zoom: 13,
+          minZoom: 9,
         });
 
         new mapboxgl.Marker({ color: "#ef4444" })

@@ -224,7 +224,7 @@ def compute_driver_score(
     trip_score: float,
     historical_avg: dict[str, Any],
 ) -> float:
-    """Blend current trip score with rolling history for driver-level scoring."""
+    """Blend current trip score with rolling history, mapped to 0–5 driver rating."""
     raw = historical_avg.get("historical_avg_score") or historical_avg.get(
         "rolling_avg_score"
     )
@@ -234,7 +234,8 @@ def compute_driver_score(
         baseline = float(trip_score)
 
     blended = 0.7 * float(trip_score) + 0.3 * baseline
-    return round(max(0.0, min(100.0, blended)), 1)
+    # Map 0–100 trip score to 0–5 driver rating
+    return round(max(0.0, min(5.0, blended / 20.0)), 2)
 
 
 def clamp_behaviour_score(payload: dict[str, Any], baseline: float) -> None:
@@ -257,6 +258,19 @@ def merge_graph_json_with_baseline(
     """Clamp score using deterministic baseline from bundle; fill missing keys."""
     sf = bundle["smoothness_features"]
     baseline, _ = compute_components_and_baseline(sf)
+
+    # Guard: LLM sometimes returns a 0-10 scale value when told 0-100.
+    # If the returned score is <15 but the deterministic baseline is >=15,
+    # the LLM scaled down by ~10x — multiply back up.
+    llm_score = parsed.get("behaviour_score")
+    if llm_score is not None:
+        try:
+            llm_float = float(llm_score)
+            if llm_float < 15.0 and baseline >= 15.0:
+                parsed["behaviour_score"] = round(llm_float * 10.0, 1)
+        except (TypeError, ValueError):
+            pass
+
     clamp_behaviour_score(parsed, baseline)
     base = deterministic_payload_from_bundle(bundle)
     for key, val in base.items():

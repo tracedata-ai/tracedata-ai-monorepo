@@ -2,7 +2,6 @@
 
 import uuid
 from datetime import datetime
-from decimal import Decimal
 
 from pydantic import BaseModel, Field
 
@@ -40,7 +39,7 @@ class TripRead(TripCreate):
     """
 
     id: uuid.UUID
-    safety_score: Decimal | None = Field(None, description="XGBoost safety score 0–100")
+    safety_score: float | None = Field(None, description="XGBoost safety score 0–10")
     score_explanation: str | None = Field(
         None,
         description="SHAP/LIME explanation in JSON format — supports driver transparency",

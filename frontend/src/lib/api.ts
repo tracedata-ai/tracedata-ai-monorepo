@@ -90,6 +90,7 @@ export type Trip = {
   route_id: string;
   status: string;
   created_at: string;
+  safety_score: number | null;
 };
 
 export type Maintenance = {
@@ -313,6 +314,7 @@ export type TripDetail = {
   distance_km: number | null;
   scoring: {
     score: number | null;
+    driver_score: number | null;
     breakdown: Record<string, number>;
     narrative: string | null;
   };

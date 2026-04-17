@@ -8,18 +8,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft, MapPin, Shield, Brain, MessageSquare, Smile } from "lucide-react";
-import {
-  Chart as ChartJS,
-  ArcElement,
-  BarElement,
-  CategoryScale,
-  LinearScale,
-  Tooltip,
-  Legend,
-} from "chart.js";
-import { Doughnut, Bar } from "react-chartjs-2";
+import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
+import { Doughnut } from "react-chartjs-2";
 
-ChartJS.register(ArcElement, BarElement, CategoryScale, LinearScale, Tooltip, Legend);
+ChartJS.register(ArcElement, Tooltip, Legend);
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -56,8 +48,8 @@ function LV({ label, value }: { label: string; value: React.ReactNode }) {
 // ── Score Gauge ───────────────────────────────────────────────────────────────
 
 function ScoreGauge({ score }: { score: number }) {
-  const pct = Math.min(100, Math.max(0, score * 10));
-  const color = score >= 8 ? "#22c55e" : score >= 5 ? "#eab308" : "#ef4444";
+  const pct = Math.min(100, Math.max(0, score));
+  const color = score >= 80 ? "#22c55e" : score >= 55 ? "#eab308" : "#ef4444";
 
   const data = {
     datasets: [
@@ -89,10 +81,10 @@ function ScoreGauge({ score }: { score: number }) {
         {/* overlay sits in the doughnut hole — gauge opens at the bottom */}
         <div className="absolute inset-0 flex flex-col items-center justify-end pb-5">
           <span className="text-4xl font-bold tabular-nums" style={{ color }}>
-            {score.toFixed(1)}
+            {score.toFixed(0)}
           </span>
           <span className="text-[10px] uppercase tracking-widest text-muted-foreground leading-tight">
-            / 10
+            / 100
           </span>
         </div>
       </div>
@@ -223,6 +215,7 @@ function TripEventMap({ events }: { events: TripDetail["safety_events"] }) {
           style: "mapbox://styles/mapbox/streets-v12",
           center: [withCoords[0].lon!, withCoords[0].lat!],
           zoom: 12,
+          minZoom: 9,
         });
 
         withCoords.forEach((e, i) => {
@@ -336,6 +329,7 @@ export default function TripDetailPage() {
   }
 
   const score = detail.scoring.score;
+  const driverScore = detail.scoring.driver_score;
   const breakdown = detail.scoring.breakdown;
   const hasBreakdown = Object.keys(breakdown).length > 0;
   const criticalEvents = detail.safety_events.filter(
@@ -398,12 +392,21 @@ export default function TripDetailPage() {
             <CardContent className="flex flex-col items-center gap-3">
               <ScoreGauge score={score} />
               <p className="text-xs text-center text-muted-foreground px-2">
-                {score >= 8
+                {score >= 80
                   ? "Good — driver performance within acceptable bounds."
-                  : score >= 5
+                  : score >= 55
                   ? "Fair — coaching recommended to address identified patterns."
                   : "Poor — immediate intervention advised."}
               </p>
+              {driverScore != null && (
+                <div className="mt-1 w-full rounded-lg border border-border bg-muted/50 px-4 py-3 flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground uppercase tracking-widest">Driver Rating</span>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-xl font-bold tabular-nums">{driverScore.toFixed(1)}</span>
+                    <span className="text-xs text-muted-foreground">/ 5</span>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 

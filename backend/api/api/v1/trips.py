@@ -7,9 +7,10 @@ Endpoints:
 """
 
 import uuid
+from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.api.deps import get_db
@@ -33,9 +34,8 @@ async def list_trips(
 ) -> list[Trip]:
     """
     Returns trips with optional status and tenant filtering.
-
-    TIP: Try `?status=active` to see only live trips,
-    or `?tenant_id=<uuid>` to see trips for a specific operator.
+    safety_score is backfilled from scoring_schema.trip_scores when the
+    trips table column is NULL (scoring agent writes there, not here).
     """
     query = select(Trip).offset(skip).limit(limit)
     if status_filter:
@@ -43,7 +43,26 @@ async def list_trips(
     if tenant_id:
         query = query.where(Trip.tenant_id == tenant_id)
     result = await db.execute(query)
-    return list(result.scalars().all())
+    trips = list(result.scalars().all())
+
+    # Backfill safety_score from scoring_schema for trips the scoring agent
+    # has processed but hasn't written back to the trips table.
+    if trips:
+        ids_missing_score = [str(t.id) for t in trips if t.safety_score is None]
+        if ids_missing_score:
+            rows = (await db.execute(
+                text(
+                    "SELECT trip_id, score FROM scoring_schema.trip_scores "
+                    "WHERE trip_id = ANY(:ids)"
+                ),
+                {"ids": ids_missing_score},
+            )).mappings().all()
+            score_map: dict[str, Decimal] = {r["trip_id"]: r["score"] for r in rows}
+            for trip in trips:
+                if trip.safety_score is None:
+                    trip.safety_score = score_map.get(str(trip.id))
+
+    return trips
 
 
 @router.get("/{trip_id}", response_model=TripRead, summary="Get trip by ID")
@@ -100,9 +119,19 @@ async def get_trip_detail(
 
     # ── Scoring ───────────────────────────────────────────────────────────────
     score_row = (await db.execute(
-        text("SELECT score, score_breakdown, scoring_narrative FROM scoring_schema.trip_scores WHERE trip_id = :tid LIMIT 1"),
+        text("SELECT score, score_breakdown, scoring_narrative, driver_id FROM scoring_schema.trip_scores WHERE trip_id = :tid LIMIT 1"),
         {"tid": tid},
     )).mappings().first()
+
+    # Driver score: average of all scored trips for this driver, mapped to 0–5
+    driver_score: float | None = None
+    if score_row:
+        avg_row = (await db.execute(
+            text("SELECT AVG(score) AS avg_score FROM scoring_schema.trip_scores WHERE driver_id = :did"),
+            {"did": score_row["driver_id"]},
+        )).mappings().first()
+        if avg_row and avg_row["avg_score"] is not None:
+            driver_score = round(max(0.0, min(5.0, float(avg_row["avg_score"]) / 20.0)), 2)
 
     # ── Safety events ─────────────────────────────────────────────────────────
     safety_rows = (await db.execute(
@@ -143,6 +172,7 @@ async def get_trip_detail(
         "distance_km": float(meta_row.get("distance_km") or 0) or None,
         "scoring": {
             "score": score_row.get("score") if score_row else None,
+            "driver_score": driver_score,
             "breakdown": dict(score_row.get("score_breakdown") or {}) if score_row else {},
             "narrative": score_row.get("scoring_narrative") if score_row else None,
         },

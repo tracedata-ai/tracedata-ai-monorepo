@@ -43,12 +43,18 @@ const columns: ColumnDef<Trip>[] = [
   },
   {
     accessorKey: "safety_score",
-    header: "Safety Score",
+    header: "Trip Score (/100)",
     cell: (info) => {
-      const v = info.getValue() as number | null;
-      if (v == null) return <span className="text-muted-foreground text-sm">Pending</span>;
-      const color = v >= 8 ? "text-green-400" : v >= 5 ? "text-yellow-400" : "text-red-400";
-      return <span className={`font-semibold ${color}`}>{v.toFixed(1)}</span>;
+      const raw = info.getValue();
+      if (raw == null) return <span className="text-muted-foreground text-sm">Pending</span>;
+      const v = Number(raw);
+      if (isNaN(v)) return <span className="text-muted-foreground text-sm">Pending</span>;
+      const color = v >= 80 ? "text-green-600" : v >= 55 ? "text-yellow-600" : "text-red-600";
+      return (
+        <span className={`font-semibold ${color}`}>
+          {v.toFixed(1)}<span className="font-normal text-muted-foreground text-xs"> / 100</span>
+        </span>
+      );
     },
   },
   {
