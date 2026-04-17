@@ -20,6 +20,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.api.deps import get_db
 from api.models.fleet import Vehicle
+from api.models.maintenance import Maintenance
 from api.schemas.fleet import VehicleCreate, VehicleRead
 
 router = APIRouter(prefix="/fleet", tags=["Fleet"])
@@ -31,7 +32,7 @@ async def list_vehicles(
     limit: int = 50,
     tenant_id: uuid.UUID | None = None,
     db: AsyncSession = Depends(get_db),
-) -> list[Vehicle]:
+) -> list[VehicleRead]:
     """
     Returns a paginated list of vehicles.
     Optional: ?tenant_id=<uuid> to filter by fleet operator.
@@ -39,8 +40,24 @@ async def list_vehicles(
     query = select(Vehicle).offset(skip).limit(limit)
     if tenant_id:
         query = query.where(Vehicle.tenant_id == tenant_id)
-    result = await db.execute(query)
-    return list(result.scalars().all())
+    vehicles = list((await db.execute(query)).scalars().all())
+
+    # Collect vehicle IDs that have open (non-completed) maintenance
+    open_ids: set[uuid.UUID] = set()
+    if vehicles:
+        rows = (await db.execute(
+            select(Maintenance.vehicle_id).where(
+                Maintenance.status.in_(["scheduled", "in_progress", "overdue"])
+            )
+        )).all()
+        open_ids = {r for (r,) in rows}
+
+    out: list[VehicleRead] = []
+    for v in vehicles:
+        row = VehicleRead.model_validate(v)
+        row.has_open_maintenance = v.id in open_ids
+        out.append(row)
+    return out
 
 
 @router.get("/{vehicle_id}", response_model=VehicleRead, summary="Get vehicle by ID")

@@ -34,8 +34,12 @@ from typing import Any
 import redis.asyncio as redis
 from sqlalchemy import select, text
 
+import random as _random
+from datetime import date
+
 from api.models.driver import Driver
 from api.models.fleet import Vehicle
+from api.models.maintenance import Maintenance
 from api.models.route import Route
 from api.models.tenant import Tenant
 from api.models.trip import Trip
@@ -235,6 +239,78 @@ async def _ensure_baseline_entities() -> (
         return list(drivers), list(vehicles), list(routes)
 
 
+_MAINT_TYPES = [
+    "oil_change",
+    "tyre_rotation",
+    "brake_inspection",
+    "air_filter_replacement",
+    "coolant_flush",
+    "transmission_service",
+    "battery_check",
+    "wheel_alignment",
+]
+
+_MAINT_STATUSES = ["completed", "completed", "scheduled", "overdue", "in_progress"]
+
+
+async def _seed_vehicle_details(vehicles: list[Vehicle]) -> None:
+    """
+    Idempotent: skips if maintenance records already exist.
+    For each vehicle:
+      - assigns a randomised fuel_level (15–95 %)
+      - creates 2–3 maintenance records with realistic statuses
+      - sets vehicle.status = 'in_maintenance' when a record is in_progress
+    """
+    rng = _random.Random(42)
+    today = date.today()
+
+    async with AsyncSessionLocal() as session:
+        existing = (await session.execute(select(Maintenance).limit(1))).scalar_one_or_none()
+        if existing:
+            return
+
+        for v in vehicles:
+            # Refresh into this session
+            vehicle = await session.get(Vehicle, v.id)
+            if not vehicle:
+                continue
+
+            vehicle.fuel_level = rng.randint(15, 95)
+
+            record_count = rng.randint(2, 3)
+            has_in_progress = False
+            for j in range(record_count):
+                maint_status = rng.choice(_MAINT_STATUSES)
+                maint_type = _MAINT_TYPES[(vehicles.index(v) + j) % len(_MAINT_TYPES)]
+
+                scheduled = today + timedelta(days=rng.randint(-30, 60))
+                completed = (
+                    scheduled + timedelta(days=rng.randint(0, 5))
+                    if maint_status == "completed"
+                    else None
+                )
+
+                session.add(Maintenance(
+                    tenant_id=vehicle.tenant_id,
+                    vehicle_id=vehicle.id,
+                    maintenance_type=maint_type,
+                    status=maint_status,
+                    scheduled_date=scheduled,
+                    completed_date=completed,
+                    triggered_by="schedule",
+                    notes=f"Routine {maint_type.replace('_', ' ')} — seeded by bootstrap",
+                ))
+
+                if maint_status == "in_progress":
+                    has_in_progress = True
+
+            if has_in_progress:
+                vehicle.status = "in_maintenance"
+
+        await session.commit()
+        print(f"[bootstrap] Seeded fuel levels and maintenance records for {len(vehicles)} vehicles.")
+
+
 async def _create_trip(
     tenant_id: Any,
     driver: Driver,
@@ -288,9 +364,13 @@ async def _push_trip_batch(
         return 0
     tenant_id = drivers[0].tenant_id
 
-    # Clamp to available drivers and requested count
-    n = max(1, min(truck_count, len(drivers)))
-    pairs = list(zip(drivers[:n], vehicles[:n], strict=False))
+    # Only dispatch trips for active vehicles — in_maintenance vehicles sit out
+    active_pairs = [
+        (d, v) for d, v in zip(drivers, vehicles, strict=False)
+        if v.status != "in_maintenance"
+    ]
+    n = max(1, min(truck_count, len(active_pairs)))
+    pairs = active_pairs[:n]
 
     now = datetime.now(UTC).replace(microsecond=0)
     total_pushed = 0
@@ -364,6 +444,13 @@ async def _run() -> None:
     async with engine.begin() as conn:
         await conn.execute(text("CREATE SCHEMA IF NOT EXISTS scoring_schema"))
         await conn.run_sync(Base.metadata.create_all)
+        # Idempotent migration: add fuel_level if the column was added after first boot
+        await conn.execute(text(
+            "ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS fuel_level SMALLINT NOT NULL DEFAULT 100"
+        ))
+
+    _, vehicles, _ = await _ensure_baseline_entities()
+    await _seed_vehicle_details(vehicles)
 
     pushed = await _push_baseline_trip_packets()
     if pushed:

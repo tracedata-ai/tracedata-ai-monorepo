@@ -10,7 +10,7 @@ from __future__ import annotations
 import uuid
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Integer, String
+from sqlalchemy import Integer, String, SmallInteger
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -70,6 +70,14 @@ class Vehicle(Base, UUIDPrimaryKeyMixin, TimestampMixin):
         nullable=True,
         unique=True,
         comment="Vehicle Identification Number (optional)",
+    )
+
+    # ── Operational state ──────────────────────────────────────────────────
+    fuel_level: Mapped[int] = mapped_column(
+        SmallInteger,
+        nullable=False,
+        default=100,
+        comment="Fuel level percentage 0-100",
     )
 
     # ── Status ─────────────────────────────────────────────────────────────

@@ -52,12 +52,14 @@ type Props = {
   model: string;
   status: string;
   imageIndex: number;
+  fuelLevel?: number;
+  hasOpenMaintenance?: boolean;
   onClick?: () => void;
 };
 
 type MiniProps = Omit<Props, "id" | "onClick">;
 
-export function VehicleCard({ licensePlate, model, status, imageIndex, onClick }: Props) {
+export function VehicleCard({ licensePlate, model, status, imageIndex, fuelLevel = 100, hasOpenMaintenance = false, onClick }: Props) {
   const v = VEHICLES[imageIndex % VEHICLES.length];
 
   return (
@@ -81,9 +83,31 @@ export function VehicleCard({ licensePlate, model, status, imageIndex, onClick }
               style={{ fontSize: "clamp(0.9rem, 2.5vw, 1.25rem)" }}>
             {model}
           </h2>
-          <span className={`shrink-0 rounded-md bg-black/20 px-2 py-0.5 text-[10px] font-bold backdrop-blur-sm shadow-md ${v.styling.brand}`}>
-            {v.type}
-          </span>
+          <div className="flex flex-col items-end gap-1">
+            <span className={`shrink-0 rounded-md bg-black/20 px-2 py-0.5 text-[10px] font-bold backdrop-blur-sm shadow-md ${v.styling.brand}`}>
+              {v.type}
+            </span>
+            {hasOpenMaintenance && (
+              <span className="rounded bg-amber-400/90 px-1.5 py-0.5 text-[9px] font-bold text-black uppercase tracking-wide shadow">
+                ⚠ Maintenance
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Fuel level indicator */}
+        <div className="mt-2 flex items-center gap-1.5">
+          <div className="relative flex h-3 w-16 items-center rounded-sm border border-white/40">
+            <div
+              className="h-full rounded-sm transition-all"
+              style={{
+                width: `${fuelLevel}%`,
+                background: fuelLevel < 25 ? "#ef4444" : fuelLevel < 50 ? "#f59e0b" : "#22c55e",
+              }}
+            />
+            <div className="absolute -right-0.75 top-1/2 h-1.5 w-0.75 -translate-y-1/2 rounded-r-sm bg-white/40" />
+          </div>
+          <span className="text-[10px] font-medium text-white/70">{fuelLevel}%</span>
         </div>
 
         {/* Vehicle image */}
@@ -124,7 +148,7 @@ export function VehicleCard({ licensePlate, model, status, imageIndex, onClick }
   );
 }
 
-export function VehicleCardMini({ licensePlate, model, status, imageIndex }: MiniProps) {
+export function VehicleCardMini({ licensePlate, model, status, imageIndex, fuelLevel = 100, hasOpenMaintenance = false }: MiniProps) {
   const v = VEHICLES[imageIndex % VEHICLES.length];
 
   return (
@@ -154,6 +178,23 @@ export function VehicleCardMini({ licensePlate, model, status, imageIndex }: Min
           <div className="flex items-center gap-1.5">
             <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${STATUS_DOT[status] ?? "bg-slate-400"}`} />
             <span className="text-[10px] capitalize text-gray-300">{status.replace(/_/g, " ")}</span>
+            {hasOpenMaintenance && (
+              <span className="rounded bg-amber-400/90 px-1 text-[8px] font-bold text-black uppercase">⚠ Maint.</span>
+            )}
+          </div>
+          {/* Fuel bar */}
+          <div className="flex items-center gap-1">
+            <div className="relative flex h-2 w-12 items-center rounded-sm border border-white/40">
+              <div
+                className="h-full rounded-sm"
+                style={{
+                  width: `${fuelLevel}%`,
+                  background: fuelLevel < 25 ? "#ef4444" : fuelLevel < 50 ? "#f59e0b" : "#22c55e",
+                }}
+              />
+              <div className="absolute -right-0.75 top-1/2 h-1 w-0.75 -translate-y-1/2 rounded-r-sm bg-white/40" />
+            </div>
+            <span className="text-[9px] text-white/60">{fuelLevel}%</span>
           </div>
           <div className="inline-flex self-start items-center rounded border border-black bg-white px-1.5 py-px">
             <span className="font-mono text-[9px] font-black tracking-wider text-black uppercase">{licensePlate}</span>

@@ -59,6 +59,8 @@ export type Vehicle = {
   license_plate: string;
   model: string;
   status: string;
+  fuel_level: number;
+  has_open_maintenance: boolean;
 };
 
 export type Driver = {

@@ -17,6 +17,8 @@ type FleetRow = {
   status: string;
   lat: number;
   lng: number;
+  fuelLevel: number;
+  hasOpenMaintenance: boolean;
 };
 
 // Deterministic mock coordinates around Singapore for vehicles without GPS data
@@ -53,6 +55,8 @@ export default function FleetPage() {
             licensePlate: v.license_plate,
             model: v.model,
             status: v.status,
+            fuelLevel: v.fuel_level ?? 100,
+            hasOpenMaintenance: v.has_open_maintenance ?? false,
             ...mockCoords(i),
           })),
         );
@@ -126,6 +130,8 @@ export default function FleetPage() {
                       licensePlate={r.licensePlate}
                       model={r.model}
                       status={r.status}
+                      fuelLevel={r.fuelLevel}
+                      hasOpenMaintenance={r.hasOpenMaintenance}
                       imageIndex={i}
                     />
                   ))}
