@@ -69,8 +69,65 @@ export type Driver = {
   first_name: string;
   last_name: string;
   email: string;
+  phone?: string | null;
   license_number: string;
+  status: string;
   experience_level: string;
+  created_at?: string | null;
+};
+
+export type DriverProfile = {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone: string | null;
+  license_number: string;
+  status: string;
+  experience_level: string;
+  created_at: string | null;
+  vehicle: {
+    id: string;
+    license_plate: string;
+    make: string;
+    model: string;
+    fuel_level: number;
+    has_open_maintenance: boolean;
+  } | null;
+  stats: {
+    total_trips: number;
+    scored_trips: number;
+    avg_score: number | null;
+    min_score: number | null;
+    max_score: number | null;
+    total_events: number;
+    critical_events: number;
+    escalated_events: number;
+  };
+  score_trend: number[];
+  recent_trips: Array<{
+    trip_id: string;
+    status: string;
+    route_name: string | null;
+    created_at: string | null;
+    score: number | null;
+  }>;
+  safety_events: Array<{
+    event_id: string;
+    trip_id: string;
+    event_type: string;
+    severity: string;
+    decision: string | null;
+    event_timestamp: string | null;
+    lat: number | null;
+    lon: number | null;
+  }>;
+  coaching: Array<{
+    category: string;
+    priority: string;
+    message: string;
+    created_at: string | null;
+  }>;
 };
 
 export type Route = {
@@ -267,6 +324,10 @@ export async function getVehicles(tenantId?: string): Promise<Vehicle[]> {
 export async function getDrivers(tenantId?: string): Promise<Driver[]> {
   const query = tenantId ? `?tenant_id=${tenantId}` : "";
   return apiGet<Driver[]>(`/drivers${query}`);
+}
+
+export async function getDriverProfile(driverId: string): Promise<DriverProfile> {
+  return apiGet<DriverProfile>(`/drivers/${driverId}/profile`);
 }
 
 export async function getTrips(tenantId?: string, status?: string): Promise<Trip[]> {
