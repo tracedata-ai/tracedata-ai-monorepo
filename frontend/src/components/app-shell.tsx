@@ -43,7 +43,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <SidebarProvider>
         <AppSidebar />
         <SidebarInset>
-          <header className="glass sticky top-0 z-20 mx-2 mt-2 flex h-14 items-center gap-3 rounded-xl px-4">
+          <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-border bg-card px-4">
             <SidebarTrigger />
             <BrandMark size={24} className="rounded-sm" />
             <div>

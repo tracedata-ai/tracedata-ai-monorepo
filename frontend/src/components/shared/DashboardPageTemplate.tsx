@@ -24,7 +24,7 @@ export function DashboardPageTemplate({
   children,
 }: DashboardPageTemplateProps) {
   return (
-    <div className="min-h-full bg-gradient-to-br from-[var(--gray-50)] to-[var(--gray-100)] p-4 md:p-6">
+    <div className="min-h-full bg-background p-4 md:p-6">
       <div className="mx-auto max-w-[1600px]">
         <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
           <div>
@@ -43,7 +43,7 @@ export function DashboardPageTemplate({
         {stats?.length ? (
           <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
             {stats.map((stat) => (
-              <div key={stat.label} className="glass rounded-xl p-5">
+              <div key={stat.label} className="rounded-lg border border-border bg-card p-5 shadow-sm">
                 <p className="text-sm font-medium text-muted-foreground">
                   {stat.label}
                 </p>

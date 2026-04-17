@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { getTripDetail, type TripDetail } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -57,15 +57,13 @@ function LV({ label, value }: { label: string; value: React.ReactNode }) {
 
 function ScoreGauge({ score }: { score: number }) {
   const pct = Math.min(100, Math.max(0, score * 10));
-  const color =
-    score >= 8 ? "#22c55e" : score >= 5 ? "#eab308" : "#ef4444";
-  const remaining = 100 - pct;
+  const color = score >= 8 ? "#22c55e" : score >= 5 ? "#eab308" : "#ef4444";
 
   const data = {
     datasets: [
       {
-        data: [pct, remaining],
-        backgroundColor: [color, "rgba(255,255,255,0.05)"],
+        data: [pct, 100 - pct],
+        backgroundColor: [color, "rgba(255,255,255,0.07)"],
         borderWidth: 0,
         circumference: 220,
         rotation: -110,
@@ -74,17 +72,26 @@ function ScoreGauge({ score }: { score: number }) {
   };
 
   return (
-    <div className="relative flex flex-col items-center justify-center">
-      <div style={{ width: 180, height: 130, position: "relative" }}>
+    <div className="flex flex-col items-center">
+      {/* responsive:false + explicit w/h prevent canvas from collapsing */}
+      <div className="relative" style={{ width: 180, height: 150 }}>
         <Doughnut
           data={data}
-          options={{ cutout: "75%", plugins: { legend: { display: false }, tooltip: { enabled: false } } }}
+          width={180}
+          height={150}
+          options={{
+            responsive: false,
+            cutout: "74%",
+            plugins: { legend: { display: false }, tooltip: { enabled: false } },
+            animation: { duration: 700 },
+          }}
         />
-        <div className="absolute inset-0 flex flex-col items-center justify-end pb-2">
-          <span className="text-3xl font-bold" style={{ color }}>
+        {/* overlay sits in the doughnut hole — gauge opens at the bottom */}
+        <div className="absolute inset-0 flex flex-col items-center justify-end pb-5">
+          <span className="text-4xl font-bold tabular-nums" style={{ color }}>
             {score.toFixed(1)}
           </span>
-          <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
+          <span className="text-[10px] uppercase tracking-widest text-muted-foreground leading-tight">
             / 10
           </span>
         </div>
@@ -115,7 +122,7 @@ function ScoreBreakdown({ breakdown }: { breakdown: Record<string, number> }) {
                 {values[i].toFixed(1)}
               </span>
             </div>
-            <div className="h-2 w-full rounded-full bg-white/10">
+            <div className="h-2 w-full rounded-full bg-muted">
               <div
                 className="h-2 rounded-full transition-all"
                 style={{ width: `${pct}%`, backgroundColor: color }}
@@ -131,7 +138,7 @@ function ScoreBreakdown({ breakdown }: { breakdown: Record<string, number> }) {
   );
 }
 
-// ── Emotion radar (horizontal bars) ──────────────────────────────────────────
+// ── Emotion bars ──────────────────────────────────────────────────────────────
 
 function EmotionBars({ emotions }: { emotions: Record<string, number> }) {
   const emotionColors: Record<string, string> = {
@@ -141,22 +148,31 @@ function EmotionBars({ emotions }: { emotions: Record<string, number> }) {
     sadness: "#3b82f6",
   };
 
+  const entries = Object.entries(emotions);
+  const allZero = entries.every(([, v]) => v === 0);
+
+  if (allZero) {
+    return (
+      <p className="text-xs text-muted-foreground italic">
+        No significant stress signals detected — driver feedback was predominantly calm and positive.
+      </p>
+    );
+  }
+
   return (
     <div className="space-y-3">
-      {Object.entries(emotions).map(([key, val]) => {
+      {entries.map(([key, val]) => {
         const pct = Math.round(val * 100);
         const color = emotionColors[key] ?? "#6b7280";
         return (
           <div key={key} className="space-y-1">
             <div className="flex justify-between text-xs">
               <span className="capitalize text-muted-foreground">{key}</span>
-              <span className="font-semibold" style={{ color }}>
-                {pct}%
-              </span>
+              <span className="font-semibold" style={{ color }}>{pct}%</span>
             </div>
-            <div className="h-2 w-full rounded-full bg-white/10">
+            <div className="h-2 w-full rounded-full bg-muted">
               <div
-                className="h-2 rounded-full"
+                className="h-2 rounded-full transition-all duration-500"
                 style={{ width: `${pct}%`, backgroundColor: color }}
               />
             </div>
@@ -167,85 +183,113 @@ function EmotionBars({ emotions }: { emotions: Record<string, number> }) {
   );
 }
 
-// ── Event dot map (static SVG placeholder with lat/lon markers) ──────────────
+// ── Trip event map (Mapbox, multi-pin) ───────────────────────────────────────
 
-function EventDotMap({
-  events,
-}: {
-  events: TripDetail["safety_events"];
-}) {
+const SEV_COLORS: Record<string, string> = {
+  critical: "#dc2626",
+  high: "#f97316",
+  medium: "#eab308",
+  low: "#3b82f6",
+};
+
+function TripEventMap({ events }: { events: TripDetail["safety_events"] }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [mapError, setMapError] = useState<string | null>(null);
+
   const withCoords = events.filter((e) => e.lat != null && e.lon != null);
-  if (withCoords.length === 0) return null;
 
-  const lats = withCoords.map((e) => e.lat!);
-  const lons = withCoords.map((e) => e.lon!);
-  const minLat = Math.min(...lats);
-  const maxLat = Math.max(...lats);
-  const minLon = Math.min(...lons);
-  const maxLon = Math.max(...lons);
-  const latRange = maxLat - minLat || 0.01;
-  const lonRange = maxLon - minLon || 0.01;
+  useEffect(() => {
+    if (!withCoords.length) return;
 
-  const W = 600;
-  const H = 200;
-  const PAD = 30;
+    const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+    if (!token) {
+      setMapError("NEXT_PUBLIC_MAPBOX_TOKEN is not set.");
+      return;
+    }
 
-  const toX = (lon: number) =>
-    PAD + ((lon - minLon) / lonRange) * (W - 2 * PAD);
-  const toY = (lat: number) =>
-    H - PAD - ((lat - minLat) / latRange) * (H - 2 * PAD);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let map: any = null;
 
-  const sevColor: Record<string, string> = {
-    critical: "#dc2626",
-    high: "#f97316",
-    medium: "#eab308",
-    low: "#3b82f6",
-  };
+    async function initMap() {
+      try {
+        const mapboxgl = (await import("mapbox-gl")).default;
+        await import("mapbox-gl/dist/mapbox-gl.css");
+        mapboxgl.accessToken = token!;
+
+        if (!containerRef.current) return;
+
+        map = new mapboxgl.Map({
+          container: containerRef.current,
+          style: "mapbox://styles/mapbox/light-v11",
+          center: [withCoords[0].lon!, withCoords[0].lat!],
+          zoom: 12,
+        });
+
+        withCoords.forEach((e, i) => {
+          const color = SEV_COLORS[e.severity?.toLowerCase()] ?? "#9ca3af";
+
+          const el = document.createElement("div");
+          Object.assign(el.style, {
+            width: "28px",
+            height: "28px",
+            borderRadius: "50%",
+            background: color,
+            color: "white",
+            fontSize: "11px",
+            fontWeight: "bold",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            border: "2px solid rgba(255,255,255,0.7)",
+            cursor: "pointer",
+            boxShadow: `0 0 8px ${color}88`,
+          });
+          el.textContent = String(i + 1);
+
+          const popupHtml = `
+            <div style="font-size:12px;color:#111;padding:4px 2px;line-height:1.5;">
+              <strong>#${i + 1} — ${e.event_type.replace(/_/g, " ")}</strong><br/>
+              Severity: <strong>${e.severity}</strong><br/>
+              ${e.decision ? `Decision: ${e.decision}<br/>` : ""}
+              ${e.timestamp ? new Date(e.timestamp).toLocaleTimeString() : ""}
+            </div>`;
+
+          new mapboxgl.Marker({ element: el })
+            .setLngLat([e.lon!, e.lat!])
+            .setPopup(new mapboxgl.Popup({ offset: 16 }).setHTML(popupHtml))
+            .addTo(map);
+        });
+
+        if (withCoords.length > 1) {
+          const bounds = new mapboxgl.LngLatBounds();
+          withCoords.forEach((e) => bounds.extend([e.lon!, e.lat!]));
+          map.fitBounds(bounds, { padding: 60, maxZoom: 14 });
+        }
+      } catch (err) {
+        setMapError(String(err));
+      }
+    }
+
+    initMap();
+    return () => { map?.remove(); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [events.map((e) => e.event_id).join(",")]);
+
+  if (!withCoords.length) return null;
+
+  if (mapError) {
+    return (
+      <div className="flex h-64 items-center justify-center rounded-xl bg-muted/50 text-sm text-muted-foreground">
+        <MapPin className="mr-2 h-4 w-4" /> Map unavailable: {mapError}
+      </div>
+    );
+  }
 
   return (
-    <svg
-      viewBox={`0 0 ${W} ${H}`}
-      className="w-full rounded-xl border border-white/10 bg-white/5"
-      style={{ maxHeight: 200 }}
-    >
-      {/* grid */}
-      {[0.25, 0.5, 0.75].map((f) => (
-        <line
-          key={f}
-          x1={PAD}
-          y1={H * f}
-          x2={W - PAD}
-          y2={H * f}
-          stroke="rgba(255,255,255,0.05)"
-          strokeWidth={1}
-        />
-      ))}
-      {/* event dots */}
-      {withCoords.map((e, i) => {
-        const cx = toX(e.lon!);
-        const cy = toY(e.lat!);
-        const color = sevColor[e.severity?.toLowerCase()] ?? "#9ca3af";
-        return (
-          <g key={e.event_id}>
-            <circle cx={cx} cy={cy} r={8} fill={color} opacity={0.85} />
-            <text
-              x={cx}
-              y={cy + 4}
-              textAnchor="middle"
-              fontSize={9}
-              fill="white"
-              fontWeight="bold"
-            >
-              {i + 1}
-            </text>
-          </g>
-        );
-      })}
-      {/* legend */}
-      <text x={PAD} y={H - 8} fontSize={9} fill="rgba(255,255,255,0.4)">
-        Relative event positions (lat/lon projected)
-      </text>
-    </svg>
+    <div
+      ref={containerRef}
+      className="h-72 w-full rounded-xl overflow-hidden border border-border"
+    />
   );
 }
 
@@ -320,7 +364,7 @@ export default function TripDetailPage() {
       </div>
 
       {/* ── Trip metadata ── */}
-      <Card className="glass rounded-xl">
+      <Card className="rounded-xl">
         <CardHeader>
           <CardTitle className="text-sm">Trip Overview</CardTitle>
         </CardHeader>
@@ -345,7 +389,7 @@ export default function TripDetailPage() {
       {/* ── Score + breakdown ── */}
       {score != null && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Card className="glass rounded-xl">
+          <Card className="rounded-xl">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-sm">
                 <Brain className="h-4 w-4 text-purple-400" /> Safety Score
@@ -364,7 +408,7 @@ export default function TripDetailPage() {
           </Card>
 
           {hasBreakdown && (
-            <Card className="glass rounded-xl">
+            <Card className="rounded-xl">
               <CardHeader>
                 <CardTitle className="text-sm">Score Breakdown (XAI)</CardTitle>
               </CardHeader>
@@ -378,14 +422,14 @@ export default function TripDetailPage() {
 
       {/* ── XAI narrative ── */}
       {detail.scoring.narrative && (
-        <Card className="glass rounded-xl border border-purple-500/20">
+        <Card className="rounded-xl border border-border">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-sm">
               <Brain className="h-4 w-4 text-purple-400" /> Explainability Narrative
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm leading-relaxed text-muted-foreground rounded-lg bg-white/5 px-4 py-3">
+            <p className="text-sm leading-relaxed text-muted-foreground rounded-lg bg-muted/50 px-4 py-3">
               {detail.scoring.narrative}
             </p>
             <p className="mt-2 text-[10px] text-muted-foreground">
@@ -398,7 +442,7 @@ export default function TripDetailPage() {
 
       {/* ── Safety events ── */}
       {detail.safety_events.length > 0 && (
-        <Card className="glass rounded-xl">
+        <Card className="rounded-xl">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-sm">
               <Shield className="h-4 w-4 text-orange-400" /> Safety Events
@@ -417,12 +461,12 @@ export default function TripDetailPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <EventDotMap events={detail.safety_events} />
+            <TripEventMap events={detail.safety_events} />
             <div className="space-y-3 mt-2">
               {detail.safety_events.map((e, i) => (
                 <div
                   key={e.event_id}
-                  className="rounded-xl border border-white/10 bg-white/5 p-4 space-y-2"
+                  className="rounded-xl border border-border bg-muted/50 p-4 space-y-2"
                 >
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="text-xs text-muted-foreground font-mono">#{i + 1}</span>
@@ -459,7 +503,7 @@ export default function TripDetailPage() {
                     {e.action && <span>Action: {e.action}</span>}
                   </div>
                   {e.reason && (
-                    <p className="text-xs rounded bg-white/5 px-3 py-2 text-muted-foreground">
+                    <p className="text-xs rounded bg-muted/50 px-3 py-2 text-muted-foreground">
                       {e.reason}
                     </p>
                   )}
@@ -477,7 +521,7 @@ export default function TripDetailPage() {
 
       {/* ── Sentiment ── */}
       {detail.sentiment && (
-        <Card className="glass rounded-xl">
+        <Card className="rounded-xl">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-sm">
               <Smile className="h-4 w-4 text-yellow-400" /> Driver Sentiment
@@ -529,7 +573,7 @@ export default function TripDetailPage() {
 
       {/* ── Coaching ── */}
       {detail.coaching.length > 0 && (
-        <Card className="glass rounded-xl">
+        <Card className="rounded-xl">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-sm">
               <MessageSquare className="h-4 w-4 text-green-400" /> Coaching Messages
@@ -539,7 +583,7 @@ export default function TripDetailPage() {
             {detail.coaching.map((c, i) => (
               <div
                 key={i}
-                className="rounded-xl border border-white/10 bg-white/5 p-4 space-y-2"
+                className="rounded-xl border border-border bg-muted/50 p-4 space-y-2"
               >
                 <div className="flex items-center gap-2">
                   <Badge
@@ -556,7 +600,7 @@ export default function TripDetailPage() {
             ))}
 
             {/* Bias / fairness note */}
-            <div className="rounded-xl border border-blue-500/20 bg-blue-500/5 p-4 mt-2">
+            <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 mt-2">
               <p className="text-xs font-semibold text-blue-300 mb-1">Fairness & Bias Mitigation</p>
               <p className="text-xs text-muted-foreground leading-relaxed">
                 Coaching messages are generated with AIF360 fairness correction applied.

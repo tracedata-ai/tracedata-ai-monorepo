@@ -52,7 +52,7 @@ function EventMap({ lat, lon }: { lat: number; lon: number }) {
 
         map = new mapboxgl.Map({
           container: mapContainerRef.current,
-          style: "mapbox://styles/mapbox/dark-v11",
+          style: "mapbox://styles/mapbox/light-v11",
           center: [lon, lat],
           zoom: 13,
         });
@@ -84,7 +84,7 @@ function EventMap({ lat, lon }: { lat: number; lon: number }) {
 
   if (error) {
     return (
-      <div className="flex h-64 items-center justify-center rounded-xl bg-white/5 text-sm text-muted-foreground">
+      <div className="flex h-64 items-center justify-center rounded-xl bg-muted/50 text-sm text-muted-foreground">
         <MapPin className="mr-2 h-4 w-4" />
         Map unavailable: {error}
       </div>
@@ -165,7 +165,7 @@ export default function SafetyEventDetailPage() {
 
       {/* Map */}
       {event.lat != null && event.lon != null ? (
-        <Card className="glass rounded-xl">
+        <Card className="rounded-xl">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <MapPin className="h-4 w-4" /> Event Location
@@ -182,7 +182,7 @@ export default function SafetyEventDetailPage() {
 
       {/* Trip context + event info */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card className="glass rounded-xl">
+        <Card className="rounded-xl">
           <CardHeader>
             <CardTitle>Trip Context</CardTitle>
           </CardHeader>
@@ -202,7 +202,7 @@ export default function SafetyEventDetailPage() {
           </CardContent>
         </Card>
 
-        <Card className="glass rounded-xl">
+        <Card className="rounded-xl">
           <CardHeader>
             <CardTitle>Conditions</CardTitle>
           </CardHeader>
@@ -216,7 +216,7 @@ export default function SafetyEventDetailPage() {
 
       {/* Safety decision */}
       {(event.decision || event.action || event.reason || event.recommended_action) && (
-        <Card className="glass rounded-xl">
+        <Card className="rounded-xl">
           <CardHeader>
             <CardTitle>Safety Agent Decision</CardTitle>
           </CardHeader>
@@ -228,13 +228,13 @@ export default function SafetyEventDetailPage() {
             {event.reason && (
               <div className="flex flex-col gap-1">
                 <span className="text-xs text-muted-foreground uppercase tracking-wide">Reason</span>
-                <p className="text-sm leading-relaxed rounded-lg bg-white/5 px-3 py-2">{event.reason}</p>
+                <p className="text-sm leading-relaxed rounded-lg bg-muted/50 px-3 py-2">{event.reason}</p>
               </div>
             )}
             {event.recommended_action && (
               <div className="flex flex-col gap-1">
                 <span className="text-xs text-muted-foreground uppercase tracking-wide">Recommended Action</span>
-                <p className="text-sm leading-relaxed rounded-lg bg-white/5 px-3 py-2">{event.recommended_action}</p>
+                <p className="text-sm leading-relaxed rounded-lg bg-muted/50 px-3 py-2">{event.recommended_action}</p>
               </div>
             )}
           </CardContent>
@@ -243,19 +243,19 @@ export default function SafetyEventDetailPage() {
 
       {/* Analysis */}
       {event.analysis_reason && (
-        <Card className="glass rounded-xl">
+        <Card className="rounded-xl">
           <CardHeader>
             <CardTitle>Analysis</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm leading-relaxed rounded-lg bg-white/5 px-3 py-2">{event.analysis_reason}</p>
+            <p className="text-sm leading-relaxed rounded-lg bg-muted/50 px-3 py-2">{event.analysis_reason}</p>
           </CardContent>
         </Card>
       )}
 
       {/* Video evidence */}
       {event.video_url && (
-        <Card className="glass rounded-xl">
+        <Card className="rounded-xl">
           <CardHeader>
             <CardTitle>Video Evidence</CardTitle>
           </CardHeader>
@@ -264,7 +264,7 @@ export default function SafetyEventDetailPage() {
               href={event.video_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 text-sm text-blue-400 hover:text-blue-300 underline"
+              className="inline-flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 underline"
             >
               <ExternalLink className="h-4 w-4" />
               View Recording
