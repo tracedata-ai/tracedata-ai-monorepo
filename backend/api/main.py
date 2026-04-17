@@ -100,12 +100,17 @@ async def lifespan(app: FastAPI):  # type: ignore[type-arg]
               event_timestamp TIMESTAMP,
               lat DOUBLE PRECISION,
               lon DOUBLE PRECISION,
+              location_name TEXT,
               traffic_conditions TEXT,
               weather_conditions TEXT,
               analysis JSONB,
               created_at TIMESTAMP
             )
         """))
+        await conn.execute(text(
+            "ALTER TABLE safety_schema.harsh_events_analysis "
+            "ADD COLUMN IF NOT EXISTS location_name TEXT"
+        ))
         await conn.execute(text("""
             CREATE TABLE IF NOT EXISTS safety_schema.safety_decisions (
               decision_id SERIAL PRIMARY KEY,

@@ -445,6 +445,58 @@ async def _push_baseline_trip_packets() -> int:
         await client.aclose()
 
 
+_AGENT_DDL: list[str] = [
+    "CREATE SCHEMA IF NOT EXISTS safety_schema",
+    """CREATE TABLE IF NOT EXISTS safety_schema.harsh_events_analysis (
+        id SERIAL PRIMARY KEY,
+        event_id VARCHAR(80) NOT NULL,
+        trip_id VARCHAR(100) NOT NULL,
+        event_type VARCHAR(80),
+        severity VARCHAR(50),
+        event_timestamp TIMESTAMP,
+        lat DOUBLE PRECISION,
+        lon DOUBLE PRECISION,
+        location_name TEXT,
+        traffic_conditions TEXT,
+        weather_conditions TEXT,
+        analysis JSONB,
+        created_at TIMESTAMP
+    )""",
+    "ALTER TABLE safety_schema.harsh_events_analysis ADD COLUMN IF NOT EXISTS location_name TEXT",
+    """CREATE TABLE IF NOT EXISTS safety_schema.safety_decisions (
+        decision_id SERIAL PRIMARY KEY,
+        event_id VARCHAR(80),
+        trip_id VARCHAR(100) NOT NULL,
+        decision VARCHAR(255),
+        action VARCHAR(255),
+        reason TEXT,
+        recommended_action TEXT,
+        created_at TIMESTAMP
+    )""",
+    "CREATE SCHEMA IF NOT EXISTS coaching_schema",
+    """CREATE TABLE IF NOT EXISTS coaching_schema.coaching (
+        coaching_id SERIAL PRIMARY KEY,
+        trip_id VARCHAR(80) NOT NULL,
+        driver_id VARCHAR(80) NOT NULL,
+        coaching_category VARCHAR(80),
+        message TEXT,
+        priority VARCHAR(20),
+        created_at TIMESTAMP
+    )""",
+    "CREATE SCHEMA IF NOT EXISTS sentiment_schema",
+    """CREATE TABLE IF NOT EXISTS sentiment_schema.feedback_sentiment (
+        sentiment_id SERIAL PRIMARY KEY,
+        trip_id VARCHAR(80) NOT NULL,
+        driver_id VARCHAR(80) NOT NULL,
+        feedback_text TEXT,
+        sentiment_score DOUBLE PRECISION,
+        sentiment_label VARCHAR(50),
+        analysis JSONB,
+        created_at TIMESTAMP
+    )""",
+]
+
+
 async def _run() -> None:
     # Ensure tables exist when running before FastAPI lifespan startup.
     async with engine.begin() as conn:
@@ -454,6 +506,9 @@ async def _run() -> None:
         await conn.execute(text(
             "ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS fuel_level SMALLINT NOT NULL DEFAULT 100"
         ))
+        # Apply agent-owned schemas (each statement run separately — asyncpg restriction)
+        for ddl in _AGENT_DDL:
+            await conn.execute(text(ddl))
 
     _, vehicles, _ = await _ensure_baseline_entities()
     await _seed_vehicle_details(vehicles)

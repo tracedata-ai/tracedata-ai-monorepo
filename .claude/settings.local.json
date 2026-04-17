@@ -69,7 +69,8 @@
       "Bash(npm run:*)",
       "Bash(grep \"\\\\.py$\")",
       "Bash(DEMO_RESET=true docker compose:*)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "Bash(docker:*)"
     ]
   }
 }
