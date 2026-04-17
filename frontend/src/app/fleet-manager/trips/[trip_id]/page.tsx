@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, MapPin, Shield, Brain, MessageSquare, Smile } from "lucide-react";
+import { ArrowLeft, MapPin, Shield, Brain, MessageSquare, Smile, Star } from "lucide-react";
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
 import { Doughnut } from "react-chartjs-2";
 
@@ -100,10 +100,39 @@ function ScoreGauge({ score, label, gpa }: { score: number; label?: string | nul
             {label}
           </span>
           {gpa != null && (
-            <span className="text-xs text-muted-foreground">{gpa.toFixed(1)} GPA</span>
+            <span className="text-xs text-muted-foreground">{gpa.toFixed(1)} Grade</span>
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+// ── Star rating (0–5 float) ───────────────────────────────────────────────────
+
+function StarRating({ value }: { value: number }) {
+  return (
+    <div className="flex items-center gap-1">
+      {[1, 2, 3, 4, 5].map((star) => {
+        const fill = Math.min(1, Math.max(0, value - (star - 1)));
+        return (
+          <span key={star} className="relative inline-block text-amber-400" style={{ fontSize: "1.1rem" }}>
+            <Star className="h-5 w-5 stroke-amber-400 fill-transparent" />
+            {fill > 0 && (
+              <span
+                className="absolute inset-0 overflow-hidden"
+                style={{ width: `${fill * 100}%` }}
+              >
+                <Star className="h-5 w-5 fill-amber-400 stroke-amber-400" />
+              </span>
+            )}
+          </span>
+        );
+      })}
+      <span className="ml-1.5 text-sm font-semibold tabular-nums text-amber-500">
+        {value.toFixed(1)}
+      </span>
+      <span className="text-xs text-muted-foreground">/ 5</span>
     </div>
   );
 }
@@ -420,15 +449,13 @@ export default function TripDetailPage() {
                   ? "Fair — coaching recommended to address identified patterns."
                   : "Poor — immediate intervention advised."}
               </p>
-              {driverScore != null && (
-                <div className="mt-1 w-full rounded-lg border border-border bg-muted/50 px-4 py-3 flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground uppercase tracking-widest">Driver Rating</span>
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-xl font-bold tabular-nums">{driverScore.toFixed(1)}</span>
-                    <span className="text-xs text-muted-foreground">/ 5</span>
-                  </div>
-                </div>
-              )}
+              <div className="mt-1 w-full rounded-lg border border-border bg-muted/50 px-4 py-3 flex items-center justify-between">
+                <span className="text-xs text-muted-foreground uppercase tracking-widest">Driver Rating</span>
+                {driverScore != null
+                  ? <StarRating value={driverScore} />
+                  : <span className="text-sm text-muted-foreground">—</span>
+                }
+              </div>
             </CardContent>
           </Card>
 

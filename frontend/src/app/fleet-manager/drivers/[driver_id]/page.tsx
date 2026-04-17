@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, User, Car, ShieldAlert, BookOpen, MessageSquare } from "lucide-react";
+import { ArrowLeft, User, Car, ShieldAlert, BookOpen, MessageSquare, Brain, Star } from "lucide-react";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -111,6 +111,67 @@ function FuelBar({ level }: { level: number }) {
   );
 }
 
+// ── Star rating (0–5 float) ───────────────────────────────────────────────────
+
+function StarRating({ value }: { value: number }) {
+  return (
+    <div className="flex items-center gap-1">
+      {[1, 2, 3, 4, 5].map((star) => {
+        const fill = Math.min(1, Math.max(0, value - (star - 1)));
+        return (
+          <span key={star} className="relative inline-block text-amber-400" style={{ fontSize: "1.1rem" }}>
+            {/* empty star */}
+            <Star className="h-5 w-5 stroke-amber-400 fill-transparent" />
+            {/* filled overlay clipped by fill fraction */}
+            {fill > 0 && (
+              <span
+                className="absolute inset-0 overflow-hidden"
+                style={{ width: `${fill * 100}%` }}
+              >
+                <Star className="h-5 w-5 fill-amber-400 stroke-amber-400" />
+              </span>
+            )}
+          </span>
+        );
+      })}
+      <span className="ml-1.5 text-sm font-semibold tabular-nums text-amber-500">
+        {value.toFixed(1)}
+      </span>
+      <span className="text-xs text-muted-foreground">/ 5</span>
+    </div>
+  );
+}
+
+// ── XAI feature breakdown ─────────────────────────────────────────────────────
+
+const XAI_BAR_COLORS = [
+  "bg-violet-500", "bg-blue-500", "bg-cyan-500", "bg-teal-500", "bg-indigo-400",
+];
+
+function XaiBreakdown({ xai }: { xai: NonNullable<DriverProfile["xai_summary"]> }) {
+  return (
+    <div className="space-y-3">
+      {xai.top_features.map((f, i) => (
+        <div key={f.feature} className="space-y-1">
+          <div className="flex justify-between text-xs">
+            <span className="font-medium">{f.label}</span>
+            <span className="text-muted-foreground tabular-nums">{f.pct.toFixed(0)}%</span>
+          </div>
+          <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
+            <div
+              className={`h-full rounded-full ${XAI_BAR_COLORS[i % XAI_BAR_COLORS.length]} transition-all`}
+              style={{ width: `${f.pct}%` }}
+            />
+          </div>
+        </div>
+      ))}
+      <p className="text-[10px] text-muted-foreground pt-1">
+        {xai.method === "ml_shap" ? "ML SHAP values" : "Heuristic decomposition"} · based on last {xai.trip_count} scored trip{xai.trip_count !== 1 ? "s" : ""}
+      </p>
+    </div>
+  );
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function DriverProfilePage() {
@@ -178,9 +239,10 @@ export default function DriverProfilePage() {
           <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-muted">
             <User className="h-7 w-7 text-muted-foreground" />
           </div>
-          <div>
+          <div className="space-y-1">
             <h1 className="text-2xl font-bold">{profile.first_name} {profile.last_name}</h1>
             <p className="text-sm text-muted-foreground">{profile.license_number}</p>
+            {stats.driver_score != null && <StarRating value={stats.driver_score} />}
           </div>
           <div className="ml-auto flex gap-2">
             <Badge className={`${STATUS_COLOR[profile.status] ?? "bg-gray-500"} text-white capitalize`}>
@@ -281,6 +343,20 @@ export default function DriverProfilePage() {
           </CardHeader>
           <CardContent>
             <ScoreTrend scores={profile.score_trend} />
+          </CardContent>
+        </Card>
+      )}
+
+      {/* ── XAI breakdown ──────────────────────────────────────────────────── */}
+      {profile.xai_summary && (
+        <Card className="rounded-xl">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Brain className="h-4 w-4" /> Score Explainability (XAI)
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <XaiBreakdown xai={profile.xai_summary} />
           </CardContent>
         </Card>
       )}

@@ -132,6 +132,19 @@ async def get_driver_profile(
         {"did": str(driver_id)},
     )).scalars().all()
 
+    # ── XAI / SHAP explanations (last 5 scored trips) ────────────────────────
+    xai_rows = (await db.execute(
+        text("""
+            SELECT se.explanations
+            FROM   scoring_schema.shap_explanations se
+            JOIN   scoring_schema.trip_scores ts ON ts.score_id = se.score_id
+            WHERE  ts.driver_id = :did
+            ORDER  BY ts.created_at DESC
+            LIMIT  5
+        """),
+        {"did": str(driver_id)},
+    )).mappings().all()
+
     # ── Safety event stats ────────────────────────────────────────────────────
     safety_stats = (await db.execute(
         text("""
@@ -188,6 +201,55 @@ async def get_driver_profile(
         {"did": driver_id},
     )).mappings().all()
 
+    # ── Aggregate XAI across fetched trips ───────────────────────────────────
+    _impact_weight = {"high": 3.0, "medium": 2.0, "low": 1.0}
+    _feature_scores: dict[str, float] = {}
+    _xai_method = "deterministic_heuristic"
+    for row in xai_rows:
+        expl = row["explanations"] or {}
+        if expl.get("method") == "ml_shap":
+            _xai_method = "ml_shap"
+        for feat in expl.get("top_features", []):
+            name = feat.get("feature", "")
+            if not name:
+                continue
+            if "shap_value" in feat:
+                _feature_scores[name] = _feature_scores.get(name, 0.0) + abs(float(feat["shap_value"]))
+            elif "impact" in feat:
+                _feature_scores[name] = _feature_scores.get(name, 0.0) + _impact_weight.get(feat["impact"], 1.0)
+
+    _FEATURE_LABELS: dict[str, str] = {
+        "jerk_mean_avg":       "Hard Braking / Jerk",
+        "jerk_component":      "Hard Braking / Jerk",
+        "speed_std_avg":       "Speed Variation",
+        "speed_component":     "Speed Score",
+        "lateral_component":   "Lateral Movement",
+        "engine_component":    "Engine Load",
+        "idle_ratio":          "Idle Time",
+        "smoothness_score_avg":"Smoothness",
+    }
+    xai_top = sorted(_feature_scores.items(), key=lambda x: x[1], reverse=True)[:5]
+    xai_max = xai_top[0][1] if xai_top else 1.0
+    xai_summary = {
+        "method": _xai_method,
+        "trip_count": len(xai_rows),
+        "top_features": [
+            {
+                "feature":     feat,
+                "label":       _FEATURE_LABELS.get(feat, feat.replace("_", " ").title()),
+                "score":       round(val, 4),
+                "pct":         round(val / xai_max * 100, 1),
+            }
+            for feat, val in xai_top
+        ],
+    } if xai_top else None
+
+    # ── driver_score: avg_score mapped to 0–5 star scale ─────────────────────
+    driver_score = (
+        round(max(0.0, min(5.0, float(score_stats["avg_score"]) / 20.0)), 2)
+        if score_stats.get("avg_score") else None
+    )
+
     # ── Assemble ──────────────────────────────────────────────────────────────
     return {
         "id":               str(driver_row["id"]),
@@ -215,10 +277,12 @@ async def get_driver_profile(
             "max_score":        round(float(score_stats["max_score"]), 1) if score_stats.get("max_score") else None,
             "score_label":      score_label_from_value(float(score_stats["avg_score"])) if score_stats.get("avg_score") else None,
             "score_gpa":        score_gpa_from_value(float(score_stats["avg_score"])) if score_stats.get("avg_score") else None,
+            "driver_score":     driver_score,
             "total_events":     int(safety_stats.get("total_events") or 0),
             "critical_events":  int(safety_stats.get("critical_events") or 0),
             "escalated_events": int(safety_stats.get("escalated_events") or 0),
         },
+        "xai_summary": xai_summary,
         "score_trend": [round(float(s), 1) for s in reversed(score_trend)],
         "recent_trips": [
             {

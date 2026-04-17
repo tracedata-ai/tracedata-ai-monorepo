@@ -9,7 +9,7 @@ Endpoints:
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.api.deps import get_db
@@ -60,3 +60,31 @@ async def create_route(
     await db.flush()
     await db.refresh(route)
     return route
+
+
+@router.get("/{route_id}/heatmap", summary="Safety event heatmap for a route")
+async def route_heatmap(
+    route_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+):
+    """Returns lat/lon + severity for all safety events on trips belonging to this route."""
+    sql = text("""
+        SELECT h.lat, h.lon, h.severity, h.event_type
+        FROM safety_schema.harsh_events_analysis h
+        JOIN public.trips t ON t.id = h.trip_id::uuid
+        WHERE t.route_id = :route_id
+          AND h.lat IS NOT NULL
+          AND h.lon IS NOT NULL
+        ORDER BY h.created_at DESC
+        LIMIT 500
+    """)
+    rows = (await db.execute(sql, {"route_id": str(route_id)})).mappings().all()
+    return [
+        {
+            "lat": r["lat"],
+            "lon": r["lon"],
+            "severity": r["severity"],
+            "event_type": r["event_type"],
+        }
+        for r in rows
+    ]

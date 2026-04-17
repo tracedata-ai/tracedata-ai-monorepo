@@ -102,10 +102,21 @@ export type DriverProfile = {
     max_score: number | null;
     score_label: string | null;
     score_gpa: number | null;
+    driver_score: number | null;
     total_events: number;
     critical_events: number;
     escalated_events: number;
   };
+  xai_summary: {
+    method: string;
+    trip_count: number;
+    top_features: Array<{
+      feature: string;
+      label: string;
+      score: number;
+      pct: number;
+    }>;
+  } | null;
   score_trend: number[];
   recent_trips: Array<{
     trip_id: string;
@@ -150,6 +161,10 @@ export type Route = {
   distance_km?: string | number | null;
   route_type: string;
   created_at: string;
+  start_lat?: number | null;
+  start_lon?: number | null;
+  end_lat?: number | null;
+  end_lon?: number | null;
 };
 
 export type Trip = {
@@ -358,6 +373,17 @@ export async function getWorkflowTrips(status?: string): Promise<WorkflowTrip[]>
 export async function getRoutes(tenantId?: string): Promise<Route[]> {
   const query = tenantId ? `?tenant_id=${tenantId}` : "";
   return apiGet<Route[]>(`/routes/${query}`);
+}
+
+export type RouteHeatPoint = {
+  lat: number;
+  lon: number;
+  severity: string;
+  event_type: string;
+};
+
+export async function getRouteHeatmap(routeId: string): Promise<RouteHeatPoint[]> {
+  return apiGet<RouteHeatPoint[]>(`/routes/${routeId}/heatmap`);
 }
 
 export async function getIssues(tenantId?: string, tripId?: string): Promise<Issue[]> {

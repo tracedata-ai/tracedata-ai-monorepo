@@ -110,6 +110,30 @@ def _sg_route_pairs() -> list[tuple[str, str]]:
     ]
 
 
+_SG_LOCATION_COORDS: dict[str, tuple[float, float]] = {
+    "Tuas Logistics Hub": (1.2990, 103.6360),
+    "Jurong Port":        (1.3230, 103.7080),
+    "Pioneer":            (1.3360, 103.7100),
+    "Bukit Batok":        (1.3490, 103.7490),
+    "Woodlands":          (1.4390, 103.7860),
+    "Yishun":             (1.4290, 103.8350),
+    "Seletar":            (1.4050, 103.8690),
+    "Paya Lebar":         (1.3180, 103.8930),
+    "Changi Cargo":       (1.3560, 103.9880),
+    "Pasir Ris":          (1.3730, 103.9490),
+    "Hougang":            (1.3710, 103.8930),
+    "Serangoon":          (1.3500, 103.8730),
+    "Toa Payoh":          (1.3320, 103.8460),
+    "Bishan":             (1.3520, 103.8490),
+    "Novena":             (1.3200, 103.8440),
+    "Orchard":            (1.3040, 103.8318),
+    "Newton":             (1.3120, 103.8390),
+    "Queenstown":         (1.2940, 103.8060),
+    "HarbourFront":       (1.2650, 103.8200),
+    "Marina Bay":         (1.2840, 103.8607),
+}
+
+
 async def _ensure_baseline_entities() -> (
     tuple[list[Driver], list[Vehicle], list[Route]]
 ):
@@ -190,6 +214,8 @@ async def _ensure_baseline_entities() -> (
             name = f"SG Route {idx:02d}"
             if name in existing_route_names:
                 continue
+            s_lat, s_lon = _SG_LOCATION_COORDS.get(start, (1.3521, 103.8198))
+            e_lat, e_lon = _SG_LOCATION_COORDS.get(end, (1.3521, 103.8198))
             session.add(
                 Route(
                     tenant_id=tenant.id,
@@ -198,6 +224,10 @@ async def _ensure_baseline_entities() -> (
                     end_location=end,
                     distance_km=Decimal(str(8 + (idx % 15))),
                     route_type="mixed",
+                    start_lat=s_lat,
+                    start_lon=s_lon,
+                    end_lat=e_lat,
+                    end_lon=e_lon,
                 )
             )
 
@@ -506,6 +536,15 @@ async def _run() -> None:
         await conn.execute(text(
             "ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS fuel_level SMALLINT NOT NULL DEFAULT 100"
         ))
+        for col, typ in [
+            ("start_lat", "DOUBLE PRECISION"),
+            ("start_lon", "DOUBLE PRECISION"),
+            ("end_lat",   "DOUBLE PRECISION"),
+            ("end_lon",   "DOUBLE PRECISION"),
+        ]:
+            await conn.execute(text(
+                f"ALTER TABLE routes ADD COLUMN IF NOT EXISTS {col} {typ}"
+            ))
         # Apply agent-owned schemas (each statement run separately — asyncpg restriction)
         for ddl in _AGENT_DDL:
             await conn.execute(text(ddl))
