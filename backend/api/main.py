@@ -66,13 +66,17 @@ async def lifespan(app: FastAPI):  # type: ignore[type-arg]
     # When DEMO_RESET=true every boot wipes all tables + Redis so the demo
     # always starts from a clean, reproducible baseline.
     if os.environ.get("DEMO_RESET", "").lower() == "true":
-        from scripts.bootstrap_sg_baseline import reset_for_demo
+        from scripts.bootstrap_sg_baseline import _push_baseline_trip_packets, reset_for_demo
 
         logger.info(
             f"{LogToken.STARTUP} DEMO_RESET=true — wiping all tables and Redis..."
         )
         await reset_for_demo()
-        logger.info(f"{LogToken.STARTUP} Demo reset complete.")
+        logger.info(f"{LogToken.STARTUP} Demo reset complete. Re-seeding baseline...")
+        # Re-seed immediately so the app never starts with an empty DB.
+        # reset_for_demo() clears the bootstrap marker, so this will always push.
+        pushed = await _push_baseline_trip_packets()
+        logger.info(f"{LogToken.STARTUP} Re-seed complete ({pushed} packets pushed).")
 
     # ── 3. Database ─────────────────────────────────────────────────────────
     async with engine.begin() as conn:
@@ -138,19 +142,33 @@ async def lifespan(app: FastAPI):  # type: ignore[type-arg]
     logger.info(f"{LogToken.DATABASE_INIT} Database tables created / verified.")
 
     # ── 4. Simulation sidecar (opt-in via SIM_LOOP=true) ───────────────────
+    # Disabled by default. Enable in K8s via env var — uses adaptive rate control:
+    #   Phase 1 (warmup): SIM_TRUCK_COUNT trucks every SIM_WARMUP_INTERVAL seconds
+    #   Phase 2 (steady): same batch every SIM_STEADY_INTERVAL seconds after SIM_WARMUP_HOURS
     sim_task: asyncio.Task | None = None
     if os.environ.get("SIM_LOOP", "").lower() == "true":
         from scripts.bootstrap_sg_baseline import _run_loop
 
-        interval = int(os.environ.get("SIM_INTERVAL", "30"))
-        event_delay = float(os.environ.get("SIM_EVENT_DELAY", "0.5"))
+        event_delay = float(os.environ.get("SIM_EVENT_DELAY", "2.0"))
         truck_delay = float(os.environ.get("SIM_TRUCK_DELAY", "5.0"))
-        truck_count = int(os.environ.get("SIM_TRUCK_COUNT", "10"))
+        truck_count = int(os.environ.get("SIM_TRUCK_COUNT", "2"))
+        warmup_interval = int(os.environ.get("SIM_WARMUP_INTERVAL", "300"))
+        steady_interval = int(os.environ.get("SIM_STEADY_INTERVAL", "3600"))
+        warmup_hours = float(os.environ.get("SIM_WARMUP_HOURS", "2.0"))
         sim_task = asyncio.create_task(
-            _run_loop(interval, event_delay, truck_delay, truck_count)
+            _run_loop(
+                event_delay=event_delay,
+                truck_delay=truck_delay,
+                truck_count=truck_count,
+                warmup_interval=warmup_interval,
+                steady_interval=steady_interval,
+                warmup_hours=warmup_hours,
+            )
         )
         logger.info(
-            f"{LogToken.STARTUP} Simulation sidecar started (trucks={truck_count} interval={interval}s event_delay={event_delay}s truck_delay={truck_delay}s)"
+            f"{LogToken.STARTUP} Simulation sidecar started "
+            f"(trucks={truck_count} warmup={warmup_interval}s/{warmup_hours}h "
+            f"steady={steady_interval}s event_delay={event_delay}s)"
         )
 
     yield  # ← app is live and serving requests from here

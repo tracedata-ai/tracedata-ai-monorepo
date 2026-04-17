@@ -373,38 +373,56 @@ async def _run() -> None:
 
 
 async def _run_loop(
-    interval: int,
     event_delay: float,
     truck_delay: float,
     truck_count: int,
+    warmup_interval: int = 300,
+    steady_interval: int = 3600,
+    warmup_hours: float = 2.0,
 ) -> None:
     """
-    Continuously push trip batches, each grounded in real DB records.
+    Adaptive simulation sidecar — two-phase rate control to stay within LLM RPD limits.
 
-    Each iteration:
-      1. Queries active drivers + their assigned vehicles from DB
-      2. Creates a Trip row per driver (real UUID, proper FKs)
-      3. Pushes events one-at-a-time (event_delay between events,
-         truck_delay between trucks) to avoid overwhelming the pipeline
-      4. Sleeps for `interval` seconds before next batch
+    Phase 1 — Warmup (first `warmup_hours`):
+      Small batches every `warmup_interval` seconds (default 5 min).
+      Generates just enough data to populate dashboards quickly.
 
-    When called as a sidecar from the FastAPI lifespan, tables and baseline
-    entities are already set up — _ensure_baseline_entities() is idempotent.
+    Phase 2 — Steady-state (after `warmup_hours`):
+      Same batch size but sleeps `steady_interval` seconds (default 1 hr).
+      Keeps the system alive for K8s liveness checks without burning rate limits.
+
+    Per-batch LLM budget (2 trucks × ~4 harsh events × 2 calls + scoring + coaching):
+      ~50 calls/batch × 12 batches/hr (warmup) = ~600 calls/hr  ← safe
+      ~50 calls/batch × 1 batch/hr  (steady)   = ~50 calls/hr   ← very safe
     """
     fixture_mod = importlib.import_module("common.workflow_fixtures.sg_baseline_trip")
     build_events = fixture_mod.build_events
 
     settings = get_settings()
     loop_num = 0
+    started_at = asyncio.get_event_loop().time()
+    warmup_seconds = warmup_hours * 3600
 
+    phase = "warmup"
     print(
-        f"[sim] Starting continuous simulation "
-        f"(trucks={truck_count} interval={interval}s "
-        f"event_delay={event_delay}s truck_delay={truck_delay}s)"
+        f"[sim] Starting adaptive simulation — "
+        f"warmup: {truck_count} trucks every {warmup_interval}s for {warmup_hours}h, "
+        f"then steady: every {steady_interval}s"
     )
 
     while True:
+        elapsed = asyncio.get_event_loop().time() - started_at
+        new_phase = "warmup" if elapsed < warmup_seconds else "steady"
+        if new_phase != phase:
+            phase = new_phase
+            print(
+                f"[sim] Phase transition → steady-state "
+                f"(elapsed={elapsed/3600:.1f}h, interval now {steady_interval}s)"
+            )
+
         loop_num += 1
+        interval = warmup_interval if phase == "warmup" else steady_interval
+
         client = redis.from_url(settings.redis_url, decode_responses=True)
         try:
             pushed = await _push_trip_batch(
@@ -414,7 +432,10 @@ async def _run_loop(
                 event_delay=event_delay,
                 truck_delay=truck_delay,
             )
-            print(f"[sim] Loop {loop_num}: pushed {pushed} packets total")
+            print(
+                f"[sim] Loop {loop_num} [{phase}]: pushed {pushed} packets "
+                f"(next in {interval}s)"
+            )
         finally:
             await client.aclose()
 
@@ -428,19 +449,13 @@ def main() -> None:
     parser.add_argument(
         "--loop",
         action="store_true",
-        help="Run continuously, pushing a new batch of trips on each iteration.",
-    )
-    parser.add_argument(
-        "--interval",
-        type=int,
-        default=30,
-        help="Seconds to wait between batches in loop mode (default: 30).",
+        help="Run continuously with adaptive rate control (warmup then steady-state).",
     )
     parser.add_argument(
         "--event-delay",
         type=float,
-        default=0.5,
-        help="Seconds between individual events within a truck (default: 0.5).",
+        default=2.0,
+        help="Seconds between individual events within a truck (default: 2.0).",
     )
     parser.add_argument(
         "--truck-delay",
@@ -451,15 +466,38 @@ def main() -> None:
     parser.add_argument(
         "--truck-count",
         type=int,
-        default=10,
-        help="Number of trucks (driver/vehicle pairs) to simulate per batch (default: 10).",
+        default=2,
+        help="Number of trucks per batch (default: 2).",
+    )
+    parser.add_argument(
+        "--warmup-interval",
+        type=int,
+        default=300,
+        help="Seconds between batches during warmup phase (default: 300).",
+    )
+    parser.add_argument(
+        "--steady-interval",
+        type=int,
+        default=3600,
+        help="Seconds between batches after warmup (default: 3600).",
+    )
+    parser.add_argument(
+        "--warmup-hours",
+        type=float,
+        default=2.0,
+        help="Hours before switching to steady-state interval (default: 2.0).",
     )
     args = parser.parse_args()
 
     if args.loop:
         asyncio.run(
             _run_loop(
-                args.interval, args.event_delay, args.truck_delay, args.truck_count
+                event_delay=args.event_delay,
+                truck_delay=args.truck_delay,
+                truck_count=args.truck_count,
+                warmup_interval=args.warmup_interval,
+                steady_interval=args.steady_interval,
+                warmup_hours=args.warmup_hours,
             )
         )
     else:

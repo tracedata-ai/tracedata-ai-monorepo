@@ -31,12 +31,14 @@ services:
       - DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/tracedata
       - REDIS_URL=redis://redis:6379/0
       - PYTHONPATH=/app
-      - DEMO_RESET=true
-      - SIM_LOOP=true
-      - SIM_INTERVAL=30
-      - SIM_EVENT_DELAY=0.5
+      - DEMO_RESET=false
+      - SIM_LOOP=false
+      - SIM_TRUCK_COUNT=2
+      - SIM_EVENT_DELAY=2.0
       - SIM_TRUCK_DELAY=5.0
-      - SIM_TRUCK_COUNT=10
+      - SIM_WARMUP_INTERVAL=300
+      - SIM_STEADY_INTERVAL=3600
+      - SIM_WARMUP_HOURS=2.0
     depends_on:
       db:
         condition: service_healthy

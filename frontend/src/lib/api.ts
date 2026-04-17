@@ -300,6 +300,52 @@ export async function getMaintenance(vehicleId?: string): Promise<Maintenance[]>
   return apiGet<Maintenance[]>(`/maintenance${query}`);
 }
 
+export type TripDetail = {
+  trip_id: string;
+  status: string;
+  created_at: string | null;
+  driver_name: string | null;
+  license_plate: string | null;
+  vehicle: string | null;
+  route_name: string | null;
+  route_from: string | null;
+  route_to: string | null;
+  distance_km: number | null;
+  scoring: {
+    score: number | null;
+    breakdown: Record<string, number>;
+    narrative: string | null;
+  };
+  safety_events: Array<{
+    event_id: string;
+    event_type: string;
+    severity: string;
+    lat: number | null;
+    lon: number | null;
+    timestamp: string | null;
+    traffic: string | null;
+    weather: string | null;
+    decision: string | null;
+    action: string | null;
+    reason: string | null;
+    recommended_action: string | null;
+  }>;
+  coaching: Array<{
+    category: string;
+    priority: string;
+    message: string;
+  }>;
+  sentiment: {
+    score: number | null;
+    label: string | null;
+    emotions: Record<string, number>;
+  } | null;
+};
+
+export async function getTripDetail(tripId: string): Promise<TripDetail> {
+  return apiGet<TripDetail>(`/trips/${tripId}/detail`);
+}
+
 export async function getSafetyEvents(limit = 100): Promise<SafetyEvent[]> {
   return apiGet<SafetyEvent[]>(`/safety/events/?limit=${limit}`);
 }

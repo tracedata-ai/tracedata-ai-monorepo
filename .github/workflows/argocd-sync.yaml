@@ -1,0 +1,99 @@
+# Manual deploy trigger — update a specific image tag in kustomization.yaml
+# and force an immediate ArgoCD sync without waiting for the polling interval.
+#
+# Usage:
+#   gh workflow run argocd-sync.yaml \
+#     -f service=api \
+#     -f image_tag=sha-abc1234
+#
+# Required secrets:
+#   ARGOCD_SERVER  — ArgoCD server hostname (e.g. argocd.tracedata.ai)
+#   ARGOCD_TOKEN   — ArgoCD API token (Settings → Accounts → Generate Token)
+#   GITHUB_TOKEN   — auto-provided by Actions
+
+name: "🚀 ArgoCD — Force Sync"
+
+permissions:
+  contents: write
+
+on:
+  workflow_dispatch:
+    inputs:
+      service:
+        description: "Which service to update"
+        required: true
+        type: choice
+        options:
+          - api
+          - frontend
+          - both
+      image_tag:
+        description: "Image tag to deploy (e.g. sha-abc1234 or v1.2.0). Leave blank to sync current kustomization without a tag change."
+        required: false
+        default: ""
+
+jobs:
+  update-and-sync:
+    name: "Update tag + ArgoCD sync"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update kustomization.yaml
+        if: ${{ github.event.inputs.image_tag != '' }}
+        run: |
+          TAG="${{ github.event.inputs.image_tag }}"
+          SERVICE="${{ github.event.inputs.service }}"
+
+          if [ "$SERVICE" = "api" ] || [ "$SERVICE" = "both" ]; then
+            sed -i "s|newTag: \".*\"  # backend-tag|newTag: \"$TAG\"  # backend-tag|" k8s/kustomization.yaml
+            echo "Set backend tag → $TAG"
+          fi
+
+          if [ "$SERVICE" = "frontend" ] || [ "$SERVICE" = "both" ]; then
+            sed -i "s|newTag: \".*\"  # frontend-tag|newTag: \"$TAG\"  # frontend-tag|" k8s/kustomization.yaml
+            echo "Set frontend tag → $TAG"
+          fi
+
+      - name: Commit and push tag update
+        if: ${{ github.event.inputs.image_tag != '' }}
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add k8s/kustomization.yaml
+          if git diff --cached --quiet; then
+            echo "kustomization.yaml already at requested tag — skipping commit."
+          else
+            git commit -m "chore(k8s): deploy ${{ github.event.inputs.service }} → ${{ github.event.inputs.image_tag }} [skip ci]"
+            git push origin main
+          fi
+
+      - name: Install ArgoCD CLI
+        run: |
+          curl -sSL -o /usr/local/bin/argocd \
+            https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
+          chmod +x /usr/local/bin/argocd
+
+      - name: Force ArgoCD sync
+        env:
+          ARGOCD_SERVER: ${{ secrets.ARGOCD_SERVER }}
+          ARGOCD_AUTH_TOKEN: ${{ secrets.ARGOCD_TOKEN }}
+        run: |
+          argocd app sync tracedata \
+            --server "$ARGOCD_SERVER" \
+            --auth-token "$ARGOCD_AUTH_TOKEN" \
+            --insecure \
+            --force \
+            --timeout 120
+          echo "Sync triggered. Waiting for healthy status..."
+          argocd app wait tracedata \
+            --server "$ARGOCD_SERVER" \
+            --auth-token "$ARGOCD_AUTH_TOKEN" \
+            --insecure \
+            --health \
+            --timeout 300

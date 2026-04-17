@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getWorkflowTrips, type WorkflowTrip } from "@/lib/api";
+import { useRouter } from "next/navigation";
+import { getTrips, type Trip } from "@/lib/api";
 import { DashboardPageTemplate } from "@/components/shared/DashboardPageTemplate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DataTable } from "@/components/data-table";
@@ -9,116 +10,103 @@ import { ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 
-const columns: ColumnDef<TripRow>[] = [
+const statusClass: Record<string, string> = {
+  active: "bg-blue-500",
+  completed: "bg-green-600",
+  zombie: "bg-gray-500",
+};
+
+const columns: ColumnDef<Trip>[] = [
   {
     accessorKey: "id",
     header: "Trip ID",
-    size: 100,
-  },
-  {
-    accessorKey: "routeName",
-    header: "Route",
-    size: 140,
-  },
-  {
-    accessorKey: "driver",
-    header: "Driver",
-    size: 130,
+    cell: (info) => (
+      <span className="font-mono text-xs">{(info.getValue() as string).slice(0, 16)}…</span>
+    ),
   },
   {
     accessorKey: "status",
     header: "Status",
     cell: (info) => {
-      const status = info.getValue() as string;
-      const variant =
-        {
-          "In Transit": "bg-[var(--info)]",
-          Completed: "bg-[var(--success)]",
-          Delayed: "bg-[var(--warning)]",
-        }[status] || "bg-gray-500";
-
-      return <Badge className={`${variant} text-white`}>{status}</Badge>;
+      const s = info.getValue() as string;
+      return (
+        <Badge className={`${statusClass[s] ?? "bg-gray-500"} text-white capitalize`}>{s}</Badge>
+      );
     },
-    size: 110,
   },
   {
-    accessorKey: "startedAt",
-    header: "Start Time",
-    size: 140,
+    accessorKey: "driver_id",
+    header: "Driver ID",
+    cell: (info) => (
+      <span className="font-mono text-xs">{(info.getValue() as string).slice(0, 12)}…</span>
+    ),
   },
   {
-    accessorKey: "etaMinutes",
-    header: "ETA (min)",
-    size: 110,
+    accessorKey: "safety_score",
+    header: "Safety Score",
+    cell: (info) => {
+      const v = info.getValue() as number | null;
+      if (v == null) return <span className="text-muted-foreground text-sm">Pending</span>;
+      const color = v >= 8 ? "text-green-400" : v >= 5 ? "text-yellow-400" : "text-red-400";
+      return <span className={`font-semibold ${color}`}>{v.toFixed(1)}</span>;
+    },
+  },
+  {
+    accessorKey: "created_at",
+    header: "Started",
+    cell: (info) => {
+      const v = info.getValue() as string;
+      return v ? new Date(v).toLocaleString() : "—";
+    },
   },
 ];
 
-type TripRow = {
-  id: string;
-  driver: string;
-  routeName: string;
-  startedAt: string;
-  etaMinutes: number;
-  status: "In Transit" | "Delayed" | "Completed";
-};
-
 export default function TripsPage() {
-  const [trips, setTrips] = useState<TripRow[]>([]);
+  const router = useRouter();
+  const [trips, setTrips] = useState<Trip[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function loadTrips() {
-      try {
-        const tripsData = await getWorkflowTrips();
-        const now = Date.now();
-        const mapped: TripRow[] = tripsData.map((t: WorkflowTrip) => {
-          const started = new Date(t.started_at || t.updated_at || new Date().toISOString());
-          const minutesRunning = Math.max(
-            0,
-            Math.floor((now - started.getTime()) / 60000)
-          );
-          return ({
-          id: t.trip_id.slice(0, 12),
-          routeName: t.truck_id,
-          driver: t.driver_id,
-          status: t.status === "active" ? "In Transit" : "Completed",
-          startedAt: started.toLocaleTimeString(),
-          etaMinutes: t.status === "active" ? Math.max(5, 120 - minutesRunning) : 0,
-        });
-        });
-        setTrips(mapped);
-      } catch (error) {
-        console.error("Failed to fetch trips:", error);
-      } finally {
-        setLoading(false);
-      }
-    }
-    loadTrips();
+    getTrips()
+      .then(setTrips)
+      .catch(console.error)
+      .finally(() => setLoading(false));
   }, []);
 
+  const active = trips.filter((t) => t.status === "active").length;
+  const completed = trips.filter((t) => t.status === "completed").length;
+  const scored = trips.filter((t) => (t as Trip & { safety_score?: number }).safety_score != null).length;
+
   const stats = [
-    { label: "Active Trips", value: loading ? "..." : trips.filter(t => t.status === "In Transit").length.toString(), change: 1 },
-    { label: "Completed", value: loading ? "..." : trips.filter(t => t.status === "Completed").length.toString(), change: 1 },
+    { label: "Active", value: loading ? "..." : active.toString() },
+    { label: "Completed", value: loading ? "..." : completed.toString() },
+    { label: "Scored", value: loading ? "..." : scored.toString() },
   ];
 
   return (
     <DashboardPageTemplate
       title="Trips"
-      subtitle="Monitor ongoing and historical trip data"
+      subtitle="Click a row to view full trip analysis — scoring, safety events, coaching & sentiment"
       stats={stats}
     >
       <Card className="glass rounded-xl">
         <CardHeader>
-          <CardTitle>Trip Timeline</CardTitle>
+          <CardTitle>Trip Log</CardTitle>
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="space-y-4">
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-10 w-full" />
+            <div className="space-y-3">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Skeleton key={i} className="h-10 w-full" />
+              ))}
             </div>
           ) : (
-            <DataTable columns={columns} data={trips} />
+            <DataTable
+              columns={columns}
+              data={trips}
+              searchPlaceholder="Search trips…"
+              onRowClick={(row) => router.push(`/fleet-manager/trips/${row.id}`)}
+            />
           )}
         </CardContent>
       </Card>

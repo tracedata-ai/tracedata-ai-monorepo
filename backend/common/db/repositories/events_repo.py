@@ -382,47 +382,25 @@ class EventsRepo:
             Dict with trip metadata or None if not found
         """
         row = None
-        try:
-            async with self._engine.connect() as conn:
-                result = await conn.execute(
-                    text("""
-                        SELECT
-                            trip_id,
-                            driver_id,
-                            truck_id,
-                            started_at,
-                            ended_at,
-                            distance_km,
-                            duration_minutes,
-                            status,
-                            route_name
-                        FROM trips
-                        WHERE trip_id = :trip_id
-                    """),
-                    {"trip_id": trip_id},
-                )
-                row = result.first()
-        except Exception:
-            # E2E bootstrap schema uses pipeline_trips/route_type.
-            async with self._engine.connect() as conn:
-                result = await conn.execute(
-                    text("""
-                        SELECT
-                            trip_id,
-                            driver_id,
-                            truck_id,
-                            started_at,
-                            ended_at,
-                            distance_km,
-                            duration_minutes,
-                            status,
-                            route_type AS route_name
-                        FROM pipeline_trips
-                        WHERE trip_id = :trip_id
-                    """),
-                    {"trip_id": trip_id},
-                )
-                row = result.first()
+        async with self._engine.connect() as conn:
+            result = await conn.execute(
+                text("""
+                    SELECT
+                        trip_id,
+                        driver_id,
+                        truck_id,
+                        started_at,
+                        ended_at,
+                        distance_km,
+                        duration_minutes,
+                        status,
+                        route_type AS route_name
+                    FROM pipeline_trips
+                    WHERE trip_id = :trip_id
+                """),
+                {"trip_id": trip_id},
+            )
+            row = result.first()
 
         if not row:
             # Last-resort fallback when trip lifecycle table is missing/not populated.
