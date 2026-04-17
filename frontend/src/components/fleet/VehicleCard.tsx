@@ -55,6 +55,8 @@ type Props = {
   onClick?: () => void;
 };
 
+type MiniProps = Omit<Props, "id" | "onClick">;
+
 export function VehicleCard({ licensePlate, model, status, imageIndex, onClick }: Props) {
   const v = VEHICLES[imageIndex % VEHICLES.length];
 
@@ -84,12 +86,6 @@ export function VehicleCard({ licensePlate, model, status, imageIndex, onClick }
           </span>
         </div>
 
-        {/* Status row */}
-        <div className="mt-1.5 flex items-center gap-1.5 text-gray-300 group-hover:text-white transition-colors">
-          <span className={`h-2 w-2 rounded-full ${STATUS_DOT[status] ?? "bg-slate-400"}`} />
-          <span className="text-xs font-medium capitalize">{status.replace(/_/g, " ")}</span>
-        </div>
-
         {/* Vehicle image */}
         <div className="relative my-3 flex flex-1 items-center justify-center">
           <div className="relative h-40 w-full">
@@ -105,19 +101,68 @@ export function VehicleCard({ licensePlate, model, status, imageIndex, onClick }
           </div>
         </div>
 
-        {/* Bottom: license plate + animated underline */}
+        {/* Bottom: status left */}
         <div className="relative mt-auto">
-          <div className="inline-flex items-center rounded-md border-2 border-black bg-white px-2.5 py-0.5 shadow-md">
-            <span className="font-mono text-xs font-black tracking-widest text-black uppercase">
-              {licensePlate}
-            </span>
+          <div className="flex items-center gap-1.5 text-gray-300 group-hover:text-white transition-colors">
+            <span className={`h-2 w-2 shrink-0 rounded-full ${STATUS_DOT[status] ?? "bg-slate-400"}`} />
+            <span className="text-xs font-medium capitalize">{status.replace(/_/g, " ")}</span>
           </div>
           <div className="absolute -bottom-5 left-0 h-0.5 w-0 bg-linear-to-r from-blue-400 to-purple-400 transition-all duration-500 group-hover:w-full" />
+        </div>
+
+        {/* Plate — pinned to bottom-right of card */}
+        <div className="absolute bottom-5 right-5 inline-flex items-center rounded-md border-2 border-black bg-white px-2.5 py-0.5 shadow-md">
+          <span className="font-mono text-xs font-black tracking-widest text-black uppercase">
+            {licensePlate}
+          </span>
         </div>
       </div>
 
       {/* Hover ring */}
       <div className="absolute inset-0 rounded-xl ring-0 ring-blue-400/0 transition-all duration-300 group-hover:ring-2 group-hover:ring-blue-400/50" />
+    </div>
+  );
+}
+
+export function VehicleCardMini({ licensePlate, model, status, imageIndex }: MiniProps) {
+  const v = VEHICLES[imageIndex % VEHICLES.length];
+
+  return (
+    <div className="relative w-72 overflow-hidden rounded-lg shadow-xl" style={{ aspectRatio: "21/9" }}>
+      {/* Background */}
+      <div className={`absolute inset-0 bg-linear-to-b ${v.styling.background} from-30% via-gray-300 via-60% to-gray-800 to-95%`} />
+
+      {/* Content: image left, info right */}
+      <div className="relative z-10 flex h-full items-center gap-2 px-3 py-2">
+
+        {/* Vehicle image */}
+        <div className="relative h-full w-2/5 shrink-0">
+          <Image
+            src={v.src}
+            alt={v.type}
+            fill
+            className="object-contain drop-shadow-md"
+          />
+        </div>
+
+        {/* Info */}
+        <div className="flex min-w-0 flex-col justify-center gap-1">
+          <span className={`self-start rounded px-1.5 py-px text-[9px] font-bold ${v.styling.brand}`}>
+            {v.type}
+          </span>
+          <p className="truncate text-sm font-bold leading-tight text-white">{model}</p>
+          <div className="flex items-center gap-1.5">
+            <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${STATUS_DOT[status] ?? "bg-slate-400"}`} />
+            <span className="text-[10px] capitalize text-gray-300">{status.replace(/_/g, " ")}</span>
+          </div>
+          <div className="inline-flex self-start items-center rounded border border-black bg-white px-1.5 py-px">
+            <span className="font-mono text-[9px] font-black tracking-wider text-black uppercase">{licensePlate}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Subtle border */}
+      <div className="absolute inset-0 rounded-lg ring-1 ring-white/10" />
     </div>
   );
 }

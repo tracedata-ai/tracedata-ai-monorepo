@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Search, X, Truck } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { Search, X } from "lucide-react";
+import { VehicleCardMini } from "@/components/fleet/VehicleCard";
 
 export type VehiclePin = {
   id: string;
@@ -11,6 +11,7 @@ export type VehiclePin = {
   status: string;
   lat: number;
   lng: number;
+  imageIndex: number;
 };
 
 type Props = {
@@ -19,22 +20,12 @@ type Props = {
 };
 
 const STATUS_COLOR: Record<string, string> = {
-  active: "#22c55e",
+  active:         "#22c55e",
   in_maintenance: "#ef4444",
-  inactive: "#64748b",
-};
-
-const STATUS_LABEL: Record<string, string> = {
-  active: "Active",
-  in_maintenance: "In Maintenance",
-  inactive: "Inactive",
+  inactive:       "#64748b",
 };
 
 export function FleetMap({ vehicles, height = 400 }: Props) {
-  // containerRef goes on the outer div — Mapbox reads offsetWidth/offsetHeight
-  // synchronously after the async imports, so it must already be in the DOM
-  // with explicit dimensions. Using the outer div (which has style={{ height }})
-  // guarantees this; a nested absolute-inset-0 div can lag behind layout.
   const containerRef = useRef<HTMLDivElement>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const mapRef = useRef<any>(null);
@@ -44,6 +35,7 @@ export function FleetMap({ vehicles, height = 400 }: Props) {
   const [query, setQuery] = useState("");
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [selected, setSelected] = useState<VehiclePin | null>(null);
+  const [hovered, setHovered] = useState<{ vehicle: VehiclePin; x: number; y: number } | null>(null);
 
   const suggestions = query.trim()
     ? vehicles.filter(
@@ -65,7 +57,6 @@ export function FleetMap({ vehicles, height = 400 }: Props) {
         const mapboxgl = (await import("mapbox-gl")).default;
         await import("mapbox-gl/dist/mapbox-gl.css");
 
-        // Re-check after awaits — component may have unmounted during imports
         if (!containerRef.current) return;
 
         mapboxgl.accessToken = token!;
@@ -86,12 +77,9 @@ export function FleetMap({ vehicles, height = 400 }: Props) {
           vehicles.forEach((v) => {
             const color = STATUS_COLOR[v.status] ?? "#64748b";
 
-            // el is the Mapbox anchor — never touch its transform (Mapbox writes
-            // translate() there for positioning; overwriting it jumps to top-left).
             const el = document.createElement("div");
             el.style.cssText = "width:14px;height:14px;cursor:pointer;";
 
-            // dot is the visual element we safely scale on hover/select.
             const dot = document.createElement("div");
             dot.style.cssText = `
               width:14px;height:14px;border-radius:50%;
@@ -103,8 +91,15 @@ export function FleetMap({ vehicles, height = 400 }: Props) {
             `;
             el.appendChild(dot);
 
-            el.addEventListener("mouseenter", () => { dot.style.transform = "scale(1.7)"; });
-            el.addEventListener("mouseleave", () => { dot.style.transform = "scale(1)"; });
+            el.addEventListener("mouseenter", () => {
+              dot.style.transform = "scale(1.7)";
+              const { x, y } = mapRef.current.project([v.lng, v.lat]);
+              setHovered({ vehicle: v, x, y });
+            });
+            el.addEventListener("mouseleave", () => {
+              dot.style.transform = "scale(1)";
+              setHovered(null);
+            });
 
             const marker = new mapboxgl.Marker({ element: el })
               .setLngLat([v.lng, v.lat])
@@ -113,6 +108,9 @@ export function FleetMap({ vehicles, height = 400 }: Props) {
             markersRef.current.set(v.id, { marker, dot, vehicle: v });
           });
         });
+
+        // Clear hover tooltip when map moves so it doesn't go stale
+        map.on("move", () => setHovered(null));
       } catch (err) {
         console.error("[FleetMap] initMap failed:", err);
       }
@@ -131,6 +129,7 @@ export function FleetMap({ vehicles, height = 400 }: Props) {
     setSelected(v);
     setQuery(v.licensePlate);
     setDropdownOpen(false);
+    setHovered(null);
 
     mapRef.current?.flyTo({ center: [v.lng, v.lat], zoom: 14, duration: 900, essential: true });
 
@@ -158,15 +157,9 @@ export function FleetMap({ vehicles, height = 400 }: Props) {
   }
 
   return (
-    // containerRef is on this div — Mapbox appends its canvas here as a child.
-    // Our overlay divs (z-10) float above the canvas.
-    // overflow-hidden clips map tiles to the rounded corners.
-    <div
-      ref={containerRef}
-      className="relative rounded-xl overflow-hidden"
-      style={{ height }}
-    >
-      {/* Search — absolute over the map */}
+    <div ref={containerRef} className="relative rounded-xl overflow-hidden" style={{ height }}>
+
+      {/* Search */}
       <div className="absolute top-3 left-3 z-10 w-64">
         <div className="relative">
           <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
@@ -179,10 +172,7 @@ export function FleetMap({ vehicles, height = 400 }: Props) {
             className="w-full rounded-lg border border-border bg-white/95 py-2 pl-8 pr-8 text-sm shadow-md outline-none focus:ring-2 focus:ring-primary/40"
           />
           {query && (
-            <button
-              onClick={clearSelection}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-            >
+            <button onClick={clearSelection} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
               <X className="h-3.5 w-3.5" />
             </button>
           )}
@@ -196,10 +186,7 @@ export function FleetMap({ vehicles, height = 400 }: Props) {
                 onMouseDown={() => flyToVehicle(v)}
                 className="flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm transition-colors hover:bg-muted"
               >
-                <span
-                  className="h-2 w-2 shrink-0 rounded-full"
-                  style={{ background: STATUS_COLOR[v.status] ?? "#64748b" }}
-                />
+                <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: STATUS_COLOR[v.status] ?? "#64748b" }} />
                 <span className="font-medium">{v.licensePlate}</span>
                 <span className="truncate text-xs text-muted-foreground">{v.model}</span>
               </button>
@@ -214,47 +201,41 @@ export function FleetMap({ vehicles, height = 400 }: Props) {
         )}
       </div>
 
-      {/* Detail card */}
-      {selected && (
-        <div className="absolute right-12 top-3 z-10 w-56 overflow-hidden rounded-xl border border-border bg-white shadow-xl">
-          <div className="flex items-center justify-between border-b border-border px-4 py-3">
-            <div className="flex items-center gap-2">
-              <Truck className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm font-semibold">{selected.licensePlate}</span>
-            </div>
-            <button onClick={clearSelection} className="text-muted-foreground hover:text-foreground">
-              <X className="h-3.5 w-3.5" />
+      {/* Hover tooltip — VehicleCardMini pinned near the marker */}
+      {hovered && (
+        <div
+          className="absolute z-20 pointer-events-none"
+          style={{
+            left: hovered.x + 18,
+            top: hovered.y - 50,
+            transform: "translateY(-50%)",
+          }}
+        >
+          <VehicleCardMini
+            licensePlate={hovered.vehicle.licensePlate}
+            model={hovered.vehicle.model}
+            status={hovered.vehicle.status}
+            imageIndex={hovered.vehicle.imageIndex}
+          />
+        </div>
+      )}
+
+      {/* Selected vehicle panel */}
+      {selected && !hovered && (
+        <div className="absolute right-12 top-3 z-10">
+          <div className="relative">
+            <button
+              onClick={clearSelection}
+              className="absolute -top-2 -right-2 z-10 flex h-5 w-5 items-center justify-center rounded-full bg-white shadow-md text-muted-foreground hover:text-foreground"
+            >
+              <X className="h-3 w-3" />
             </button>
-          </div>
-          <div className="space-y-2.5 px-4 py-3">
-            <div>
-              <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Model</p>
-              <p className="text-sm font-medium">{selected.model}</p>
-            </div>
-            <div>
-              <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Status</p>
-              <Badge
-                className={`mt-0.5 text-xs text-white capitalize ${
-                  selected.status === "active"
-                    ? "bg-green-500"
-                    : selected.status === "in_maintenance"
-                    ? "bg-red-500"
-                    : "bg-slate-500"
-                }`}
-              >
-                {STATUS_LABEL[selected.status] ?? selected.status}
-              </Badge>
-            </div>
-            <div>
-              <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Position</p>
-              <p className="font-mono text-xs text-muted-foreground">
-                {selected.lat.toFixed(4)}, {selected.lng.toFixed(4)}
-              </p>
-            </div>
-            <div>
-              <p className="text-[10px] uppercase tracking-widest text-muted-foreground">ID</p>
-              <p className="truncate font-mono text-xs text-muted-foreground">{selected.id}</p>
-            </div>
+            <VehicleCardMini
+              licensePlate={selected.licensePlate}
+              model={selected.model}
+              status={selected.status}
+              imageIndex={selected.imageIndex}
+            />
           </div>
         </div>
       )}

@@ -91,13 +91,14 @@ export default function FleetPage() {
                 <Skeleton className="h-[360px] w-full" />
               ) : (
                 <FleetMap
-                  vehicles={rows.map((r) => ({
+                  vehicles={rows.map((r, i) => ({
                     id: r.id,
                     licensePlate: r.licensePlate,
                     model: r.model,
                     status: r.status,
                     lat: r.lat,
                     lng: r.lng,
+                    imageIndex: i,
                   }))}
                 />
               )}
