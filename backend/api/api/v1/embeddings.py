@@ -34,26 +34,23 @@ async def search_embeddings(
 
     vec_str = "[" + ",".join(f"{x:.8f}" for x in vector) + "]"
 
-    filters = ["embedding IS NOT NULL"]
-    params: dict = {"vec": vec_str, "limit": limit}
-
-    if content_type:
-        filters.append("content_type = :ctype")
-        params["ctype"] = content_type
-    if driver_id:
-        filters.append("driver_id = :driver_id")
-        params["driver_id"] = driver_id
-
-    where = " AND ".join(filters)
+    params: dict = {
+        "vec": vec_str,
+        "limit": limit,
+        "ctype": content_type,
+        "driver_id": driver_id,
+    }
 
     rows = (
         (
             await db.execute(
-                text(f"""
+                text("""
             SELECT id, content_type, source_id, driver_id, trip_id, content, created_at,
                    1 - (embedding <=> cast(:vec as vector)) AS similarity
             FROM   vector_schema.embeddings
-            WHERE  {where}
+            WHERE  embedding IS NOT NULL
+              AND  (:ctype IS NULL OR content_type = :ctype)
+              AND  (:driver_id IS NULL OR driver_id = :driver_id)
             ORDER  BY embedding <=> cast(:vec as vector)
             LIMIT  :limit
         """),
@@ -118,7 +115,7 @@ async def related_events(
               AND  e.embedding    IS NOT NULL
             ORDER  BY e.embedding <=> t.embedding
             LIMIT  :limit
-        """),
+                """),
                 {"eid": event_id, "limit": limit},
             )
         )

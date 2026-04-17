@@ -271,7 +271,7 @@ def compute_driver_score(
     trip_score: float,
     historical_avg: dict[str, Any],
 ) -> float:
-    """Blend current trip score with rolling history, mapped to 0–5 driver rating."""
+    """Blend current trip score with rolling history on the native 0-100 scale."""
     raw = historical_avg.get("historical_avg_score") or historical_avg.get(
         "rolling_avg_score"
     )
@@ -281,8 +281,7 @@ def compute_driver_score(
         baseline = float(trip_score)
 
     blended = 0.7 * float(trip_score) + 0.3 * baseline
-    # Map 0–100 trip score to 0–5 driver rating
-    return round(max(0.0, min(5.0, blended / 20.0)), 2)
+    return round(max(0.0, min(100.0, blended)), 2)
 
 
 def clamp_behaviour_score(payload: dict[str, Any], baseline: float) -> None:
