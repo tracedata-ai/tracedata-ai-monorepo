@@ -116,6 +116,7 @@ export default function FleetPage() {
                   vehicles={rows.map((r) => ({
                     id: r.id,
                     licensePlate: r.licensePlate,
+                    model: r.model,
                     status: r.status,
                     lat: r.lat,
                     lng: r.lng,
