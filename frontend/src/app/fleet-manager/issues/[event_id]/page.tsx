@@ -41,7 +41,8 @@ function EventMap({ lat, lon }: { lat: number; lon: number }) {
       return;
     }
 
-    let map: { remove: () => void } | null = null;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let map: any = null;
 
     async function initMap() {
       try {
@@ -57,6 +58,9 @@ function EventMap({ lat, lon }: { lat: number; lon: number }) {
           zoom: 13,
           minZoom: 9,
         });
+
+        map.addControl(new mapboxgl.NavigationControl(), "top-right");
+        map.addControl(new mapboxgl.FullscreenControl(), "top-right");
 
         new mapboxgl.Marker({ color: "#ef4444" })
           .setLngLat([lon, lat])

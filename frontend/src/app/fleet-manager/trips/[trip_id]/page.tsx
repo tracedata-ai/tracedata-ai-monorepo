@@ -218,6 +218,9 @@ function TripEventMap({ events }: { events: TripDetail["safety_events"] }) {
           minZoom: 9,
         });
 
+        map.addControl(new mapboxgl.NavigationControl(), "top-right");
+        map.addControl(new mapboxgl.FullscreenControl(), "top-right");
+
         withCoords.forEach((e, i) => {
           const color = SEV_COLORS[e.severity?.toLowerCase()] ?? "#9ca3af";
 

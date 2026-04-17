@@ -79,6 +79,7 @@ export function FleetMap({ vehicles, height = 400 }: Props) {
         });
 
         map.addControl(new mapboxgl.NavigationControl(), "top-right");
+        map.addControl(new mapboxgl.FullscreenControl(), "top-right");
         mapRef.current = map;
 
         map.on("load", () => {
