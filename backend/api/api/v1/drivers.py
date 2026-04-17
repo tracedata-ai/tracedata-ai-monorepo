@@ -8,6 +8,7 @@ Endpoints:
 """
 
 import uuid
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select, text
@@ -98,10 +99,11 @@ async def get_driver_profile(
         has_open_maintenance = maint is not None
 
     # ── Score stats ───────────────────────────────────────────────────────────
-    score_stats = (
+    score_stats: dict[str, Any] = dict(
         (
-            await db.execute(
-                text("""
+            (
+                await db.execute(
+                    text("""
             SELECT COUNT(*)        AS scored_trips,
                    AVG(score)      AS avg_score,
                    MIN(score)      AS min_score,
@@ -109,11 +111,12 @@ async def get_driver_profile(
             FROM   scoring_schema.trip_scores
             WHERE  driver_id = :did
         """),
-                {"did": str(driver_id)},
+                    {"did": str(driver_id)},
+                )
             )
+            .mappings()
+            .first()
         )
-        .mappings()
-        .first()
         or {}
     )
 
@@ -189,10 +192,11 @@ async def get_driver_profile(
     )
 
     # ── Safety event stats ────────────────────────────────────────────────────
-    safety_stats = (
+    safety_stats: dict[str, Any] = dict(
         (
-            await db.execute(
-                text("""
+            (
+                await db.execute(
+                    text("""
             SELECT COUNT(*)                                            AS total_events,
                    COUNT(*) FILTER (WHERE h.severity = 'critical')   AS critical_events,
                    COUNT(*) FILTER (WHERE sd.decision = 'escalate')  AS escalated_events
@@ -201,11 +205,12 @@ async def get_driver_profile(
             LEFT JOIN safety_schema.safety_decisions sd ON sd.event_id = h.event_id
             WHERE  t.driver_id = :did
         """),
-                {"did": driver_id},
+                    {"did": driver_id},
+                )
             )
+            .mappings()
+            .first()
         )
-        .mappings()
-        .first()
         or {}
     )
 

@@ -8,6 +8,7 @@ Endpoints:
 
 import uuid
 from decimal import Decimal
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select, text
@@ -131,7 +132,7 @@ async def get_trip_detail(
         """),
         {"tid": trip_id},
     )
-    meta_row = meta.mappings().first() or {}
+    meta_row: dict[str, Any] = dict(meta.mappings().first() or {})
 
     # ── Scoring ───────────────────────────────────────────────────────────────
     score_row = (
