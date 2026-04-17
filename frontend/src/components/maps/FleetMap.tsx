@@ -86,23 +86,31 @@ export function FleetMap({ vehicles, height = 400 }: Props) {
           vehicles.forEach((v) => {
             const color = STATUS_COLOR[v.status] ?? "#64748b";
 
+            // el is the Mapbox anchor — never touch its transform (Mapbox writes
+            // translate() there for positioning; overwriting it jumps to top-left).
             const el = document.createElement("div");
-            el.style.cssText = `
+            el.style.cssText = "width:14px;height:14px;cursor:pointer;";
+
+            // dot is the visual element we safely scale on hover/select.
+            const dot = document.createElement("div");
+            dot.style.cssText = `
               width:14px;height:14px;border-radius:50%;
               background:${color};
               border:2px solid white;
               box-shadow:0 2px 6px rgba(0,0,0,0.35);
-              cursor:pointer;
               transition:transform 0.15s;
+              transform-origin:center center;
             `;
-            el.addEventListener("mouseenter", () => { el.style.transform = "scale(1.7)"; });
-            el.addEventListener("mouseleave", () => { el.style.transform = "scale(1)"; });
+            el.appendChild(dot);
+
+            el.addEventListener("mouseenter", () => { dot.style.transform = "scale(1.7)"; });
+            el.addEventListener("mouseleave", () => { dot.style.transform = "scale(1)"; });
 
             const marker = new mapboxgl.Marker({ element: el })
               .setLngLat([v.lng, v.lat])
               .addTo(map);
 
-            markersRef.current.set(v.id, { marker, el, vehicle: v });
+            markersRef.current.set(v.id, { marker, dot, vehicle: v });
           });
         });
       } catch (err) {
@@ -126,15 +134,15 @@ export function FleetMap({ vehicles, height = 400 }: Props) {
 
     mapRef.current?.flyTo({ center: [v.lng, v.lat], zoom: 14, duration: 900, essential: true });
 
-    markersRef.current.forEach(({ el, vehicle }) => {
-      el.style.transform = vehicle.id === v.id ? "scale(2.2)" : "scale(1)";
+    markersRef.current.forEach(({ dot, vehicle }) => {
+      dot.style.transform = vehicle.id === v.id ? "scale(2.2)" : "scale(1)";
     });
   }
 
   function clearSelection() {
     setSelected(null);
     setQuery("");
-    markersRef.current.forEach(({ el }) => { el.style.transform = "scale(1)"; });
+    markersRef.current.forEach(({ dot }) => { dot.style.transform = "scale(1)"; });
   }
 
   const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
