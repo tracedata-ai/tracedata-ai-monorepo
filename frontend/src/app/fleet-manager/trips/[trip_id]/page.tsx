@@ -220,7 +220,7 @@ function TripEventMap({ events }: { events: TripDetail["safety_events"] }) {
 
         map = new mapboxgl.Map({
           container: containerRef.current,
-          style: "mapbox://styles/mapbox/light-v11",
+          style: "mapbox://styles/mapbox/streets-v12",
           center: [withCoords[0].lon!, withCoords[0].lat!],
           zoom: 12,
         });

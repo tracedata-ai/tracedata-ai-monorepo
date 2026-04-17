@@ -43,7 +43,7 @@ export function FleetMap({ vehicles, height = 360 }: Props) {
 
       map = new mapboxgl.Map({
         container: containerRef.current!,
-        style: "mapbox://styles/mapbox/light-v11",
+        style: "mapbox://styles/mapbox/streets-v12",
         center: [103.82, 1.35],
         zoom: 11,
       });

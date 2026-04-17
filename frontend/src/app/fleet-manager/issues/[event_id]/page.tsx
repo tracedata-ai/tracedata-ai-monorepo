@@ -52,7 +52,7 @@ function EventMap({ lat, lon }: { lat: number; lon: number }) {
 
         map = new mapboxgl.Map({
           container: mapContainerRef.current,
-          style: "mapbox://styles/mapbox/light-v11",
+          style: "mapbox://styles/mapbox/streets-v12",
           center: [lon, lat],
           zoom: 13,
         });
