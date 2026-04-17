@@ -10,8 +10,7 @@ import logging
 from datetime import UTC, datetime, timedelta
 from inspect import isawaitable
 
-from celery import current_app as celery
-from celery import shared_task
+from celery import current_app as celery, shared_task
 from sqlalchemy import text
 
 from agents.orchestrator.db_manager import DBManager
@@ -255,8 +254,9 @@ async def _find_and_rescore() -> dict:
 
     async with engine.connect() as conn:
         rows = (
-            await conn.execute(
-                text("""
+            (
+                await conn.execute(
+                    text("""
                     SELECT pt.trip_id, pt.driver_id
                     FROM   pipeline_trips pt
                     WHERE  pt.status   = 'complete'
@@ -269,9 +269,12 @@ async def _find_and_rescore() -> dict:
                     ORDER  BY pt.closed_at DESC
                     LIMIT  10
                 """),
-                {"cutoff": cutoff},
+                    {"cutoff": cutoff},
+                )
             )
-        ).mappings().all()
+            .mappings()
+            .all()
+        )
 
     if not rows:
         return {"dispatched": 0, "skipped": 0, "reason": "none_pending"}
@@ -362,8 +365,9 @@ async def _find_and_requeue_received() -> dict:
 
     async with engine.connect() as conn:
         rows = (
-            await conn.execute(
-                text("""
+            (
+                await conn.execute(
+                    text("""
                     SELECT
                         event_id, device_event_id, trip_id, driver_id, truck_id,
                         event_type, category, priority, timestamp, offset_seconds,
@@ -376,9 +380,12 @@ async def _find_and_requeue_received() -> dict:
                     ORDER  BY ingested_at ASC
                     LIMIT  20
                 """),
-                {"cutoff": cutoff},
+                    {"cutoff": cutoff},
+                )
             )
-        ).mappings().all()
+            .mappings()
+            .all()
+        )
 
     if not rows:
         return {"requeued": 0, "reason": "none_pending"}
@@ -425,17 +432,21 @@ async def _find_and_requeue_received() -> dict:
                     {event.model_dump_json(): score},
                 )
                 requeued += 1
-                logger.info({
-                    "action": "received_event_requeued",
-                    "device_event_id": str(row["device_event_id"]),
-                    "trip_id": str(row["trip_id"]),
-                })
+                logger.info(
+                    {
+                        "action": "received_event_requeued",
+                        "device_event_id": str(row["device_event_id"]),
+                        "trip_id": str(row["trip_id"]),
+                    }
+                )
             except Exception as row_exc:
-                logger.warning({
-                    "action": "requeue_received_row_error",
-                    "device_event_id": str(row.get("device_event_id", "?")),
-                    "error": str(row_exc)[:120],
-                })
+                logger.warning(
+                    {
+                        "action": "requeue_received_row_error",
+                        "device_event_id": str(row.get("device_event_id", "?")),
+                        "error": str(row_exc)[:120],
+                    }
+                )
     finally:
         close = redis.close()
         if isawaitable(close):
@@ -481,28 +492,36 @@ async def _rewarm_support_cache(redis: RedisClient, trip_id: str) -> bool:
     """
     async with engine.connect() as conn:
         score_row = (
-            await conn.execute(
-                text("""
+            (
+                await conn.execute(
+                    text("""
                     SELECT score, score_breakdown, scoring_narrative
                     FROM   scoring_schema.trip_scores
                     WHERE  trip_id::text = :tid
                     ORDER  BY created_at DESC
                     LIMIT  1
                 """),
-                {"tid": trip_id},
+                    {"tid": trip_id},
+                )
             )
-        ).mappings().first()
+            .mappings()
+            .first()
+        )
 
         trip_row = (
-            await conn.execute(
-                text("""
+            (
+                await conn.execute(
+                    text("""
                     SELECT driver_id, truck_id, started_at, ended_at
                     FROM   pipeline_trips
                     WHERE  trip_id::text = :tid
                 """),
-                {"tid": trip_id},
+                    {"tid": trip_id},
+                )
             )
-        ).mappings().first()
+            .mappings()
+            .first()
+        )
 
     if not trip_row:
         return False
@@ -526,7 +545,9 @@ async def _rewarm_support_cache(redis: RedisClient, trip_id: str) -> bool:
         "trip_id": trip_id,
         "driver_id": str(trip_row["driver_id"]),
         "truck_id": str(trip_row["truck_id"]),
-        "started_at": trip_row["started_at"].isoformat() if trip_row["started_at"] else None,
+        "started_at": (
+            trip_row["started_at"].isoformat() if trip_row["started_at"] else None
+        ),
         "ended_at": trip_row["ended_at"].isoformat() if trip_row["ended_at"] else None,
         "scoring_output": scoring_output,
         "safety_output": None,
@@ -534,7 +555,9 @@ async def _rewarm_support_cache(redis: RedisClient, trip_id: str) -> bool:
     }
 
     trip_context_key = RedisSchema.Trip.agent_data(trip_id, "support", "trip_context")
-    coaching_history_key = RedisSchema.Trip.agent_data(trip_id, "support", "coaching_history")
+    coaching_history_key = RedisSchema.Trip.agent_data(
+        trip_id, "support", "coaching_history"
+    )
     # 300s TTL — enough for the agent to consume, short enough not to pollute cache
     await redis._client.set(trip_context_key, json.dumps(trip_context), ex=300)
     await redis._client.set(coaching_history_key, json.dumps([]), ex=300)
@@ -547,8 +570,9 @@ async def _find_and_requeue_stuck_trips() -> dict:
 
     async with engine.connect() as conn:
         scoring_rows = (
-            await conn.execute(
-                text("""
+            (
+                await conn.execute(
+                    text("""
                     SELECT trip_id, driver_id
                     FROM   pipeline_trips
                     WHERE  status = 'scoring_pending'
@@ -556,13 +580,17 @@ async def _find_and_requeue_stuck_trips() -> dict:
                     ORDER  BY updated_at ASC
                     LIMIT  10
                 """),
-                {"cutoff": scoring_cutoff},
+                    {"cutoff": scoring_cutoff},
+                )
             )
-        ).mappings().all()
+            .mappings()
+            .all()
+        )
 
         coaching_rows = (
-            await conn.execute(
-                text("""
+            (
+                await conn.execute(
+                    text("""
                     SELECT trip_id, driver_id
                     FROM   pipeline_trips
                     WHERE  status = 'coaching_pending'
@@ -570,9 +598,12 @@ async def _find_and_requeue_stuck_trips() -> dict:
                     ORDER  BY updated_at ASC
                     LIMIT  10
                 """),
-                {"cutoff": coaching_cutoff},
+                    {"cutoff": coaching_cutoff},
+                )
             )
-        ).mappings().all()
+            .mappings()
+            .all()
+        )
 
     redis = RedisClient()
     scoring_dispatched = 0
@@ -587,7 +618,9 @@ async def _find_and_requeue_stuck_trips() -> dict:
             all_pings_key = RedisSchema.Trip.agent_data(trip_id, "scoring", "all_pings")
             if not await redis._client.exists(all_pings_key):
                 scoring_skipped += 1
-                logger.info({"action": "requeue_scoring_skip_no_cache", "trip_id": trip_id})
+                logger.info(
+                    {"action": "requeue_scoring_skip_no_cache", "trip_id": trip_id}
+                )
                 continue
 
             read_keys = [
@@ -625,15 +658,21 @@ async def _find_and_requeue_stuck_trips() -> dict:
         # ── Re-dispatch coaching / support ─────────────────────────────────────
         for row in coaching_rows:
             trip_id = str(row["trip_id"])
-            trip_context_key = RedisSchema.Trip.agent_data(trip_id, "support", "trip_context")
+            trip_context_key = RedisSchema.Trip.agent_data(
+                trip_id, "support", "trip_context"
+            )
             if not await redis._client.exists(trip_context_key):
                 # Cache expired — try re-warming from DB before giving up
                 warmed = await _rewarm_support_cache(redis, trip_id)
                 if not warmed:
                     coaching_skipped += 1
-                    logger.info({"action": "requeue_coaching_skip_no_data", "trip_id": trip_id})
+                    logger.info(
+                        {"action": "requeue_coaching_skip_no_data", "trip_id": trip_id}
+                    )
                     continue
-                logger.info({"action": "requeue_coaching_cache_rewarmed", "trip_id": trip_id})
+                logger.info(
+                    {"action": "requeue_coaching_cache_rewarmed", "trip_id": trip_id}
+                )
 
             read_keys = [
                 RedisSchema.Trip.agent_data(trip_id, "support", "trip_context"),

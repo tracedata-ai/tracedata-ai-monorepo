@@ -44,7 +44,9 @@ async def list_issues(
     result = await db.execute(query)
     out = [IssueRead.model_validate(i) for i in result.scalars().all()]
 
-    await redis.cache_set(cache_key, [i.model_dump() for i in out], RedisSchema.Api.ISSUES_TTL)
+    await redis.cache_set(
+        cache_key, [i.model_dump() for i in out], RedisSchema.Api.ISSUES_TTL
+    )
     return out
 
 

@@ -54,20 +54,28 @@ async def list_trips(
     if trips:
         ids_missing_score = [str(t.id) for t in trips if t.safety_score is None]
         if ids_missing_score:
-            rows = (await db.execute(
-                text(
-                    "SELECT trip_id, score FROM scoring_schema.trip_scores "
-                    "WHERE trip_id = ANY(:ids)"
-                ),
-                {"ids": ids_missing_score},
-            )).mappings().all()
+            rows = (
+                (
+                    await db.execute(
+                        text(
+                            "SELECT trip_id, score FROM scoring_schema.trip_scores "
+                            "WHERE trip_id = ANY(:ids)"
+                        ),
+                        {"ids": ids_missing_score},
+                    )
+                )
+                .mappings()
+                .all()
+            )
             score_map: dict[str, Decimal] = {r["trip_id"]: r["score"] for r in rows}
             for trip in trips:
                 if trip.safety_score is None:
                     trip.safety_score = score_map.get(str(trip.id))
 
     out = [TripRead.model_validate(t) for t in trips]
-    await redis.cache_set(cache_key, [t.model_dump() for t in out], RedisSchema.Api.TRIPS_TTL)
+    await redis.cache_set(
+        cache_key, [t.model_dump() for t in out], RedisSchema.Api.TRIPS_TTL
+    )
     return out
 
 
@@ -103,7 +111,9 @@ async def get_trip_detail(
 
     trip = await db.get(Trip, trip_id)
     if not trip:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Trip not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Trip not found"
+        )
 
     tid = str(trip_id)
 
@@ -124,24 +134,44 @@ async def get_trip_detail(
     meta_row = meta.mappings().first() or {}
 
     # ── Scoring ───────────────────────────────────────────────────────────────
-    score_row = (await db.execute(
-        text("SELECT score, score_breakdown, scoring_narrative, driver_id FROM scoring_schema.trip_scores WHERE trip_id = :tid LIMIT 1"),
-        {"tid": tid},
-    )).mappings().first()
+    score_row = (
+        (
+            await db.execute(
+                text(
+                    "SELECT score, score_breakdown, scoring_narrative, driver_id FROM scoring_schema.trip_scores WHERE trip_id = :tid LIMIT 1"
+                ),
+                {"tid": tid},
+            )
+        )
+        .mappings()
+        .first()
+    )
 
     # Driver score: average of all scored trips for this driver, mapped to 0–5
     driver_score: float | None = None
     if score_row:
-        avg_row = (await db.execute(
-            text("SELECT AVG(score) AS avg_score FROM scoring_schema.trip_scores WHERE driver_id = :did"),
-            {"did": score_row["driver_id"]},
-        )).mappings().first()
+        avg_row = (
+            (
+                await db.execute(
+                    text(
+                        "SELECT AVG(score) AS avg_score FROM scoring_schema.trip_scores WHERE driver_id = :did"
+                    ),
+                    {"did": score_row["driver_id"]},
+                )
+            )
+            .mappings()
+            .first()
+        )
         if avg_row and avg_row["avg_score"] is not None:
-            driver_score = round(max(0.0, min(5.0, float(avg_row["avg_score"]) / 20.0)), 2)
+            driver_score = round(
+                max(0.0, min(5.0, float(avg_row["avg_score"]) / 20.0)), 2
+            )
 
     # ── Safety events ─────────────────────────────────────────────────────────
-    safety_rows = (await db.execute(
-        text("""
+    safety_rows = (
+        (
+            await db.execute(
+                text("""
             SELECT h.event_id, h.event_type, h.severity, h.lat, h.lon,
                    h.location_name, h.event_timestamp, h.traffic_conditions, h.weather_conditions,
                    d.decision, d.action, d.reason, d.recommended_action
@@ -150,20 +180,40 @@ async def get_trip_detail(
             WHERE  h.trip_id = :tid
             ORDER  BY h.event_timestamp
         """),
-        {"tid": tid},
-    )).mappings().all()
+                {"tid": tid},
+            )
+        )
+        .mappings()
+        .all()
+    )
 
     # ── Coaching ──────────────────────────────────────────────────────────────
-    coaching_rows = (await db.execute(
-        text("SELECT coaching_category, priority, message FROM coaching_schema.coaching WHERE trip_id = :tid ORDER BY created_at"),
-        {"tid": tid},
-    )).mappings().all()
+    coaching_rows = (
+        (
+            await db.execute(
+                text(
+                    "SELECT coaching_category, priority, message FROM coaching_schema.coaching WHERE trip_id = :tid ORDER BY created_at"
+                ),
+                {"tid": tid},
+            )
+        )
+        .mappings()
+        .all()
+    )
 
     # ── Sentiment ─────────────────────────────────────────────────────────────
-    sentiment_row = (await db.execute(
-        text("SELECT feedback_text, sentiment_score, sentiment_label, analysis FROM sentiment_schema.feedback_sentiment WHERE trip_id = :tid LIMIT 1"),
-        {"tid": tid},
-    )).mappings().first()
+    sentiment_row = (
+        (
+            await db.execute(
+                text(
+                    "SELECT feedback_text, sentiment_score, sentiment_label, analysis FROM sentiment_schema.feedback_sentiment WHERE trip_id = :tid LIMIT 1"
+                ),
+                {"tid": tid},
+            )
+        )
+        .mappings()
+        .first()
+    )
 
     return {
         "trip_id": tid,
@@ -171,7 +221,8 @@ async def get_trip_detail(
         "created_at": trip.created_at.isoformat() if trip.created_at else None,
         "driver_name": meta_row.get("driver_name"),
         "license_plate": meta_row.get("license_plate"),
-        "vehicle": f"{meta_row.get('make', '')} {meta_row.get('model', '')}".strip() or None,
+        "vehicle": f"{meta_row.get('make', '')} {meta_row.get('model', '')}".strip()
+        or None,
         "route_name": meta_row.get("route_name"),
         "route_from": meta_row.get("start_location"),
         "route_to": meta_row.get("end_location"),
@@ -179,10 +230,20 @@ async def get_trip_detail(
         "scoring": {
             "score": score_row.get("score") if score_row else None,
             "driver_score": driver_score,
-            "breakdown": dict(score_row.get("score_breakdown") or {}) if score_row else {},
+            "breakdown": (
+                dict(score_row.get("score_breakdown") or {}) if score_row else {}
+            ),
             "narrative": score_row.get("scoring_narrative") if score_row else None,
-            "score_label": score_label_from_value(float(score_row["score"])) if score_row and score_row.get("score") is not None else None,
-            "score_gpa": score_gpa_from_value(float(score_row["score"])) if score_row and score_row.get("score") is not None else None,
+            "score_label": (
+                score_label_from_value(float(score_row["score"]))
+                if score_row and score_row.get("score") is not None
+                else None
+            ),
+            "score_gpa": (
+                score_gpa_from_value(float(score_row["score"]))
+                if score_row and score_row.get("score") is not None
+                else None
+            ),
         },
         "safety_events": [
             {
@@ -192,7 +253,9 @@ async def get_trip_detail(
                 "lat": r["lat"],
                 "lon": r["lon"],
                 "location_name": r["location_name"],
-                "timestamp": r["event_timestamp"].isoformat() if r["event_timestamp"] else None,
+                "timestamp": (
+                    r["event_timestamp"].isoformat() if r["event_timestamp"] else None
+                ),
                 "traffic": r["traffic_conditions"],
                 "weather": r["weather_conditions"],
                 "decision": r["decision"],
@@ -203,16 +266,26 @@ async def get_trip_detail(
             for r in safety_rows
         ],
         "coaching": [
-            {"category": r["coaching_category"], "priority": r["priority"], "message": r["message"]}
+            {
+                "category": r["coaching_category"],
+                "priority": r["priority"],
+                "message": r["message"],
+            }
             for r in coaching_rows
         ],
-        "sentiment": {
-            "score":        sentiment_row.get("sentiment_score"),
-            "label":        sentiment_row.get("sentiment_label"),
-            "feedback_text": sentiment_row.get("feedback_text"),
-            "explanation":  (sentiment_row.get("analysis") or {}).get("explanation"),
-            "emotions":     (sentiment_row.get("analysis") or {}).get("emotion_scores", {}),
-        } if sentiment_row else None,
+        "sentiment": (
+            {
+                "score": sentiment_row.get("sentiment_score"),
+                "label": sentiment_row.get("sentiment_label"),
+                "feedback_text": sentiment_row.get("feedback_text"),
+                "explanation": (sentiment_row.get("analysis") or {}).get("explanation"),
+                "emotions": (sentiment_row.get("analysis") or {}).get(
+                    "emotion_scores", {}
+                ),
+            }
+            if sentiment_row
+            else None
+        ),
     }
 
 

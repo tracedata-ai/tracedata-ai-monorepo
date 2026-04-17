@@ -19,7 +19,10 @@ router = APIRouter(prefix="/embeddings", tags=["Embeddings"])
 @router.get("/search", summary="Semantic similarity search over agent outputs")
 async def search_embeddings(
     q: str = Query(..., description="Natural-language query"),
-    content_type: str | None = Query(None, description="Filter: driver_feedback | coaching_message | safety_decision | scoring_narrative"),
+    content_type: str | None = Query(
+        None,
+        description="Filter: driver_feedback | coaching_message | safety_decision | scoring_narrative",
+    ),
     driver_id: str | None = Query(None, description="Filter by driver UUID"),
     limit: int = Query(10, ge=1, le=50),
     db: AsyncSession = Depends(get_db),
@@ -43,8 +46,10 @@ async def search_embeddings(
 
     where = " AND ".join(filters)
 
-    rows = (await db.execute(
-        text(f"""
+    rows = (
+        (
+            await db.execute(
+                text(f"""
             SELECT id, content_type, source_id, driver_id, trip_id, content, created_at,
                    1 - (embedding <=> cast(:vec as vector)) AS similarity
             FROM   vector_schema.embeddings
@@ -52,19 +57,23 @@ async def search_embeddings(
             ORDER  BY embedding <=> cast(:vec as vector)
             LIMIT  :limit
         """),
-        params,
-    )).mappings().all()
+                params,
+            )
+        )
+        .mappings()
+        .all()
+    )
 
     return [
         {
-            "id":           r["id"],
+            "id": r["id"],
             "content_type": r["content_type"],
-            "source_id":    r["source_id"],
-            "driver_id":    r["driver_id"],
-            "trip_id":      r["trip_id"],
-            "content":      r["content"],
-            "similarity":   round(float(r["similarity"]), 4),
-            "created_at":   r["created_at"].isoformat() if r["created_at"] else None,
+            "source_id": r["source_id"],
+            "driver_id": r["driver_id"],
+            "trip_id": r["trip_id"],
+            "content": r["content"],
+            "similarity": round(float(r["similarity"]), 4),
+            "created_at": r["created_at"].isoformat() if r["created_at"] else None,
         }
         for r in rows
     ]
@@ -77,8 +86,10 @@ async def related_events(
     db: AsyncSession = Depends(get_db),
 ) -> list[dict]:
     """Reuses the stored embedding for event_id — no OpenAI call needed."""
-    rows = (await db.execute(
-        text("""
+    rows = (
+        (
+            await db.execute(
+                text("""
             WITH target AS (
                 SELECT embedding
                 FROM   vector_schema.embeddings
@@ -108,22 +119,28 @@ async def related_events(
             ORDER  BY e.embedding <=> t.embedding
             LIMIT  :limit
         """),
-        {"eid": event_id, "limit": limit},
-    )).mappings().all()
+                {"eid": event_id, "limit": limit},
+            )
+        )
+        .mappings()
+        .all()
+    )
 
     return [
         {
-            "event_id":        r["event_id"],
-            "trip_id":         r["trip_id"],
-            "driver_id":       r["driver_id"],
-            "similarity":      round(float(r["similarity"]), 4),
-            "event_type":      r["event_type"],
-            "severity":        r["severity"],
-            "decision":        r["decision"],
-            "reason":          r["reason"],
-            "lat":             r["lat"],
-            "lon":             r["lon"],
-            "event_timestamp": r["event_timestamp"].isoformat() if r["event_timestamp"] else None,
+            "event_id": r["event_id"],
+            "trip_id": r["trip_id"],
+            "driver_id": r["driver_id"],
+            "similarity": round(float(r["similarity"]), 4),
+            "event_type": r["event_type"],
+            "severity": r["severity"],
+            "decision": r["decision"],
+            "reason": r["reason"],
+            "lat": r["lat"],
+            "lon": r["lon"],
+            "event_timestamp": (
+                r["event_timestamp"].isoformat() if r["event_timestamp"] else None
+            ),
         }
         for r in rows
     ]
@@ -131,12 +148,10 @@ async def related_events(
 
 @router.get("/stats", summary="Count of stored embeddings by type")
 async def embedding_stats(db: AsyncSession = Depends(get_db)) -> list[dict]:
-    rows = (await db.execute(
-        text("""
+    rows = (await db.execute(text("""
             SELECT content_type, COUNT(*) AS total
             FROM   vector_schema.embeddings
             GROUP  BY content_type
             ORDER  BY total DESC
-        """)
-    )).mappings().all()
+        """))).mappings().all()
     return [{"content_type": r["content_type"], "total": int(r["total"])} for r in rows]

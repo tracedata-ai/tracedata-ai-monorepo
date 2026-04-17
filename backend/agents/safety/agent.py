@@ -115,7 +115,8 @@ class SafetyAgent(TDAgentBase):
             _loc_early = current_event.get("location")
             place_name = (
                 (_loc_early.get("place_name") or "").strip() or None
-                if isinstance(_loc_early, dict) else None
+                if isinstance(_loc_early, dict)
+                else None
             )
 
             if self._llm is not None:
@@ -124,7 +125,9 @@ class SafetyAgent(TDAgentBase):
                 evt_type = str(current_event.get("event_type", "unknown"))
                 messages = [
                     SystemMessage(content=SAFETY_SYSTEM_PROMPT),
-                    HumanMessage(content=build_safety_user_message(trip_id, evt_type, place_name)),
+                    HumanMessage(
+                        content=build_safety_user_message(trip_id, evt_type, place_name)
+                    ),
                 ]
                 thread_id = (
                     f"{trip_id}:safety:run:{current_event.get('event_id', 'evt')}"

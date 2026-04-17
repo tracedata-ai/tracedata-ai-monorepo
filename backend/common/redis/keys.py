@@ -129,12 +129,12 @@ class RedisSchema:
     class Api:
         """API-level read-through cache keys for slow-changing list endpoints."""
 
-        FLEET_TTL: int = 300        # 5 min — vehicles rarely change
-        DRIVERS_TTL: int = 300      # 5 min — driver roster rarely changes
+        FLEET_TTL: int = 300  # 5 min — vehicles rarely change
+        DRIVERS_TTL: int = 300  # 5 min — driver roster rarely changes
         MAINTENANCE_TTL: int = 120  # 2 min — work orders update more often
-        TRIPS_TTL: int = 60         # 1 min — active trips change status
-        ISSUES_TTL: int = 300       # 5 min — issues are append-only
-        SAFETY_TTL: int = 300       # 5 min — historical, append-only
+        TRIPS_TTL: int = 60  # 1 min — active trips change status
+        ISSUES_TTL: int = 300  # 5 min — issues are append-only
+        SAFETY_TTL: int = 300  # 5 min — historical, append-only
 
         @staticmethod
         def fleet_list(tenant_id: str, skip: int, limit: int) -> str:

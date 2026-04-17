@@ -143,80 +143,80 @@ def smoothness_details_for_style(
 
     if style == "excellent":
         # Near-perfect: all three ML features ≥ 0.95 so the model scores high.
-        jerk_mean  = v(0.0008, 0.002)   # accel_fluidity ≥ 0.98
-        jerk_max   = v(0.005, 0.018)    # comfort driver: jerk_max/5 ≤ 0.004
-        jerk_std   = v(0.001, 0.002)
-        spd_mean   = v(55.0, 70.0)
-        spd_std    = v(0.5, 2.0)        # consistency ≥ 0.93
-        spd_max    = v(65.0, 80.0)
-        lat_mean   = v(0.002, 0.008)    # comfort driver: lat_mean/0.3 ≤ 0.027
-        lat_max    = v(0.015, 0.045)
-        h_brake    = 0
-        h_accel    = 0
-        h_corner   = 0
-        over_rev   = 0
-        rpm        = i(1450, 1650)
-        idle_sec   = i(15, 40)
+        jerk_mean = v(0.0008, 0.002)  # accel_fluidity ≥ 0.98
+        jerk_max = v(0.005, 0.018)  # comfort driver: jerk_max/5 ≤ 0.004
+        jerk_std = v(0.001, 0.002)
+        spd_mean = v(55.0, 70.0)
+        spd_std = v(0.5, 2.0)  # consistency ≥ 0.93
+        spd_max = v(65.0, 80.0)
+        lat_mean = v(0.002, 0.008)  # comfort driver: lat_mean/0.3 ≤ 0.027
+        lat_max = v(0.015, 0.045)
+        h_brake = 0
+        h_accel = 0
+        h_corner = 0
+        over_rev = 0
+        rpm = i(1450, 1650)
+        idle_sec = i(15, 40)
     elif style == "good":
-        jerk_mean  = v(0.006, 0.016)
-        jerk_max   = v(0.035, 0.10)
-        jerk_std   = v(0.004, 0.009)
-        spd_mean   = v(50.0, 72.0)
-        spd_std    = v(5.0, 12.0)
-        spd_max    = v(72.0, 94.0)
-        lat_mean   = v(0.018, 0.055)
-        lat_max    = v(0.09, 0.22)
-        h_brake    = 0
-        h_accel    = 0
-        h_corner   = i(0, 1)
-        over_rev   = 0
-        rpm        = i(1600, 1950)
-        idle_sec   = i(35, 75)
+        jerk_mean = v(0.006, 0.016)
+        jerk_max = v(0.035, 0.10)
+        jerk_std = v(0.004, 0.009)
+        spd_mean = v(50.0, 72.0)
+        spd_std = v(5.0, 12.0)
+        spd_max = v(72.0, 94.0)
+        lat_mean = v(0.018, 0.055)
+        lat_max = v(0.09, 0.22)
+        h_brake = 0
+        h_accel = 0
+        h_corner = i(0, 1)
+        over_rev = 0
+        rpm = i(1600, 1950)
+        idle_sec = i(35, 75)
     elif style == "average":
-        jerk_mean  = v(0.014, 0.030)
-        jerk_max   = v(0.08, 0.24)
-        jerk_std   = v(0.008, 0.015)
-        spd_mean   = v(45.0, 68.0)
-        spd_std    = v(10.0, 18.0)
-        spd_max    = v(76.0, 98.0)
-        lat_mean   = v(0.045, 0.11)
-        lat_max    = v(0.14, 0.34)
-        h_brake    = i(0, 1)
-        h_accel    = i(0, 1)
-        h_corner   = i(0, 2)
-        over_rev   = i(0, 1)
-        rpm        = i(1700, 2100)
-        idle_sec   = i(55, 110)
+        jerk_mean = v(0.014, 0.030)
+        jerk_max = v(0.08, 0.24)
+        jerk_std = v(0.008, 0.015)
+        spd_mean = v(45.0, 68.0)
+        spd_std = v(10.0, 18.0)
+        spd_max = v(76.0, 98.0)
+        lat_mean = v(0.045, 0.11)
+        lat_max = v(0.14, 0.34)
+        h_brake = i(0, 1)
+        h_accel = i(0, 1)
+        h_corner = i(0, 2)
+        over_rev = i(0, 1)
+        rpm = i(1700, 2100)
+        idle_sec = i(55, 110)
     elif style == "poor":
-        jerk_mean  = v(0.028, 0.050)
-        jerk_max   = v(0.18, 0.45)
-        jerk_std   = v(0.014, 0.024)
-        spd_mean   = v(40.0, 65.0)
-        spd_std    = v(15.0, 22.0)
-        spd_max    = v(80.0, 105.0)
-        lat_mean   = v(0.10, 0.21)
-        lat_max    = v(0.26, 0.55)
-        h_brake    = i(1, 3)
-        h_accel    = i(0, 2)
-        h_corner   = i(1, 3)
-        over_rev   = i(0, 3)
-        rpm        = i(1900, 2450)
-        idle_sec   = i(85, 160)
+        jerk_mean = v(0.028, 0.050)
+        jerk_max = v(0.18, 0.45)
+        jerk_std = v(0.014, 0.024)
+        spd_mean = v(40.0, 65.0)
+        spd_std = v(15.0, 22.0)
+        spd_max = v(80.0, 105.0)
+        lat_mean = v(0.10, 0.21)
+        lat_max = v(0.26, 0.55)
+        h_brake = i(1, 3)
+        h_accel = i(0, 2)
+        h_corner = i(1, 3)
+        over_rev = i(0, 3)
+        rpm = i(1900, 2450)
+        idle_sec = i(85, 160)
     else:  # aggressive
-        jerk_mean  = v(0.050, 0.092)
-        jerk_max   = v(0.35, 0.90)
-        jerk_std   = v(0.022, 0.035)
-        spd_mean   = v(60.0, 88.0)
-        spd_std    = v(18.0, 28.0)
-        spd_max    = v(90.0, 118.0)
-        lat_mean   = v(0.18, 0.30)
-        lat_max    = v(0.40, 0.85)
-        h_brake    = i(2, 4)
-        h_accel    = i(2, 4)
-        h_corner   = i(2, 5)
-        over_rev   = i(1, 4)
-        rpm        = i(2200, 2900)
-        idle_sec   = i(20, 65)
+        jerk_mean = v(0.050, 0.092)
+        jerk_max = v(0.35, 0.90)
+        jerk_std = v(0.022, 0.035)
+        spd_mean = v(60.0, 88.0)
+        spd_std = v(18.0, 28.0)
+        spd_max = v(90.0, 118.0)
+        lat_mean = v(0.18, 0.30)
+        lat_max = v(0.40, 0.85)
+        h_brake = i(2, 4)
+        h_accel = i(2, 4)
+        h_corner = i(2, 5)
+        over_rev = i(1, 4)
+        rpm = i(2200, 2900)
+        idle_sec = i(20, 65)
 
     return {
         "sample_count": 600,
@@ -225,7 +225,7 @@ def smoothness_details_for_style(
             "mean_kmh": round(spd_mean, 1),
             "std_dev": round(spd_std, 2),
             "max_kmh": round(spd_max, 1),
-            "variance": round(spd_std ** 2, 2),
+            "variance": round(spd_std**2, 2),
         },
         "longitudinal": {
             "mean_accel_g": round(jerk_mean * 2.5, 4),

@@ -56,7 +56,9 @@ app.conf.update(
         "tasks.watchdog_tasks.reset_stuck_events": {"queue": settings.safety_queue},
         "tasks.watchdog_tasks.publish_queue_depths": {"queue": settings.safety_queue},
         "tasks.watchdog_tasks.rescore_unscored_trips": {"queue": settings.safety_queue},
-        "tasks.watchdog_tasks.requeue_stuck_received_events": {"queue": settings.safety_queue},
+        "tasks.watchdog_tasks.requeue_stuck_received_events": {
+            "queue": settings.safety_queue
+        },
         "tasks.watchdog_tasks.requeue_stuck_trips": {"queue": settings.safety_queue},
     },
     # ── Beat schedule (watchdog) ──────────────────────────────────────────────

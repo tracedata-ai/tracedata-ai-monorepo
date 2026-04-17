@@ -12,11 +12,12 @@ import uuid
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from common.workflow_fixtures.mock_driver_feedback import FEEDBACK_POOL as _FEEDBACK_POOL
-
 from common.samples.smoothness_batch import (
     build_smoothness_log_packet,
     smoothness_details_mild_variant,
+)
+from common.workflow_fixtures.mock_driver_feedback import (
+    FEEDBACK_POOL as _FEEDBACK_POOL,
 )
 
 
@@ -420,7 +421,11 @@ def smoothness_at(
         batch_id=bid,
         event_id=eid,
         device_event_id=did,
-        details=details if details is not None else smoothness_details_mild_variant(variant_seed),
+        details=(
+            details
+            if details is not None
+            else smoothness_details_mild_variant(variant_seed)
+        ),
     )
 
 

@@ -26,16 +26,14 @@ import argparse
 import asyncio
 import importlib
 import json
+import random as _random
 from collections.abc import Callable
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from typing import Any
 
 import redis.asyncio as redis
 from sqlalchemy import select, text
-
-import random as _random
-from datetime import date
 
 from api.models.driver import Driver
 from api.models.fleet import Vehicle
@@ -112,25 +110,25 @@ def _sg_route_pairs() -> list[tuple[str, str]]:
 
 _SG_LOCATION_COORDS: dict[str, tuple[float, float]] = {
     "Tuas Logistics Hub": (1.2990, 103.6360),
-    "Jurong Port":        (1.3230, 103.7080),
-    "Pioneer":            (1.3360, 103.7100),
-    "Bukit Batok":        (1.3490, 103.7490),
-    "Woodlands":          (1.4390, 103.7860),
-    "Yishun":             (1.4290, 103.8350),
-    "Seletar":            (1.4050, 103.8690),
-    "Paya Lebar":         (1.3180, 103.8930),
-    "Changi Cargo":       (1.3560, 103.9880),
-    "Pasir Ris":          (1.3730, 103.9490),
-    "Hougang":            (1.3710, 103.8930),
-    "Serangoon":          (1.3500, 103.8730),
-    "Toa Payoh":          (1.3320, 103.8460),
-    "Bishan":             (1.3520, 103.8490),
-    "Novena":             (1.3200, 103.8440),
-    "Orchard":            (1.3040, 103.8318),
-    "Newton":             (1.3120, 103.8390),
-    "Queenstown":         (1.2940, 103.8060),
-    "HarbourFront":       (1.2650, 103.8200),
-    "Marina Bay":         (1.2840, 103.8607),
+    "Jurong Port": (1.3230, 103.7080),
+    "Pioneer": (1.3360, 103.7100),
+    "Bukit Batok": (1.3490, 103.7490),
+    "Woodlands": (1.4390, 103.7860),
+    "Yishun": (1.4290, 103.8350),
+    "Seletar": (1.4050, 103.8690),
+    "Paya Lebar": (1.3180, 103.8930),
+    "Changi Cargo": (1.3560, 103.9880),
+    "Pasir Ris": (1.3730, 103.9490),
+    "Hougang": (1.3710, 103.8930),
+    "Serangoon": (1.3500, 103.8730),
+    "Toa Payoh": (1.3320, 103.8460),
+    "Bishan": (1.3520, 103.8490),
+    "Novena": (1.3200, 103.8440),
+    "Orchard": (1.3040, 103.8318),
+    "Newton": (1.3120, 103.8390),
+    "Queenstown": (1.2940, 103.8060),
+    "HarbourFront": (1.2650, 103.8200),
+    "Marina Bay": (1.2840, 103.8607),
 }
 
 
@@ -375,7 +373,9 @@ async def _seed_vehicle_details(vehicles: list[Vehicle]) -> None:
     today = date.today()
 
     async with AsyncSessionLocal() as session:
-        existing = (await session.execute(select(Maintenance).limit(1))).scalar_one_or_none()
+        existing = (
+            await session.execute(select(Maintenance).limit(1))
+        ).scalar_one_or_none()
         if existing:
             return
 
@@ -400,16 +400,18 @@ async def _seed_vehicle_details(vehicles: list[Vehicle]) -> None:
                     else None
                 )
 
-                session.add(Maintenance(
-                    tenant_id=vehicle.tenant_id,
-                    vehicle_id=vehicle.id,
-                    maintenance_type=maint_type,
-                    status=maint_status,
-                    scheduled_date=scheduled,
-                    completed_date=completed,
-                    triggered_by="schedule",
-                    notes=f"Routine {maint_type.replace('_', ' ')} — seeded by bootstrap",
-                ))
+                session.add(
+                    Maintenance(
+                        tenant_id=vehicle.tenant_id,
+                        vehicle_id=vehicle.id,
+                        maintenance_type=maint_type,
+                        status=maint_status,
+                        scheduled_date=scheduled,
+                        completed_date=completed,
+                        triggered_by="schedule",
+                        notes=f"Routine {maint_type.replace('_', ' ')} — seeded by bootstrap",
+                    )
+                )
 
                 if maint_status == "in_progress":
                     has_in_progress = True
@@ -418,7 +420,9 @@ async def _seed_vehicle_details(vehicles: list[Vehicle]) -> None:
                 vehicle.status = "in_maintenance"
 
         await session.commit()
-        print(f"[bootstrap] Seeded fuel levels and maintenance records for {len(vehicles)} vehicles.")
+        print(
+            f"[bootstrap] Seeded fuel levels and maintenance records for {len(vehicles)} vehicles."
+        )
 
 
 async def _create_trip(
@@ -476,7 +480,8 @@ async def _push_trip_batch(
 
     # Only dispatch trips for active vehicles — in_maintenance vehicles sit out
     active_pairs = [
-        (d, v) for d, v in zip(drivers, vehicles, strict=False)
+        (d, v)
+        for d, v in zip(drivers, vehicles, strict=False)
         if v.status != "in_maintenance"
     ]
     n = max(1, min(truck_count, len(active_pairs)))
@@ -613,21 +618,23 @@ async def _run() -> None:
         await conn.execute(text("CREATE SCHEMA IF NOT EXISTS scoring_schema"))
         await conn.run_sync(Base.metadata.create_all)
         # Idempotent migration: add fuel_level if the column was added after first boot
-        await conn.execute(text(
-            "ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS fuel_level SMALLINT NOT NULL DEFAULT 100"
-        ))
+        await conn.execute(
+            text(
+                "ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS fuel_level SMALLINT NOT NULL DEFAULT 100"
+            )
+        )
         for col, typ in [
             ("start_lat", "DOUBLE PRECISION"),
             ("start_lon", "DOUBLE PRECISION"),
-            ("end_lat",   "DOUBLE PRECISION"),
-            ("end_lon",   "DOUBLE PRECISION"),
+            ("end_lat", "DOUBLE PRECISION"),
+            ("end_lon", "DOUBLE PRECISION"),
         ]:
-            await conn.execute(text(
-                f"ALTER TABLE routes ADD COLUMN IF NOT EXISTS {col} {typ}"
-            ))
-        await conn.execute(text(
-            "ALTER TABLE routes ADD COLUMN IF NOT EXISTS waypoints JSONB"
-        ))
+            await conn.execute(
+                text(f"ALTER TABLE routes ADD COLUMN IF NOT EXISTS {col} {typ}")
+            )
+        await conn.execute(
+            text("ALTER TABLE routes ADD COLUMN IF NOT EXISTS waypoints JSONB")
+        )
         # Apply agent-owned schemas (each statement run separately — asyncpg restriction)
         for ddl in _AGENT_DDL:
             await conn.execute(text(ddl))

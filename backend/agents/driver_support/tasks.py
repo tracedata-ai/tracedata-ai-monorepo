@@ -112,9 +112,7 @@ def generate_coaching(self, intent_capsule: dict) -> dict:
         )
 
         # Coaching is the final pipeline step — close the trip in both tables
-        task_engine = create_async_engine(
-            settings.database_url, poolclass=NullPool
-        )
+        task_engine = create_async_engine(settings.database_url, poolclass=NullPool)
         try:
             run_async(TripsRepo(task_engine).close_trip(trip_id))
             logger.info({"action": "trip_closed", "trip_id": trip_id})

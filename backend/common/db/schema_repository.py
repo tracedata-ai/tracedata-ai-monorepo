@@ -55,6 +55,7 @@ class SchemaRepository:
         """Generate and store a vector embedding. Silently skips on any failure."""
         try:
             from common.embeddings.client import embed_text  # lazy import
+
             vector = await embed_text(content)
             if vector is None:
                 return
@@ -77,4 +78,6 @@ class SchemaRepository:
                     },
                 )
         except Exception as exc:
-            logger.warning("Embedding storage skipped (%s/%s): %s", content_type, source_id, exc)
+            logger.warning(
+                "Embedding storage skipped (%s/%s): %s", content_type, source_id, exc
+            )

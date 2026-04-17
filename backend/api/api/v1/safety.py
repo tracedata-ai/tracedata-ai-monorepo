@@ -91,7 +91,9 @@ def _row_to_dict(row) -> dict:
         "trip_id": m["trip_id"],
         "event_type": m["event_type"],
         "severity": m["severity"],
-        "event_timestamp": m["event_timestamp"].isoformat() if m["event_timestamp"] else None,
+        "event_timestamp": (
+            m["event_timestamp"].isoformat() if m["event_timestamp"] else None
+        ),
         "lat": m["lat"],
         "lon": m["lon"],
         "location_name": m["location_name"],
@@ -108,10 +110,15 @@ def _row_to_dict(row) -> dict:
         "assessed_severity": analysis.get("assessed_severity"),
         "llm_path": analysis.get("llm_path", False),
         "analysis_reason": analysis.get("reason"),
-        "video_url": (analysis.get("primary_event_evidence") or trip_ctx.get("primary_event_evidence", {})).get("video_url"),
+        "video_url": (
+            analysis.get("primary_event_evidence")
+            or trip_ctx.get("primary_event_evidence", {})
+        ).get("video_url"),
         "truck_id": trip_ctx.get("truck_id"),
         "driver_id": trip_ctx.get("driver_id"),
-        "driver_name": f"{m['first_name']} {m['last_name']}".strip() if m["first_name"] else None,
+        "driver_name": (
+            f"{m['first_name']} {m['last_name']}".strip() if m["first_name"] else None
+        ),
         "route_name": trip_ctx.get("route_name"),
         "trip_started_at": trip_ctx.get("started_at"),
     }
@@ -142,5 +149,7 @@ async def get_safety_event(
     result = await db.execute(_DETAIL_SQL, {"event_id": event_id})
     row = result.fetchone()
     if not row:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Event not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Event not found"
+        )
     return _row_to_dict(row)

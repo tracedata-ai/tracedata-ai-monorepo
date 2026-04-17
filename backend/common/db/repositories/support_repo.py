@@ -40,9 +40,11 @@ class SentimentRepository(SchemaRepository):
                 "analysis": json.dumps(analysis),
             },
         )
-        explanation = (analysis.get("explanation") or "")
+        explanation = analysis.get("explanation") or ""
         embed_content = f"Driver feedback: {feedback_text}. Sentiment: {sentiment_label}. {explanation}".strip()
-        await self._store_embedding("driver_feedback", str(trip_id), embed_content, driver_id, trip_id)
+        await self._store_embedding(
+            "driver_feedback", str(trip_id), embed_content, driver_id, trip_id
+        )
         return sentiment_id
 
 
@@ -73,8 +75,12 @@ class SupportRepository(SchemaRepository):
                 "priority": priority,
             },
         )
-        embed_content = f"Coaching [{coaching_category}] (priority: {priority}): {message}"
-        await self._store_embedding("coaching_message", str(coaching_id), embed_content, driver_id, trip_id)
+        embed_content = (
+            f"Coaching [{coaching_category}] (priority: {priority}): {message}"
+        )
+        await self._store_embedding(
+            "coaching_message", str(coaching_id), embed_content, driver_id, trip_id
+        )
         return coaching_id
 
     async def write_driver_feedback(

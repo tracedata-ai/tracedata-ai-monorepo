@@ -47,11 +47,13 @@ async def list_vehicles(
 
     open_ids: set[uuid.UUID] = set()
     if vehicles:
-        rows = (await db.execute(
-            select(Maintenance.vehicle_id).where(
-                Maintenance.status.in_(["scheduled", "in_progress", "overdue"])
+        rows = (
+            await db.execute(
+                select(Maintenance.vehicle_id).where(
+                    Maintenance.status.in_(["scheduled", "in_progress", "overdue"])
+                )
             )
-        )).all()
+        ).all()
         open_ids = {r for (r,) in rows}
 
     out: list[VehicleRead] = []
@@ -60,7 +62,9 @@ async def list_vehicles(
         row.has_open_maintenance = v.id in open_ids
         out.append(row)
 
-    await redis.cache_set(cache_key, [r.model_dump() for r in out], RedisSchema.Api.FLEET_TTL)
+    await redis.cache_set(
+        cache_key, [r.model_dump() for r in out], RedisSchema.Api.FLEET_TTL
+    )
     return out
 
 

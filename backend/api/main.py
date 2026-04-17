@@ -66,7 +66,10 @@ async def lifespan(app: FastAPI):  # type: ignore[type-arg]
     # When DEMO_RESET=true every boot wipes all tables + Redis so the demo
     # always starts from a clean, reproducible baseline.
     if os.environ.get("DEMO_RESET", "").lower() == "true":
-        from scripts.bootstrap_sg_baseline import _push_baseline_trip_packets, reset_for_demo
+        from scripts.bootstrap_sg_baseline import (
+            _push_baseline_trip_packets,
+            reset_for_demo,
+        )
 
         logger.info(
             f"{LogToken.STARTUP} DEMO_RESET=true — wiping all tables and Redis..."
@@ -107,10 +110,12 @@ async def lifespan(app: FastAPI):  # type: ignore[type-arg]
               created_at TIMESTAMP
             )
         """))
-        await conn.execute(text(
-            "ALTER TABLE safety_schema.harsh_events_analysis "
-            "ADD COLUMN IF NOT EXISTS location_name TEXT"
-        ))
+        await conn.execute(
+            text(
+                "ALTER TABLE safety_schema.harsh_events_analysis "
+                "ADD COLUMN IF NOT EXISTS location_name TEXT"
+            )
+        )
         await conn.execute(text("""
             CREATE TABLE IF NOT EXISTS safety_schema.safety_decisions (
               decision_id SERIAL PRIMARY KEY,
@@ -158,16 +163,22 @@ async def lifespan(app: FastAPI):  # type: ignore[type-arg]
               created_at   TIMESTAMP    DEFAULT now()
             )
         """))
-        await conn.execute(text(
-            "CREATE INDEX IF NOT EXISTS idx_emb_driver ON vector_schema.embeddings (driver_id)"
-        ))
-        await conn.execute(text(
-            "CREATE INDEX IF NOT EXISTS idx_emb_type ON vector_schema.embeddings (content_type)"
-        ))
-        await conn.execute(text(
-            "CREATE INDEX IF NOT EXISTS idx_emb_hnsw ON vector_schema.embeddings "
-            "USING hnsw (embedding vector_cosine_ops)"
-        ))
+        await conn.execute(
+            text(
+                "CREATE INDEX IF NOT EXISTS idx_emb_driver ON vector_schema.embeddings (driver_id)"
+            )
+        )
+        await conn.execute(
+            text(
+                "CREATE INDEX IF NOT EXISTS idx_emb_type ON vector_schema.embeddings (content_type)"
+            )
+        )
+        await conn.execute(
+            text(
+                "CREATE INDEX IF NOT EXISTS idx_emb_hnsw ON vector_schema.embeddings "
+                "USING hnsw (embedding vector_cosine_ops)"
+            )
+        )
     logger.info(f"{LogToken.DATABASE_INIT} Database tables created / verified.")
 
     # ── 4. Simulation sidecar (opt-in via SIM_LOOP=true) ───────────────────

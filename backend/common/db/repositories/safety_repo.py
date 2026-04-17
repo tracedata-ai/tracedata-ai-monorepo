@@ -88,10 +88,14 @@ class SafetyRepository(SchemaRepository):
                 "rec_action": recommended_action,
             },
         )
-        embed_content = f"Safety decision: {decision}. Action: {action}. Reason: {reason}"
+        embed_content = (
+            f"Safety decision: {decision}. Action: {action}. Reason: {reason}"
+        )
         if recommended_action:
             embed_content += f" Recommended: {recommended_action}"
-        await self._store_embedding("safety_decision", event_id, embed_content, driver_id, trip_id)
+        await self._store_embedding(
+            "safety_decision", event_id, embed_content, driver_id, trip_id
+        )
         return decision_id
 
     async def get_harsh_event_analysis(

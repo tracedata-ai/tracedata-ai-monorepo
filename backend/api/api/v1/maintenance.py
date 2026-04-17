@@ -41,7 +41,9 @@ async def list_maintenance(
     result = await db.execute(query)
     out = [MaintenanceRead.model_validate(r) for r in result.scalars().all()]
 
-    await redis.cache_set(cache_key, [r.model_dump() for r in out], RedisSchema.Api.MAINTENANCE_TTL)
+    await redis.cache_set(
+        cache_key, [r.model_dump() for r in out], RedisSchema.Api.MAINTENANCE_TTL
+    )
     return out
 
 

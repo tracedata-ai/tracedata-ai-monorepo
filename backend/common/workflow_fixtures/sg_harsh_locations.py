@@ -1,5 +1,7 @@
 """50-entry Singapore harsh event location pool with weights."""
+
 from __future__ import annotations
+
 import random
 
 # (lat, lon, place_name, weight)
