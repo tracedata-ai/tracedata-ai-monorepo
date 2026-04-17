@@ -1,15 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { type ColumnDef } from "@tanstack/react-table";
 
 import { DashboardPageTemplate } from "@/components/shared/DashboardPageTemplate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DataTable } from "@/components/data-table";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getVehicles, type Vehicle } from "@/lib/api";
 import { FleetMap } from "@/components/maps/FleetMap";
+import { VehicleCard } from "@/components/fleet/VehicleCard";
 import { usePageAnimations } from "@/hooks/usePageAnimations";
 
 type FleetRow = {
@@ -20,26 +18,6 @@ type FleetRow = {
   lat: number;
   lng: number;
 };
-
-const columns: ColumnDef<FleetRow>[] = [
-  { accessorKey: "licensePlate", header: "License Plate" },
-  { accessorKey: "model", header: "Model" },
-  {
-    accessorKey: "status",
-    header: "Status",
-    cell: (info) => {
-      const status = String(info.getValue() ?? "");
-      const color =
-        status === "active"
-          ? "bg-[var(--success)]"
-          : status === "in_maintenance"
-            ? "bg-[var(--error)]"
-            : "bg-[var(--warning)]";
-      return <Badge className={`${color} text-white`}>{status}</Badge>;
-    },
-  },
-  { accessorKey: "id", header: "Vehicle ID" },
-];
 
 // Deterministic mock coordinates around Singapore for vehicles without GPS data
 function mockCoords(index: number): { lat: number; lng: number } {
@@ -126,23 +104,31 @@ export default function FleetPage() {
             </CardContent>
           </Card>
 
-          {/* Vehicle Registry Table */}
+          {/* Vehicle Registry Cards */}
           <Card className="glass rounded-xl animate-card">
             <CardHeader>
               <CardTitle>Vehicle Registry</CardTitle>
             </CardHeader>
             <CardContent>
               {loading ? (
-                <div className="space-y-4">
-                  <Skeleton className="h-10 w-full" />
-                  <Skeleton className="h-10 w-full" />
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {Array.from({ length: 8 }).map((_, i) => (
+                    <Skeleton key={i} className="h-64 w-full rounded-xl" />
+                  ))}
                 </div>
               ) : (
-                <DataTable
-                  columns={columns}
-                  data={rows}
-                  searchPlaceholder="Search by plate, model, status..."
-                />
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {rows.map((r, i) => (
+                    <VehicleCard
+                      key={r.id}
+                      id={r.id}
+                      licensePlate={r.licensePlate}
+                      model={r.model}
+                      status={r.status}
+                      imageIndex={i}
+                    />
+                  ))}
+                </div>
               )}
             </CardContent>
           </Card>
