@@ -153,6 +153,7 @@ export type SafetyEvent = {
   video_url: string | null;
   truck_id: string | null;
   driver_id: string | null;
+  driver_name: string | null;
   route_name: string | null;
   trip_started_at: string | null;
 };

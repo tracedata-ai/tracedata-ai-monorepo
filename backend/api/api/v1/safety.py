@@ -36,9 +36,13 @@ _LIST_SQL = text("""
         d.decision,
         d.action,
         d.reason,
-        d.recommended_action
+        d.recommended_action,
+        dr.first_name,
+        dr.last_name
     FROM safety_schema.harsh_events_analysis h
     LEFT JOIN safety_schema.safety_decisions d ON d.event_id = h.event_id
+    LEFT JOIN public.trips t ON t.id = h.trip_id::uuid
+    LEFT JOIN public.drivers dr ON dr.id = t.driver_id
     ORDER BY h.created_at DESC
     LIMIT :limit OFFSET :offset
 """)
@@ -61,9 +65,13 @@ _DETAIL_SQL = text("""
         d.decision,
         d.action,
         d.reason,
-        d.recommended_action
+        d.recommended_action,
+        dr.first_name,
+        dr.last_name
     FROM safety_schema.harsh_events_analysis h
     LEFT JOIN safety_schema.safety_decisions d ON d.event_id = h.event_id
+    LEFT JOIN public.trips t ON t.id = h.trip_id::uuid
+    LEFT JOIN public.drivers dr ON dr.id = t.driver_id
     WHERE h.event_id = :event_id
     LIMIT 1
 """)
@@ -98,6 +106,7 @@ def _row_to_dict(row) -> dict:
         "video_url": (analysis.get("primary_event_evidence") or trip_ctx.get("primary_event_evidence", {})).get("video_url"),
         "truck_id": trip_ctx.get("truck_id"),
         "driver_id": trip_ctx.get("driver_id"),
+        "driver_name": f"{m['first_name']} {m['last_name']}".strip() if m["first_name"] else None,
         "route_name": trip_ctx.get("route_name"),
         "trip_started_at": trip_ctx.get("started_at"),
     }

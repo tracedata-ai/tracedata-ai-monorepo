@@ -1,13 +1,15 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { getSafetyEvent, type SafetyEvent } from "@/lib/api";
+import { getSafetyEvent, getSafetyEvents, type SafetyEvent } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, ExternalLink, MapPin } from "lucide-react";
+import { ArrowLeft, MapPin, Camera, X } from "lucide-react";
+import { MapBase } from "@/components/maps/MapBase";
+import Image from "next/image";
 
 const severityClass: Record<string, string> = {
   critical: "bg-red-600",
@@ -30,77 +32,191 @@ function LabelValue({ label, value }: { label: string; value: React.ReactNode })
   );
 }
 
-function EventMap({ lat, lon }: { lat: number; lon: number }) {
-  const mapContainerRef = useRef<HTMLDivElement>(null);
-  const [error, setError] = useState<string | null>(null);
+// ── Dashcam Evidence ──────────────────────────────────────────────────────────
 
-  useEffect(() => {
-    const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
-    if (!token) {
-      setError("NEXT_PUBLIC_MAPBOX_TOKEN is not set.");
-      return;
-    }
+const MOCK_IMAGES = ["/dashcam/image1.png", "/dashcam/image2.png", "/dashcam/image3.png"];
+const MOCK_VIDEO  = "/dashcam/video.mp4";
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let map: any = null;
-
-    async function initMap() {
-      try {
-        const mapboxgl = (await import("mapbox-gl")).default;
-        mapboxgl.accessToken = token;
-
-        if (!mapContainerRef.current) return;
-
-        map = new mapboxgl.Map({
-          container: mapContainerRef.current,
-          style: "mapbox://styles/mapbox/streets-v12",
-          center: [lon, lat],
-          zoom: 13,
-          minZoom: 9,
-        });
-
-        map.addControl(new mapboxgl.NavigationControl(), "top-right");
-        map.addControl(new mapboxgl.FullscreenControl(), "top-right");
-
-        new mapboxgl.Marker({ color: "#ef4444" })
-          .setLngLat([lon, lat])
-          .setPopup(
-            new mapboxgl.Popup({ offset: 25 }).setHTML(
-              `<div style="color:#000;font-size:12px;">
-                <strong>Event Location</strong><br/>
-                Lat: ${lat.toFixed(5)}<br/>
-                Lon: ${lon.toFixed(5)}
-              </div>`
-            )
-          )
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          .addTo(map as any);
-      } catch (e) {
-        setError(String(e));
-      }
-    }
-
-    initMap();
-
-    return () => {
-      map?.remove();
-    };
-  }, [lat, lon]);
-
-  if (error) {
-    return (
-      <div className="flex h-64 items-center justify-center rounded-xl bg-muted/50 text-sm text-muted-foreground">
-        <MapPin className="mr-2 h-4 w-4" />
-        Map unavailable: {error}
-      </div>
-    );
-  }
+function DashcamEvidence({ eventId }: { eventId: string }) {
+  const [lightbox, setLightbox] = useState<string | null>(null);
 
   return (
-    <div
-      ref={mapContainerRef}
-      className="h-72 w-full rounded-xl overflow-hidden border border-white/10"
-    />
+    <>
+      <Card className="rounded-xl overflow-hidden">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <CardTitle className="flex items-center gap-2">
+              <Camera className="h-4 w-4" /> Dashcam Evidence
+            </CardTitle>
+            <span className="font-mono text-[10px] text-muted-foreground bg-muted rounded px-2 py-1 truncate max-w-xs">
+              s3://tracedata-dashcam/incidents/{eventId.slice(0, 8)}/
+            </span>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-3">
+
+          {/* Image strip */}
+          <div className="grid grid-cols-3 gap-2">
+            {MOCK_IMAGES.map((src, i) => (
+              <button
+                key={i}
+                onClick={() => setLightbox(src)}
+                className="group relative aspect-video overflow-hidden rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary/40"
+              >
+                <Image
+                  src={src}
+                  alt={`Dashcam frame ${i + 1}`}
+                  fill
+                  className="object-cover transition-transform duration-300 group-hover:scale-105"
+                />
+                <div className="absolute inset-0 bg-black/0 transition-colors group-hover:bg-black/20" />
+                <span className="absolute bottom-1.5 left-1.5 rounded bg-black/50 px-1.5 py-0.5 font-mono text-[9px] text-white/80">
+                  CAM {i + 1}
+                </span>
+              </button>
+            ))}
+          </div>
+
+          {/* Video player */}
+          <div className="overflow-hidden rounded-lg border border-border bg-black">
+            {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+            <video
+              controls
+              className="w-full max-h-72"
+              poster={MOCK_IMAGES[0]}
+              preload="metadata"
+            >
+              <source src={MOCK_VIDEO} type="video/mp4" />
+            </video>
+          </div>
+
+        </CardContent>
+      </Card>
+
+      {/* Lightbox */}
+      {lightbox && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm"
+          onClick={() => setLightbox(null)}
+        >
+          <button
+            className="absolute top-4 right-4 flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20"
+            onClick={() => setLightbox(null)}
+          >
+            <X className="h-4 w-4" />
+          </button>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={lightbox}
+            alt="Dashcam frame"
+            className="max-h-[90vh] max-w-[90vw] rounded-xl object-contain shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
+    </>
+  );
+}
+
+// ── Heatmap + event marker ─────────────────────────────────────────────────────
+
+const SEVERITY_WEIGHT: Record<string, number> = {
+  critical: 3, high: 2, medium: 1, low: 0.5,
+};
+
+function EventMap({
+  lat, lon, allEvents,
+}: {
+  lat: number;
+  lon: number;
+  allEvents: SafetyEvent[];
+}) {
+  const points = allEvents.filter((e) => e.lat != null && e.lon != null);
+
+  const handleLoad = useCallback((map: any, mapboxgl: any) => {
+    // ── Heatmap of all events (context layer) ──────────────────────────────
+    const geojson = {
+      type: "FeatureCollection" as const,
+      features: points.map((e) => ({
+        type: "Feature" as const,
+        geometry: { type: "Point" as const, coordinates: [e.lon!, e.lat!] },
+        properties: { weight: SEVERITY_WEIGHT[e.severity?.toLowerCase()] ?? 1 },
+      })),
+    };
+
+    map.addSource("all-events", { type: "geojson", data: geojson });
+    map.addLayer({
+      id: "all-events-heat", type: "heatmap", source: "all-events",
+      paint: {
+        "heatmap-weight":    ["get", "weight"],
+        "heatmap-intensity": ["interpolate", ["linear"], ["zoom"], 9, 0.6, 15, 2],
+        "heatmap-radius":    ["interpolate", ["linear"], ["zoom"], 9, 20, 15, 50],
+        "heatmap-opacity":   0.7,
+        "heatmap-color": [
+          "interpolate", ["linear"], ["heatmap-density"],
+          0,    "rgba(0,0,0,0)",
+          0.15, "#fef08a",
+          0.35, "#fbbf24",
+          0.6,  "#f97316",
+          0.8,  "#dc2626",
+          1,    "#7f1d1d",
+        ],
+      },
+    });
+
+    // ── Pulsing marker for this specific event ──────────────────────────────
+    const el = document.createElement("div");
+    el.style.cssText = "position:relative;width:20px;height:20px;";
+
+    const ring = document.createElement("div");
+    ring.style.cssText = `
+      position:absolute;inset:0;border-radius:50%;
+      border:2px solid #ef4444;
+      animation:pulse-ring 1.8s ease-out infinite;
+    `;
+    const dot = document.createElement("div");
+    dot.style.cssText = `
+      position:absolute;inset:4px;border-radius:50%;
+      background:#ef4444;border:2px solid white;
+      box-shadow:0 0 8px rgba(239,68,68,0.8);
+    `;
+    el.appendChild(ring);
+    el.appendChild(dot);
+
+    new mapboxgl.Marker({ element: el })
+      .setLngLat([lon, lat])
+      .setPopup(
+        new mapboxgl.Popup({ offset: 20 }).setHTML(
+          `<div style="font-size:12px;color:#111;padding:2px 4px;">
+            <strong>Event Location</strong><br/>
+            ${lat.toFixed(5)}, ${lon.toFixed(5)}
+          </div>`
+        )
+      )
+      .addTo(map);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lat, lon, points.length]);
+
+  return (
+    <MapBase
+      height={320}
+      center={[lon, lat]}
+      zoom={13}
+      onLoad={handleLoad}
+      deps={[lat, lon, points.length]}
+    >
+      {/* Legend */}
+      <div className="absolute bottom-3 left-3 z-10 rounded-lg bg-black/60 px-2.5 py-1.5 backdrop-blur-sm">
+        <p className="mb-1 text-[9px] font-bold uppercase tracking-widest text-white/60">Area Density</p>
+        <div className="flex items-center gap-1.5">
+          <div className="h-1.5 w-20 rounded-full"
+            style={{ background: "linear-gradient(to right, #fef08a, #fbbf24, #f97316, #dc2626, #7f1d1d)" }} />
+          <div className="flex w-20 justify-between text-[8px] text-white/50">
+            <span>Low</span><span>High</span>
+          </div>
+        </div>
+      </div>
+    </MapBase>
   );
 }
 
@@ -109,13 +225,14 @@ export default function SafetyEventDetailPage() {
   const router = useRouter();
   const eventId = params.event_id as string;
 
-  const [event, setEvent] = useState<SafetyEvent | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [event, setEvent]       = useState<SafetyEvent | null>(null);
+  const [allEvents, setAllEvents] = useState<SafetyEvent[]>([]);
+  const [loading, setLoading]   = useState(true);
   const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
-    getSafetyEvent(eventId)
-      .then(setEvent)
+    Promise.all([getSafetyEvent(eventId), getSafetyEvents()])
+      .then(([ev, all]) => { setEvent(ev); setAllEvents(all); })
       .catch(() => setNotFound(true))
       .finally(() => setLoading(false));
   }, [eventId]);
@@ -177,7 +294,7 @@ export default function SafetyEventDetailPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <EventMap lat={event.lat} lon={event.lon} />
+            <EventMap lat={event.lat} lon={event.lon} allEvents={allEvents} />
             <p className="mt-2 text-xs text-muted-foreground">
               {event.lat.toFixed(5)}, {event.lon.toFixed(5)}
             </p>
@@ -194,7 +311,7 @@ export default function SafetyEventDetailPage() {
           <CardContent className="grid grid-cols-2 gap-4">
             <LabelValue label="Trip ID" value={event.trip_id} />
             <LabelValue label="Truck" value={event.truck_id} />
-            <LabelValue label="Driver" value={event.driver_id} />
+            <LabelValue label="Driver" value={event.driver_name} />
             <LabelValue label="Route" value={event.route_name} />
             <LabelValue
               label="Trip Started"
@@ -258,25 +375,21 @@ export default function SafetyEventDetailPage() {
         </Card>
       )}
 
-      {/* Video evidence */}
+      {/* Dashcam evidence */}
+      <DashcamEvidence eventId={event.event_id} />
+
+      {/* External recording link — superseded by dashcam evidence above
       {event.video_url && (
         <Card className="rounded-xl">
-          <CardHeader>
-            <CardTitle>Video Evidence</CardTitle>
-          </CardHeader>
+          <CardHeader><CardTitle>External Recording</CardTitle></CardHeader>
           <CardContent>
-            <a
-              href={event.video_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 underline"
-            >
-              <ExternalLink className="h-4 w-4" />
-              View Recording
+            <a href={event.video_url} target="_blank" rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 underline">
+              <ExternalLink className="h-4 w-4" /> View Recording
             </a>
           </CardContent>
         </Card>
-      )}
+      )} */}
     </div>
   );
 }
