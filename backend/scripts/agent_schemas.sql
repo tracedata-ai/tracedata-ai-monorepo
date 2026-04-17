@@ -12,11 +12,15 @@ CREATE TABLE IF NOT EXISTS safety_schema.harsh_events_analysis (
   event_timestamp TIMESTAMP,
   lat DOUBLE PRECISION,
   lon DOUBLE PRECISION,
+  location_name TEXT,
   traffic_conditions TEXT,
   weather_conditions TEXT,
   analysis JSONB,
   created_at TIMESTAMP
 );
+
+ALTER TABLE safety_schema.harsh_events_analysis
+  ADD COLUMN IF NOT EXISTS location_name TEXT;
 
 CREATE TABLE IF NOT EXISTS safety_schema.safety_decisions (
   decision_id SERIAL PRIMARY KEY,

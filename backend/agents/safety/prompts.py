@@ -28,9 +28,13 @@ RULES:
 """.strip()
 
 
-def build_safety_user_message(trip_id: str, event_type: str) -> str:
+def build_safety_user_message(
+    trip_id: str, event_type: str, place_name: str | None = None
+) -> str:
+    location_line = f"Location: {place_name}\n" if place_name else ""
     return (
         f"Trip ID: {trip_id}\n"
         f"Primary event type: {event_type}\n"
+        f"{location_line}"
         "Produce the final JSON assessment now."
     )

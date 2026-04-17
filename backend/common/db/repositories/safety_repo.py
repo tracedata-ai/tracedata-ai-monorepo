@@ -24,6 +24,7 @@ class SafetyRepository(SchemaRepository):
         event_timestamp: datetime | None,
         lat: float | None,
         lon: float | None,
+        location_name: str | None,
         traffic_conditions: str | None,
         weather_conditions: str | None,
         analysis: dict,
@@ -34,12 +35,14 @@ class SafetyRepository(SchemaRepository):
                     INSERT INTO safety_schema.harsh_events_analysis
                     (
                       event_id, trip_id, event_type, severity,
-                      event_timestamp, lat, lon, traffic_conditions, weather_conditions,
+                      event_timestamp, lat, lon, location_name,
+                      traffic_conditions, weather_conditions,
                       analysis, created_at
                     )
                     VALUES (
                       :event_id, :trip_id, :event_type, :severity,
-                      :event_timestamp, :lat, :lon, :traffic_conditions, :weather_conditions,
+                      :event_timestamp, :lat, :lon, :location_name,
+                      :traffic_conditions, :weather_conditions,
                       :analysis, :now
                     )
                 """,
@@ -51,6 +54,7 @@ class SafetyRepository(SchemaRepository):
                 "event_timestamp": event_timestamp,
                 "lat": lat,
                 "lon": lon,
+                "location_name": location_name,
                 "traffic_conditions": traffic_conditions,
                 "weather_conditions": weather_conditions,
                 "analysis": json.dumps(analysis),

@@ -127,10 +127,11 @@ const SEVERITY_WEIGHT: Record<string, number> = {
 };
 
 function EventMap({
-  lat, lon, allEvents,
+  lat, lon, placeName, allEvents,
 }: {
   lat: number;
   lon: number;
+  placeName?: string | null;
   allEvents: SafetyEvent[];
 }) {
   const points = allEvents.filter((e) => e.lat != null && e.lon != null);
@@ -249,7 +250,9 @@ function EventMap({
       .setLngLat([lon, lat])
       .setPopup(new mapboxgl.Popup({ offset: 20 }).setHTML(
         `<div style="font-size:12px;color:#111;padding:2px 4px;">
-          <strong>Event Location</strong><br/>${lat.toFixed(5)}, ${lon.toFixed(5)}</div>`
+          <strong>Event Location</strong><br/>
+          ${placeName ? `<span style="font-weight:600">${placeName}</span><br/>` : ""}
+          ${lat.toFixed(5)}, ${lon.toFixed(5)}</div>`
       ))
       .addTo(map);
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -363,8 +366,9 @@ export default function SafetyEventDetailPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <EventMap lat={event.lat} lon={event.lon} allEvents={allEvents} />
+            <EventMap lat={event.lat} lon={event.lon} placeName={event.location_name} allEvents={allEvents} />
             <p className="mt-2 text-xs text-muted-foreground">
+              {event.location_name && <><strong>{event.location_name}</strong> · </>}
               {event.lat.toFixed(5)}, {event.lon.toFixed(5)}
             </p>
           </CardContent>

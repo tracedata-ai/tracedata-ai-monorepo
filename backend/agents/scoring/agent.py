@@ -20,6 +20,8 @@ from agents.scoring.features import (
     deterministic_payload_from_bundle,
     extract_feature_bundle,
     merge_graph_json_with_baseline,
+    normalize_ml_score,
+    score_gpa_from_value,
     score_label_from_value,
 )
 from agents.scoring.model.loader import SmoothnessBundleLoader
@@ -270,7 +272,7 @@ class ScoringAgent(TDAgentBase):
         else:
             ml_result = self._ml_scorer.score_trip(envelopes)  # type: ignore[union-attr]
             expl = ml_result["explanation"]
-            score_val = ml_result["trip_smoothness_score"]
+            score_val = normalize_ml_score(ml_result["trip_smoothness_score"])
             label = score_label_from_value(score_val)
             # Derive heuristic breakdown for the score_breakdown fields
             bundle = extract_feature_bundle(all_pings)
@@ -288,6 +290,7 @@ class ScoringAgent(TDAgentBase):
             score_payload = {
                 "behaviour_score": score_val,
                 "score_label": label,
+                "score_gpa": score_gpa_from_value(score_val),
                 "score_breakdown": breakdown,
                 "coaching_required": bool(coaching_reasons),
                 "coaching_reasons": coaching_reasons,

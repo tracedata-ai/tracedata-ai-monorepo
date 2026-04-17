@@ -13,6 +13,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from agents.scoring.features import score_gpa_from_value, score_label_from_value
 from api.api.deps import get_db, get_redis
 from api.models.driver import Driver
 from api.schemas.driver import DriverCreate, DriverRead
@@ -212,6 +213,8 @@ async def get_driver_profile(
             "avg_score":        round(float(score_stats["avg_score"]), 1) if score_stats.get("avg_score") else None,
             "min_score":        round(float(score_stats["min_score"]), 1) if score_stats.get("min_score") else None,
             "max_score":        round(float(score_stats["max_score"]), 1) if score_stats.get("max_score") else None,
+            "score_label":      score_label_from_value(float(score_stats["avg_score"])) if score_stats.get("avg_score") else None,
+            "score_gpa":        score_gpa_from_value(float(score_stats["avg_score"])) if score_stats.get("avg_score") else None,
             "total_events":     int(safety_stats.get("total_events") or 0),
             "critical_events":  int(safety_stats.get("critical_events") or 0),
             "escalated_events": int(safety_stats.get("escalated_events") or 0),

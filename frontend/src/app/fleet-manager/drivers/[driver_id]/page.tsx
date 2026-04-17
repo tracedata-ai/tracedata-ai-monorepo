@@ -44,10 +44,28 @@ const DEC_COLOR: Record<string, string> = {
   monitor:  "bg-yellow-600",
 };
 
+function scoreGrade(score: number): string {
+  if (score >= 95) return "A+";
+  if (score >= 90) return "A";
+  if (score >= 85) return "A-";
+  if (score >= 80) return "B+";
+  if (score >= 75) return "B";
+  if (score >= 70) return "B-";
+  if (score >= 65) return "C+";
+  if (score >= 60) return "C";
+  if (score >= 57) return "D+";
+  if (score >= 53) return "D";
+  return "F";
+}
+
 function ScoreChip({ score }: { score: number | null }) {
   if (score === null) return <span className="text-muted-foreground text-xs">—</span>;
-  const color = score >= 80 ? "text-green-600" : score >= 60 ? "text-amber-600" : "text-red-600";
-  return <span className={`font-mono font-semibold text-sm ${color}`}>{score}</span>;
+  const color = score >= 80 ? "text-green-600" : score >= 65 ? "text-amber-600" : "text-red-600";
+  return (
+    <span className={`font-mono font-semibold text-sm ${color}`}>
+      {score} <span className="text-xs font-normal">({scoreGrade(score)})</span>
+    </span>
+  );
 }
 
 // ── Score trend sparkline ─────────────────────────────────────────────────────
@@ -64,7 +82,7 @@ function ScoreTrend({ scores }: { scores: number[] }) {
     <div className="flex items-end gap-1.5 h-14">
       {scores.map((s, i) => {
         const heightPct = ((s - min) / range) * 70 + 30; // 30–100%
-        const color = s >= 80 ? "bg-green-500" : s >= 60 ? "bg-amber-400" : "bg-red-500";
+        const color = s >= 80 ? "bg-green-500" : s >= 65 ? "bg-amber-400" : "bg-red-500";
         return (
           <div key={i} className="flex flex-col items-center gap-0.5 flex-1 min-w-0">
             <span className="text-[9px] text-muted-foreground">{s}</span>
@@ -136,9 +154,13 @@ export default function DriverProfilePage() {
 
   const { stats } = profile;
 
+  const avgScoreDisplay = stats.avg_score != null
+    ? `${stats.avg_score}${stats.score_label ? ` (${stats.score_label})` : ""}`
+    : "—";
+
   const statCards = [
     { label: "Total Trips",     value: stats.total_trips },
-    { label: "Avg Score",       value: stats.avg_score ?? "—" },
+    { label: "Avg Score",       value: avgScoreDisplay },
     { label: "Safety Events",   value: stats.total_events },
     { label: "Critical Events", value: stats.critical_events },
   ];
@@ -246,7 +268,13 @@ export default function DriverProfilePage() {
               <CardTitle>Score Trend (last {profile.score_trend.length} trips)</CardTitle>
               <div className="flex gap-4 text-xs text-muted-foreground">
                 {stats.min_score !== null && <span>Low: <strong>{stats.min_score}</strong></span>}
-                {stats.avg_score !== null && <span>Avg: <strong>{stats.avg_score}</strong></span>}
+                {stats.avg_score !== null && (
+                  <span>
+                    Avg: <strong>{stats.avg_score}</strong>
+                    {stats.score_label && <span className="ml-1 text-foreground font-semibold">{stats.score_label}</span>}
+                    {stats.score_gpa != null && <span className="ml-1">({stats.score_gpa.toFixed(1)} GPA)</span>}
+                  </span>
+                )}
                 {stats.max_score !== null && <span>High: <strong>{stats.max_score}</strong></span>}
               </div>
             </div>

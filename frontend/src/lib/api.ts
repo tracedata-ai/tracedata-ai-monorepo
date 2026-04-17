@@ -100,6 +100,8 @@ export type DriverProfile = {
     avg_score: number | null;
     min_score: number | null;
     max_score: number | null;
+    score_label: string | null;
+    score_gpa: number | null;
     total_events: number;
     critical_events: number;
     escalated_events: number;
@@ -203,6 +205,7 @@ export type SafetyEvent = {
   event_timestamp: string | null;
   lat: number | null;
   lon: number | null;
+  location_name: string | null;
   traffic_conditions: string | null;
   weather_conditions: string | null;
   created_at: string | null;
@@ -390,6 +393,8 @@ export type TripDetail = {
     driver_score: number | null;
     breakdown: Record<string, number>;
     narrative: string | null;
+    score_label: string | null;
+    score_gpa: number | null;
   };
   safety_events: Array<{
     event_id: string;
@@ -397,6 +402,7 @@ export type TripDetail = {
     severity: string;
     lat: number | null;
     lon: number | null;
+    location_name: string | null;
     timestamp: string | null;
     traffic: string | null;
     weather: string | null;

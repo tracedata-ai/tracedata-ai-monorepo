@@ -47,9 +47,9 @@ function LV({ label, value }: { label: string; value: React.ReactNode }) {
 
 // ── Score Gauge ───────────────────────────────────────────────────────────────
 
-function ScoreGauge({ score }: { score: number }) {
+function ScoreGauge({ score, label, gpa }: { score: number; label?: string | null; gpa?: number | null }) {
   const pct = Math.min(100, Math.max(0, score));
-  const color = score >= 80 ? "#22c55e" : score >= 55 ? "#eab308" : "#ef4444";
+  const color = score >= 80 ? "#22c55e" : score >= 65 ? "#eab308" : "#ef4444";
 
   const data = {
     datasets: [
@@ -88,6 +88,22 @@ function ScoreGauge({ score }: { score: number }) {
           </span>
         </div>
       </div>
+      {label && (
+        <div className="flex items-center gap-2 mt-1">
+          <span
+            className="px-2 py-0.5 rounded-md text-sm font-semibold"
+            style={{
+              backgroundColor: score >= 80 ? "#16a34a22" : score >= 65 ? "#ca8a0422" : "#dc262622",
+              color,
+            }}
+          >
+            {label}
+          </span>
+          {gpa != null && (
+            <span className="text-xs text-muted-foreground">{gpa.toFixed(1)} GPA</span>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -245,6 +261,7 @@ function TripEventMap({ events }: { events: TripDetail["safety_events"] }) {
           const popupHtml = `
             <div style="font-size:12px;color:#111;padding:4px 2px;line-height:1.5;">
               <strong>#${i + 1} — ${e.event_type.replace(/_/g, " ")}</strong><br/>
+              ${e.location_name ? `<span style="color:#555">${e.location_name}</span><br/>` : ""}
               Severity: <strong>${e.severity}</strong><br/>
               ${e.decision ? `Decision: ${e.decision}<br/>` : ""}
               ${e.timestamp ? new Date(e.timestamp).toLocaleTimeString() : ""}
@@ -332,6 +349,8 @@ export default function TripDetailPage() {
   }
 
   const score = detail.scoring.score;
+  const scoreLabel = detail.scoring.score_label;
+  const scoreGpa = detail.scoring.score_gpa;
   const driverScore = detail.scoring.driver_score;
   const breakdown = detail.scoring.breakdown;
   const hasBreakdown = Object.keys(breakdown).length > 0;
@@ -393,11 +412,11 @@ export default function TripDetailPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col items-center gap-3">
-              <ScoreGauge score={score} />
+              <ScoreGauge score={score} label={scoreLabel} gpa={scoreGpa} />
               <p className="text-xs text-center text-muted-foreground px-2">
                 {score >= 80
                   ? "Good — driver performance within acceptable bounds."
-                  : score >= 55
+                  : score >= 65
                   ? "Fair — coaching recommended to address identified patterns."
                   : "Poor — immediate intervention advised."}
               </p>
@@ -501,6 +520,7 @@ export default function TripDetailPage() {
                     {e.lat != null && (
                       <span className="flex items-center gap-1">
                         <MapPin className="h-3 w-3" />
+                        {e.location_name ? `${e.location_name} · ` : ""}
                         {e.lat.toFixed(4)}, {e.lon?.toFixed(4)}
                       </span>
                     )}

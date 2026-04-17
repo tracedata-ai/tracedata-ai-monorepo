@@ -340,13 +340,22 @@ def driver_feedback_packet(
     batch_id: str | None = None,
     event_id: str | None = None,
     device_event_id: str | None = None,
+    style: str | None = None,
 ) -> dict[str, Any]:
     if event_id and device_event_id:
         eid, did = event_id, device_event_id
     else:
         eid, did = new_ids("fb")
     bid = batch_id or f"BAT-fb-{uuid.uuid4().hex[:12]}"
-    message, rating, fatigue = _random.choice(_FEEDBACK_POOL)
+    if style in {"excellent", "good"}:
+        pool = [e for e in _FEEDBACK_POOL if e[1] >= 4]
+    elif style == "average":
+        pool = [e for e in _FEEDBACK_POOL if e[1] == 3]
+    elif style in {"poor", "aggressive"}:
+        pool = [e for e in _FEEDBACK_POOL if e[1] <= 2]
+    else:
+        pool = list(_FEEDBACK_POOL)
+    message, rating, fatigue = _random.choice(pool or list(_FEEDBACK_POOL))
     return {
         "batch_id": bid,
         "ping_type": "medium_speed",

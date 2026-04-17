@@ -30,27 +30,7 @@ from common.workflow_fixtures.builders import (
     smoothness_at,
     start_of_trip_packet,
 )
-
-# Common Singapore logistics corridors / hubs (lat, lon).
-SG_HOTSPOTS: list[tuple[float, float]] = [
-    (1.3010, 103.6200),  # Tuas
-    (1.3250, 103.7090),  # Jurong
-    (1.3470, 103.7210),  # Bukit Batok
-    (1.4360, 103.7860),  # Woodlands
-    (1.3760, 103.9550),  # Pasir Ris / East
-    (1.3340, 103.9620),  # Changi Cargo
-    (1.3120, 103.8590),  # CBD / Marina
-    (1.2650, 103.8200),  # HarbourFront
-]
-
-
-def _sg_random_location(rng: random.Random) -> dict[str, float]:
-    """Pick a Singapore hotspot and jitter slightly for realism."""
-    base_lat, base_lon = rng.choice(SG_HOTSPOTS)
-    # ~100-300m jitter
-    lat = base_lat + rng.uniform(-0.002, 0.002)
-    lon = base_lon + rng.uniform(-0.002, 0.002)
-    return {"lat": round(lat, 6), "lon": round(lon, 6)}
+from common.workflow_fixtures.sg_harsh_locations import pick_sg_harsh_location
 
 
 def build_events(
@@ -170,7 +150,8 @@ def build_events(
                 device_event_id=dev_id,
             )
         # Randomize harsh-event geolocation within Singapore for heatmap usage later.
-        packet["event"]["location"] = _sg_random_location(rng)
+        lat, lon, place_name = pick_sg_harsh_location(rng)
+        packet["event"]["location"] = {"lat": lat, "lon": lon, "place_name": place_name}
         out.append(packet)
 
     # End + feedback
@@ -202,6 +183,7 @@ def build_events(
             batch_id=f"BAT-fb-{uuid.uuid4().hex[:10]}",
             event_id=ev_id,
             device_event_id=dev_id,
+            style=style,
         )
     )
 

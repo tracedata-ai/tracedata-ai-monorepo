@@ -13,6 +13,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from agents.scoring.features import score_gpa_from_value, score_label_from_value
 from api.api.deps import get_db, get_redis
 from api.models.trip import Trip
 from api.schemas.trip import TripCreate, TripRead
@@ -142,7 +143,7 @@ async def get_trip_detail(
     safety_rows = (await db.execute(
         text("""
             SELECT h.event_id, h.event_type, h.severity, h.lat, h.lon,
-                   h.event_timestamp, h.traffic_conditions, h.weather_conditions,
+                   h.location_name, h.event_timestamp, h.traffic_conditions, h.weather_conditions,
                    d.decision, d.action, d.reason, d.recommended_action
             FROM   safety_schema.harsh_events_analysis h
             LEFT JOIN safety_schema.safety_decisions d ON d.event_id = h.event_id
@@ -180,6 +181,8 @@ async def get_trip_detail(
             "driver_score": driver_score,
             "breakdown": dict(score_row.get("score_breakdown") or {}) if score_row else {},
             "narrative": score_row.get("scoring_narrative") if score_row else None,
+            "score_label": score_label_from_value(float(score_row["score"])) if score_row and score_row.get("score") is not None else None,
+            "score_gpa": score_gpa_from_value(float(score_row["score"])) if score_row and score_row.get("score") is not None else None,
         },
         "safety_events": [
             {
@@ -188,6 +191,7 @@ async def get_trip_detail(
                 "severity": r["severity"],
                 "lat": r["lat"],
                 "lon": r["lon"],
+                "location_name": r["location_name"],
                 "timestamp": r["event_timestamp"].isoformat() if r["event_timestamp"] else None,
                 "traffic": r["traffic_conditions"],
                 "weather": r["weather_conditions"],
