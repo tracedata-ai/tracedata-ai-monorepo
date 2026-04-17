@@ -134,6 +134,85 @@ _SG_LOCATION_COORDS: dict[str, tuple[float, float]] = {
 }
 
 
+_ROUTE_WAYPOINTS: dict[tuple[str, str], list[dict]] = {
+    ("Tuas Logistics Hub", "Jurong Port"): [
+        {"lat": 1.3050, "lon": 103.6580, "name": "Tuas South Ave"},
+        {"lat": 1.3140, "lon": 103.6780, "name": "Joo Koon MRT"},
+    ],
+    ("Jurong Port", "Pioneer"): [
+        {"lat": 1.3280, "lon": 103.7060, "name": "Pioneer Rd junction"},
+    ],
+    ("Pioneer", "Bukit Batok"): [
+        {"lat": 1.3380, "lon": 103.7210, "name": "Jurong East MRT"},
+        {"lat": 1.3450, "lon": 103.7370, "name": "Bukit Batok West Ave"},
+    ],
+    ("Bukit Batok", "Woodlands"): [
+        {"lat": 1.3620, "lon": 103.7540, "name": "Choa Chu Kang MRT"},
+        {"lat": 1.4000, "lon": 103.7700, "name": "Kranji Expressway"},
+    ],
+    ("Woodlands", "Yishun"): [
+        {"lat": 1.4420, "lon": 103.8010, "name": "Admiralty"},
+        {"lat": 1.4390, "lon": 103.8200, "name": "Sembawang"},
+    ],
+    ("Yishun", "Seletar"): [
+        {"lat": 1.4190, "lon": 103.8480, "name": "Yishun Ave 2"},
+        {"lat": 1.4110, "lon": 103.8590, "name": "Seletar Aerospace Park"},
+    ],
+    ("Seletar", "Paya Lebar"): [
+        {"lat": 1.3840, "lon": 103.8750, "name": "Hougang Ave 8"},
+        {"lat": 1.3560, "lon": 103.8860, "name": "Bartley Rd"},
+    ],
+    ("Paya Lebar", "Changi Cargo"): [
+        {"lat": 1.3310, "lon": 103.9290, "name": "Tampines Ave 10"},
+        {"lat": 1.3530, "lon": 103.9650, "name": "Loyang Ave"},
+    ],
+    ("Changi Cargo", "Pasir Ris"): [
+        {"lat": 1.3620, "lon": 103.9850, "name": "Pasir Ris Dr 12"},
+    ],
+    ("Pasir Ris", "Hougang"): [
+        {"lat": 1.3720, "lon": 103.9490, "name": "Tampines Ave 5"},
+        {"lat": 1.3720, "lon": 103.9200, "name": "TPE Exit 4"},
+    ],
+    ("Hougang", "Serangoon"): [
+        {"lat": 1.3630, "lon": 103.8880, "name": "Serangoon North Ave"},
+    ],
+    ("Serangoon", "Toa Payoh"): [
+        {"lat": 1.3450, "lon": 103.8680, "name": "Upper Serangoon Rd"},
+        {"lat": 1.3390, "lon": 103.8570, "name": "Braddell Rd"},
+    ],
+    ("Toa Payoh", "Bishan"): [
+        {"lat": 1.3390, "lon": 103.8470, "name": "Toa Payoh Rise"},
+    ],
+    ("Bishan", "Novena"): [
+        {"lat": 1.3440, "lon": 103.8460, "name": "CTE Bishan"},
+        {"lat": 1.3310, "lon": 103.8430, "name": "Thomson Rd"},
+    ],
+    ("Novena", "Orchard"): [
+        {"lat": 1.3140, "lon": 103.8390, "name": "Newton Circus"},
+    ],
+    ("Orchard", "Newton"): [
+        {"lat": 1.3070, "lon": 103.8360, "name": "Scotts Rd"},
+    ],
+    ("Newton", "Queenstown"): [
+        {"lat": 1.3050, "lon": 103.8280, "name": "River Valley Rd"},
+        {"lat": 1.2980, "lon": 103.8130, "name": "Commonwealth Ave"},
+    ],
+    ("Queenstown", "HarbourFront"): [
+        {"lat": 1.2870, "lon": 103.8090, "name": "Alexandra Rd"},
+        {"lat": 1.2760, "lon": 103.8140, "name": "Telok Blangah Rd"},
+    ],
+    ("HarbourFront", "Marina Bay"): [
+        {"lat": 1.2720, "lon": 103.8390, "name": "Keppel Rd"},
+        {"lat": 1.2780, "lon": 103.8530, "name": "Marina Coastal Expressway"},
+    ],
+    ("Marina Bay", "Tuas Logistics Hub"): [
+        {"lat": 1.2890, "lon": 103.8200, "name": "AYE West Coast"},
+        {"lat": 1.2960, "lon": 103.7500, "name": "AYE Clementi"},
+        {"lat": 1.2990, "lon": 103.7000, "name": "AYE Tuas approach"},
+    ],
+}
+
+
 async def _ensure_baseline_entities() -> (
     tuple[list[Driver], list[Vehicle], list[Route]]
 ):
@@ -228,6 +307,7 @@ async def _ensure_baseline_entities() -> (
                     start_lon=s_lon,
                     end_lat=e_lat,
                     end_lon=e_lon,
+                    waypoints=_ROUTE_WAYPOINTS.get((start, end)),
                 )
             )
 
@@ -545,6 +625,9 @@ async def _run() -> None:
             await conn.execute(text(
                 f"ALTER TABLE routes ADD COLUMN IF NOT EXISTS {col} {typ}"
             ))
+        await conn.execute(text(
+            "ALTER TABLE routes ADD COLUMN IF NOT EXISTS waypoints JSONB"
+        ))
         # Apply agent-owned schemas (each statement run separately — asyncpg restriction)
         for ddl in _AGENT_DDL:
             await conn.execute(text(ddl))

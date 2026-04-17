@@ -23,6 +23,7 @@ class RouteCreate(BaseModel):
     start_lon: float | None = None
     end_lat: float | None = None
     end_lon: float | None = None
+    waypoints: list[dict] | None = None
 
     model_config = {
         "json_schema_extra": {

@@ -165,6 +165,7 @@ export type Route = {
   start_lon?: number | null;
   end_lat?: number | null;
   end_lon?: number | null;
+  waypoints?: Array<{ lat: number; lon: number; name?: string }> | null;
 };
 
 export type Trip = {

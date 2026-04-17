@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { getRoutes, getRouteHeatmap, type Route, type RouteHeatPoint } from "@/lib/api";
+import { getRoutes, getRouteHeatmap, getSafetyEvents, type Route, type RouteHeatPoint } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, Navigation, AlertTriangle, Truck } from "lucide-react";
 
@@ -22,15 +22,23 @@ export default function RoutesPage() {
   const [routes, setRoutes] = useState<Route[]>([]);
   const [selected, setSelected] = useState<Route | null>(null);
   const [heatPoints, setHeatPoints] = useState<RouteHeatPoint[]>([]);
+  const [allHeatPoints, setAllHeatPoints] = useState<RouteHeatPoint[]>([]);
   const [loadingHeat, setLoadingHeat] = useState(false);
 
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
   const mapReadyRef = useRef(false);
 
-  // Load routes
+  // Load routes + all safety events for default heatmap
   useEffect(() => {
     getRoutes().then(setRoutes).catch(console.error);
+    getSafetyEvents(500).then((events) =>
+      setAllHeatPoints(
+        events
+          .filter((e) => e.lat != null && e.lon != null)
+          .map((e) => ({ lat: e.lat!, lon: e.lon!, severity: e.severity ?? "low", event_type: e.event_type ?? "" }))
+      )
+    ).catch(console.error);
   }, []);
 
   // Init map once
@@ -46,7 +54,7 @@ export default function RoutesPage() {
       mapboxgl.accessToken = token!;
       map = new mapboxgl.Map({
         container: mapContainerRef.current,
-        style: "mapbox://styles/mapbox/dark-v11",
+        style: "mapbox://styles/mapbox/streets-v12",
         center: [103.82, 1.35],
         zoom: 11,
         minZoom: 9,
@@ -130,7 +138,13 @@ export default function RoutesPage() {
     const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
     const { start_lat, start_lon, end_lat, end_lon } = selected;
     if (map && mapReadyRef.current && start_lat && start_lon && end_lat && end_lon && token) {
-      const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${start_lon},${start_lat};${end_lon},${end_lat}?geometries=geojson&access_token=${token}`;
+      const coords = [
+        [start_lon, start_lat],
+        ...(selected.waypoints ?? []).map((w) => [w.lon, w.lat]),
+        [end_lon, end_lat],
+      ];
+      const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${coords.map((c) => c.join(",")).join(";")}`
+        + `?geometries=geojson&access_token=${token}`;
       fetch(url)
         .then((r) => r.json())
         .then((data) => {
@@ -172,13 +186,14 @@ export default function RoutesPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selected]);
 
-  // Push heatmap data to map whenever heatPoints change
+  // Push heatmap — route-filtered when selected, all events otherwise
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapReadyRef.current) return;
+    const points = selected ? heatPoints : allHeatPoints;
     const geojson = {
       type: "FeatureCollection" as const,
-      features: heatPoints.map((e) => ({
+      features: points.map((e) => ({
         type: "Feature" as const,
         geometry: { type: "Point" as const, coordinates: [e.lon, e.lat] },
         properties: {
@@ -189,7 +204,7 @@ export default function RoutesPage() {
       })),
     };
     (map.getSource("events") as any)?.setData(geojson);
-  }, [heatPoints]);
+  }, [heatPoints, allHeatPoints, selected]);
 
   const criticalCount = heatPoints.filter((e) => e.severity === "critical").length;
   const highCount = heatPoints.filter((e) => e.severity === "high").length;
@@ -279,19 +294,18 @@ export default function RoutesPage() {
       <div className="flex-1 relative">
         <div ref={mapContainerRef} className="h-full w-full" />
 
-        {/* Empty state overlay */}
+        {/* Select-a-route hint (subtle, doesn't block the map) */}
         {!selected && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-            <div className="bg-black/60 backdrop-blur-sm rounded-xl px-6 py-4 text-center">
-              <Truck className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-              <p className="text-sm font-medium text-white">Select a route</p>
-              <p className="text-xs text-white/50 mt-1">to view the path and incident heatmap</p>
+          <div className="absolute top-4 left-4 pointer-events-none">
+            <div className="bg-white/80 backdrop-blur-sm rounded-lg px-3 py-2 text-xs text-gray-600 shadow-sm flex items-center gap-2">
+              <Truck className="h-3.5 w-3.5 text-gray-500" />
+              Select a route to filter the heatmap
             </div>
           </div>
         )}
 
-        {/* Heatmap legend */}
-        {selected && heatPoints.length > 0 && (
+        {/* Heatmap legend — always visible when there are any points */}
+        {(selected ? heatPoints : allHeatPoints).length > 0 && (
           <div className="absolute bottom-6 right-4 rounded-lg bg-black/70 px-3 py-2 backdrop-blur-sm">
             <p className="mb-1.5 text-[10px] font-bold uppercase tracking-widest text-white/60">Incident Density</p>
             <div className="flex items-center gap-2">

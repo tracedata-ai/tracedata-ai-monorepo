@@ -9,7 +9,7 @@ import uuid
 from decimal import Decimal
 
 from sqlalchemy import Float, Numeric, String
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from api.models.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
@@ -62,6 +62,11 @@ class Route(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     start_lon: Mapped[float | None] = mapped_column(Float, nullable=True)
     end_lat: Mapped[float | None] = mapped_column(Float, nullable=True)
     end_lon: Mapped[float | None] = mapped_column(Float, nullable=True)
+    waypoints: Mapped[list | None] = mapped_column(
+        JSONB,
+        nullable=True,
+        comment='Intermediate waypoints: [{"lat": 1.33, "lon": 103.72, "name": "Jurong East"}, ...]',
+    )
 
     # ── Relationships ──────────────────────────────────────────────────────
     trips: Mapped[list["Trip"]] = relationship("Trip", back_populates="route")  # type: ignore[name-defined] # noqa: F821
