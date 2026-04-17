@@ -128,6 +128,15 @@ export type DriverProfile = {
     message: string;
     created_at: string | null;
   }>;
+  sentiment_history: Array<{
+    trip_id: string;
+    feedback_text: string | null;
+    sentiment_label: string | null;
+    sentiment_score: number | null;
+    emotions: Record<string, number>;
+    explanation: string | null;
+    created_at: string | null;
+  }>;
 };
 
 export type Route = {
@@ -318,12 +327,12 @@ export async function getBackendHealth(): Promise<BackendHealth> {
 
 export async function getVehicles(tenantId?: string): Promise<Vehicle[]> {
   const query = tenantId ? `?tenant_id=${tenantId}` : "";
-  return apiGet<Vehicle[]>(`/fleet${query}`);
+  return apiGet<Vehicle[]>(`/fleet/${query}`);
 }
 
 export async function getDrivers(tenantId?: string): Promise<Driver[]> {
   const query = tenantId ? `?tenant_id=${tenantId}` : "";
-  return apiGet<Driver[]>(`/drivers${query}`);
+  return apiGet<Driver[]>(`/drivers/${query}`);
 }
 
 export async function getDriverProfile(driverId: string): Promise<DriverProfile> {
@@ -335,17 +344,17 @@ export async function getTrips(tenantId?: string, status?: string): Promise<Trip
   if (tenantId) params.append("tenant_id", tenantId);
   if (status) params.append("status", status);
   const query = params.toString() ? `?${params.toString()}` : "";
-  return apiGet<Trip[]>(`/trips${query}`);
+  return apiGet<Trip[]>(`/trips/${query}`);
 }
 
 export async function getWorkflowTrips(status?: string): Promise<WorkflowTrip[]> {
   const query = status ? `?status=${encodeURIComponent(status)}` : "";
-  return apiGet<WorkflowTrip[]>(`/workflow/trips${query}`);
+  return apiGet<WorkflowTrip[]>(`/workflow/trips/${query}`);
 }
 
 export async function getRoutes(tenantId?: string): Promise<Route[]> {
   const query = tenantId ? `?tenant_id=${tenantId}` : "";
-  return apiGet<Route[]>(`/routes${query}`);
+  return apiGet<Route[]>(`/routes/${query}`);
 }
 
 export async function getIssues(tenantId?: string, tripId?: string): Promise<Issue[]> {
@@ -353,16 +362,16 @@ export async function getIssues(tenantId?: string, tripId?: string): Promise<Iss
   if (tenantId) params.append("tenant_id", tenantId);
   if (tripId) params.append("trip_id", tripId);
   const query = params.toString() ? `?${params.toString()}` : "";
-  return apiGet<Issue[]>(`/issues${query}`);
+  return apiGet<Issue[]>(`/issues/${query}`);
 }
 
 export async function getTenants(): Promise<Tenant[]> {
-  return apiGet<Tenant[]>("/tenants");
+  return apiGet<Tenant[]>("/tenants/");
 }
 
 export async function getMaintenance(vehicleId?: string): Promise<Maintenance[]> {
   const query = vehicleId ? `?vehicle_id=${vehicleId}` : "";
-  return apiGet<Maintenance[]>(`/maintenance${query}`);
+  return apiGet<Maintenance[]>(`/maintenance/${query}`);
 }
 
 export type TripDetail = {
@@ -404,6 +413,8 @@ export type TripDetail = {
   sentiment: {
     score: number | null;
     label: string | null;
+    feedback_text: string | null;
+    explanation: string | null;
     emotions: Record<string, number>;
   } | null;
 };
@@ -466,6 +477,24 @@ export type SimulatorBatchResponse = {
   truck_delay: number;
   estimated_duration_seconds: number;
 };
+
+export type RelatedEvent = {
+  event_id: string;
+  trip_id: string | null;
+  driver_id: string | null;
+  similarity: number;
+  event_type: string | null;
+  severity: string | null;
+  decision: string | null;
+  reason: string | null;
+  lat: number | null;
+  lon: number | null;
+  event_timestamp: string | null;
+};
+
+export async function getRelatedEvents(eventId: string, limit = 5): Promise<RelatedEvent[]> {
+  return apiGet<RelatedEvent[]>(`/embeddings/related/event/${eventId}?limit=${limit}`);
+}
 
 export async function runSimulatorBatch(input: {
   truck_count?: number;

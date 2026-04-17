@@ -199,10 +199,10 @@ class SmoothnessBundleLoader:
 
         # 3-feature production columns (SMOOTHNESS_FEATURE_COLUMNS from ML repo)
         # Derived from aggregate metrics to approximate ping-level computation.
-        accel_fluidity = float(np.clip(1.0 - jerk_mean * 10.0, 0.0, 1.0))
-        driving_consistency = float(np.clip(1.0 - speed_std / 30.0, 0.0, 1.0))
+        accel_fluidity = float(np.clip(jerk_mean * 10.0, 0.0, 1.0))
+        driving_consistency = float(np.clip(speed_std / 30.0, 0.0, 1.0))
         comfort_zone_pct = float(
-            np.clip(1.0 - (lateral_mean / 0.3) - (jerk_max / 5.0), 0.0, 1.0)
+            np.clip((lateral_mean / 0.3) + (jerk_max / 5.0), 0.0, 1.0)
         )
 
         return {
@@ -238,9 +238,11 @@ class SmoothnessBundleLoader:
                 raise RuntimeError(f"Model predict failed: {e}") from e
 
         arr = np.asarray(raw, dtype=np.float64).ravel()
-        # Rescale probability-range outputs to score range
+        # Normalise to [0, 100] regardless of model output range
         if arr.max() <= 1.01:
             arr = arr * 100.0
+        elif arr.max() <= 10.1:
+            arr = arr * 10.0
         return np.clip(arr, 0.0, 100.0)
 
     def _compute_attributions(

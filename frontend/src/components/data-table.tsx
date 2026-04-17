@@ -3,9 +3,11 @@
 import { useState } from "react";
 import {
   type ColumnDef,
+  type SortingState,
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
+  getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
 
@@ -34,15 +36,18 @@ export function DataTable<TData, TValue>({
   onRowClick,
 }: DataTableProps<TData, TValue>) {
   const [globalFilter, setGlobalFilter] = useState("");
+  const [sorting, setSorting] = useState<SortingState>([]);
 
   // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
     data,
     columns,
-    state: { globalFilter },
+    state: { globalFilter, sorting },
     onGlobalFilterChange: setGlobalFilter,
+    onSortingChange: setSorting,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
+    getSortedRowModel: getSortedRowModel(),
   });
 
   return (
@@ -62,12 +67,23 @@ export function DataTable<TData, TValue>({
             <TableRow key={headerGroup.id}>
               {headerGroup.headers.map((header) => (
                 <TableHead key={header.id}>
-                  {header.isPlaceholder
-                    ? null
-                    : flexRender(
-                        header.column.columnDef.header,
-                        header.getContext(),
+                  {header.isPlaceholder ? null : (
+                    <button
+                      onClick={header.column.getToggleSortingHandler()}
+                      className={`flex items-center gap-1 select-none ${header.column.getCanSort() ? "cursor-pointer hover:text-foreground" : "cursor-default"}`}
+                    >
+                      {flexRender(header.column.columnDef.header, header.getContext())}
+                      {header.column.getCanSort() && (
+                        <span className="text-muted-foreground text-xs">
+                          {header.column.getIsSorted() === "asc"
+                            ? "↑"
+                            : header.column.getIsSorted() === "desc"
+                            ? "↓"
+                            : "↕"}
+                        </span>
                       )}
+                    </button>
+                  )}
                 </TableHead>
               ))}
             </TableRow>

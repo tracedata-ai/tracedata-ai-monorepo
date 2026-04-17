@@ -24,7 +24,7 @@ services:
     container_name: td-api
     env_file:
       - .env
-    command: sh -c "python -m scripts.bootstrap_sg_baseline && uvicorn api.main:app --host 0.0.0.0 --port 8000"
+    command: sh -c "python -m scripts.bootstrap_sg_baseline && celery -A celery_app beat --loglevel=info & uvicorn api.main:app --host 0.0.0.0 --port 8000"
     ports:
       - "8000:8000"
     environment:

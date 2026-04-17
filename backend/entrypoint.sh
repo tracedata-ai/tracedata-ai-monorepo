@@ -36,6 +36,15 @@ else
   echo "⏭️  RESET_DB=false — skipping seed."
 fi
 
+# ── Baseline data bootstrap (idempotent) ──────────────────────────────────────
+python -m scripts.bootstrap_sg_baseline
+
+# ── Start Celery Beat scheduler (background) ──────────────────────────────────
+# Beat runs alongside uvicorn inside the same container — mirrors docker-compose.
+# Routes watchdog tasks to the safety worker queue (td:agent:safety).
+echo "🕐 Starting Celery Beat scheduler (background)..."
+celery -A celery_app beat --loglevel=info &
+
 # ── Start Server ──────────────────────────────────────────────────────────────
 echo "🚀 Starting TraceData Backend..."
 exec uvicorn api.main:app \

@@ -13,9 +13,11 @@ data:
   PYTHONPATH: "/app"
   DATABASE_URL: "postgresql+asyncpg://tracedatauser:tracedatapassword@tracedata-db-service.tracedata.svc.cluster.local:5432/tracedata"
   REDIS_URL: "redis://tracedata-redis-service.tracedata.svc.cluster.local:6379/0"
+  CELERY_BROKER_URL: "redis://tracedata-redis-service.tracedata.svc.cluster.local:6379/0"
+  CELERY_RESULT_BACKEND: "redis://tracedata-redis-service.tracedata.svc.cluster.local:6379/0"
   RESET_DB: "false"
   LOG_LEVEL: "INFO"
-  CORS_ALLOWED_ORIGINS: "http://localhost:3000"
+  CORS_ALLOWED_ORIGINS: "https://www.xplore.town"
   # Simulation sidecar — disabled by default. Override SIM_LOOP=true in demo environments.
   # Phase 1 (warmup, first SIM_WARMUP_HOURS): SIM_TRUCK_COUNT trucks every SIM_WARMUP_INTERVAL seconds.
   # Phase 2 (steady-state): same batch every SIM_STEADY_INTERVAL seconds.
