@@ -23,6 +23,7 @@ type DataTableProps<TData, TValue> = {
   data: TData[];
   emptyMessage?: string;
   searchPlaceholder?: string;
+  onRowClick?: (row: TData) => void;
 };
 
 export function DataTable<TData, TValue>({
@@ -30,6 +31,7 @@ export function DataTable<TData, TValue>({
   data,
   emptyMessage = "No records found.",
   searchPlaceholder,
+  onRowClick,
 }: DataTableProps<TData, TValue>) {
   const [globalFilter, setGlobalFilter] = useState("");
 
@@ -77,6 +79,8 @@ export function DataTable<TData, TValue>({
               <TableRow
                 key={row.id}
                 data-state={row.getIsSelected() && "selected"}
+                onClick={onRowClick ? () => onRowClick(row.original) : undefined}
+                className={onRowClick ? "cursor-pointer hover:bg-white/5" : ""}
               >
                 {row.getVisibleCells().map((cell) => (
                   <TableCell key={cell.id}>

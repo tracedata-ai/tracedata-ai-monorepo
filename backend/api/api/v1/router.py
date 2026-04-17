@@ -14,6 +14,7 @@ from api.api.v1 import (
     issues,
     maintenance,
     routes,
+    safety,
     simulator,
     tenants,
     trips,
@@ -33,3 +34,4 @@ api_router.include_router(tenants.router)
 api_router.include_router(agent_flow.router)
 api_router.include_router(simulator.router)
 api_router.include_router(workflow.router)
+api_router.include_router(safety.router)

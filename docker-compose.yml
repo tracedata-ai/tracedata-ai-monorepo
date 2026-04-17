@@ -96,9 +96,11 @@ services:
     command: celery -A celery_app worker -Q td:agent:safety -n safety@%h --loglevel=info
     environment:
       - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/tracedata
       - PYTHONPATH=/app
     depends_on:
       - redis
+      - db
     restart: always
 
   # ── Container 5: Scoring Worker (Celery) ────────────────────────────────────
@@ -135,9 +137,11 @@ services:
     command: celery -A celery_app worker -Q td:agent:support -n support@%h --loglevel=info
     environment:
       - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/tracedata
       - PYTHONPATH=/app
     depends_on:
       - redis
+      - db
     restart: always
 
   # ── Container 7: Sentiment Worker (Celery) ──────────────────────────────────
@@ -152,9 +156,11 @@ services:
     command: celery -A celery_app worker -Q td:agent:sentiment -n sentiment@%h --loglevel=info
     environment:
       - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/tracedata
       - PYTHONPATH=/app
     depends_on:
       - redis
+      - db
     restart: always
 
   # ── Frontend (Next.js) ───────────────────────────────────────────────────────

@@ -125,6 +125,35 @@ export type Issue = {
   created_at: string;
 };
 
+export type SafetyEvent = {
+  id: string;
+  event_id: string;
+  trip_id: string;
+  event_type: string;
+  severity: string;
+  event_timestamp: string | null;
+  lat: number | null;
+  lon: number | null;
+  traffic_conditions: string | null;
+  weather_conditions: string | null;
+  created_at: string | null;
+  // decision fields
+  decision_id: string | null;
+  decision: string | null;
+  action: string | null;
+  reason: string | null;
+  recommended_action: string | null;
+  // from analysis JSONB
+  assessed_severity: string | null;
+  llm_path: boolean;
+  analysis_reason: string | null;
+  video_url: string | null;
+  truck_id: string | null;
+  driver_id: string | null;
+  route_name: string | null;
+  trip_started_at: string | null;
+};
+
 async function apiGet<T>(path: string): Promise<T> {
   try {
     const response = await fetch(`${API_BASE_URL}${path}`, {
@@ -147,7 +176,9 @@ async function apiGet<T>(path: string): Promise<T> {
     if (path.startsWith("/fleet")) key = "vehicles";
     else if (path.startsWith("/drivers")) key = "drivers";
     else if (path.startsWith("/trips")) key = "trips";
+    else if (path.startsWith("/routes")) key = "routes";
     else if (path.startsWith("/issues")) key = "issues";
+    else if (path.startsWith("/maintenance")) key = "maintenance";
     else if (path.startsWith("/tenants")) key = "tenants";
     
     if (key) {
@@ -267,6 +298,14 @@ export async function getTenants(): Promise<Tenant[]> {
 export async function getMaintenance(vehicleId?: string): Promise<Maintenance[]> {
   const query = vehicleId ? `?vehicle_id=${vehicleId}` : "";
   return apiGet<Maintenance[]>(`/maintenance${query}`);
+}
+
+export async function getSafetyEvents(limit = 100): Promise<SafetyEvent[]> {
+  return apiGet<SafetyEvent[]>(`/safety/events/?limit=${limit}`);
+}
+
+export async function getSafetyEvent(eventId: string): Promise<SafetyEvent> {
+  return apiGet<SafetyEvent>(`/safety/events/${eventId}`);
 }
 
 type AgentFlowHandlers = {
