@@ -980,3 +980,253 @@ flowchart LR
 
 Speaker script:
 We secure agent execution using three layers: Intent Capsule as mission contract, Scoped Token as least-privilege key access, and Intent Gate as policy checkpoint for tool calls. On operations, our MLSecOps and LLMSecOps pipeline already includes quality, security, and AI-evaluation gates in CI. For governance, we produce AI Verify-aligned fairness, explainability, and safety evidence from our AIF360, SHAP, LIME, and prompt-safety tests. For adversarial evaluation, we currently run Promptfoo-style Moonshot-aligned checks and can extend to full Project Moonshot benchmark packs as a scheduled phase.
+
+---
+
+## 17. TraceData: Input Data Architecture
+
+### 17.1 Executive Summary
+This section defines the input boundary architecture used by TraceData for high-availability ingestion and priority-aware event processing.
+
+The goal is to solve a common industry gap: systems that only punish unsafe behavior but fail to capture fair context and positive driving quality.
+
+Core architecture decisions:
+- Generic flat event schema for all event types.
+- Two-minute priority ceiling for MEDIUM/HIGH signals.
+- 1Hz smoothness sampling with edge aggregation.
+- Universal spatio-temporal anchors for fairness and chronology.
+
+### 17.2 Data Acquisition and Transmission
+TraceData ingests from two acquisition vectors:
+- Telematics Device: MQTT over UDP (efficient under variable network quality).
+- Driver Application: REST API over FastAPI (reliable transactional context input).
+
+After ingestion, both sources are normalized into one common event pipeline.
+
+| Source | Transport Protocol | Entry Point | Example Events |
+|---|---|---|---|
+| Telematics Device | MQTT over UDP | Redis Sorted Set | Collision, Harsh Braking, Smoothness Logs |
+| Driver Application | REST API (FastAPI) | Redis Sorted Set | SOS, Disputes, Sentiment Feedback |
+
+```mermaid
+flowchart LR
+        TD[Telematics Device] -->|MQTT/UDP| IN[Cloud Ingestor]
+        DA[Driver Application] -->|REST/FastAPI| IN
+        IN --> Z[(Redis Sorted Set)]
+        Z --> ORC[Orchestrator]
+        ORC --> AG[Specialized Agents]
+```
+
+### 17.3 Universal Spatio-Temporal Reference Fields
+Every event should carry these anchor fields:
+- `timestamp`: absolute UTC event time.
+- `offset_seconds`: elapsed seconds from trip start.
+- `trip_meter_km`: distance traveled in current trip.
+- `odometer_km`: vehicle lifetime distance.
+
+Why this is important:
+- Enables exact event sequence reconstruction.
+- Enables distance-normalized fairness across driver profiles.
+- Supports cross-reference with external context (traffic, weather).
+
+### 17.4 Priority-Based Transmission Framework
+
+#### 17.4.1 Transmission and Sampling Strategy
+TraceData separates transmission frequency from sampling frequency.
+
+| Transmission Type | Trigger | Transmission Window | Sampling Rate | Priority | Objective |
+|---|---|---|---|---|---|
+| Emergency Ping | Airbag / extreme G-force | Immediate | 100Hz burst | CRITICAL | Life-safety response |
+| High-Speed Send | Harsh event detected | 30 seconds | 10Hz event | HIGH | Real-time alerting |
+| Medium-Speed Send | Compliance violation | 2 minutes | 1Hz log | MEDIUM | Compliance visibility |
+| Batch Ping | Interval timer | 10 minutes | 1Hz continuous | LOW | Smoothness and rewards |
+| Trip Boundary | Ignition state change | Immediate | N/A | LOW | Lifecycle trigger |
+
+#### 17.4.2 The Two-Minute Priority Ceiling
+Architectural guarantee:
+- No MEDIUM or HIGH event waits more than 120 seconds to reach cloud processing.
+
+Impact:
+- Reduces risk of losing meaningful behavior context during network loss.
+- Keeps orchestrator awareness near real-time for high-value events.
+
+```mermaid
+flowchart TD
+        E1[HIGH Event] --> W1[Max 30s Window]
+        E2[MEDIUM Event] --> W2[Max 120s Window]
+        E3[LOW Batch Event] --> W3[10 min Window]
+        W1 --> C[Cloud Ingestor]
+        W2 --> C
+        W3 --> C
+```
+
+#### 17.4.3 Device-Side Deduplication and Reliability
+Reliability pattern:
+- Each event gets a unique `device_event_id` at detection.
+- Event is transmitted in earliest allowed priority window.
+- Duplicate arrivals are treated idempotently at ingestion.
+
+Outcome:
+- Prevents repeated event storms.
+- Preserves coherent timeline before and after incidents.
+
+### 17.5 Critical, High, and Medium Events
+Key classes used in event governance:
+
+| Event Type | Category | Priority | Typical Action |
+|---|---|---|---|
+| collision | critical | CRITICAL | Emergency dispatch and safety escalation |
+| rollover | critical | CRITICAL | Emergency dispatch and safety escalation |
+| speeding | speed_compliance | MEDIUM | Compliance tracking and review |
+| hard_accel / harsh_accel | harsh_events | HIGH | Real-time coaching and risk handling |
+| hard_brake / harsh_brake | harsh_events | HIGH | Real-time coaching and risk handling |
+
+#### 17.5.1 Collision
+Representative signals:
+- `g_force_magnitude`, `airbag_triggered`, `impact_direction`, `injury_severity_estimate`.
+
+#### 17.5.2 Rollover
+Representative signals:
+- `g_force_magnitude`, `roll_angle_degrees`, `impact_direction`, `confidence`.
+
+#### 17.5.3 Speeding
+Representative signals:
+- `speed_kmh`, `speed_limit_kmh`, `duration_seconds`, `confidence`.
+
+#### 17.5.4 Harsh Acceleration
+Representative signals:
+- Positive longitudinal `g_force_x`, speed context, duration, confidence.
+
+#### 17.5.5 Harsh Braking
+Representative signals:
+- Negative longitudinal `g_force_x`, speed context, duration, confidence.
+
+### 17.6 1Hz Smoothness Sampling: The Positive Reinforcement Layer
+
+#### 17.6.1 Architecture: Edge vs Cloud Responsibilities
+Edge responsibilities:
+- Sample at 1Hz continuously.
+- Compute statistical aggregates every batch window.
+- Upload raw binary evidence for compliance/disputes.
+
+Cloud responsibilities:
+- Consume compact smoothness statistics.
+- Apply scoring model and explainability logic.
+- Join with incident IDs for richer context when needed.
+
+Compliance layer responsibilities:
+- Preserve high-resolution raw logs for post-incident audit and dispute resolution.
+
+```mermaid
+flowchart LR
+        subgraph Edge
+            S[1Hz Sampling]
+            A[Edge Aggregation]
+            R[Raw Binary Log]
+        end
+        subgraph Cloud
+            I[Ingestor]
+            SC[Scoring Agent]
+            EX[Explainability Output]
+        end
+        subgraph Compliance
+            S3[(S3 Compliance Store)]
+        end
+
+        S --> A
+        A --> I
+        I --> SC
+        SC --> EX
+        R --> S3
+        SC -. on demand evidence lookup .-> S3
+```
+
+#### 17.6.2 Physics-Based Smoothness Metrics
+Core metrics include:
+- Jerk mean/max/std-dev.
+- Speed mean/std-dev/variance.
+- Longitudinal and lateral stability indicators.
+- Engine behavior (idle, over-rev, RPM patterns).
+
+Why this supports fairness:
+- High-resolution data helps separate one-off defensive actions from repeated risky patterns.
+- This supports context-aware scoring instead of simplistic event counting.
+
+### 17.7 Externalized Engine Thresholds and Governance
+Engine behavior thresholds are externalized as policy/config values, not hardcoded firmware constants.
+
+Benefits:
+- Faster policy adaptation without OTA update for every adjustment.
+- Clearer governance and auditability of threshold changes.
+
+Example threshold policy structure:
+- Idle warning and excessive idle boundaries.
+- Over-rev limits.
+- Operational action for each threshold state.
+
+### 17.8 The Event Matrix Governance Engine
+`EVENT_MATRIX` acts as the central governance table for:
+- Event category.
+- Priority.
+- ML weight (reward or penalty effect).
+- System action and routing policy.
+
+This avoids hardcoding routing logic across multiple services.
+
+```mermaid
+flowchart TD
+        E[Incoming Event Type] --> M[EVENT_MATRIX Lookup]
+        M --> P[Priority]
+        M --> W[ML Weight]
+        M --> R[Routing Policy]
+        P --> Q[Queue Score]
+        Q --> O[Orchestrator Dispatch]
+        R --> O
+        W --> S[Scoring Agent Influence]
+```
+
+### 17.9 Operational Workflow Visualization
+The full operational input workflow can be explained as:
+1. Edge and app events are ingested through protocol-specific entry paths.
+2. Events are normalized into one schema.
+3. Priority score determines queue order.
+4. Orchestrator dispatches specialist agents.
+5. Agents publish outputs and completion events.
+6. Results are surfaced in API/UI and retained for audit.
+
+```mermaid
+flowchart TB
+        subgraph Edge[Edge Device]
+            C1[1Hz Continuous Sampling]
+            C2[10min Local Buffer]
+            C3[smoothness_log]
+            C4[Critical Incident]
+            C5[High or Medium Event]
+        end
+
+        C1 --> C2
+        C2 --> C3
+        C2 --> C4
+        C2 --> C5
+
+        C3 --> IN[Cloud Ingestor]
+        C4 --> IN
+        C5 --> IN
+
+        IN --> Z[(Redis Sorted Set)]
+        Z --> ORC[Orchestrator Agent]
+        ORC --> SA[Specialized Agents]
+```
+
+### 17.10 Design Principles Summary
+- One unified event schema after ingestion boundary.
+- Universal spatio-temporal anchors on every event.
+- EVENT_MATRIX as centralized governance engine.
+- Externalized thresholds for policy agility.
+- Two-minute ceiling for MEDIUM/HIGH event delivery.
+- Edge aggregation + cloud intelligence separation.
+- 1Hz smoothness supports positive reinforcement.
+- Distance normalization supports cross-driver fairness.
+- Priority-aware sorted-set queueing.
+- Device-side deduplication + idempotent ingestion.
+- Ingestion boundary acts as security and quality gate.
