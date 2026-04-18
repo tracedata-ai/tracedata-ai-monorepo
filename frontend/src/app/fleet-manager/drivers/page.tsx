@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { getDrivers, getTrips, getRoutes, type Driver, type Trip, type Route } from "@/lib/api";
 import { DashboardPageTemplate } from "@/components/shared/DashboardPageTemplate";
@@ -9,6 +9,8 @@ import { DataTable } from "@/components/data-table";
 import { ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { AlertTriangle, Activity, BookOpen } from "lucide-react";
+import { coachingQueue, type CoachingEntry } from "@/lib/sample-data";
 
 const columns: ColumnDef<DriverRow>[] = [
   {
@@ -52,6 +54,81 @@ type DriverRow = {
   hoursToday: number;
   fatigueRisk: "Low" | "Medium" | "High";
 };
+
+const CATEGORY_META: Record<string, { label: string; icon: ReactNode }> = {
+  fatigue_management: { label: "Fatigue Mgmt",   icon: <AlertTriangle className="h-3 w-3" /> },
+  harsh_braking:      { label: "Harsh Braking",  icon: <Activity      className="h-3 w-3" /> },
+  overspeed:          { label: "Overspeed",       icon: <AlertTriangle className="h-3 w-3" /> },
+  route_deviation:    { label: "Route Deviation", icon: <Activity      className="h-3 w-3" /> },
+  idle_time:          { label: "Idle Time",       icon: <BookOpen      className="h-3 w-3" /> },
+  fuel_efficiency:    { label: "Fuel Efficiency", icon: <BookOpen      className="h-3 w-3" /> },
+};
+
+const PRIORITY_BADGE: Record<CoachingEntry["priority"], string> = {
+  high:   "bg-[var(--error)] text-white",
+  medium: "bg-[var(--warning)] text-white",
+  low:    "bg-blue-500 text-white",
+};
+
+type CoachingFilter = "All" | "High" | "Medium";
+
+function CoachingPriorityQueue() {
+  const [filter, setFilter] = useState<CoachingFilter>("All");
+  const filtered = coachingQueue.filter(c =>
+    filter === "All" ? true : c.priority === filter.toLowerCase()
+  );
+  return (
+    <Card className="glass rounded-xl animate-in fade-in slide-in-from-bottom-4 duration-500 fill-mode-both">
+      <CardHeader>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <CardTitle className="flex items-center gap-2">
+            <BookOpen className="h-4 w-4 text-[#6366f1]" />
+            Coaching Priority Queue
+          </CardTitle>
+          <div className="flex items-center gap-1">
+            {(["All", "High", "Medium"] as CoachingFilter[]).map(f => (
+              <button key={f} onClick={() => setFilter(f)}
+                className={`rounded-md px-3 py-1 text-xs font-semibold transition-colors ${
+                  filter === f
+                    ? "bg-[#6366f1] text-white"
+                    : "bg-[#f3f4f6] text-[#6b7280] hover:bg-[#e5e7eb] hover:text-[#111827]"
+                }`}>{f}</button>
+            ))}
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {filtered.length === 0
+          ? <p className="py-6 text-center text-sm text-[#9ca3af]">No items for this filter.</p>
+          : <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
+              {filtered.map((c, i) => {
+                const meta = CATEGORY_META[c.category] ?? { label: c.category, icon: <BookOpen className="h-3 w-3" /> };
+                return (
+                  <div key={`${c.driverId}-${i}`}
+                    className="animate-in fade-in slide-in-from-bottom-2 fill-mode-both rounded-lg border border-[#e5e7eb] bg-white p-3 shadow-sm space-y-2"
+                    style={{ animationDelay: `${i * 60}ms` }}>
+                    <p className="truncate text-xs font-semibold text-[#111827]">{c.driverName}</p>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="flex items-center gap-1 rounded bg-[#f3f4f6] px-1.5 py-0.5 text-[10px] font-medium text-[#374151]">
+                        {meta.icon}{meta.label}
+                      </span>
+                      <span className={`rounded px-1.5 py-0.5 text-[9px] font-bold uppercase ${PRIORITY_BADGE[c.priority]}`}>
+                        {c.priority}
+                      </span>
+                    </div>
+                    <p className="text-[11px] leading-relaxed text-[#6b7280]">{c.message}</p>
+                    <p className="text-[10px] text-[#9ca3af]">
+                      {new Date(c.created_at).toLocaleDateString("en-SG", { day: "numeric", month: "short", year: "numeric" })}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+        }
+      </CardContent>
+    </Card>
+  );
+}
 
 export default function DriversPage() {
   const router = useRouter();
@@ -140,6 +217,7 @@ export default function DriversPage() {
           )}
         </CardContent>
       </Card>
+      <CoachingPriorityQueue />
     </DashboardPageTemplate>
   );
 }

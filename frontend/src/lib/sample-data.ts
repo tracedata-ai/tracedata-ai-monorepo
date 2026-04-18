@@ -268,3 +268,23 @@ export const smoothnessLogBatchDetailsSample: SmoothnessBatchDetails = {
   incident_event_ids: ["DEV-HB-002", "DEV-SPD-006"],
   raw_log_url: "s3://tracedata-sensors/T12345-batch-20260307-1010.bin",
 };
+
+// ── Coaching mock data ────────────────────────────────────────────────────────
+
+export type CoachingEntry = {
+  driverId: string;
+  driverName: string;
+  category: string;
+  priority: "high" | "medium" | "low";
+  message: string;
+  created_at: string;
+};
+
+export const coachingQueue: CoachingEntry[] = [
+  { driverId: "drv-117", driverName: "Alicia Tan",   category: "fatigue_management", priority: "high",   message: "Driver exceeded 8 h continuous operation. Mandatory rest stop required before next dispatch.", created_at: "2026-04-17T22:10:00Z" },
+  { driverId: "drv-117", driverName: "Alicia Tan",   category: "harsh_braking",      priority: "high",   message: "3 harsh-brake events on Northern Cargo Link. Review deceleration technique.",               created_at: "2026-04-17T20:45:00Z" },
+  { driverId: "drv-122", driverName: "Marcus Lee",   category: "overspeed",          priority: "medium", message: "Average speed 12 kph over limit on two City Hub segments. Speed-awareness module recommended.", created_at: "2026-04-17T19:30:00Z" },
+  { driverId: "drv-103", driverName: "Farid Rahman", category: "route_deviation",    priority: "medium", message: "Unexplained 4-min deviation from Port Loop Alpha waypoints. Debrief recommended.",            created_at: "2026-04-17T18:00:00Z" },
+  { driverId: "drv-122", driverName: "Marcus Lee",   category: "idle_time",          priority: "low",    message: "Engine idled 22 min during scheduled route. Review pre-departure checklist.",                created_at: "2026-04-16T14:20:00Z" },
+  { driverId: "drv-103", driverName: "Farid Rahman", category: "fuel_efficiency",    priority: "low",    message: "Fuel consumption 8% above baseline. Eco-driving refresher suggested.",                       created_at: "2026-04-16T11:05:00Z" },
+];
