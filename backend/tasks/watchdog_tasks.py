@@ -67,28 +67,40 @@ def reset_stuck_events(self) -> dict:
 )
 def publish_queue_depths(self) -> dict:
     """Emit periodic queue depth diagnostics for observability."""
-    redis = RedisClient()
     try:
-        queue_sizes = asyncio.run(_collect_queue_sizes(redis))
-        asyncio.run(_publish_worker_health(redis, queue_sizes))
-        asyncio.run(_alert_worker_health_transitions(redis, queue_sizes))
+        queue_sizes = asyncio.run(_run_publish_queue_depths())
         logger.info({"action": "queue_depths", "queues": queue_sizes})
         return {"status": "ok", "task": "publish_queue_depths", "queues": queue_sizes}
     except Exception as exc:
         logger.exception({"action": "queue_depths_failed", "error": str(exc)})
-        asyncio.run(
-            slack.send_ops_alert(
-                component="watchdog",
-                severity="critical",
-                message="Queue depth monitor failed",
-                details={"error": str(exc)[:160]},
-            )
-        )
         raise self.retry(exc=exc) from exc
+
+
+async def _run_publish_queue_depths() -> dict[str, int]:
+    """Single event-loop entry point for publish_queue_depths.
+
+    All three async steps share one RedisClient and one event loop so that
+    the connection created in _collect_queue_sizes is still alive when
+    _publish_worker_health and _alert_worker_health_transitions use it.
+    """
+    redis = RedisClient()
+    try:
+        queue_sizes = await _collect_queue_sizes(redis)
+        await _publish_worker_health(redis, queue_sizes)
+        await _alert_worker_health_transitions(redis, queue_sizes)
+        return queue_sizes
+    except Exception:
+        await slack.send_ops_alert(
+            component="watchdog",
+            severity="critical",
+            message="Queue depth monitor failed",
+            details={},
+        )
+        raise
     finally:
         close_result = redis.close()
         if isawaitable(close_result):
-            asyncio.run(close_result)
+            await close_result
 
 
 async def _collect_queue_sizes(redis: RedisClient) -> dict[str, int]:
