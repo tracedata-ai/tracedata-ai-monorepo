@@ -60,6 +60,6 @@ resources:
 # CI updates these lines on every push to main. Do not edit manually.
 images:
   - name: sreerajrone/tracedata-backend-agent-api
-    newTag: "v.1.4.0.0.2026166.2"  # backend-tag
+    newTag: "v.1.4.0.0.202616.3"  # backend-tag
   - name: sreerajrone/tracedata-frontend
     newTag: "sha-9cf30b7"  # frontend-tag
