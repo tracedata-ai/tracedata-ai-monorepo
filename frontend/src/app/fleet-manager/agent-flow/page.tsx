@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Pause, Play, RefreshCw, ExternalLink, ChevronDown, ChevronRight } from "lucide-react";
+import { Pause, Play, RefreshCw, ExternalLink, ChevronDown, ChevronRight, Activity } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import type { AgentNodeInspectDetails } from "@/components/agent-flow/AgentFlowCanvas";
@@ -153,6 +153,84 @@ function EventCard({ event }: { event: AgentFlowEvent }) {
   );
 }
 
+// ── Pipeline health panel ─────────────────────────────────────────────────────
+
+const PIPELINE_AGENTS = ["safety", "scoring", "sentiment", "support"] as const;
+type PipelineAgent = (typeof PIPELINE_AGENTS)[number];
+
+const AGENT_LABEL: Record<PipelineAgent, string> = {
+  safety: "Safety", scoring: "Scoring", sentiment: "Sentiment", support: "Support",
+};
+const WARN_MS = 1000;
+const CRIT_MS = 1500;
+
+function computePipelineHealth(events: AgentFlowEvent[]) {
+  const runningAt: Record<string, number> = {};
+  const samples: Record<string, number[]> = {};
+  for (const ev of [...events].sort((a, b) => a.seq - b.seq)) {
+    if (!PIPELINE_AGENTS.includes(ev.agent as PipelineAgent)) continue;
+    if (ev.event_type === "agent_running") { runningAt[ev.agent] = new Date(ev.ts).getTime(); }
+    if (ev.event_type === "agent_done") {
+      const metaMs = typeof ev.meta?.elapsed_ms === "number" ? ev.meta.elapsed_ms : null;
+      if (metaMs !== null) { (samples[ev.agent] ??= []).push(metaMs); }
+      else if (runningAt[ev.agent]) {
+        const d = new Date(ev.ts).getTime() - runningAt[ev.agent];
+        if (d > 0) (samples[ev.agent] ??= []).push(d);
+        delete runningAt[ev.agent];
+      }
+    }
+  }
+  return PIPELINE_AGENTS.map(agent => {
+    const s = samples[agent] ?? [];
+    return { agent, avg: s.length ? Math.round(s.reduce((a, v) => a + v, 0) / s.length) : null, count: s.length };
+  });
+}
+
+function PipelineHealthPanel({ events }: { events: AgentFlowEvent[] }) {
+  const health = computePipelineHealth(events);
+  const maxAvg = Math.max(...health.map(h => h.avg ?? 0), CRIT_MS);
+  const allAvgs = health.filter(h => h.avg !== null).map(h => h.avg as number);
+  const globalAvg = allAvgs.length ? Math.round(allAvgs.reduce((a, v) => a + v, 0) / allAvgs.length) : null;
+  const worst = [...health].filter(h => h.avg !== null && h.avg > WARN_MS).sort((a, b) => (b.avg ?? 0) - (a.avg ?? 0))[0];
+  return (
+    <div className="shrink-0 space-y-3 rounded-xl border border-[#e5e7eb] bg-white p-4 shadow-sm">
+      <div className="flex items-center gap-2">
+        <Activity className="h-3.5 w-3.5 text-[#6366f1]" />
+        <p className="text-[10px] font-semibold uppercase tracking-widest text-[#9ca3af]">Pipeline Health</p>
+      </div>
+      {worst && globalAvg !== null && (
+        <div className={`rounded-md border px-3 py-2 text-[10px] font-medium leading-snug ${
+          (worst.avg ?? 0) >= CRIT_MS ? "border-red-200 bg-red-50 text-red-700" : "border-amber-200 bg-amber-50 text-amber-700"
+        }`}>
+          {AGENT_LABEL[worst.agent as PipelineAgent]} is slow ({((worst.avg ?? 0) / 1000).toFixed(1)}s &gt; avg {(globalAvg / 1000).toFixed(1)}s)
+        </div>
+      )}
+      <div className="space-y-2.5">
+        {health.map(({ agent, avg, count }) => {
+          const pct = avg !== null ? Math.min(100, (avg / maxAvg) * 100) : 0;
+          const isCrit = avg !== null && avg >= CRIT_MS;
+          const isWarn = avg !== null && avg >= WARN_MS && avg < CRIT_MS;
+          return (
+            <div key={agent} className="space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-medium text-[#374151]">{AGENT_LABEL[agent as PipelineAgent]}</span>
+                <span className={`text-[10px] font-semibold ${isCrit ? "text-red-600" : isWarn ? "text-amber-600" : "text-[#6b7280]"}`}>
+                  {avg !== null ? `${avg} ms` : "no data"}
+                </span>
+              </div>
+              <div className="h-1.5 w-full overflow-hidden rounded-full bg-[#f3f4f6]">
+                <div className={`h-full rounded-full transition-all duration-500 ${isCrit ? "bg-red-500" : isWarn ? "bg-amber-400" : "bg-[#6366f1]"}`}
+                  style={{ width: `${pct}%` }} />
+              </div>
+              {count > 0 && <p className="text-[9px] text-[#9ca3af]">{count} sample{count !== 1 ? "s" : ""}</p>}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 // ── Inspector panel ───────────────────────────────────────────────────────────
 
 function InspectorPanel({ node }: { node: AgentNodeInspectDetails }) {
@@ -213,6 +291,7 @@ function InspectorPanel({ node }: { node: AgentNodeInspectDetails }) {
           )}
         </div>
       </div>
+      <PipelineHealthPanel events={node.events} />
     </div>
   );
 }
