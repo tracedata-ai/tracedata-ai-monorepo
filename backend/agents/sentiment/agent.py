@@ -114,12 +114,13 @@ class SentimentAgent(TDAgentBase):
 
             feedback_text = "Sample feedback"
             if isinstance(current_event, dict):
-                data = current_event.get("data") or {}
+                # "data" comes from get_event_by_id (DB query result);
+                # "details" comes from TripEvent.model_dump() — check both.
+                data = current_event.get("data") or current_event.get("details") or {}
                 feedback_text = str(
                     (data.get("message") if isinstance(data, dict) else None)
                     or current_event.get("notes")
                     or current_event.get("description")
-                    or current_event.get("event_type")
                     or feedback_text
                 )
 
