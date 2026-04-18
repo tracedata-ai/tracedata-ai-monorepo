@@ -710,3 +710,61 @@ flowchart LR
 - Show both strengths and limits honestly.
 
 This gives reviewers confidence in both architecture thinking and responsible AI practice.
+
+---
+
+## 15. Presenter Notes (30-60 Second Script Per Section)
+
+Use these notes while presenting. You can read them directly or adapt to your style.
+
+### 15.1 Section 1 - Introduction and Solution Overview
+Speaker script:
+Today, we are presenting TraceData AI, a multi-agent system for fleet safety and driver performance. The core problem is that traditional workflows are reactive, fragmented, and hard to scale. Our solution uses specialized agents coordinated by an orchestrator, so each task is handled by the best component. This gives us faster triage, better explainability, and stronger operational traceability.
+
+### 15.2 Section 2 - Pain Points and Value Creation
+Speaker script:
+The biggest pain points are delayed manual triage, inconsistent decision quality, and poor context sharing across tools. Our agentic architecture solves these and also creates new value: proactive risk discovery, personalized coaching loops, and better auditability. So we are not only fixing old problems, we are enabling new capabilities that were difficult with monolithic systems.
+
+### 15.3 Section 3 - Stakeholders and Success Metrics
+Speaker script:
+This system serves multiple stakeholders, including fleet managers, drivers, safety teams, and engineering teams. We measure impact through operational and trust metrics, such as triage latency, coaching relevance, explainability coverage, and security gate pass rates. These metrics help us show both business value and responsible AI quality.
+
+### 15.4 Section 4 - System Architecture
+Speaker script:
+Our architecture separates ingestion, orchestration, specialist workers, and storage layers. Redis supports queueing and shared context, while PostgreSQL provides durable and auditable records. This design is modular and scalable because each worker type can be scaled independently. It is also maintainable because the orchestrator centralizes routing policy instead of duplicating it across services.
+
+### 15.5 Section 5 - Agent Design
+Speaker script:
+Each agent has a clear boundary. The Orchestrator coordinates. Safety handles risk events. Scoring computes behavior score and explanations. Sentiment interprets driver feedback. Support produces coaching recommendations. We implemented real runtime coordination using queue dispatch, shared memory, and follow-up events like coaching_ready and sentiment_ready, so this is a working multi-agent system, not just a conceptual diagram.
+
+### 15.6 Section 6 - Explainable and Responsible AI
+Speaker script:
+We apply responsible AI as engineering controls, not only policy statements. Explainability is built in through score breakdowns and reason fields. Accountability is supported through persisted logs and traceable outputs. Fairness is addressed through scoring checks and monitoring hooks. Human oversight is available for uncertain or high-impact outcomes.
+
+### 15.7 Section 7 - AI Security Risk Register
+Speaker script:
+We identified key AI-specific risks such as prompt injection, hallucination, tool misuse, and data leakage. For each risk, we mapped practical controls including validation, guardrails, allowlists, and deterministic checks. We also integrated dependency and security scanning in CI. This gives us defense in depth and a continuous security posture instead of one-time checks.
+
+### 15.8 Section 8 - MLSecOps and LLMSecOps Pipeline
+Speaker script:
+Our pipeline covers code quality, testing, SAST, SCA, container scanning, and deployment readiness. This automates much of the lifecycle and improves release confidence. We also clearly state what is still manual, such as formal model-governance approval and advanced drift-triggered retraining. This demonstrates both current maturity and a realistic roadmap.
+
+### 15.9 Section 9 - Evaluation and Testing Summary
+Speaker script:
+We validated both software reliability and AI-system behavior. Unit and integration tests cover orchestration and scoring logic. Type checks enforce contract quality. Security checks catch vulnerabilities early. We also validate end-to-end flows to ensure agent handoffs are correct in real scenarios. So our testing strategy covers correctness, safety, and operational confidence.
+
+### 15.10 Section 10 and 11 - Deliverables and Questions to Consider
+Speaker script:
+We mapped all required deliverables directly to implemented artifacts in this repository. We also answered all guiding questions around value, scalability, explainability, fairness, and security. This section is our proof of completeness: we are showing not only technical implementation, but also architectural reasoning and governance readiness.
+
+### 15.11 Section 12 - Demo Script
+Speaker script:
+During the demo, we will show one complete journey: event ingestion, orchestration, specialist outputs, follow-up trigger, and final coaching recommendation. While demonstrating, we will highlight explainability fields and trace logs to prove decision transparency. We will end by showing CI or security evidence to connect the live flow to engineering quality controls.
+
+### 15.12 Section 13 and 14 - Slide Plan and Final Tips
+Speaker script:
+Our slide sequence follows a problem-to-proof narrative. We begin with objective and architecture, then show agent design and responsible AI controls, then validate with testing and demo evidence. This ensures reviewers can clearly see the chain from design decisions to implementation outcomes. The result is a balanced presentation of innovation, safety, and engineering rigor.
+
+### 15.13 Short Closing Statement
+Speaker script:
+To conclude, TraceData AI demonstrates how a modular multi-agent system can deliver practical operational value while remaining explainable, secure, and governable. We combined architecture, implementation, testing, and risk controls into one coherent system. Our next step is scaling this foundation with deeper automation and production governance maturity.
