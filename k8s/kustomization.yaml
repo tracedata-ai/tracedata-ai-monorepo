@@ -62,4 +62,4 @@ images:
   - name: sreerajrone/tracedata-backend-agent-api
     newTag: "v.1.4.0.0.2026166.2"  # backend-tag
   - name: sreerajrone/tracedata-frontend
-    newTag: "v.1.4.0.0.2026166.1"  # frontend-tag
+    newTag: "v.1.4.0.0.2026166.2"  # frontend-tag
