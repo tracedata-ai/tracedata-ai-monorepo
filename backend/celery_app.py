@@ -11,6 +11,7 @@ Location: backend/celery_app.py
 """
 
 from celery import Celery
+from celery.signals import worker_process_init
 
 from common.config.settings import get_settings
 
@@ -110,3 +111,16 @@ app.conf.include = [
     "tasks.sentiment_tasks",
     "tasks.watchdog_tasks",
 ]
+
+
+# ── Engine pool reset on fork ─────────────────────────────────────────────────
+# asyncpg connections are bound to the event loop of the process that created
+# them. Celery's ForkPoolWorker copies the parent's pool into each child, so
+# asyncio.run() inside a task gets a "Future attached to a different loop"
+# error. dispose() drops all checked-out connections; the next asyncio.run()
+# call creates fresh ones bound to the child's new event loop.
+@worker_process_init.connect
+def _reset_engine_pool(**_kwargs: object) -> None:
+    from common.db.engine import engine  # local import — avoids circular refs
+
+    engine.sync_engine.dispose(close=False)
