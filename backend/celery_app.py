@@ -90,15 +90,23 @@ app.conf.update(
 )
 
 # ── Task autodiscovery ────────────────────────────────────────────────────────
-# Celery will find tasks in:
-# - agents/*/tasks.py (agent-specific tasks)
-# - tasks/*.py (standalone task files)
+# autodiscover_tasks(["pkg"]) imports pkg.tasks — so agent packages work because
+# agents/*/tasks.py exists. The tasks/ package uses individual files
+# (watchdog_tasks.py etc.), not a single tasks.py, so we use app.conf.include
+# to register those explicitly.
 app.autodiscover_tasks(
     [
         "agents.safety",
         "agents.scoring",
         "agents.driver_support",
         "agents.sentiment",
-        "tasks",  # Discover tasks from tasks/ package
     ]
 )
+
+app.conf.include = [
+    "tasks.safety_tasks",
+    "tasks.scoring_tasks",
+    "tasks.support_tasks",
+    "tasks.sentiment_tasks",
+    "tasks.watchdog_tasks",
+]

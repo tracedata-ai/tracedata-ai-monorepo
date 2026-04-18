@@ -48,6 +48,9 @@ resources:
   - monitoring/grafana-api-dashboard.yaml
   - monitoring/grafana-agents-dashboard.yaml
   - monitoring/grafana-logs-dashboard.yaml
+  - monitoring/grafana-fleet-ops-dashboard.yaml
+  - monitoring/grafana-slo-dashboard.yaml
+  - monitoring/grafana-worker-pipeline-dashboard.yaml
 
   # ── ArgoCD config ─────────────────────────────────────────────────────────
   - argocd/argocd-cmd-params-cm.yaml
