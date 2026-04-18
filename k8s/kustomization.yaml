@@ -55,11 +55,3 @@ resources:
   # ── ArgoCD config ─────────────────────────────────────────────────────────
   - argocd/argocd-cmd-params-cm.yaml
   - argocd/ingress.yaml
-
-# ── Image tags ────────────────────────────────────────────────────────────────
-# CI updates these lines on every push to main. Do not edit manually.
-images:
-  - name: sreerajrone/tracedata-backend-agent-api
-    newTag: "latest"  # backend-tag
-  - name: sreerajrone/tracedata-frontend
-    newTag: "latest"  # frontend-tag

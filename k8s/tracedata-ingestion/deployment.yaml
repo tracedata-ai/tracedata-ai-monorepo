@@ -21,7 +21,7 @@ spec:
     spec:
       containers:
         - name: tracedata-ingestion
-          image: sreerajrone/tracedata-backend-agent-api:latest
+          image: sreerajrone/tracedata-backend-agent-api:latest  # backend-tag
           imagePullPolicy: Always
           command:
             - python

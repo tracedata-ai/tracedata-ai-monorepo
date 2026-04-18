@@ -21,7 +21,7 @@ spec:
     spec:
       containers:
         - name: tracedata-frontend
-          image: sreerajrone/tracedata-frontend:latest
+          image: sreerajrone/tracedata-frontend:latest  # frontend-tag
           imagePullPolicy: Always
           ports:
             - containerPort: 3000
