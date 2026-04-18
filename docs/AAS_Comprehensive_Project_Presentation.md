@@ -768,3 +768,215 @@ Our slide sequence follows a problem-to-proof narrative. We begin with objective
 ### 15.13 Short Closing Statement
 Speaker script:
 To conclude, TraceData AI demonstrates how a modular multi-agent system can deliver practical operational value while remaining explainable, secure, and governable. We combined architecture, implementation, testing, and risk controls into one coherent system. Our next step is scaling this foundation with deeper automation and production governance maturity.
+
+---
+
+## 16. Deep Dive: Intent Capsule, Scoped Token, Intent Gate, MLSecOps/LLMSecOps, AI Verify and Project Moonshot
+
+This section explains the internal security and operations model in plain language, with implementation-accurate details.
+
+### 16.1 Intent Capsule Explained
+
+What it is:
+- Intent Capsule is the mission package created by the Orchestrator for one agent run.
+- It carries execution intent, constraints, and security context.
+- It is designed as an immutable contract during execution.
+
+What it contains (simplified):
+- Trip identity and target agent.
+- Priority and allowed execution window.
+- Tool constraints (`tool_whitelist`, `step_to_tools`).
+- Optional security seal (`hmac_seal`).
+- Embedded scoped access token (`token`).
+
+Why it exists:
+- Prevents agents from running with open-ended permissions.
+- Makes each run auditable and reproducible.
+- Lets the platform enforce least privilege by default.
+
+```mermaid
+flowchart LR
+    O[Orchestrator] --> C[Intent Capsule]
+    C --> A[Agent Worker]
+    C --> G[Intent Gate Checks]
+
+    subgraph CapsuleFields[Core Fields]
+        F1[trip_id, agent, priority]
+        F2[tool_whitelist, step_to_tools]
+        F3[hmac_seal]
+        F4[token: ScopedToken]
+    end
+
+    C --> F1
+    C --> F2
+    C --> F3
+    C --> F4
+```
+
+### 16.2 Scoped Token Explained
+
+What it is:
+- Scoped Token is a key-level permission object embedded inside the Intent Capsule.
+- It defines exactly what Redis keys a worker can read and write for this dispatch.
+
+Core fields:
+- `read_keys`: explicit allowed reads.
+- `write_keys`: explicit allowed writes.
+- `expires_at`: token TTL and validity boundary.
+
+Why it matters:
+- If a key is not listed, access should be denied by policy.
+- This limits blast radius during model/tool misuse.
+- It also supports fairness-through-access-control, because sensitive keys can be excluded at source.
+
+```mermaid
+flowchart TD
+    T[Scoped Token] --> R[Allowed Read Keys]
+    T --> W[Allowed Write Keys]
+    T --> X[Expiry Time]
+
+    R --> K1[trips:trip_id:agent:current_event]
+    R --> K2[trips:trip_id:agent:trip_context]
+    W --> K3[trip:trip_id:agent_output]
+    W --> K4[trip:trip_id:events]
+```
+
+### 16.3 Intent Gate Explained
+
+What it is:
+- Intent Gate is the security gateway for tool calls.
+- In current repo state, it is implemented as a decorator with enforcement switch.
+
+Current implementation status (important for presentation honesty):
+- Logging and pass-through behavior is active by default (stub mode).
+- Full blocking enforcement path is scaffolded and documented in code comments.
+
+Policy checks in full mode (design intent):
+- Capsule integrity verification.
+- Tool whitelist validation.
+- Step sequence validation.
+- PII scrubbing guard checks.
+- HITL escalation threshold checks.
+- Execution log emission.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Agent as Agent Tool Call
+    participant Gate as Intent Gate
+    participant Policy as Policy Checks
+    participant Tool as Actual Tool
+    participant Log as Execution Log
+
+    Agent->>Gate: invoke tool(args)
+    Gate->>Policy: validate capsule and policy
+    alt Policy pass
+        Gate->>Tool: execute
+        Tool-->>Gate: result
+        Gate->>Log: write success log
+        Gate-->>Agent: return result
+    else Policy fail
+        Gate->>Log: write rejection log
+        Gate-->>Agent: raise security violation
+    end
+```
+
+### 16.4 How Capsule, Token, and Gate Work Together
+
+Practical end-to-end flow:
+1. Orchestrator warms trip-scoped keys in Redis.
+2. Orchestrator seals and dispatches Intent Capsule with Scoped Token.
+3. Worker loads capsule and tries to run tools.
+4. Intent Gate checks policy before tool execution.
+5. Worker reads and writes only within token scope.
+6. Outputs and audit events are emitted.
+
+```mermaid
+flowchart LR
+    E[Event] --> O[Orchestrator]
+    O --> W[Warm Redis Keys]
+    O --> C[Build Intent Capsule]
+    C --> Q[Queue Dispatch]
+    Q --> A[Agent Worker]
+    A --> G[Intent Gate]
+    G -->|allowed| T[Tool Execution]
+    T --> OUT[Scoped Output Keys]
+    G -->|denied| AL[Security Violation Log]
+```
+
+### 16.5 MLSecOps and LLMSecOps We Have Implemented
+
+Implemented controls from current CI and test setup:
+- Code quality and safety gates: lint, type check, test suites.
+- SAST for backend Python (`bandit`).
+- SCA for dependencies (`pip-audit`, lockfile updates).
+- Container vulnerability scan (`Trivy`).
+- Explainability/fairness rubric smoke tests (SHAP/LIME/AIF360-style contract tests).
+- Prompt-safety adversarial suite (Promptfoo-style deterministic pytest tests).
+
+What this gives us:
+- Faster vulnerability detection.
+- Reproducible quality gates per PR.
+- AI quality evidence (not only code quality evidence).
+
+```mermaid
+flowchart LR
+    A[PR or Commit] --> B[Lint and Type Check]
+    B --> C[Unit and Integration Tests]
+    C --> D[AI Rubric Smoke Tests]
+    D --> E[SAST and SCA]
+    E --> F[Docker Build and Trivy]
+    F --> G[CI Summary and Artifacts]
+
+    D --> D1[SHAP Contract]
+    D --> D2[LIME Contract]
+    D --> D3[AIF360 Contract]
+    D --> D4[Prompt Safety Contract]
+```
+
+### 16.6 AI Verify Toolkit: How It Fits This Project
+
+How to explain in your presentation:
+- We have already implemented AI Verify-aligned evidence categories:
+  - Fairness evidence (AIF360-style contract tests).
+  - Explainability evidence (SHAP and LIME contract tests).
+  - Robustness/safety evidence (prompt-safety and adversarial prompt tests).
+- These outputs can be packaged as structured evidence for AI governance review.
+
+Important wording for accuracy:
+- Current repo contains AI Verify-aligned test evidence.
+- Full direct integration with official AI Verify Toolkit reporting can be presented as the next integration step if required by assessors.
+
+```mermaid
+flowchart TD
+    T1[Fairness Test Outputs] --> P[Evidence Packaging Layer]
+    T2[Explainability Test Outputs] --> P
+    T3[Safety and Robustness Outputs] --> P
+    T4[Operational Logs and Metrics] --> P
+    P --> R[Governance Review Report]
+```
+
+### 16.7 Project Moonshot: How to Position and Use It
+
+How to explain in your presentation:
+- Project Moonshot focuses on systematic adversarial evaluation of GenAI risks.
+- In this project, we already run Moonshot-style adversarial behavior checks through Promptfoo-inspired pytest suites (offline and deterministic in CI).
+- This gives a practical red-team baseline today, while keeping cost and external dependency low.
+
+If asked about direct Project Moonshot integration:
+- Position as Phase-2 extension where Moonshot benchmark packs can be added as scheduled evaluation jobs.
+- Keep current deterministic tests as fast guardrails, and run heavier benchmark suites nightly.
+
+```mermaid
+flowchart LR
+    A[Current Promptfoo-style Tests] --> B[Fast CI Safety Guardrails]
+    B --> C[Nightly Extended Eval]
+    C --> D[Project Moonshot Benchmark Packs]
+    D --> E[Risk Trend Dashboard]
+    E --> F[Mitigation Backlog and Policy Updates]
+```
+
+### 16.8 One-Slide Summary Script for Viva
+
+Speaker script:
+We secure agent execution using three layers: Intent Capsule as mission contract, Scoped Token as least-privilege key access, and Intent Gate as policy checkpoint for tool calls. On operations, our MLSecOps and LLMSecOps pipeline already includes quality, security, and AI-evaluation gates in CI. For governance, we produce AI Verify-aligned fairness, explainability, and safety evidence from our AIF360, SHAP, LIME, and prompt-safety tests. For adversarial evaluation, we currently run Promptfoo-style Moonshot-aligned checks and can extend to full Project Moonshot benchmark packs as a scheduled phase.
