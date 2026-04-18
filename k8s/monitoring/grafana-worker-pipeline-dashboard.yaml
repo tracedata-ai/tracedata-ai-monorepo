@@ -1,0 +1,558 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-worker-pipeline-dashboard
+  namespace: monitoring
+  labels:
+    grafana_dashboard: "1"
+data:
+  tracedata-worker-pipeline.json: |
+    {
+      "uid": "tracedata-workers",
+      "title": "TraceData — Worker Pipeline",
+      "tags": ["tracedata", "workers", "celery", "pipeline"],
+      "timezone": "browser",
+      "refresh": "15s",
+      "time": { "from": "now-1h", "to": "now" },
+      "panels": [
+        {
+          "id": 1,
+          "title": "Safety Worker",
+          "type": "stat",
+          "gridPos": { "x": 0, "y": 0, "w": 4, "h": 4 },
+          "datasource": "Prometheus",
+          "targets": [
+            {
+              "expr": "kube_pod_status_phase{namespace=\"tracedata\", pod=~\"tracedata-safety-worker.*\", phase=\"Running\"}",
+              "legendFormat": ""
+            }
+          ],
+          "options": {
+            "reduceOptions": { "calcs": ["lastNotNull"] },
+            "colorMode": "background",
+            "graphMode": "none",
+            "textMode": "auto"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "mappings": [
+                {
+                  "type": "value",
+                  "options": {
+                    "1": { "text": "Running", "color": "green" },
+                    "0": { "text": "Down", "color": "red" }
+                  }
+                }
+              ],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "red", "value": null },
+                  { "color": "green", "value": 1 }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "id": 2,
+          "title": "Scoring Worker",
+          "type": "stat",
+          "gridPos": { "x": 4, "y": 0, "w": 4, "h": 4 },
+          "datasource": "Prometheus",
+          "targets": [
+            {
+              "expr": "kube_pod_status_phase{namespace=\"tracedata\", pod=~\"tracedata-scoring-worker.*\", phase=\"Running\"}",
+              "legendFormat": ""
+            }
+          ],
+          "options": {
+            "reduceOptions": { "calcs": ["lastNotNull"] },
+            "colorMode": "background",
+            "graphMode": "none",
+            "textMode": "auto"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "mappings": [
+                {
+                  "type": "value",
+                  "options": {
+                    "1": { "text": "Running", "color": "green" },
+                    "0": { "text": "Down", "color": "red" }
+                  }
+                }
+              ],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "red", "value": null },
+                  { "color": "green", "value": 1 }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "id": 3,
+          "title": "Support Worker",
+          "type": "stat",
+          "gridPos": { "x": 8, "y": 0, "w": 4, "h": 4 },
+          "datasource": "Prometheus",
+          "targets": [
+            {
+              "expr": "kube_pod_status_phase{namespace=\"tracedata\", pod=~\"tracedata-support-worker.*\", phase=\"Running\"}",
+              "legendFormat": ""
+            }
+          ],
+          "options": {
+            "reduceOptions": { "calcs": ["lastNotNull"] },
+            "colorMode": "background",
+            "graphMode": "none",
+            "textMode": "auto"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "mappings": [
+                {
+                  "type": "value",
+                  "options": {
+                    "1": { "text": "Running", "color": "green" },
+                    "0": { "text": "Down", "color": "red" }
+                  }
+                }
+              ],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "red", "value": null },
+                  { "color": "green", "value": 1 }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "id": 4,
+          "title": "Sentiment Worker",
+          "type": "stat",
+          "gridPos": { "x": 12, "y": 0, "w": 4, "h": 4 },
+          "datasource": "Prometheus",
+          "targets": [
+            {
+              "expr": "kube_pod_status_phase{namespace=\"tracedata\", pod=~\"tracedata-sentiment-worker.*\", phase=\"Running\"}",
+              "legendFormat": ""
+            }
+          ],
+          "options": {
+            "reduceOptions": { "calcs": ["lastNotNull"] },
+            "colorMode": "background",
+            "graphMode": "none",
+            "textMode": "auto"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "mappings": [
+                {
+                  "type": "value",
+                  "options": {
+                    "1": { "text": "Running", "color": "green" },
+                    "0": { "text": "Down", "color": "red" }
+                  }
+                }
+              ],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "red", "value": null },
+                  { "color": "green", "value": 1 }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "id": 5,
+          "title": "Orchestrator",
+          "type": "stat",
+          "gridPos": { "x": 16, "y": 0, "w": 4, "h": 4 },
+          "datasource": "Prometheus",
+          "targets": [
+            {
+              "expr": "kube_pod_status_phase{namespace=\"tracedata\", pod=~\"tracedata-orchestrator.*\", phase=\"Running\"}",
+              "legendFormat": ""
+            }
+          ],
+          "options": {
+            "reduceOptions": { "calcs": ["lastNotNull"] },
+            "colorMode": "background",
+            "graphMode": "none",
+            "textMode": "auto"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "mappings": [
+                {
+                  "type": "value",
+                  "options": {
+                    "1": { "text": "Running", "color": "green" },
+                    "0": { "text": "Down", "color": "red" }
+                  }
+                }
+              ],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "red", "value": null },
+                  { "color": "green", "value": 1 }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "id": 6,
+          "title": "Ingestion",
+          "type": "stat",
+          "gridPos": { "x": 20, "y": 0, "w": 4, "h": 4 },
+          "datasource": "Prometheus",
+          "targets": [
+            {
+              "expr": "kube_pod_status_phase{namespace=\"tracedata\", pod=~\"tracedata-ingestion.*\", phase=\"Running\"}",
+              "legendFormat": ""
+            }
+          ],
+          "options": {
+            "reduceOptions": { "calcs": ["lastNotNull"] },
+            "colorMode": "background",
+            "graphMode": "none",
+            "textMode": "auto"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "mappings": [
+                {
+                  "type": "value",
+                  "options": {
+                    "1": { "text": "Running", "color": "green" },
+                    "0": { "text": "Down", "color": "red" }
+                  }
+                }
+              ],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "red", "value": null },
+                  { "color": "green", "value": 1 }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "id": 7,
+          "title": "Worker CPU Usage",
+          "type": "timeseries",
+          "gridPos": { "x": 0, "y": 4, "w": 12, "h": 8 },
+          "datasource": "Prometheus",
+          "targets": [
+            {
+              "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=\"tracedata\", pod=~\"tracedata-(safety|scoring|support|sentiment|orchestrator|ingestion).*\", container!=\"\", container!=\"POD\"}[2m])) by (pod)",
+              "legendFormat": "{{pod}}"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percentunit",
+              "color": { "mode": "palette-classic" }
+            }
+          }
+        },
+        {
+          "id": 8,
+          "title": "Worker Memory (Working Set)",
+          "type": "timeseries",
+          "gridPos": { "x": 12, "y": 4, "w": 12, "h": 8 },
+          "datasource": "Prometheus",
+          "targets": [
+            {
+              "expr": "sum(container_memory_working_set_bytes{namespace=\"tracedata\", pod=~\"tracedata-(safety|scoring|support|sentiment|orchestrator|ingestion).*\", container!=\"\", container!=\"POD\"}) by (pod)",
+              "legendFormat": "{{pod}}"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "bytes",
+              "color": { "mode": "palette-classic" }
+            }
+          }
+        },
+        {
+          "id": 9,
+          "title": "Pod Restarts — Workers",
+          "type": "bargauge",
+          "gridPos": { "x": 0, "y": 12, "w": 12, "h": 6 },
+          "datasource": "Prometheus",
+          "targets": [
+            {
+              "expr": "sum(increase(kube_pod_container_status_restarts_total{namespace=\"tracedata\", pod=~\"tracedata-(safety|scoring|support|sentiment|orchestrator|ingestion).*\"}[1h])) by (pod)",
+              "legendFormat": "{{pod}}"
+            }
+          ],
+          "options": {
+            "reduceOptions": { "calcs": ["lastNotNull"] },
+            "orientation": "horizontal",
+            "displayMode": "gradient"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "green", "value": null },
+                  { "color": "yellow", "value": 1 },
+                  { "color": "red", "value": 3 }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "id": 10,
+          "title": "All Pod Restarts (1h)",
+          "type": "bargauge",
+          "gridPos": { "x": 12, "y": 12, "w": 12, "h": 6 },
+          "datasource": "Prometheus",
+          "targets": [
+            {
+              "expr": "sum(increase(kube_pod_container_status_restarts_total{namespace=\"tracedata\"}[1h])) by (pod)",
+              "legendFormat": "{{pod}}"
+            }
+          ],
+          "options": {
+            "reduceOptions": { "calcs": ["lastNotNull"] },
+            "orientation": "horizontal",
+            "displayMode": "gradient"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "green", "value": null },
+                  { "color": "yellow", "value": 1 },
+                  { "color": "red", "value": 5 }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "id": 11,
+          "title": "Connected Clients",
+          "type": "stat",
+          "gridPos": { "x": 0, "y": 18, "w": 6, "h": 4 },
+          "datasource": "Prometheus",
+          "targets": [
+            {
+              "expr": "redis_connected_clients{namespace=\"tracedata\"}",
+              "legendFormat": ""
+            }
+          ],
+          "options": {
+            "reduceOptions": { "calcs": ["lastNotNull"] },
+            "colorMode": "background",
+            "graphMode": "none",
+            "textMode": "auto"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "green", "value": null },
+                  { "color": "yellow", "value": 20 },
+                  { "color": "red", "value": 50 }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "id": 12,
+          "title": "Memory Used",
+          "type": "stat",
+          "gridPos": { "x": 6, "y": 18, "w": 6, "h": 4 },
+          "datasource": "Prometheus",
+          "targets": [
+            {
+              "expr": "redis_memory_used_bytes{namespace=\"tracedata\"}",
+              "legendFormat": ""
+            }
+          ],
+          "options": {
+            "reduceOptions": { "calcs": ["lastNotNull"] },
+            "colorMode": "background",
+            "graphMode": "none",
+            "textMode": "auto"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "bytes",
+              "color": { "mode": "fixed", "fixedColor": "blue" },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [{ "color": "blue", "value": null }]
+              }
+            }
+          }
+        },
+        {
+          "id": 13,
+          "title": "Commands/sec",
+          "type": "stat",
+          "gridPos": { "x": 12, "y": 18, "w": 6, "h": 4 },
+          "datasource": "Prometheus",
+          "targets": [
+            {
+              "expr": "rate(redis_commands_processed_total{namespace=\"tracedata\"}[1m])",
+              "legendFormat": ""
+            }
+          ],
+          "options": {
+            "reduceOptions": { "calcs": ["lastNotNull"] },
+            "colorMode": "background",
+            "graphMode": "none",
+            "textMode": "auto"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "ops",
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [{ "color": "green", "value": null }]
+              }
+            }
+          }
+        },
+        {
+          "id": 14,
+          "title": "Cache Hit Rate",
+          "type": "stat",
+          "gridPos": { "x": 18, "y": 18, "w": 6, "h": 4 },
+          "datasource": "Prometheus",
+          "targets": [
+            {
+              "expr": "rate(redis_keyspace_hits_total{namespace=\"tracedata\"}[5m]) / (rate(redis_keyspace_hits_total{namespace=\"tracedata\"}[5m]) + rate(redis_keyspace_misses_total{namespace=\"tracedata\"}[5m]))",
+              "legendFormat": ""
+            }
+          ],
+          "options": {
+            "reduceOptions": { "calcs": ["lastNotNull"] },
+            "colorMode": "background",
+            "graphMode": "none",
+            "textMode": "auto"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percentunit",
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "red", "value": null },
+                  { "color": "yellow", "value": 0.5 },
+                  { "color": "green", "value": 0.8 }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "id": 15,
+          "title": "Redis Memory Trend",
+          "type": "timeseries",
+          "gridPos": { "x": 0, "y": 22, "w": 12, "h": 6 },
+          "datasource": "Prometheus",
+          "targets": [
+            {
+              "expr": "redis_memory_used_bytes{namespace=\"tracedata\"}",
+              "legendFormat": "Used"
+            },
+            {
+              "expr": "redis_memory_max_bytes{namespace=\"tracedata\"}",
+              "legendFormat": "Max"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "bytes",
+              "color": { "mode": "palette-classic" }
+            }
+          }
+        },
+        {
+          "id": 16,
+          "title": "Redis Active Keys & Expiry Rate",
+          "type": "timeseries",
+          "gridPos": { "x": 12, "y": 22, "w": 12, "h": 6 },
+          "datasource": "Prometheus",
+          "targets": [
+            {
+              "expr": "redis_db_keys{namespace=\"tracedata\"}",
+              "legendFormat": "Active Keys"
+            },
+            {
+              "expr": "rate(redis_expired_keys_total{namespace=\"tracedata\"}[1m])",
+              "legendFormat": "Expired/s"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "color": { "mode": "palette-classic" }
+            }
+          }
+        },
+        {
+          "id": 17,
+          "title": "Worker Error Logs",
+          "type": "logs",
+          "gridPos": { "x": 0, "y": 28, "w": 12, "h": 10 },
+          "datasource": "Loki",
+          "targets": [
+            {
+              "expr": "{namespace=\"tracedata\", pod=~\"tracedata-(safety|scoring|support|sentiment|orchestrator|ingestion).*\"} |= \"ERROR\"",
+              "legendFormat": ""
+            }
+          ],
+          "options": {
+            "dedupStrategy": "none",
+            "enableLogDetails": true,
+            "sortOrder": "Descending",
+            "wrapLogMessage": false
+          }
+        },
+        {
+          "id": 18,
+          "title": "Worker Task Completions / Activity",
+          "type": "logs",
+          "gridPos": { "x": 12, "y": 28, "w": 12, "h": 10 },
+          "datasource": "Loki",
+          "targets": [
+            {
+              "expr": "{namespace=\"tracedata\", pod=~\"tracedata-(safety|scoring|support|sentiment|orchestrator|ingestion).*\"} |= \"task\" != \"ERROR\"",
+              "legendFormat": ""
+            }
+          ],
+          "options": {
+            "dedupStrategy": "none",
+            "enableLogDetails": true,
+            "sortOrder": "Descending",
+            "wrapLogMessage": false
+          }
+        }
+      ]
+    }

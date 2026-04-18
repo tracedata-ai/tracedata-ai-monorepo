@@ -1,0 +1,331 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-fleet-ops-dashboard
+  namespace: monitoring
+  labels:
+    grafana_dashboard: "1"
+data:
+  tracedata-fleet-ops.json: |
+    {
+      "uid": "tracedata-fleet-ops",
+      "title": "TraceData — Fleet Operations",
+      "tags": ["tracedata", "fleet", "ops"],
+      "timezone": "browser",
+      "refresh": "60s",
+      "time": { "from": "now-24h", "to": "now" },
+      "panels": [
+        {
+          "id": 1,
+          "title": "Trips Served",
+          "type": "stat",
+          "gridPos": { "x": 0, "y": 0, "w": 4, "h": 4 },
+          "datasource": "Prometheus",
+          "targets": [
+            {
+              "expr": "ceil(sum(increase(http_requests_total{namespace=\"tracedata\", handler=~\"/api/v1/trips.*\", status=\"2xx\"}[$__range])))",
+              "legendFormat": ""
+            }
+          ],
+          "options": {
+            "reduceOptions": { "calcs": ["lastNotNull"] },
+            "colorMode": "background",
+            "graphMode": "none",
+            "textMode": "auto"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "decimals": 0,
+              "color": { "mode": "fixed", "fixedColor": "green" },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [{ "color": "green", "value": null }]
+              }
+            }
+          }
+        },
+        {
+          "id": 2,
+          "title": "Safety Events Checked",
+          "type": "stat",
+          "gridPos": { "x": 4, "y": 0, "w": 4, "h": 4 },
+          "datasource": "Prometheus",
+          "targets": [
+            {
+              "expr": "ceil(sum(increase(http_requests_total{namespace=\"tracedata\", handler=~\"/api/v1/safety.*\", status=\"2xx\"}[$__range])))",
+              "legendFormat": ""
+            }
+          ],
+          "options": {
+            "reduceOptions": { "calcs": ["lastNotNull"] },
+            "colorMode": "background",
+            "graphMode": "none",
+            "textMode": "auto"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "decimals": 0,
+              "color": { "mode": "fixed", "fixedColor": "orange" },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [{ "color": "orange", "value": null }]
+              }
+            }
+          }
+        },
+        {
+          "id": 3,
+          "title": "Driver Lookups",
+          "type": "stat",
+          "gridPos": { "x": 8, "y": 0, "w": 4, "h": 4 },
+          "datasource": "Prometheus",
+          "targets": [
+            {
+              "expr": "ceil(sum(increase(http_requests_total{namespace=\"tracedata\", handler=~\"/api/v1/drivers.*\", status=\"2xx\"}[$__range])))",
+              "legendFormat": ""
+            }
+          ],
+          "options": {
+            "reduceOptions": { "calcs": ["lastNotNull"] },
+            "colorMode": "background",
+            "graphMode": "none",
+            "textMode": "auto"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "decimals": 0,
+              "color": { "mode": "fixed", "fixedColor": "blue" },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [{ "color": "blue", "value": null }]
+              }
+            }
+          }
+        },
+        {
+          "id": 4,
+          "title": "Route Queries",
+          "type": "stat",
+          "gridPos": { "x": 12, "y": 0, "w": 4, "h": 4 },
+          "datasource": "Prometheus",
+          "targets": [
+            {
+              "expr": "ceil(sum(increase(http_requests_total{namespace=\"tracedata\", handler=~\"/api/v1/routes.*\", status=\"2xx\"}[$__range])))",
+              "legendFormat": ""
+            }
+          ],
+          "options": {
+            "reduceOptions": { "calcs": ["lastNotNull"] },
+            "colorMode": "background",
+            "graphMode": "none",
+            "textMode": "auto"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "decimals": 0,
+              "color": { "mode": "fixed", "fixedColor": "purple" },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [{ "color": "purple", "value": null }]
+              }
+            }
+          }
+        },
+        {
+          "id": 5,
+          "title": "Fleet Checks",
+          "type": "stat",
+          "gridPos": { "x": 16, "y": 0, "w": 4, "h": 4 },
+          "datasource": "Prometheus",
+          "targets": [
+            {
+              "expr": "ceil(sum(increase(http_requests_total{namespace=\"tracedata\", handler=~\"/api/v1/fleet.*\", status=\"2xx\"}[$__range])))",
+              "legendFormat": ""
+            }
+          ],
+          "options": {
+            "reduceOptions": { "calcs": ["lastNotNull"] },
+            "colorMode": "background",
+            "graphMode": "none",
+            "textMode": "auto"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "decimals": 0,
+              "color": { "mode": "fixed", "fixedColor": "teal" },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [{ "color": "teal", "value": null }]
+              }
+            }
+          }
+        },
+        {
+          "id": 6,
+          "title": "Maintenance Queries",
+          "type": "stat",
+          "gridPos": { "x": 20, "y": 0, "w": 4, "h": 4 },
+          "datasource": "Prometheus",
+          "targets": [
+            {
+              "expr": "ceil(sum(increase(http_requests_total{namespace=\"tracedata\", handler=~\"/api/v1/maintenance.*\", status=\"2xx\"}[$__range])))",
+              "legendFormat": ""
+            }
+          ],
+          "options": {
+            "reduceOptions": { "calcs": ["lastNotNull"] },
+            "colorMode": "background",
+            "graphMode": "none",
+            "textMode": "auto"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "decimals": 0,
+              "color": { "mode": "fixed", "fixedColor": "yellow" },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [{ "color": "yellow", "value": null }]
+              }
+            }
+          }
+        },
+        {
+          "id": 7,
+          "title": "API Traffic by Business Domain",
+          "type": "timeseries",
+          "gridPos": { "x": 0, "y": 4, "w": 24, "h": 8 },
+          "datasource": "Prometheus",
+          "targets": [
+            {
+              "expr": "sum(rate(http_requests_total{namespace=\"tracedata\", handler=~\"/api/v1/trips.*\", status=\"2xx\"}[5m]))",
+              "legendFormat": "Trips"
+            },
+            {
+              "expr": "sum(rate(http_requests_total{namespace=\"tracedata\", handler=~\"/api/v1/safety.*\", status=\"2xx\"}[5m]))",
+              "legendFormat": "Safety"
+            },
+            {
+              "expr": "sum(rate(http_requests_total{namespace=\"tracedata\", handler=~\"/api/v1/routes.*\", status=\"2xx\"}[5m]))",
+              "legendFormat": "Routes"
+            },
+            {
+              "expr": "sum(rate(http_requests_total{namespace=\"tracedata\", handler=~\"/api/v1/drivers.*\", status=\"2xx\"}[5m]))",
+              "legendFormat": "Drivers"
+            },
+            {
+              "expr": "sum(rate(http_requests_total{namespace=\"tracedata\", handler=~\"/api/v1/fleet.*\", status=\"2xx\"}[5m]))",
+              "legendFormat": "Fleet"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "reqps",
+              "color": { "mode": "palette-classic" }
+            }
+          }
+        },
+        {
+          "id": 8,
+          "title": "Avg Response Payload by Endpoint",
+          "type": "bargauge",
+          "gridPos": { "x": 0, "y": 12, "w": 12, "h": 8 },
+          "datasource": "Prometheus",
+          "targets": [
+            {
+              "expr": "sum(increase(http_response_size_bytes_sum{namespace=\"tracedata\", handler!=\"/health\", handler!=\"\"}[$__range])) by (handler) / sum(increase(http_response_size_bytes_count{namespace=\"tracedata\", handler!=\"/health\", handler!=\"\"}[$__range])) by (handler)",
+              "legendFormat": "{{handler}}"
+            }
+          ],
+          "options": {
+            "reduceOptions": { "calcs": ["lastNotNull"] },
+            "orientation": "horizontal",
+            "displayMode": "gradient"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "bytes",
+              "color": { "mode": "palette-classic" },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [{ "color": "green", "value": null }]
+              }
+            }
+          }
+        },
+        {
+          "id": 9,
+          "title": "5xx Errors by Endpoint",
+          "description": "Any bar > 0 indicates a server error. The /api/v1/embeddings/related/event/{event_id} endpoint is currently producing 5xx errors (pgvector issue).",
+          "type": "bargauge",
+          "gridPos": { "x": 12, "y": 12, "w": 12, "h": 8 },
+          "datasource": "Prometheus",
+          "targets": [
+            {
+              "expr": "sum(increase(http_requests_total{namespace=\"tracedata\", status=\"5xx\"}[$__range])) by (handler)",
+              "legendFormat": "{{handler}}"
+            }
+          ],
+          "options": {
+            "reduceOptions": { "calcs": ["lastNotNull"] },
+            "orientation": "horizontal",
+            "displayMode": "gradient"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "color": { "mode": "fixed", "fixedColor": "red" },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "green", "value": null },
+                  { "color": "red", "value": 1 }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "id": 10,
+          "title": "AI Agent & Simulator Activity",
+          "type": "timeseries",
+          "gridPos": { "x": 0, "y": 20, "w": 12, "h": 6 },
+          "datasource": "Prometheus",
+          "targets": [
+            {
+              "expr": "sum(rate(http_requests_total{namespace=\"tracedata\", handler=~\"/api/v1/agent-flow.*|/api/v1/simulator.*|/api/v1/embeddings.*\"}[5m])) by (handler)",
+              "legendFormat": "{{handler}}"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "reqps",
+              "color": { "mode": "palette-classic" }
+            }
+          }
+        },
+        {
+          "id": 11,
+          "title": "Total Requests by HTTP Status",
+          "type": "piechart",
+          "gridPos": { "x": 12, "y": 20, "w": 12, "h": 6 },
+          "datasource": "Prometheus",
+          "targets": [
+            {
+              "expr": "sum(increase(http_requests_total{namespace=\"tracedata\", handler!=\"/health\"}[$__range])) by (status)",
+              "legendFormat": "{{status}}"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "palette-classic" }
+            }
+          }
+        }
+      ]
+    }

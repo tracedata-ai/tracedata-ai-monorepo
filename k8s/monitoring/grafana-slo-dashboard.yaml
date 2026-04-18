@@ -1,0 +1,344 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-slo-dashboard
+  namespace: monitoring
+  labels:
+    grafana_dashboard: "1"
+data:
+  tracedata-slo.json: |
+    {
+      "uid": "tracedata-slo",
+      "title": "TraceData — SLO & Reliability",
+      "tags": ["tracedata", "slo", "reliability"],
+      "timezone": "browser",
+      "refresh": "5m",
+      "time": { "from": "now-7d", "to": "now" },
+      "panels": [
+        {
+          "id": 1,
+          "title": "Availability (7d)",
+          "type": "stat",
+          "gridPos": { "x": 0, "y": 0, "w": 6, "h": 5 },
+          "datasource": "Prometheus",
+          "targets": [
+            {
+              "expr": "1 - (sum(increase(http_requests_total{namespace=\"tracedata\", status=\"5xx\", handler!=\"/health\"}[7d])) / sum(increase(http_requests_total{namespace=\"tracedata\", handler!=\"/health\"}[7d])))",
+              "legendFormat": ""
+            }
+          ],
+          "options": {
+            "reduceOptions": { "calcs": ["lastNotNull"] },
+            "colorMode": "background",
+            "graphMode": "none",
+            "textMode": "auto",
+            "orientation": "auto"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percentunit",
+              "decimals": 3,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "red", "value": null },
+                  { "color": "yellow", "value": 0.995 },
+                  { "color": "green", "value": 0.999 }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "id": 2,
+          "title": "Total Requests",
+          "type": "stat",
+          "gridPos": { "x": 6, "y": 0, "w": 6, "h": 5 },
+          "datasource": "Prometheus",
+          "targets": [
+            {
+              "expr": "sum(increase(http_requests_total{namespace=\"tracedata\", handler!=\"/health\"}[$__range]))",
+              "legendFormat": ""
+            }
+          ],
+          "options": {
+            "reduceOptions": { "calcs": ["lastNotNull"] },
+            "colorMode": "value",
+            "graphMode": "none",
+            "textMode": "auto"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "color": { "mode": "fixed", "fixedColor": "blue" },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [{ "color": "blue", "value": null }]
+              }
+            }
+          }
+        },
+        {
+          "id": 3,
+          "title": "5xx Errors (window)",
+          "type": "stat",
+          "gridPos": { "x": 12, "y": 0, "w": 6, "h": 5 },
+          "datasource": "Prometheus",
+          "targets": [
+            {
+              "expr": "sum(increase(http_requests_total{namespace=\"tracedata\", status=\"5xx\", handler!=\"/health\"}[$__range]))",
+              "legendFormat": ""
+            }
+          ],
+          "options": {
+            "reduceOptions": { "calcs": ["lastNotNull"] },
+            "colorMode": "background",
+            "graphMode": "none",
+            "textMode": "auto"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "green", "value": null },
+                  { "color": "red", "value": 1 }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "id": 4,
+          "title": "API Uptime",
+          "type": "stat",
+          "gridPos": { "x": 18, "y": 0, "w": 6, "h": 5 },
+          "datasource": "Prometheus",
+          "targets": [
+            {
+              "expr": "time() - process_start_time_seconds{namespace=\"tracedata\"}",
+              "legendFormat": ""
+            }
+          ],
+          "options": {
+            "reduceOptions": { "calcs": ["lastNotNull"] },
+            "colorMode": "value",
+            "graphMode": "none",
+            "textMode": "auto"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "dtdurations",
+              "color": { "mode": "fixed", "fixedColor": "green" },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [{ "color": "green", "value": null }]
+              }
+            }
+          }
+        },
+        {
+          "id": 5,
+          "title": "Error Rate Over Time",
+          "type": "timeseries",
+          "gridPos": { "x": 0, "y": 5, "w": 12, "h": 8 },
+          "datasource": "Prometheus",
+          "targets": [
+            {
+              "expr": "sum(rate(http_requests_total{namespace=\"tracedata\", status=\"5xx\", handler!=\"/health\"}[5m])) / sum(rate(http_requests_total{namespace=\"tracedata\", handler!=\"/health\"}[5m]))",
+              "legendFormat": "error rate"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percentunit",
+              "color": { "mode": "fixed", "fixedColor": "red" },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "green", "value": null },
+                  { "color": "red", "value": 0.005 }
+                ]
+              },
+              "custom": {
+                "thresholdsStyle": { "mode": "line" }
+              }
+            }
+          }
+        },
+        {
+          "id": 6,
+          "title": "Request Volume by Status (stacked)",
+          "type": "timeseries",
+          "gridPos": { "x": 12, "y": 5, "w": 12, "h": 8 },
+          "datasource": "Prometheus",
+          "targets": [
+            {
+              "expr": "sum(rate(http_requests_total{namespace=\"tracedata\", handler!=\"/health\", status=\"2xx\"}[5m]))",
+              "legendFormat": "2xx OK"
+            },
+            {
+              "expr": "sum(rate(http_requests_total{namespace=\"tracedata\", handler!=\"/health\", status=\"4xx\"}[5m]))",
+              "legendFormat": "4xx Client Error"
+            },
+            {
+              "expr": "sum(rate(http_requests_total{namespace=\"tracedata\", handler!=\"/health\", status=\"5xx\"}[5m]))",
+              "legendFormat": "5xx Server Error"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "reqps",
+              "custom": {
+                "stacking": { "mode": "normal", "group": "A" }
+              }
+            },
+            "overrides": [
+              {
+                "matcher": { "id": "byName", "options": "2xx OK" },
+                "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "green" } }]
+              },
+              {
+                "matcher": { "id": "byName", "options": "4xx Client Error" },
+                "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "yellow" } }]
+              },
+              {
+                "matcher": { "id": "byName", "options": "5xx Server Error" },
+                "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "red" } }]
+              }
+            ]
+          }
+        },
+        {
+          "id": 7,
+          "title": "Endpoints With Errors — Total Count",
+          "description": "Warning: /api/v1/embeddings endpoint currently failing (pgvector issue).",
+          "type": "bargauge",
+          "gridPos": { "x": 0, "y": 13, "w": 12, "h": 8 },
+          "datasource": "Prometheus",
+          "targets": [
+            {
+              "expr": "sum(increase(http_requests_total{namespace=\"tracedata\", status=\"5xx\"}[$__range])) by (handler)",
+              "legendFormat": "{{handler}}"
+            }
+          ],
+          "options": {
+            "reduceOptions": { "calcs": ["lastNotNull"] },
+            "orientation": "horizontal",
+            "displayMode": "gradient"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "color": { "mode": "fixed", "fixedColor": "red" },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "green", "value": null },
+                  { "color": "red", "value": 1 }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "id": 8,
+          "title": "Pod Restarts (all tracedata pods)",
+          "type": "bargauge",
+          "gridPos": { "x": 12, "y": 13, "w": 12, "h": 8 },
+          "datasource": "Prometheus",
+          "targets": [
+            {
+              "expr": "sum(increase(kube_pod_container_status_restarts_total{namespace=\"tracedata\"}[$__range])) by (pod)",
+              "legendFormat": "{{pod}}"
+            }
+          ],
+          "options": {
+            "reduceOptions": { "calcs": ["lastNotNull"] },
+            "orientation": "horizontal",
+            "displayMode": "gradient"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "green", "value": null },
+                  { "color": "yellow", "value": 1 },
+                  { "color": "red", "value": 5 }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "id": 9,
+          "title": "API Process Memory (RSS)",
+          "type": "timeseries",
+          "gridPos": { "x": 0, "y": 21, "w": 12, "h": 6 },
+          "datasource": "Prometheus",
+          "targets": [
+            {
+              "expr": "process_resident_memory_bytes{namespace=\"tracedata\"}",
+              "legendFormat": "{{pod}}"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "bytes",
+              "color": { "mode": "palette-classic" },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "green", "value": null },
+                  { "color": "yellow", "value": 524288000 }
+                ]
+              },
+              "custom": {
+                "thresholdsStyle": { "mode": "line" }
+              }
+            }
+          }
+        },
+        {
+          "id": 10,
+          "title": "GC Pressure (objects collected/s)",
+          "type": "timeseries",
+          "gridPos": { "x": 12, "y": 21, "w": 12, "h": 6 },
+          "datasource": "Prometheus",
+          "targets": [
+            {
+              "expr": "sum(rate(python_gc_objects_collected_total{namespace=\"tracedata\"}[5m])) by (generation)",
+              "legendFormat": "gen{{generation}}"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "color": { "mode": "palette-classic" }
+            }
+          }
+        },
+        {
+          "id": 11,
+          "title": "Recent API Errors — Live Log Stream",
+          "type": "logs",
+          "gridPos": { "x": 0, "y": 27, "w": 24, "h": 10 },
+          "datasource": "Loki",
+          "targets": [
+            {
+              "expr": "{namespace=\"tracedata\"} |= \"ERROR\" | logfmt",
+              "legendFormat": ""
+            }
+          ],
+          "options": {
+            "dedupStrategy": "none",
+            "enableLogDetails": true,
+            "sortOrder": "Descending",
+            "wrapLogMessage": false
+          }
+        }
+      ]
+    }
