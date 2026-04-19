@@ -8,10 +8,29 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft, MapPin, Shield, Brain, MessageSquare, Smile, Star } from "lucide-react";
-import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
-import { Doughnut } from "react-chartjs-2";
+import {
+  Chart as ChartJS,
+  ArcElement,
+  Tooltip,
+  Legend,
+  LineElement,
+  PointElement,
+  CategoryScale,
+  LinearScale,
+  Filler,
+} from "chart.js";
+import { Doughnut, Line } from "react-chartjs-2";
 
-ChartJS.register(ArcElement, Tooltip, Legend);
+ChartJS.register(
+  ArcElement,
+  Tooltip,
+  Legend,
+  LineElement,
+  PointElement,
+  CategoryScale,
+  LinearScale,
+  Filler
+);
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -140,8 +159,15 @@ function StarRating({ value }: { value: number }) {
 // ── Score breakdown horizontal bars ──────────────────────────────────────────
 
 function ScoreBreakdown({ breakdown }: { breakdown: Record<string, number> }) {
+  const labelsByKey: Record<string, string> = {
+    jerk_component: "Acceleration Smoothness",
+    speed_component: "Speed Consistency",
+    lateral_component: "Lateral Stability",
+    engine_component: "Engine Load",
+  };
+
   const labels = Object.keys(breakdown).map((k) =>
-    k.replace(/_component$/, "").replace(/_/g, " ")
+    labelsByKey[k] ?? k.replace(/_component$/, "").replace(/_/g, " ")
   );
   const values = Object.values(breakdown);
   const max = Math.max(...values, 1);
@@ -170,6 +196,104 @@ function ScoreBreakdown({ breakdown }: { breakdown: Record<string, number> }) {
       })}
       <p className="pt-1 text-[10px] text-muted-foreground">
         Higher bar = greater contribution to risk score
+      </p>
+    </div>
+  );
+}
+
+// ── F1-style smooth driving telemetry chart ─────────────────────────────────
+
+function SmoothDrivingTelemetryChart({
+  points,
+}: {
+  points: TripDetail["scoring"]["smoothness_points"];
+}) {
+  if (!points.length) return null;
+
+  const labels = points.map((p, idx) => {
+    if (!p.timestamp) return `P${idx + 1}`;
+    return new Date(p.timestamp).toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  });
+
+  const metricDefs = [
+    { key: "jerk_mean", label: "Acceleration Smoothness", color: "#ef4444" },
+    { key: "jerk_max", label: "Peak Acceleration Spike", color: "#f97316" },
+    { key: "speed_std_dev", label: "Speed Variance", color: "#eab308" },
+    { key: "mean_lateral_g", label: "Lateral G Mean", color: "#22c55e" },
+    { key: "max_lateral_g", label: "Lateral G Max", color: "#06b6d4" },
+    { key: "engine_load_avg", label: "Mean RPM", color: "#3b82f6" },
+  ] as const;
+
+  const datasets = metricDefs
+    .map((metric) => {
+      const series = points.map((p) => {
+        const value = p[metric.key];
+        return typeof value === "number" ? value : null;
+      });
+      const numericSeries = series.filter((v): v is number => typeof v === "number");
+      if (!numericSeries.length) return null;
+      const max = Math.max(...numericSeries, 1e-6);
+
+      return {
+        label: metric.label,
+        data: series.map((v) => (typeof v === "number" ? Number(((v / max) * 100).toFixed(2)) : null)),
+        borderColor: metric.color,
+        backgroundColor: `${metric.color}33`,
+        pointRadius: 2,
+        pointHoverRadius: 4,
+        borderWidth: 2,
+        tension: 0.35,
+      };
+    })
+    .filter((d): d is NonNullable<typeof d> => d !== null);
+
+  if (!datasets.length) return null;
+
+  return (
+    <div className="rounded-xl border border-border bg-gradient-to-b from-slate-950/80 to-slate-900/60 p-3">
+      <div className="relative h-72 w-full">
+        <Line
+          data={{ labels, datasets }}
+          options={{
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                labels: {
+                  color: "#e2e8f0",
+                  boxWidth: 10,
+                  boxHeight: 10,
+                  usePointStyle: true,
+                },
+              },
+              tooltip: {
+                backgroundColor: "rgba(15,23,42,0.92)",
+                borderColor: "rgba(148,163,184,0.25)",
+                borderWidth: 1,
+                titleColor: "#f8fafc",
+                bodyColor: "#e2e8f0",
+              },
+            },
+            scales: {
+              x: {
+                ticks: { color: "#cbd5e1", maxRotation: 0, autoSkip: true, font: { size: 10 } },
+                grid: { color: "rgba(148,163,184,0.12)" },
+              },
+              y: {
+                min: 0,
+                max: 100,
+                ticks: { color: "#cbd5e1", callback: (v) => `${v}%` },
+                grid: { color: "rgba(148,163,184,0.12)" },
+              },
+            },
+          }}
+        />
+      </div>
+      <p className="mt-2 text-[10px] text-slate-300">
+        10-minute smooth driving pings (normalized per metric) for F1-style telemetry comparison.
       </p>
     </div>
   );
@@ -471,6 +595,24 @@ export default function TripDetailPage() {
           )}
         </div>
       )}
+
+      {/* ── Full-width smooth driving telemetry graph ── */}
+      <Card className="rounded-xl w-full">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-sm">
+            <Brain className="h-4 w-4 text-cyan-400" /> Smooth Driving Telemetry (10-minute pings)
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {detail.scoring.smoothness_points.length > 0 ? (
+            <SmoothDrivingTelemetryChart points={detail.scoring.smoothness_points} />
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              No smooth driving telemetry is available for this trip yet.
+            </p>
+          )}
+        </CardContent>
+      </Card>
 
       {/* ── XAI narrative ── */}
       {detail.scoring.narrative && (

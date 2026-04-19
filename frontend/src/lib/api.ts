@@ -419,6 +419,15 @@ export type TripDetail = {
     score: number | null;
     driver_score: number | null;
     breakdown: Record<string, number>;
+    smoothness_points: Array<{
+      timestamp: string | null;
+      jerk_mean: number | null;
+      jerk_max: number | null;
+      speed_std_dev: number | null;
+      mean_lateral_g: number | null;
+      max_lateral_g: number | null;
+      engine_load_avg: number | null;
+    }>;
     narrative: string | null;
     score_label: string | null;
     score_gpa: number | null;

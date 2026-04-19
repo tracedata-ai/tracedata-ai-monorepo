@@ -11,6 +11,7 @@ from datetime import UTC, datetime, timedelta
 from inspect import isawaitable
 
 from celery import current_app as celery, shared_task
+from redis.exceptions import ResponseError as RedisResponseError
 from sqlalchemy import text
 
 from agents.orchestrator.db_manager import DBManager
@@ -35,6 +36,12 @@ QUEUE_DEGRADED_THRESHOLD = 20
 QUEUE_DOWN_THRESHOLD = 100
 
 
+def _run_with_fresh_engine_pool(coro):
+    """Run async watchdog logic with a fresh SQLAlchemy/asyncpg pool."""
+    engine.sync_engine.dispose(close=False)
+    return asyncio.run(coro)
+
+
 @shared_task(
     bind=True,
     name="tasks.watchdog_tasks.reset_stuck_events",
@@ -51,7 +58,7 @@ def reset_stuck_events(self) -> dict:
     """
     try:
         db = DBManager()
-        result = asyncio.run(db.watchdog())
+        result = _run_with_fresh_engine_pool(db.watchdog())
         return {"status": "ok", "task": "reset_stuck_events", "result": result}
     except Exception as exc:
         logger.exception({"action": "watchdog_reset_failed", "error": str(exc)})
@@ -68,7 +75,7 @@ def reset_stuck_events(self) -> dict:
 def publish_queue_depths(self) -> dict:
     """Emit periodic queue depth diagnostics for observability."""
     try:
-        queue_sizes = asyncio.run(_run_publish_queue_depths())
+        queue_sizes = _run_with_fresh_engine_pool(_run_publish_queue_depths())
         logger.info({"action": "queue_depths", "queues": queue_sizes})
         return {"status": "ok", "task": "publish_queue_depths", "queues": queue_sizes}
     except Exception as exc:
@@ -116,8 +123,17 @@ async def _collect_queue_sizes(redis: RedisClient) -> dict[str, int]:
     out: dict[str, int] = {}
     for key in keys:
         # Celery queues are lists; pipeline queues are zsets.
-        zset_count = await client.zcard(key)
-        out[key] = zset_count if zset_count > 0 else await client.llen(key)
+        # Probe defensively because calling zcard on a list raises WRONGTYPE.
+        try:
+            out[key] = int(await client.zcard(key))
+            continue
+        except RedisResponseError:
+            pass
+
+        try:
+            out[key] = int(await client.llen(key))
+        except RedisResponseError:
+            out[key] = 0
     return out
 
 
@@ -253,7 +269,7 @@ def rescore_unscored_trips(self) -> dict:
     to avoid queue flooding.
     """
     try:
-        result = asyncio.run(_find_and_rescore())
+        result = _run_with_fresh_engine_pool(_find_and_rescore())
         logger.info({"action": "rescore_watchdog_complete", **result})
         return {"status": "ok", "task": "rescore_unscored_trips", **result}
     except Exception as exc:
@@ -364,7 +380,7 @@ def requeue_stuck_received_events(self) -> dict:
     Capped at 20 per run to avoid queue flooding.
     """
     try:
-        result = asyncio.run(_find_and_requeue_received())
+        result = _run_with_fresh_engine_pool(_find_and_requeue_received())
         logger.info({"action": "requeue_received_complete", **result})
         return {"status": "ok", "task": "requeue_stuck_received_events", **result}
     except Exception as exc:
@@ -489,7 +505,7 @@ def requeue_stuck_trips(self) -> dict:
     Runs every 10 minutes via Celery beat. Capped at 10 dispatches per status.
     """
     try:
-        result = asyncio.run(_find_and_requeue_stuck_trips())
+        result = _run_with_fresh_engine_pool(_find_and_requeue_stuck_trips())
         logger.info({"action": "requeue_stuck_trips_complete", **result})
         return {"status": "ok", "task": "requeue_stuck_trips", **result}
     except Exception as exc:

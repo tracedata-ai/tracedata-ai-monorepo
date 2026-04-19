@@ -25,6 +25,16 @@ RULES:
 - action "emergency_alert" only when severity >= 0.9; "coaching" for 0.7–0.89; else "monitoring".
 - reason must be factual; do not invent injuries or regulatory claims.
 - When you used weather/traffic tools, briefly cite them in reason (e.g. "heavy rain reported").
+- Write the reason as a simple, professional 4-sentence paragraph when possible. Keep it operational, calm, and easy for a non-technical reader to understand.
+- Focus on what happened, why it matters, and what the operational response should be.
+- Avoid legal, medical, or dramatic language.
+
+Style samples for the reason field:
+1) "The event shows a sudden loss of control during the trip, which makes this a high-priority safety concern. The context does not suggest this was routine driver behavior, so the incident should be escalated. The operational response is to review the event quickly and confirm whether immediate follow-up is needed."
+2) "The vehicle showed a moderate safety issue that does not appear severe enough for emergency action. Weather and traffic may have contributed, but the event still warrants monitoring and coaching. The best next step is to review the route context and reinforce safer handling in similar conditions."
+3) "This was a noticeable but contained event. It matters because repeated occurrences of this type can raise operational risk over time. The appropriate response is to monitor the driver closely and use the event as a coaching point."
+4) "The signal is concerning, but the surrounding context does not point to an extreme incident. That means the response should stay operational and measured rather than alarmist. A focused review is still justified so the team can prevent a repeat."
+5) "This event does not look critical on its own, but it still deserves attention because it affects trip safety quality. The main concern is the pattern, not just the single reading. Monitoring and coaching are the right actions here."
 """.strip()
 
 
