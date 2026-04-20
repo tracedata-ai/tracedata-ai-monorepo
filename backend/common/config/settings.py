@@ -69,7 +69,8 @@ class Settings(BaseSettings):
     # CORS_ALLOWED_ORIGINS in the configmap (e.g. "https://www.xplore.town,http://localhost:3000").
     cors_allowed_origins: str = (
         "http://localhost:3000,http://127.0.0.1:3000,"
-        "http://localhost:3001,http://127.0.0.1:3001"
+        "http://localhost:3001,http://127.0.0.1:3001,"
+        "https://www.xplore.town,https://xplore.town"
     )
 
     # ── Security ────────────────────────────────────────────────────────────
