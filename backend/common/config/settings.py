@@ -1,6 +1,7 @@
 from functools import lru_cache
 from pathlib import Path
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Resolve the repo root regardless of working directory.
@@ -63,6 +64,23 @@ class Settings(BaseSettings):
     lock_ttl_support: int = 1800  # 30 min — DSP Agent max ~10min
     lock_ttl_sentiment: int = 900  # 15 min — Sentiment Agent max ~5min
     lock_ttl_default: int = 600  # 10 min — fallback
+
+    # ── CORS ─────────────────────────────────────────────────────────────────
+    # Accepts a comma-separated string (configmap) or a JSON list.
+    # Defaults cover local dev; production overrides via CORS_ALLOWED_ORIGINS.
+    cors_allowed_origins: list[str] = [
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://localhost:3001",
+        "http://127.0.0.1:3001",
+    ]
+
+    @field_validator("cors_allowed_origins", mode="before")
+    @classmethod
+    def _parse_cors_origins(cls, v: object) -> list[str]:
+        if isinstance(v, str):
+            return [o.strip() for o in v.split(",") if o.strip()]
+        return v  # type: ignore[return-value]
 
     # ── Security ────────────────────────────────────────────────────────────
     secret_key: str = "changeme"

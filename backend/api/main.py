@@ -296,16 +296,11 @@ Instrumentator().instrument(app).expose(app)
 # RequestIdMiddleware must be outermost so the correlation ID is set
 # before any other middleware or handler emits a log line.
 
-# 1. CORS — allow the Next.js frontend at port 3000
+# 1. CORS — origins driven by CORS_ALLOWED_ORIGINS env var (configmap in prod)
 # Note: Cannot use "*" with allow_credentials=True per CORS spec
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-        "http://localhost:3001",
-        "http://127.0.0.1:3001",
-    ],
+    allow_origins=settings.cors_allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
