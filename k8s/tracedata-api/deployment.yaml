@@ -21,7 +21,7 @@ spec:
     spec:
       containers:
         - name: tracedata-api
-          image: sreerajrone/tracedata-backend-agent-api:sha-1b6f2eb  # backend-tag
+          image: sreerajrone/tracedata-backend-agent-api:v.1.4.0.0.2026171.20  # backend-tag
           imagePullPolicy: Always
           ports:
             - containerPort: 8000
