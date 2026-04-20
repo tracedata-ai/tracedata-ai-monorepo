@@ -124,8 +124,7 @@ async def get_trip_detail(
 
     # ── Driver / vehicle / route names ────────────────────────────────────────
     meta = await db.execute(
-        text(
-            """
+        text("""
             SELECT d.first_name || ' ' || d.last_name AS driver_name,
                    v.license_plate, v.make, v.model,
                    r.name AS route_name, r.start_location, r.end_location, r.distance_km
@@ -134,8 +133,7 @@ async def get_trip_detail(
             LEFT JOIN vehicles v ON t.vehicle_id = v.id
             LEFT JOIN routes   r ON t.route_id   = r.id
             WHERE  t.id = :tid
-        """
-        ),
+        """),
         {"tid": trip_id},
     )
     meta_row: dict[str, Any] = dict(meta.mappings().first() or {})
@@ -157,15 +155,13 @@ async def get_trip_detail(
     smoothness_rows = (
         (
             await db.execute(
-                text(
-                    """
+                text("""
                     SELECT timestamp, details
                     FROM   pipeline_events
                     WHERE  trip_id = :tid
                     AND    event_type = 'smoothness_log'
                     ORDER  BY timestamp ASC
-                    """
-                ),
+                    """),
                 {"tid": tid},
             )
         )
@@ -226,8 +222,7 @@ async def get_trip_detail(
     safety_rows = (
         (
             await db.execute(
-                text(
-                    """
+                text("""
             SELECT h.event_id, h.event_type, h.severity, h.lat, h.lon,
                    h.location_name, h.event_timestamp, h.traffic_conditions, h.weather_conditions,
                    d.decision, d.action, d.reason, d.recommended_action
@@ -235,8 +230,7 @@ async def get_trip_detail(
             LEFT JOIN safety_schema.safety_decisions d ON d.event_id = h.event_id
             WHERE  h.trip_id = :tid
             ORDER  BY h.event_timestamp
-        """
-                ),
+        """),
                 {"tid": tid},
             )
         )

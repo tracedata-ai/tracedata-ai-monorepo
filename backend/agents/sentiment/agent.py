@@ -24,7 +24,8 @@ EMOTION_ANCHORS: dict[str, tuple[str, ...]] = {
     "sadness": ("sad", "down", "low", "discouraged", "upset", "disappointed"),
 }
 
-SENTIMENT_EXPLANATION_SYSTEM_PROMPT = """You are the Sentiment Explanation Agent in the TraceData platform.
+SENTIMENT_EXPLANATION_SYSTEM_PROMPT = (
+    """You are the Sentiment Explanation Agent in the TraceData platform.
 Your task is to explain the emotional assessment result for a truck driver in a simple, professional, business-focused way.
 
 Important rules:
@@ -53,6 +54,7 @@ Style samples for the explanation paragraph:
 4. "The current reading shows a modest decline in emotional stability, driven by stress-related signals rather than a severe concern. This is important operationally because attention and decision quality may be less consistent under pressure. A supportive check-in would help address the issue early."
 5. "The sentiment is balanced overall, but there is enough fatigue and irritation in the result to justify attention. The driver is not showing a critical issue, yet the pattern suggests the workload or schedule should be reviewed. A simple follow-up may prevent the signal from getting worse."
 """.strip()
+)
 
 
 class SentimentAgent(TDAgentBase):

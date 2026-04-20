@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { DashboardPageTemplate } from "@/components/shared/DashboardPageTemplate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,6 +13,7 @@ import { usePageAnimations } from "@/hooks/usePageAnimations";
 
 type FleetRow = {
   id: string;
+  displayId: string;
   licensePlate: string;
   model: string;
   status: string;
@@ -42,6 +44,7 @@ export default function FleetPage() {
   const [rows, setRows] = useState<FleetRow[]>([]);
   const [loading, setLoading] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
 
   usePageAnimations(containerRef, ".animate-card");
 
@@ -51,7 +54,8 @@ export default function FleetPage() {
         const vehicles = await getVehicles();
         setRows(
           vehicles.map((v: Vehicle, i: number) => ({
-            id: v.id.substring(0, 8),
+            id: v.id,
+            displayId: v.id.substring(0, 8),
             licensePlate: v.license_plate,
             model: v.model,
             status: v.status,
@@ -66,6 +70,10 @@ export default function FleetPage() {
     }
     loadFleet();
   }, []);
+
+  const handleVehicleClick = (vehicleId: string) => {
+    router.push(`/fleet-manager/fleet/${vehicleId}`);
+  };
 
   const stats = [
     { label: "Total Vehicles", value: loading ? "..." : rows.length.toString(), change: 1 },
@@ -133,6 +141,7 @@ export default function FleetPage() {
                       fuelLevel={r.fuelLevel}
                       hasOpenMaintenance={r.hasOpenMaintenance}
                       imageIndex={i}
+                      onClick={() => handleVehicleClick(r.id)}
                     />
                   ))}
                 </div>

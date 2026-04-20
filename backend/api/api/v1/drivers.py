@@ -201,7 +201,12 @@ async def get_driver_profile(
                    COUNT(*) FILTER (WHERE h.severity = 'critical')   AS critical_events,
                    COUNT(*) FILTER (WHERE sd.decision = 'escalate')  AS escalated_events
             FROM   safety_schema.harsh_events_analysis h
-            JOIN   trips t ON t.id = h.trip_id::uuid
+            JOIN   trips t ON t.id = (
+                CASE
+                    WHEN h.trip_id ~ '^[0-9a-fA-F-]{36}$' THEN h.trip_id::uuid
+                    ELSE NULL
+                END
+            )
             LEFT JOIN safety_schema.safety_decisions sd ON sd.event_id = h.event_id
             WHERE  t.driver_id = :did
         """),
@@ -223,7 +228,12 @@ async def get_driver_profile(
                    h.event_timestamp, h.lat, h.lon,
                    sd.decision
             FROM   safety_schema.harsh_events_analysis h
-            JOIN   trips t ON t.id = h.trip_id::uuid
+            JOIN   trips t ON t.id = (
+                CASE
+                    WHEN h.trip_id ~ '^[0-9a-fA-F-]{36}$' THEN h.trip_id::uuid
+                    ELSE NULL
+                END
+            )
             LEFT JOIN safety_schema.safety_decisions sd ON sd.event_id = h.event_id
             WHERE  t.driver_id = :did
             ORDER  BY h.event_timestamp DESC
@@ -262,7 +272,12 @@ async def get_driver_profile(
                 text("""
             SELECT c.coaching_category, c.priority, c.message, c.created_at
             FROM   coaching_schema.coaching c
-            JOIN   trips t ON t.id = c.trip_id::uuid
+            JOIN   trips t ON t.id = (
+                CASE
+                    WHEN c.trip_id ~ '^[0-9a-fA-F-]{36}$' THEN c.trip_id::uuid
+                    ELSE NULL
+                END
+            )
             WHERE  t.driver_id = :did
             ORDER  BY c.created_at DESC
             LIMIT  10

@@ -259,10 +259,11 @@ async function apiGet<T>(path: string): Promise<T> {
     return (await response.json()) as T;
   } catch (error) {
     console.warn(`API call to ${path} failed, falling back to dummy data.`, error);
-    
+
     // Map path to dummy data key
     let key = "";
-    if (path.startsWith("/fleet")) key = "vehicles";
+    const isVehicleDetailPath = /^\/fleet\/[^/]+\/detail/.test(path);
+    if (path.startsWith("/fleet") && !isVehicleDetailPath) key = "vehicles";
     else if (path.startsWith("/drivers")) key = "drivers";
     else if (path.startsWith("/trips")) key = "trips";
     else if (path.startsWith("/routes")) key = "routes";
@@ -270,6 +271,54 @@ async function apiGet<T>(path: string): Promise<T> {
     else if (path.startsWith("/maintenance")) key = "maintenance";
     else if (path.startsWith("/tenants")) key = "tenants";
     
+    if (isVehicleDetailPath) {
+      try {
+        const fallbackResponse = await fetch("/data/dummy-data.json");
+        if (!fallbackResponse.ok) throw new Error("Fallback file not found");
+        const fallbackData = await fallbackResponse.json();
+
+        const vehicleId = path.split("/")[2];
+        const vehicle = (fallbackData.vehicles || []).find((v: { id: string }) => v.id === vehicleId);
+        const trips = (fallbackData.trips || []).filter((t: { vehicle_id: string }) => t.vehicle_id === vehicleId);
+        const routesById = new Map<string, { id: string; name?: string }>(
+          (fallbackData.routes || []).map((route: { id: string; name?: string }) => [route.id, route]),
+        );
+        const drivers = Array.from(new Set(trips.map((t: { driver_id: string }) => t.driver_id)));
+
+        const vehicleDetailFallback = {
+          vehicle: vehicle || {
+            id: vehicleId,
+            license_plate: "Unknown",
+            model: "Unknown",
+            status: "unknown",
+            fuel_level: 0,
+            created_at: null,
+          },
+          statistics: {
+            total_trips: trips.length,
+            total_drivers: drivers.length,
+            avg_score: 0,
+          },
+          trips: trips.map((t: { id: string; driver_id: string; created_at: string; status: string; safety_score?: number | null }) => ({
+            id: t.id,
+            driver_id: t.driver_id,
+            created_at: t.created_at,
+            status: t.status,
+            route_name: routesById.get((t as { route_id?: string }).route_id || "")?.name ?? null,
+            score: t.safety_score ?? null,
+          })),
+          drivers,
+          events_by_type: {},
+          safety_events: [],
+        };
+
+        return vehicleDetailFallback as T;
+      } catch (fallbackError) {
+        console.error("Vehicle detail fallback failed:", fallbackError);
+        throw error;
+      }
+    }
+
     if (key) {
       try {
         const fallbackResponse = await fetch('/data/dummy-data.json');
@@ -347,6 +396,65 @@ export async function getBackendHealth(): Promise<BackendHealth> {
 export async function getVehicles(tenantId?: string): Promise<Vehicle[]> {
   const query = tenantId ? `?tenant_id=${tenantId}` : "";
   return apiGet<Vehicle[]>(`/fleet/${query}`);
+}
+
+export type VehicleDetail = {
+  vehicle: {
+    id: string;
+    license_plate: string;
+    model: string;
+    status: string;
+    fuel_level: number;
+    created_at: string | null;
+  };
+  statistics: {
+    total_trips: number;
+    total_drivers: number;
+    avg_score: number;
+  };
+  trips: Array<{
+    id: string;
+    driver_id: string;
+    created_at: string | null;
+    status: string;
+    route_name: string | null;
+    score: number | null;
+  }>;
+  drivers: string[];
+  events_by_type: Record<
+    string,
+    Array<{
+      event_id: string;
+      device_event_id: string;
+      timestamp: string;
+      lat: number | null;
+      lon: number | null;
+      details: Record<string, unknown>;
+      category: string | null;
+      priority: string | null;
+      status: string;
+    }>
+  >;
+  safety_events: Array<{
+    event_id: string;
+    trip_id: string;
+    event_type: string;
+    severity: string;
+    event_timestamp: string | null;
+    lat: number | null;
+    lon: number | null;
+    location_name: string | null;
+    traffic_conditions: string | null;
+    weather_conditions: string | null;
+    decision: string | null;
+    action: string | null;
+    reason: string | null;
+    recommended_action: string | null;
+  }>;
+};
+
+export async function getVehicleDetail(vehicleId: string): Promise<VehicleDetail> {
+  return apiGet<VehicleDetail>(`/fleet/${vehicleId}/detail`);
 }
 
 export async function getDrivers(tenantId?: string): Promise<Driver[]> {

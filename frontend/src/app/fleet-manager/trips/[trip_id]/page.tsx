@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, MapPin, Shield, Brain, MessageSquare, Smile, Star } from "lucide-react";
+import { ArrowLeft, MapPin, Shield, Brain, MessageSquare, Smile, Star, CloudSun, Route, Eye } from "lucide-react";
 import {
   Chart as ChartJS,
   ArcElement,
@@ -62,6 +62,86 @@ function LV({ label, value }: { label: string; value: React.ReactNode }) {
       <span className="text-sm font-medium">{value ?? "—"}</span>
     </div>
   );
+}
+
+function ConditionChip({
+  label,
+  value,
+  icon,
+  tone = "neutral",
+}: {
+  label: string;
+  value: string;
+  icon: React.ReactNode;
+  tone?: "good" | "warn" | "bad" | "neutral";
+}) {
+  const toneClass: Record<string, string> = {
+    good: "border-emerald-500/30 bg-emerald-500/10 text-emerald-300",
+    warn: "border-amber-500/30 bg-amber-500/10 text-amber-300",
+    bad: "border-rose-500/30 bg-rose-500/10 text-rose-300",
+    neutral: "border-border bg-muted/40 text-cyan-300",
+  };
+
+  return (
+    <div className={`flex items-center gap-3 rounded-xl border px-3 py-3 ${toneClass[tone]}`}>
+      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-900/70">
+        {icon}
+      </div>
+      <div className="min-w-0">
+        <p className="text-[10px] uppercase tracking-widest text-muted-foreground">{label}</p>
+        <p className="truncate text-sm font-semibold text-foreground">{value}</p>
+      </div>
+    </div>
+  );
+}
+
+function computeVisibility(weather: string | null, timestamp: string | null): string {
+  const weatherText = (weather || "").toLowerCase();
+  const hour = timestamp ? new Date(timestamp).getHours() : 12;
+
+  if (weatherText.includes("rain") || weatherText.includes("storm") || weatherText.includes("fog")) {
+    return "Low";
+  }
+  if (hour < 6 || hour >= 19) {
+    return "Medium";
+  }
+  return "Good";
+}
+
+function getWeatherTone(weather: string): "good" | "warn" | "bad" | "neutral" {
+  const text = weather.toLowerCase();
+  if (text.includes("storm") || text.includes("thunder")) return "bad";
+  if (text.includes("rain") || text.includes("fog") || text.includes("haze")) return "warn";
+  if (text.includes("clear") || text.includes("sun")) return "good";
+  return "neutral";
+}
+
+function getRoadTone(road: string): "good" | "warn" | "bad" | "neutral" {
+  const text = road.toLowerCase();
+  if (text.includes("severe") || text.includes("gridlock") || text.includes("heavy")) return "bad";
+  if (text.includes("moderate") || text.includes("slow")) return "warn";
+  if (text.includes("light") || text.includes("free") || text.includes("normal")) return "good";
+  return "neutral";
+}
+
+function getVisibilityTone(visibility: string): "good" | "warn" | "bad" | "neutral" {
+  const text = visibility.toLowerCase();
+  if (text === "low") return "bad";
+  if (text === "medium") return "warn";
+  if (text === "good") return "good";
+  return "neutral";
+}
+
+function weatherCodeToLabel(code: number): string {
+  if (code === 0) return "Clear";
+  if ([1, 2].includes(code)) return "Partly Cloudy";
+  if (code === 3) return "Overcast";
+  if ([45, 48].includes(code)) return "Fog";
+  if ([51, 53, 55, 56, 57].includes(code)) return "Drizzle";
+  if ([61, 63, 65, 66, 67, 80, 81, 82].includes(code)) return "Rain";
+  if ([71, 73, 75, 77, 85, 86].includes(code)) return "Snow";
+  if ([95, 96, 99].includes(code)) return "Thunderstorm";
+  return "Weather Unavailable";
 }
 
 // ── Score Gauge ───────────────────────────────────────────────────────────────
@@ -469,6 +549,7 @@ export default function TripDetailPage() {
   const [detail, setDetail] = useState<TripDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [liveWeather, setLiveWeather] = useState<string | null>(null);
 
   useEffect(() => {
     getTripDetail(tripId)
@@ -476,6 +557,36 @@ export default function TripDetailPage() {
       .catch(() => setNotFound(true))
       .finally(() => setLoading(false));
   }, [tripId]);
+
+  useEffect(() => {
+    async function hydrateWeatherFromCoords() {
+      if (!detail) return;
+
+      const latestConditionEvent = [...detail.safety_events]
+        .reverse()
+        .find((e) => e.weather || e.traffic || e.timestamp) || null;
+      if (latestConditionEvent?.weather) return;
+
+      const coordEvent = detail.safety_events.find((e) => e.lat != null && e.lon != null);
+      if (coordEvent?.lat == null || coordEvent?.lon == null) return;
+
+      try {
+        const response = await fetch(
+          `https://api.open-meteo.com/v1/forecast?latitude=${coordEvent.lat}&longitude=${coordEvent.lon}&current=weather_code&timezone=auto`
+        );
+        if (!response.ok) return;
+        const payload = await response.json();
+        const code = payload?.current?.weather_code;
+        if (typeof code === "number") {
+          setLiveWeather(weatherCodeToLabel(code));
+        }
+      } catch {
+        setLiveWeather(null);
+      }
+    }
+
+    hydrateWeatherFromCoords();
+  }, [detail]);
 
   if (loading) {
     return (
@@ -513,6 +624,15 @@ export default function TripDetailPage() {
   const escalated = detail.safety_events.filter(
     (e) => e.decision?.toLowerCase() === "escalate"
   ).length;
+  const latestConditionEvent = [...detail.safety_events]
+    .reverse()
+    .find((e) => e.weather || e.traffic || e.timestamp) || null;
+  const weatherCondition = latestConditionEvent?.weather || liveWeather || "Not Reported";
+  const roadCondition = latestConditionEvent?.traffic || "Normal";
+  const visibilityCondition = computeVisibility(
+    latestConditionEvent?.weather ?? liveWeather ?? null,
+    latestConditionEvent?.timestamp ?? detail.created_at
+  );
 
   return (
     <div className="p-6 space-y-6 max-w-5xl mx-auto">
@@ -552,6 +672,32 @@ export default function TripDetailPage() {
             value={detail.created_at ? new Date(detail.created_at).toLocaleString() : null}
           />
           <LV label="Safety Events" value={detail.safety_events.length.toString()} />
+        </CardContent>
+      </Card>
+
+      <Card className="rounded-xl">
+        <CardHeader>
+          <CardTitle className="text-sm">Conditions Snapshot</CardTitle>
+        </CardHeader>
+        <CardContent className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <ConditionChip
+            label="Weather"
+            value={weatherCondition}
+            tone={getWeatherTone(weatherCondition)}
+            icon={<CloudSun className="h-4 w-4" />}
+          />
+          <ConditionChip
+            label="Road Condition"
+            value={roadCondition}
+            tone={getRoadTone(roadCondition)}
+            icon={<Route className="h-4 w-4" />}
+          />
+          <ConditionChip
+            label="Visibility"
+            value={visibilityCondition}
+            tone={getVisibilityTone(visibilityCondition)}
+            icon={<Eye className="h-4 w-4" />}
+          />
         </CardContent>
       </Card>
 

@@ -44,7 +44,8 @@ async def search_embeddings(
     rows = (
         (
             await db.execute(
-                text("""
+                text(
+                    """
             SELECT id, content_type, source_id, driver_id, trip_id, content, created_at,
                    1 - (embedding <=> cast(:vec as vector)) AS similarity
             FROM   vector_schema.embeddings
@@ -53,7 +54,8 @@ async def search_embeddings(
               AND  (:driver_id IS NULL OR driver_id = :driver_id)
             ORDER  BY embedding <=> cast(:vec as vector)
             LIMIT  :limit
-        """),
+        """
+                ),
                 params,
             )
         )
@@ -86,7 +88,8 @@ async def related_events(
     rows = (
         (
             await db.execute(
-                text("""
+                text(
+                    """
             WITH target AS (
                 SELECT embedding
                 FROM   vector_schema.embeddings
@@ -107,7 +110,8 @@ async def related_events(
                 h.lon,
                 sd.decision,
                 sd.reason
-            FROM   vector_schema.embeddings e, target t
+            FROM   vector_schema.embeddings e
+            CROSS JOIN target t
             LEFT JOIN safety_schema.harsh_events_analysis h  ON h.event_id = e.source_id
             LEFT JOIN safety_schema.safety_decisions      sd ON sd.event_id = e.source_id
             WHERE  e.content_type = 'safety_decision'
@@ -115,7 +119,8 @@ async def related_events(
               AND  e.embedding    IS NOT NULL
             ORDER  BY e.embedding <=> t.embedding
             LIMIT  :limit
-                """),
+                """
+                ),
                 {"eid": event_id, "limit": limit},
             )
         )
@@ -145,10 +150,20 @@ async def related_events(
 
 @router.get("/stats", summary="Count of stored embeddings by type")
 async def embedding_stats(db: AsyncSession = Depends(get_db)) -> list[dict]:
-    rows = (await db.execute(text("""
+    rows = (
+        (
+            await db.execute(
+                text(
+                    """
             SELECT content_type, COUNT(*) AS total
             FROM   vector_schema.embeddings
             GROUP  BY content_type
             ORDER  BY total DESC
-        """))).mappings().all()
+        """
+                )
+            )
+        )
+        .mappings()
+        .all()
+    )
     return [{"content_type": r["content_type"], "total": int(r["total"])} for r in rows]
