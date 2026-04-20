@@ -21,7 +21,7 @@ spec:
     spec:
       containers:
         - name: tracedata-orchestrator
-          image: sreerajrone/tracedata-backend-agent-api:sha-3628d01  # backend-tag
+          image: sreerajrone/tracedata-backend-agent-api:v.1.4.0.0.2026171.40  # backend-tag
           imagePullPolicy: Always
           command:
             - python
