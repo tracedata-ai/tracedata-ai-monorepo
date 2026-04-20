@@ -21,7 +21,7 @@ spec:
     spec:
       containers:
         - name: tracedata-sentiment-worker
-          image: sreerajrone/tracedata-backend-agent-api:v.1.4.0.0.202616.7  # backend-tag
+          image: sreerajrone/tracedata-backend-agent-api:sha-9a4a73a  # backend-tag
           imagePullPolicy: Always
           command:
             - celery
