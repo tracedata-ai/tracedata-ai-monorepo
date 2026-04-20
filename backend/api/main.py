@@ -300,7 +300,9 @@ Instrumentator().instrument(app).expose(app)
 # Note: Cannot use "*" with allow_credentials=True per CORS spec
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[o.strip() for o in settings.cors_allowed_origins.split(",") if o.strip()],
+    allow_origins=[
+        o.strip() for o in settings.cors_allowed_origins.split(",") if o.strip()
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
