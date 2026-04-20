@@ -116,8 +116,7 @@ async def get_vehicle_detail(
     trips_rows = (
         (
             await db.execute(
-                text(
-                    """
+                text("""
                     SELECT t.id,
                            t.driver_id,
                            t.created_at,
@@ -130,8 +129,7 @@ async def get_vehicle_detail(
                       WHERE t.vehicle_id = :vehicle_id
                     ORDER BY t.created_at DESC
                     LIMIT 1000
-                    """
-                ),
+                    """),
                 {"vehicle_id": str(vehicle_id)},
             )
         )
@@ -152,8 +150,7 @@ async def get_vehicle_detail(
         rows = (
             (
                 await db.execute(
-                    text(
-                        """
+                    text("""
                     SELECT 
                         event_type, 
                         event_id,
@@ -168,8 +165,7 @@ async def get_vehicle_detail(
                     FROM pipeline_events 
                     WHERE trip_id = ANY(:trip_ids)
                     ORDER BY timestamp ASC
-                    """
-                    ),
+                    """),
                     {"trip_ids": trip_ids},
                 )
             )
@@ -206,8 +202,7 @@ async def get_vehicle_detail(
         safety_rows = (
             (
                 await db.execute(
-                    text(
-                        """
+                    text("""
                         SELECT h.event_id,
                                h.trip_id,
                                h.event_type,
@@ -227,8 +222,7 @@ async def get_vehicle_detail(
                         WHERE h.trip_id = ANY(:trip_ids)
                         ORDER BY h.event_timestamp DESC
                         LIMIT 10
-                        """
-                    ),
+                        """),
                     {"trip_ids": trip_ids},
                 )
             )
@@ -243,8 +237,7 @@ async def get_vehicle_detail(
             trip_scores = (
                 (
                     await db.execute(
-                        text(
-                            """
+                        text("""
                     SELECT 
                         trip_id,
                         score,
@@ -252,8 +245,7 @@ async def get_vehicle_detail(
                         FALSE as coaching_required
                     FROM scoring_schema.trip_scores
                     WHERE trip_id = ANY(:trip_ids)
-                    """
-                        ),
+                    """),
                         {"trip_ids": trip_ids},
                     )
                 )
