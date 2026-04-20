@@ -112,11 +112,20 @@ class ScoringAgent(TDAgentBase):
         from agents.orchestrator.coaching_followup import (
             schedule_coaching_ready_if_pending,
         )
+        from agents.orchestrator.feedback_followup import (
+            inject_driver_feedback_if_absent,
+        )
 
         await schedule_coaching_ready_if_pending(
             redis=self._redis,
             engine=self._engine,
             trip_id=capsule.trip_id,
+        )
+        await inject_driver_feedback_if_absent(
+            redis=self._redis,
+            engine=self._engine,
+            trip_id=capsule.trip_id,
+            score=float(result.get("score", 0)),
         )
         return result
 
@@ -237,6 +246,9 @@ class ScoringAgent(TDAgentBase):
             }
             if suggested_coaching:
                 out["suggested_coaching"] = suggested_coaching
+
+            narrative = await self._generate_narrative(score_id, trip_id, score_payload)
+            out["scoring_narrative"] = narrative
             return out
 
         except Exception as e:
