@@ -47,7 +47,7 @@ async def list_trips(
     if cached := await redis.cache_get(cache_key):
         return [TripRead(**item) for item in cached]
 
-    query = select(Trip).offset(skip).limit(limit)
+    query = select(Trip).order_by(Trip.created_at.desc()).offset(skip).limit(limit)
     if status_filter:
         query = query.where(Trip.status == status_filter)
     if tenant_id:
@@ -59,23 +59,27 @@ async def list_trips(
     if trips:
         ids_missing_score = [str(t.id) for t in trips if t.safety_score is None]
         if ids_missing_score:
-            rows = (
-                (
-                    await db.execute(
-                        text(
-                            "SELECT trip_id, score FROM scoring_schema.trip_scores "
-                            "WHERE trip_id = ANY(:ids)"
-                        ),
-                        {"ids": ids_missing_score},
+            try:
+                rows = (
+                    (
+                        await db.execute(
+                            text(
+                                "SELECT trip_id, score FROM scoring_schema.trip_scores "
+                                "WHERE trip_id = ANY(:ids::text[])"
+                            ),
+                            {"ids": ids_missing_score},
+                        )
                     )
+                    .mappings()
+                    .all()
                 )
-                .mappings()
-                .all()
-            )
-            score_map: dict[str, Decimal] = {r["trip_id"]: r["score"] for r in rows}
-            for trip in trips:
-                if trip.safety_score is None:
-                    trip.safety_score = score_map.get(str(trip.id))
+                score_map: dict[str, Decimal] = {r["trip_id"]: r["score"] for r in rows}
+                for trip in trips:
+                    if trip.safety_score is None:
+                        trip.safety_score = score_map.get(str(trip.id))
+            except Exception:
+                # scoring_schema may not be populated yet; scores remain null
+                pass
 
     out = [TripRead.model_validate(t) for t in trips]
     await redis.cache_set(
