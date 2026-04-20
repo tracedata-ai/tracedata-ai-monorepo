@@ -309,7 +309,7 @@ class EventsRepo:
                 """),
                 {"ttl": lock_ttl_minutes},
             )
-            recovered = [dict(row) for row in result.fetchall()]
+            recovered = [dict(row._mapping) for row in result.fetchall()]
 
         if recovered:
             logger.warning(

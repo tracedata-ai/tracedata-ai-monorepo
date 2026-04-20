@@ -257,7 +257,7 @@ async def get_vehicle_detail(
             trip_scores = ()
 
     score_map: dict[str, dict[str, Any]] = {
-        str(row["trip_id"]): dict(row) for row in trip_scores
+        str(row._mapping["trip_id"]): dict(row._mapping) for row in trip_scores
     }
     total_trips = len(trips_rows)
     avg_score = (
