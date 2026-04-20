@@ -44,7 +44,12 @@ _LIST_SQL = text("""
         dr.last_name
     FROM safety_schema.harsh_events_analysis h
     LEFT JOIN safety_schema.safety_decisions d ON d.event_id = h.event_id
-    LEFT JOIN public.trips t ON t.id = h.trip_id::uuid
+    LEFT JOIN public.trips t ON t.id = (
+        CASE
+            WHEN h.trip_id ~ '^[0-9a-fA-F-]{36}$' THEN h.trip_id::uuid
+            ELSE NULL
+        END
+    )
     LEFT JOIN public.drivers dr ON dr.id = t.driver_id
     ORDER BY h.created_at DESC
     LIMIT :limit OFFSET :offset
@@ -74,7 +79,12 @@ _DETAIL_SQL = text("""
         dr.last_name
     FROM safety_schema.harsh_events_analysis h
     LEFT JOIN safety_schema.safety_decisions d ON d.event_id = h.event_id
-    LEFT JOIN public.trips t ON t.id = h.trip_id::uuid
+    LEFT JOIN public.trips t ON t.id = (
+        CASE
+            WHEN h.trip_id ~ '^[0-9a-fA-F-]{36}$' THEN h.trip_id::uuid
+            ELSE NULL
+        END
+    )
     LEFT JOIN public.drivers dr ON dr.id = t.driver_id
     WHERE h.event_id = :event_id
     LIMIT 1

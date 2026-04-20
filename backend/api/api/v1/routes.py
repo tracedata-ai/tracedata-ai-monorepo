@@ -71,7 +71,12 @@ async def route_heatmap(
     sql = text("""
         SELECT h.lat, h.lon, h.severity, h.event_type
         FROM safety_schema.harsh_events_analysis h
-        JOIN public.trips t ON t.id = h.trip_id::uuid
+        JOIN public.trips t ON t.id = (
+            CASE
+                WHEN h.trip_id ~ '^[0-9a-fA-F-]{36}$' THEN h.trip_id::uuid
+                ELSE NULL
+            END
+        )
         WHERE t.route_id = :route_id
           AND h.lat IS NOT NULL
           AND h.lon IS NOT NULL

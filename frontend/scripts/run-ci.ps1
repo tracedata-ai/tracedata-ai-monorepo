@@ -26,22 +26,32 @@ function Write-Failure ([string]$msg) {
     Write-Host "❌ $msg" -ForegroundColor Red
 }
 
+function Invoke-CheckedCommand (
+    [scriptblock]$Command,
+    [string]$FailureMessage
+) {
+    & $Command
+    if ($LASTEXITCODE -ne 0) {
+        throw "$FailureMessage (exit code: $LASTEXITCODE)"
+    }
+}
+
 try {
     Write-Step "Installing dependencies (npm ci)..."
-    npm ci
+    Invoke-CheckedCommand { npm ci } "Dependency installation failed"
     Write-Success "Dependencies installed."
 
     Write-Step "Running Parallel Static Analysis (Lint, Type Check, Audit)..."
     # We use 'npm run validate' which uses npm-run-all for robust parallel execution
-    npm run validate
+    Invoke-CheckedCommand { npm run validate } "Static analysis failed"
     Write-Success "Static analysis passed."
 
     Write-Step "Running logic checks (npm test)..."
-    npm test
+    Invoke-CheckedCommand { npm test } "Test execution failed"
     Write-Success "All tests passed."
 
     Write-Step "Building production bundle (npm run build)..."
-    npm run build
+    Invoke-CheckedCommand { npm run build } "Build failed"
     Write-Success "Build successful."
 
     Write-Host "`n✨ CI Checks Passed Locally! Ready to push." -ForegroundColor Green -BackgroundColor Black

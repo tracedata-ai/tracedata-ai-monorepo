@@ -408,6 +408,7 @@ class ScoringAgent(TDAgentBase):
 
         user_msg = build_narrative_user_message(
             score_label=score_label,
+            score_breakdown=score_payload.get("score_breakdown", {}),
             top_features=top_features,
             coaching_required=coaching_required,
             coaching_reasons=coaching_reasons,

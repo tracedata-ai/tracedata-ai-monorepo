@@ -107,7 +107,8 @@ async def related_events(
                 h.lon,
                 sd.decision,
                 sd.reason
-            FROM   vector_schema.embeddings e, target t
+            FROM   vector_schema.embeddings e
+            CROSS JOIN target t
             LEFT JOIN safety_schema.harsh_events_analysis h  ON h.event_id = e.source_id
             LEFT JOIN safety_schema.safety_decisions      sd ON sd.event_id = e.source_id
             WHERE  e.content_type = 'safety_decision'

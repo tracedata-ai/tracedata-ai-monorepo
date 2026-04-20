@@ -14,7 +14,11 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from agents.scoring.features import score_gpa_from_value, score_label_from_value
+from agents.scoring.features import (
+    metrics_from_smoothness_details,
+    score_gpa_from_value,
+    score_label_from_value,
+)
 from api.api.deps import get_db, get_redis
 from api.models.trip import Trip
 from api.schemas.trip import TripCreate, TripRead
@@ -148,6 +152,52 @@ async def get_trip_detail(
         .first()
     )
 
+    smoothness_rows = (
+        (
+            await db.execute(
+                text("""
+                    SELECT timestamp, details
+                    FROM   pipeline_events
+                    WHERE  trip_id = :tid
+                    AND    event_type = 'smoothness_log'
+                    ORDER  BY timestamp ASC
+                    """),
+                {"tid": tid},
+            )
+        )
+        .mappings()
+        .all()
+    )
+
+    def _as_float(value: Any) -> float | None:
+        try:
+            if value is None:
+                return None
+            return float(value)
+        except (TypeError, ValueError):
+            return None
+
+    smoothness_points: list[dict[str, Any]] = []
+    for row in smoothness_rows:
+        details = row.get("details")
+        if not isinstance(details, dict):
+            details = {}
+
+        metrics = metrics_from_smoothness_details(details)
+
+        point = {
+            "timestamp": row["timestamp"].isoformat() if row.get("timestamp") else None,
+            "jerk_mean": _as_float(metrics.get("jerk_mean")),
+            "jerk_max": _as_float(metrics.get("jerk_max")),
+            "speed_std_dev": _as_float(metrics.get("speed_std")),
+            "mean_lateral_g": _as_float(metrics.get("lateral_mean")),
+            "max_lateral_g": _as_float(metrics.get("lateral_max")),
+            "engine_load_avg": _as_float(metrics.get("mean_rpm")),
+        }
+
+        if any(v is not None for k, v in point.items() if k != "timestamp"):
+            smoothness_points.append(point)
+
     # Driver score: average of all scored trips for this driver, mapped to 0–5
     driver_score: float | None = None
     if score_row:
@@ -234,6 +284,7 @@ async def get_trip_detail(
             "breakdown": (
                 dict(score_row.get("score_breakdown") or {}) if score_row else {}
             ),
+            "smoothness_points": smoothness_points,
             "narrative": score_row.get("scoring_narrative") if score_row else None,
             "score_label": (
                 score_label_from_value(float(score_row["score"]))

@@ -1,6 +1,7 @@
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from redis.exceptions import ResponseError as RedisResponseError
 
 from tasks import watchdog_tasks
 
@@ -26,7 +27,13 @@ async def test_collect_queue_sizes_prefers_zcard_then_llen():
     redis._client = AsyncMock()
 
     async def zcard_side_effect(key):
-        return 2 if key == "td:ingestion:events" else 0
+        if key == "td:ingestion:events":
+            return 2
+        if key == "td:agent:safety":
+            raise RedisResponseError(
+                "WRONGTYPE Operation against a key holding the wrong kind of value"
+            )
+        return 0
 
     async def llen_side_effect(_key):
         return 5
