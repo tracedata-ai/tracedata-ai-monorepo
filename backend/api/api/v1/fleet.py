@@ -14,10 +14,12 @@ This is a READ-heavy skeleton. The pattern for every router is:
 """
 
 import uuid
+from collections.abc import Sequence
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select, text
+from sqlalchemy.engine import RowMapping
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.api.deps import get_db, get_redis
@@ -114,7 +116,8 @@ async def get_vehicle_detail(
     trips_rows = (
         (
             await db.execute(
-                text("""
+                text(
+                    """
                     SELECT t.id,
                            t.driver_id,
                            t.created_at,
@@ -127,7 +130,8 @@ async def get_vehicle_detail(
                       WHERE t.vehicle_id = :vehicle_id
                     ORDER BY t.created_at DESC
                     LIMIT 1000
-                    """),
+                    """
+                ),
                 {"vehicle_id": str(vehicle_id)},
             )
         )
@@ -148,7 +152,8 @@ async def get_vehicle_detail(
         rows = (
             (
                 await db.execute(
-                    text("""
+                    text(
+                        """
                     SELECT 
                         event_type, 
                         event_id,
@@ -163,7 +168,8 @@ async def get_vehicle_detail(
                     FROM pipeline_events 
                     WHERE trip_id = ANY(:trip_ids)
                     ORDER BY timestamp ASC
-                    """),
+                    """
+                    ),
                     {"trip_ids": trip_ids},
                 )
             )
@@ -195,12 +201,13 @@ async def get_vehicle_detail(
             events_by_type[event_type] = events_by_type[event_type][-limit:]
 
     # Vehicle-scoped safety events for the same trip set
-    safety_rows = []
+    safety_rows: Sequence[RowMapping] = ()
     if trip_ids:
         safety_rows = (
             (
                 await db.execute(
-                    text("""
+                    text(
+                        """
                         SELECT h.event_id,
                                h.trip_id,
                                h.event_type,
@@ -220,7 +227,8 @@ async def get_vehicle_detail(
                         WHERE h.trip_id = ANY(:trip_ids)
                         ORDER BY h.event_timestamp DESC
                         LIMIT 10
-                        """),
+                        """
+                    ),
                     {"trip_ids": trip_ids},
                 )
             )
@@ -229,13 +237,14 @@ async def get_vehicle_detail(
         )
 
     # Get trip score summary
-    trip_scores = []
+    trip_scores: Sequence[RowMapping] = ()
     if trip_ids:
         try:
             trip_scores = (
                 (
                     await db.execute(
-                        text("""
+                        text(
+                            """
                     SELECT 
                         trip_id,
                         score,
@@ -243,7 +252,8 @@ async def get_vehicle_detail(
                         FALSE as coaching_required
                     FROM scoring_schema.trip_scores
                     WHERE trip_id = ANY(:trip_ids)
-                    """),
+                    """
+                        ),
                         {"trip_ids": trip_ids},
                     )
                 )
@@ -252,9 +262,11 @@ async def get_vehicle_detail(
             )
         except Exception:
             # Scoring schema may not be populated yet, continue with empty scores
-            trip_scores = []
+            trip_scores = ()
 
-    score_map = {str(row["trip_id"]): row for row in trip_scores}
+    score_map: dict[str, dict[str, Any]] = {
+        str(row["trip_id"]): dict(row) for row in trip_scores
+    }
     total_trips = len(trips_rows)
     avg_score = (
         sum(float(row.get("score") or 0) for row in trips_rows) / max(total_trips, 1)
