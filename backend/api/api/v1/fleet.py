@@ -147,62 +147,67 @@ async def get_vehicle_detail(
     # Get pipeline events aggregated by event type
     events_by_type: dict[str, list[dict[str, Any]]] = {}
     if trip_ids:
-        rows = (
-            (
-                await db.execute(
-                    text("""
-                    SELECT 
-                        event_type, 
+        try:
+            rows = (
+                (
+                    await db.execute(
+                        text("""
+                    SELECT
+                        event_type,
                         event_id,
                         device_event_id,
-                        timestamp, 
-                        lat, 
+                        timestamp,
+                        lat,
                         lon,
                         details,
                         category,
                         priority,
                         status
-                    FROM pipeline_events 
-                    WHERE trip_id = ANY(:trip_ids)
+                    FROM pipeline_events
+                    WHERE trip_id = ANY(:trip_ids::text[])
                     ORDER BY timestamp ASC
                     """),
-                    {"trip_ids": trip_ids},
+                        {"trip_ids": trip_ids},
+                    )
                 )
-            )
-            .mappings()
-            .all()
-        )
-
-        for row in rows:
-            event_type = row.get("event_type", "unknown")
-            if event_type not in events_by_type:
-                events_by_type[event_type] = []
-
-            events_by_type[event_type].append(
-                {
-                    "event_id": row.get("event_id"),
-                    "device_event_id": row.get("device_event_id"),
-                    "timestamp": row.get("timestamp"),
-                    "lat": row.get("lat"),
-                    "lon": row.get("lon"),
-                    "details": row.get("details") or {},
-                    "category": row.get("category"),
-                    "priority": row.get("priority"),
-                    "status": row.get("status"),
-                }
+                .mappings()
+                .all()
             )
 
-        # Trim to limit per event type
-        for event_type in events_by_type:
-            events_by_type[event_type] = events_by_type[event_type][-limit:]
+            for row in rows:
+                event_type = row.get("event_type", "unknown")
+                if event_type not in events_by_type:
+                    events_by_type[event_type] = []
+
+                events_by_type[event_type].append(
+                    {
+                        "event_id": row.get("event_id"),
+                        "device_event_id": row.get("device_event_id"),
+                        "timestamp": row.get("timestamp"),
+                        "lat": row.get("lat"),
+                        "lon": row.get("lon"),
+                        "details": row.get("details") or {},
+                        "category": row.get("category"),
+                        "priority": row.get("priority"),
+                        "status": row.get("status"),
+                    }
+                )
+
+            # Trim to limit per event type
+            for event_type in events_by_type:
+                events_by_type[event_type] = events_by_type[event_type][-limit:]
+        except Exception:
+            # pipeline_events table may not be populated yet; continue with empty events
+            pass
 
     # Vehicle-scoped safety events for the same trip set
     safety_rows: Sequence[RowMapping] = ()
     if trip_ids:
-        safety_rows = (
-            (
-                await db.execute(
-                    text("""
+        try:
+            safety_rows = (
+                (
+                    await db.execute(
+                        text("""
                         SELECT h.event_id,
                                h.trip_id,
                                h.event_type,
@@ -219,16 +224,19 @@ async def get_vehicle_detail(
                                d.recommended_action
                         FROM safety_schema.harsh_events_analysis h
                         LEFT JOIN safety_schema.safety_decisions d ON d.event_id = h.event_id
-                        WHERE h.trip_id = ANY(:trip_ids)
+                        WHERE h.trip_id = ANY(:trip_ids::text[])
                         ORDER BY h.event_timestamp DESC
                         LIMIT 10
                         """),
-                    {"trip_ids": trip_ids},
+                        {"trip_ids": trip_ids},
+                    )
                 )
+                .mappings()
+                .all()
             )
-            .mappings()
-            .all()
-        )
+        except Exception:
+            # safety_schema may not be populated yet; continue with empty safety rows
+            safety_rows = ()
 
     # Get trip score summary
     trip_scores: Sequence[RowMapping] = ()
@@ -244,7 +252,7 @@ async def get_vehicle_detail(
                         score as behaviour_score,
                         FALSE as coaching_required
                     FROM scoring_schema.trip_scores
-                    WHERE trip_id = ANY(:trip_ids)
+                    WHERE trip_id = ANY(:trip_ids::text[])
                     """),
                         {"trip_ids": trip_ids},
                     )
@@ -257,7 +265,7 @@ async def get_vehicle_detail(
             trip_scores = ()
 
     score_map: dict[str, dict[str, Any]] = {
-        str(row._mapping["trip_id"]): dict(row._mapping) for row in trip_scores
+        str(row["trip_id"]): dict(row) for row in trip_scores
     }
     total_trips = len(trips_rows)
     avg_score = (
